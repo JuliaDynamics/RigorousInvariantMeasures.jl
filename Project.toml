@@ -1,0 +1,13 @@
+name = "InvariantMeasures"
+uuid = "07926553-d30c-41c2-8456-6c4d18765e90"
+authors = ["Isaia Nisoli <nisoli@im.ufrj.br> and contributors"]
+version = "0.1.0"
+
+[compat]
+julia = "1"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
