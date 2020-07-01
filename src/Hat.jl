@@ -77,15 +77,15 @@ end
 
 evaluate_integral(B::Hat, i, T) = T(i)/length(B)
 
-function Base.iterate(S::ContractingPairs{Hat}, state = 1) 
+function Base.iterate(S::AverageZero{Hat}, state = 1) 
 	n = length(S.basis)
 	if state == n
 		return nothing
 	end
 	v = zeros(Float64, n)
-	v[1] = 1/2
-	v[state+1]=-1/2
-	return ((v, 1/2), state+1)
+	v[1] = 1
+	v[state+1]=-1
+	return (v, state+1)
 end
 
 using RecipesBase

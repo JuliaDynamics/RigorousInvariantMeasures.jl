@@ -1,29 +1,15 @@
+module DynamicDefinition
+
 using ValidatedNumerics
+import TaylorSeries
 
-struct Mod1Dynamic <: Dynamic
-	T::Function
-	nbranches::Integer
-	orientation::Integer
-	domain::Interval
-end
+abstract type Dynamic end
+export der, der_der, der_n
 
-nbranches(S::Mod1Dynamic)=S.nbranches
-### for the moment we suppose T(0)=0
+der(S::Dynamic, x) = der_n(S, x, Val(1))
+der_der(S::Dynamic, x) = der_n(S, x, Val(2))
 
-function Mod1Dynamic(T::Function, nbranches = undef, domain::Interval{S} = Interval{Float64}(0,1)) where {S}
-	bound_values = T(1)-T(0)
-	nbranches = floor(Int64, abs(bound_values)) ### buggy
-	orientation = bound_values > 0 ? 1 : -1
-	return Mod1Dynamic(T, nbranches, orientation, domain)
-end
+der_n(S::Dynamic, x, n) = der_n(S, x, Val(n))
+der_n(S::Dynamic, x, Val{n}) where {n} = S.T(TaylorSeries.Taylor1([x, 1], n))[n]/factorial(n)
 
-plottable(S::Mod1Dynamic, x) = mod1(S.T(x), 1.0)
-der(S::Mod1Dynamic, x) = S.T(Dual(x, 1)).epsilon
-
-
-function preim(D::Mod1Dynamic, k, y, ϵ) 
-	# we need to treat the case with the other orientation, 0 not fixed point...
-	@assert k<= D.nbranches
-	f(x) = D.T(x)-D.T(0)-(y-D.T(0)+(k-1)*D.orientation)
-	root(f, D.domain, ϵ)
 end

@@ -1,3 +1,11 @@
+module UlamBasis
+
+using ..BasisDefinition, ..DynamicDefinition, ..Contractors, ..Mod1DynamicDefinition
+using ValidatedNumerics
+import Base: iterate
+
+export Ulam
+
 """
 Equispaced Ulam basis on [0,1] of size n 
 """
@@ -22,7 +30,7 @@ Base.getindex(b::Ulam, i) = Float64(i)/b.n
 This iterator returns the preimages of the endpoints 
 of the intervals defining the Ulam basis through the dynamic
 """
-function Base.iterate(S::DualComposedWithDynamic{Ulam, Mod1Dynamic}, state = (1, 1))
+function Base.iterate(S::DualComposedWithDynamic{Ulam, Dyn}, state = (1, 1)) where {Dyn<:Dynamic}
 	i, k = state
 	
 	if i == length(S.basis)+1
@@ -36,7 +44,7 @@ function Base.iterate(S::DualComposedWithDynamic{Ulam, Mod1Dynamic}, state = (1,
 	x₁ = preim(S.dynamic, k, getindex(S.basis, i-1), S.ϵ) 
 	x₂ = preim(S.dynamic, k, getindex(S.basis, i), S.ϵ)
 
-	lower, upper = sort([x₁, x₂])
+	lower, upper = x₁, x₂
 	
 	if k == nbranches(S.dynamic)
 		return ((i, (lower, upper)), (i+1, 1))
@@ -48,15 +56,7 @@ end
 """
 Returns the indices of the elements of the Ulam basis that intersect with the interval y
 """
-nonzero_on(B::Ulam, y) = max(floor(Int64, y[1].lo*length(B)), 1), min(ceil(Int64, y[2].hi*length(B)), length(B))
-
-"""
-Constructor for the ProjectDualElement iterator
-"""
-function ProjectDualElement(B::Ulam, y)
-	j_min, j_max = nonzero_on(B, y)
-	return ProjectDualElement(B, j_min, j_max, y)
-end
+BasisDefinition.nonzero_on(B::Ulam, y) = max(floor(Int64, y[1].lo*length(B)), 1), min(ceil(Int64, y[2].hi*length(B)), length(B))
 
 function relative_measure(S::Ulam, y, a, b)
 	lower = max(y[1], a)
@@ -80,7 +80,7 @@ function Base.iterate(S::ProjectDualElement{Ulam}, state = S.j_min)
 		    state+1) 
 end
 
-evaluate_integral(B::Ulam, i, T::Type)  = T(i)/length(B)
+BasisDefinition.evaluate_integral(B::Ulam, i, T::Type)  = T(i)/length(B)
 
 function Base.iterate(S::AverageZero{Ulam}, state = 1) 
 	n = length(S.basis)
@@ -97,12 +97,16 @@ SpaceConstant(B::Ulam, ::Val{:L1}) = 1
 SpaceConstant(B::Ulam, ::Val{:L∞}) = 1
 
 
+bound_weak_norm_from_linalg_norm(B::Ulam) = (1/length(B), 0.0)
+bound_linalg_norm_L1_from_weak(B::Ulam) = 1/length(B)
+bound_linalg_norm_L∞_from_weak(B::Ulam) = length(B) #this is defined for coherence
 
-
-
-
-
-
+function dfly(B::Ulam, D::Dynamic) 
+	distorsion(x) = der_der(D, x)/(der(D, x))^2
+	der_range = range_estimate(x->der(D, x), D.domain) 
+	distorsion_range = range_estimate(distorsion, D.domain)
+ 	return (1/abs(der_range)).hi, abs(distorsion_range).hi
+end
 
 using RecipesBase
 using LaTeXStrings
@@ -151,7 +155,6 @@ using LaTeXStrings
 	    G = x-> der(D, x)
 	    collect(B), G.(collect(B))
 	end
-
-
 end
 
+end

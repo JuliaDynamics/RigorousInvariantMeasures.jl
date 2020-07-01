@@ -1,10 +1,12 @@
 module BasisDefinition
+using ..DynamicDefinition
 
-export Basis, Dynamic, DualComposedWithDynamic, ProjectDualElement, assemble
+import Base
+
+export Basis, DualComposedWithDynamic, ProjectDualElement, AverageZero, assemble
+
 
 abstract type Basis end
-abstract type Dynamic end
-
 
 lenght(B::Basis) = @error "Not Implemented"
 
@@ -22,27 +24,16 @@ struct ProjectDualElement{B<:Basis}
 	j_max
 	dual_element
 end
+ProjectDualElement(basis::B, j_min, j_max, y) where {B} = ProjectDualElement{B}(basis, j_min, j_max, y)
 
-ProjectDualElement{B}(y) where {B} = @error "Not Implemented"
-Base.iterate(S::ProjectDualElement{B}, state) where {B} = @error "Not Implemented"
-
-using SparseArrays
-function assemble(B::Basis, D::Dynamic, ϵ=2^(-20); T = Float64, prec = 53)
-"""
-Very generic assembler function
-"""
-	n = length(B)
- 	P = spzeros(Interval{T}, n, n)
-
-
-	for (i, dual_element) in DualComposedWithDynamic(B, D, ϵ)
-		for (j, x) in ProjectDualElement(B, dual_element)
-			P[i,j] += x
-		end
-	end
-
-	return P
+function ProjectDualElement(B::Basis, y)
+ 	j_min, j_max = nonzero_on(B, y)
+ 	return ProjectDualElement(B, j_min, j_max, y)
 end
+
+
+
+Base.iterate(S::ProjectDualElement{B}, state) where {B} = @error "Not Implemented"
 
 nonzero_on(B::Basis, I) = @error "Not Implemented"
 evaluate(B::Basis, i, x) = @error "Not Implemented"
