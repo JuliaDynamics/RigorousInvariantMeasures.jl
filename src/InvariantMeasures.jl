@@ -7,13 +7,14 @@ include("Contractors.jl")
 include("DynamicDefinition.jl")
 # BasisDefinition uses the abstract Dynamic class
 include("BasisDefinition.jl")
+include("GenericAssembler.jl")
+
 
 include("Mod1Dynamic.jl")
 
 include("UlamBasis.jl")
 
 # Generic assembler
-include("GenericAssembler.jl")
 
 
 using .DynamicDefinition, .BasisDefinition, .Mod1DynamicDefinition, .UlamBasis, .GenericAssembler

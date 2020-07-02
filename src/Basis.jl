@@ -6,7 +6,9 @@ abstract type Basis end
 abstract type Dynamic end
 
 
-lenght(B::Basis) = @error "Not Implemented"
+Base.lenght(B::Basis) = @error "Not Implemented"
+Base.iterate(B::Basis) = @error "Not Implemented"
+Base.getindex(B::Basis) = @error "Not Implemented"
 
 struct DualComposedWithDynamic{B<:Basis, D<:Dynamic} 
 	basis::B
