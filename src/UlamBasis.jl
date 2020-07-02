@@ -1,7 +1,7 @@
 module UlamBasis
 
 using ..BasisDefinition, ..DynamicDefinition, ..Contractors, ..Mod1DynamicDefinition
-using ValidatedNumerics
+using ValidatedNumerics, LinearAlgebra
 import Base: iterate
 
 export Ulam
@@ -194,16 +194,77 @@ BasisDefinition.boundweakbystrongauxiliary(B::Ulam) = (0, 1)
 """
 	Returns constants W₁, W₂ such that for a vector v in Uₕ `||v||\\leq W_1||v||_1+W_2||v||_{\\infty}`
 """
-bound_weak_norm_from_linalg_norm(B::Ulam) = (1, 0)
+BasisDefinition.bound_weak_norm_from_linalg_norm(B::Ulam) = (1, 0)
 
 """
 	Returns constant A such that for a vector v in Uₕ `||v||_1\\leq A||v||`
 """
-bound_linalg_norm_L1_from_weak(B::Ulam) = 1
+BasisDefinition.bound_linalg_norm_L1_from_weak(B::Ulam) = 1
 
 """
 	Returns constant A such that for a vector v in Uₕ `||v||_\\infty \\leq A||v||`
 """
-bound_linalg_norm_L∞_from_weak(B::Ulam) = length(B)
+BasisDefinition.bound_linalg_norm_L∞_from_weak(B::Ulam) = length(B)
+
+
+"""
+	Returns constants A, B such that `||Lf||_s\\leq A||f||_s+B|||f|||`
+"""
+function BasisDefinition.dfly(B::Ulam, D::MarkovDynamic)
+	distorsion(x)=der_der(D, x)/(der(D, x)^2)
+	lambda(x) = 1/der(D, x)
+	dist = range_estimate(distorsion, D.domain)
+	lam = range_estimate(lambda, D.domain)
+	return abs(lam).hi, abs(dist).hi
+end 
+
+
+
+using RecipesBase
+using LaTeXStrings
+
+@userplot PlotUlam
+@recipe function f(h::PlotUlam)
+	if length(h.args)<2 || (typeof(h.args[1])!= Ulam) || !(typeof(h.args[2])<:AbstractVector)
+		error("Plot Ulam needs as an input a Ulam Basis and a vector")
+	end
+	B = h.args[1]
+	w = h.args[2]
+	D = h.args[3]
+
+	layout := (3, 1)
+	link := :both
+
+	if eltype(w) <: Interval
+		w = mid.(w)
+	end
+
+	# bar plot
+	@series begin
+		linecolor := :blue
+		linealpha := 0.8
+		fillalpha := 0.8
+		seriestype := :bar
+		label := L"f_{\delta}"
+		collect(B), w
+	end
+
+	#dynamic plot
+	@series begin
+		linecolor := :green
+	    seriestype := :path
+	    label := L"T(x)"
+	    G = x-> plottable(D, x)
+	    collect(B), G.(collect(B))
+	end
+
+	@series begin
+		linecolor := :red
+	    seriestype := :path
+	    label := L"T'(x)"
+	    G = x-> der(D, x)
+	    collect(B), G.(collect(B))
+	end
+end
 
 end

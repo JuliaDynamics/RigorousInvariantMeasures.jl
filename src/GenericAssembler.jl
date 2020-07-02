@@ -4,7 +4,7 @@ using ..DynamicDefinition, ..BasisDefinition
 
 export assemble
 
-function assemble(B::Basis, D::Dynamic, ϵ=2^(-20); T = Float64, prec = 53)
+function assemble(B::Basis, D::Dynamic, ϵ=2^(-40); T = Float64, prec = 53)
 """
 Very generic assembler function
 """
