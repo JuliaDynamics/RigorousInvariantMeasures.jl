@@ -4,7 +4,7 @@ using ..DynamicDefinition, ..Contractors
 
 export Mod1Dynamic, preim, nbranches, plottable
 
-struct Mod1Dynamic <: Dynamic
+struct Mod1Dynamic <: MarkovDynamic
 	T::Function
 	nbranches::Integer
 	orientation::Integer
