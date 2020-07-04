@@ -2,7 +2,7 @@ module InvariantMeasures
 
 # the module Contractors does not depend on any submodule
 include("Contractors.jl")
-
+include("Partition.jl")
 
 include("DynamicDefinition.jl")
 # BasisDefinition uses the abstract Dynamic class
