@@ -1,4 +1,4 @@
 
 
-T = Mod1Dynamic(2*x)
+T = Mod1Dynamic(x->2*x)
 
