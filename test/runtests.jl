@@ -5,6 +5,9 @@ using Test
     # Write your tests here.
 
 include("TestDynamic.jl")
+include("TestAssemble.jl")
+include("TestEstimate.jl")
+
 
 
 end
