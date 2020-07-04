@@ -8,7 +8,7 @@ export Basis, DualComposedWithDynamic, ProjectDualElement, AverageZero, assemble
 
 abstract type Basis end
 
-lenght(B::Basis) = @error "Not Implemented"
+length(B::Basis) = @error "Not Implemented"
 
 struct DualComposedWithDynamic{B<:Basis, D<:Dynamic} 
 	basis::B
@@ -26,16 +26,15 @@ struct ProjectDualElement{B<:Basis}
 end
 ProjectDualElement(basis::B, j_min, j_max, y) where {B} = ProjectDualElement{B}(basis, j_min, j_max, y)
 
+nonzero_on(B::Basis, I) = @error "Not Implemented"
+
 function ProjectDualElement(B::Basis, y)
  	j_min, j_max = nonzero_on(B, y)
  	return ProjectDualElement(B, j_min, j_max, y)
 end
 
-
-
 Base.iterate(S::ProjectDualElement{B}, state) where {B} = @error "Not Implemented"
 
-nonzero_on(B::Basis, I) = @error "Not Implemented"
 evaluate(B::Basis, i, x) = @error "Not Implemented"
 evaluate_integral(B::Basis, i; T = Float64) = @error "Not Implemented"
 
@@ -176,5 +175,10 @@ bound_linalg_norm_L1_from_weak(B::Basis) = @error "Not implemented"
 	Returns constant A such that for a vector v in Uₕ `||v||_\\infty \\leq A||v||`
 """
 bound_linalg_norm_L∞_from_weak(B::Basis) = @error "Not implemented"
+
+"""
+	Returns constants A, B such that `||Lf||_s\\leq A||f||_s+B|||f|||`
+"""
+dfly(B::Basis, D::Dynamic) = @error "Not implemented"
 
 end

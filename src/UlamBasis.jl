@@ -1,7 +1,7 @@
 module UlamBasis
 
 using ..BasisDefinition, ..DynamicDefinition, ..Contractors, ..Mod1DynamicDefinition
-using ValidatedNumerics
+using ValidatedNumerics, LinearAlgebra
 import Base: iterate
 
 export Ulam
@@ -13,24 +13,21 @@ struct Ulam <:Basis
 	n::Integer #TODO, change to partition
 end
 
-"""
-Returns the size of the Ulam basis
-"""
-Base.length(b::Ulam) = b.n
+Base.length(B::Ulam) = B.n
 
-
-Base.iterate(b::Ulam, state = 1) = state < length(b)+1 ? (b[state-1], state+1) : nothing
+Base.iterate(B::Ulam, state = 1) = state < length(B)+1 ? (B[state-1], state+1) : nothing
 
 """
 Returns the left endpoint of the i-th element of the Ulam basis
 """
-Base.getindex(b::Ulam, i) = Float64(i)/b.n
+Base.getindex(B::Ulam, i) = Float64(i)/B.n
+
 
 """
 This iterator returns the preimages of the endpoints 
 of the intervals defining the Ulam basis through the dynamic
 """
-function Base.iterate(S::DualComposedWithDynamic{Ulam, Dyn}, state = (1, 1)) where {Dyn<:Dynamic}
+function Base.iterate(S::DualComposedWithDynamic{Ulam, <:Dynamic}, state = (1, 1))
 	i, k = state
 	
 	if i == length(S.basis)+1
@@ -80,6 +77,8 @@ function Base.iterate(S::ProjectDualElement{Ulam}, state = S.j_min)
 		    state+1) 
 end
 
+BasisDefinition.evaluate(B::Ulam, i, x) = (x>(i-1)/n) && (x<i/n) ? 1 : 0
+
 BasisDefinition.evaluate_integral(B::Ulam, i, T::Type)  = T(i)/length(B)
 
 function Base.iterate(S::AverageZero{Ulam}, state = 1) 
@@ -93,20 +92,133 @@ function Base.iterate(S::AverageZero{Ulam}, state = 1)
 	return (v, state+1)
 end
 
-SpaceConstant(B::Ulam, ::Val{:L1}) = 1
-SpaceConstant(B::Ulam, ::Val{:L∞}) = 1
+"""
+Returns constant η such that ``\\min ||Uv||\\geq η ||v||``, where 
+U = collect(AverageZero) (the matrix whose columns are the vectors in AverageZero)
+TODO: introduce a default method that uses rigorous SVD to bound these constants
+from below.
+This is used in the following estimate
+```math:
+	\\max_x ||Ax|_V||/||x|| = \\max ||AUz||/||Uz|| \\leq \\max_z \\eta||AUz||/||z|| 
+```
+"""
+BasisDefinition.SpaceConstant(B::Ulam, ::Val{:L1}) = 1
+BasisDefinition.SpaceConstant(B::Ulam, ::Val{:L∞}) = 1
+
+"""
+ 	Rigorous estimate (from above) of ||v||_w
+		
+	Args:
+		B basis
+	 	v (numpy vector):
+			
+	Returns: x such that ``||v||_w \\leq x``
+"""
+BasisDefinition.norm_estimate(B::Ulam, v) = norm(v, 1)
+
+"""
+	Rigorous norm of a vector.
+				
+	Args:
+		B basis
+	 	v 
+			
+	Returns:
+	 		its (weak) norm. 
+"""
+BasisDefinition.rigorous_weak_norm(B::Ulam, v) = norm(v,1) 	
+
+"""
+	Rigorous estimate (from above) of the matrix norm
+		
+	Args:
+		B Basis
+		PP Matrix
+			
+	 	Returns: x such that ``||PP||_w``
+""" 	
+BasisDefinition.matrix_norm_estimate(B::Ulam, P) = opnorm(P, 1)
+
+"""
+	Diameter (in the matrix norm) of an interval matrix.
+		
+	Must be rigorous.
+		
+	Returns:
+	 		M such that :math:`\\|P_1-P_2\\|_w \\leq M` for all :math:`P_1,P_2 \\in P`.
+"""
+BasisDefinition.matrix_norm_diameter(B::Ulam, P) = opnorm(diam.(P), 1)
+
+"""
+	Computes the residual (in norm) of the computed Perron vector
+		
+	Args:
+	 		P (interval matrix):
+	 		v (numpy vector):
+		
+	Returns:
+	 		res (real RNDU): an upper bound to :math:`\\|Pv-v\\|`
+"""
+BasisDefinition.residual_estimate(B::Ulam, P, v) = rigorous_weak_norm(P*v-v)  
+
+"""
+	Returns a constant K such that `||P_h f-f||\\leq K h ||f||_s`
+
+	Arg:
+		B::Basis
+"""
+BasisDefinition.normapprox(B::Ulam) = 1/2
+
+"""
+	Returns a constant E such that `|||P_h f|||\\leq |||f|||+E h ||f||_s`
+	Arg:
+		B::Basis
+"""
+BasisDefinition.boundweak(B::Ulam) = 0
+
+"""
+	Returns a constant M₁ such that for a vector v in Uₕ `||v||_s\\leq \\frac{M_1}{h}||v||` 
+"""
+BasisDefinition.boundstrongbyweak(B::Ulam) = 1
+
+"""
+	Returns a constant M₂ such that for a vector v in Uₕ `|||v|||\\leq M_2||v||` 
+"""
+BasisDefinition.boundauxiliarybyweak(B::Ulam) = 1
+
+"""
+	Returns constants S₁, S₂ such that for a vector v in Uₕ `||v||\\leq S_1||v||_s+S_2|||v|||` 
+"""
+BasisDefinition.boundweakbystrongauxiliary(B::Ulam) = (0, 1)
+
+"""
+	Returns constants W₁, W₂ such that for a vector v in Uₕ `||v||\\leq W_1||v||_1+W_2||v||_{\\infty}`
+"""
+BasisDefinition.bound_weak_norm_from_linalg_norm(B::Ulam) = (1, 0)
+
+"""
+	Returns constant A such that for a vector v in Uₕ `||v||_1\\leq A||v||`
+"""
+BasisDefinition.bound_linalg_norm_L1_from_weak(B::Ulam) = 1
+
+"""
+	Returns constant A such that for a vector v in Uₕ `||v||_\\infty \\leq A||v||`
+"""
+BasisDefinition.bound_linalg_norm_L∞_from_weak(B::Ulam) = length(B)
 
 
-bound_weak_norm_from_linalg_norm(B::Ulam) = (1/length(B), 0.0)
-bound_linalg_norm_L1_from_weak(B::Ulam) = 1/length(B)
-bound_linalg_norm_L∞_from_weak(B::Ulam) = length(B) #this is defined for coherence
+"""
+	Returns constants A, B such that `||Lf||_s\\leq A||f||_s+B|||f|||`
+"""
+function BasisDefinition.dfly(B::Ulam, D::MarkovDynamic)
+	distorsion(x)=der_der(D, x)/(der(D, x)^2)
+	lambda(x) = 1/der(D, x)
+	dist = range_estimate(distorsion, D.domain)
+	lam = range_estimate(lambda, D.domain)
+	return abs(lam).hi, abs(dist).hi
+end 
 
-function dfly(B::Ulam, D::Dynamic) 
-	distorsion(x) = der_der(D, x)/(der(D, x))^2
-	der_range = range_estimate(x->der(D, x), D.domain) 
-	distorsion_range = range_estimate(distorsion, D.domain)
- 	return (1/abs(der_range)).hi, abs(distorsion_range).hi
-end
+
 
 using RecipesBase
 using LaTeXStrings
@@ -116,18 +228,16 @@ using LaTeXStrings
 	if length(h.args)<2 || (typeof(h.args[1])!= Ulam) || !(typeof(h.args[2])<:AbstractVector)
 		error("Plot Ulam needs as an input a Ulam Basis and a vector")
 	end
-
 	B = h.args[1]
 	w = h.args[2]
 	D = h.args[3]
 
 	layout := (3, 1)
 	link := :both
-	
+
 	if eltype(w) <: Interval
 		w = mid.(w)
 	end
-
 
 	# bar plot
 	@series begin
