@@ -17,6 +17,7 @@ ValidatedNumerics = "d621b6e3-7715-5857-9c6f-c67000ef6083"
 [compat]
 Arpack = "0.4"
 DualNumbers = "0.6"
+FastRounding = "0.3"
 LaTeXStrings = "1.1"
 RecipesBase = "1.0"
 TaylorSeries = "0.10"
