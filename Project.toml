@@ -16,6 +16,7 @@ ValidatedNumerics = "d621b6e3-7715-5857-9c6f-c67000ef6083"
 
 [compat]
 Arpack = "0.4"
+RecipesBase = "1.0"
 TaylorSeries = "0.10"
 ValidatedNumerics = "0.11"
 julia = "1"
