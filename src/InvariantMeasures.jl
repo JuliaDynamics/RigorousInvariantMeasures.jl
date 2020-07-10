@@ -14,7 +14,7 @@ include("GenericEstimate.jl")
 include("Mod1Dynamic.jl")
 
 include("UlamBasis.jl")
-
+include("HatBasis.jl")
 
 
 
