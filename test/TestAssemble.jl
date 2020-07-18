@@ -15,7 +15,7 @@ Ptrue = [
 		0 0 0 0 0.5 0.5 0 0;
 		0 0 0 0 0 0 0.5 0.5;
 		]
-Ptrue = Ptrue' 
+Ptrue = Ptrue'
 
 
 @test all(contains_zero.(P-Ptrue))
