@@ -162,7 +162,7 @@ function Base.getindex(B::Hat, i::Int)
 end
 
 """
-Return (in an iterator) the pairs (i, (x, T'(x))) where x is a preimage of p[i], which
+Return (in an iterator) the pairs (i, (x, |T'(x)|)) where x is a preimage of p[i], which
 describe the "dual" L* evaluation(p[i])
 """
 function Base.iterate(S::DualComposedWithDynamic{T, Mod1Dynamic}, state = (1, 1)) where T<:Hat
@@ -177,23 +177,24 @@ function Base.iterate(S::DualComposedWithDynamic{T, Mod1Dynamic}, state = (1, 1)
 	# incomplete branches
 
 	x = preim(S.dynamic, k, S.basis.p[i], S.ϵ)
-	der = der(S.dynamic, x)
+	absT′ = abs(der(S.dynamic, x))
 
 	if k == nbranches(S.dynamic)
-		return ((i, (x, der)), (i+1, 1))
+		return ((i, (x, absT′)), (i+1, 1))
 	else
-		return ((i, (x, der)), (i, k+1))
+		return ((i, (x, absT′)), (i, k+1))
 	end
 end
 
 """
 Return the range of indices of the elements of the basis whose support intersects
-with the interval y.
+with the given dual element (i.e., a pair (y, absT')).
 The range may end with length(B)+1; this must be interpreted "mod length(B)":
 it means that it intersects with the hat function peaked in 0 as well
 (think for instance y = 0.9999).
 """
-function nonzero_on(B::Hat{T}, y::Interval) where T
+function BasisDefinition.nonzero_on(B::Hat, dual_element)
+	y, absT′ = dual_element
 	# Note that this cannot rely on arithmetic unless it is verified
 	lo = max(searchsortedfirst(B.p, y.lo) -1, 1)
 	hi = searchsortedfirst(B.p, y.hi)
@@ -211,10 +212,12 @@ function Base.iterate(S::ProjectDualElement{T}, state = S.j_min) where T <: Hat
 	if state == S.j_max+1
 		return nothing
 	end
-	y, der = S.dual_element
+	y, absT′ = S.dual_element
 	j = state
+	y_normalized = IntervalOnTorus(y)
+	n = length(S.basis)
 
-	return ((j, S.basis[j](y) / der),
+	return ((j, S.basis[mod(j, 1:n)](y_normalized) / absT′),
 		    state+1)
 end
 

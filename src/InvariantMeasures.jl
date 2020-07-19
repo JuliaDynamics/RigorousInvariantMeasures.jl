@@ -18,11 +18,11 @@ include("HatBasis.jl")
 
 
 
-using .DynamicDefinition, .BasisDefinition, .Mod1DynamicDefinition, .UlamBasis, .GenericAssembler, .GenericEstimate
+using .DynamicDefinition, .BasisDefinition, .Mod1DynamicDefinition, .UlamBasis, .GenericAssembler, .GenericEstimate, .HatBasis
 
 #include("Hat.jl")
 #include("GenericEstimate.jl")
 
-export Ulam, Mod1Dynamic, Basis, Dynamic, assemble, preim
+export Ulam, Mod1Dynamic, Basis, Dynamic, assemble, preim, Hat, EquispacedPartition
 
 end

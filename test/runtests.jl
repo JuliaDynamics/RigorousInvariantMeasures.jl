@@ -6,8 +6,8 @@ using Test
 
 include("TestDynamic.jl")
 include("TestAssemble.jl")
+include("TestAssembleHat.jl")
 include("TestEstimate.jl")
-
 
 
 end

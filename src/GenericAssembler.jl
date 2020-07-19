@@ -1,6 +1,6 @@
 module GenericAssembler
 using ValidatedNumerics, SparseArrays
-using ..DynamicDefinition, ..BasisDefinition 
+using ..DynamicDefinition, ..BasisDefinition
 
 export assemble
 
@@ -14,7 +14,7 @@ Very generic assembler function
 
 	for (i, dual_element) in DualComposedWithDynamic(B, D, ϵ)
 		for (j, x) in ProjectDualElement(B, dual_element)
-			P[i,j] += x
+			P[i,mod(j,1:n)] += x
 		end
 	end
 
