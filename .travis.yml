@@ -3,7 +3,7 @@ language: julia
 notifications:
   email: false
 julia:
-  - 1.0
+#  - 1.0
   - 1.4
   - nightly
 os:
@@ -21,4 +21,4 @@ jobs:
     - julia: nightly
 
 after_success:
-- julia -e 'cd(Pkg.dir("MyPkg")); Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())'
+- julia -e 'using Pkg; Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())'
