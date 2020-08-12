@@ -3,13 +3,13 @@ module GenericEstimate
 using LinearAlgebra, Arpack, FastRounding, ValidatedNumerics
 using ..DynamicDefinition, ..BasisDefinition
 
-function PerronVector(B::Basis, P::AbstractMatrix{Interval{T}}) where {T}
+function perronvector(B::Basis, P::AbstractMatrix{Interval{T}}) where {T}
 	PP = mid.(P)
 	F = eigs(PP; nev=4, ritzvec=true, v0=ones((0,)))
 	return F[2][:, 1]
 end
 
-function RigorousResidual(B::Basis, P::AbstractMatrix{Interval{T}}, w) where {T}
+function rigorousresidual(B::Basis, P::AbstractMatrix{Interval{T}}, w) where {T}
 	w_int = Interval{T}(w)
 	Pw_int = P*w_int
 	return BasisDefinition.rigorous_weak_norm(B, Pw_int-w_int)
@@ -21,7 +21,7 @@ This function returns a sequence of Cᵢ, \\tilde{C}ᵢ for a matrix P
 on a subspace V such that ||P^i|_V||_1\\leq C_i and
 ||P^i|_V||_{\\infty}\\leq \\tilde{C}_i, with respect to the
 """
-function ContractMatrix(B::Basis, P::AbstractMatrix{Interval{T}}, m) where {T}
+function contractmatrix(B::Basis, P::AbstractMatrix{Interval{T}}, m) where {T}
 	# vector of the Cᵢ for P
 	C = zeros(m)
 	S = zeros((length(B), m))
@@ -53,7 +53,7 @@ end
 """
 This function returns the bound on the weak norm of the discretized operator
 """
-function BoundNorm(B::Basis, P::AbstractMatrix{Interval{T}}, m) where {T}
+function boundnorm(B::Basis, P::AbstractMatrix{Interval{T}}, m) where {T}
 	W₁, W₂ = BasisDefinition.bound_weak_norm_from_linalg_norm(B)
 	α₁ = BasisDefinition.bound_linalg_norm_L1_from_weak(B)
 	α₂ = BasisDefinition.bound_linalg_norm_L∞_from_weak(B)
@@ -95,13 +95,13 @@ sanity_check(Bone::Basis, Btwo::Basis) = Val((typeof(Bone)==typeof(Btwo)) && (le
 This function bounds the norm of a finer operator by using the norms of a
 coarse operator
 """
-function CoarseFine(Bcoarse::Basis, Bfine::Basis, Pfine, D::Dynamic, C)
-	return _CoarseFine(Bcoarse, Bfine, sanity_check(Bcoarse, Bfine), Pfine, D, C)
+function coarsefine(Bcoarse::Basis, Bfine::Basis, Pfine, D::Dynamic, C)
+	return _coarsefine(Bcoarse, Bfine, sanity_check(Bcoarse, Bfine), Pfine, D, C)
 end
 
-_CoarseFine(Bcoarse, Bfine, ::Val{false}, D, C) = @error "Not the same basis or Coarse>Fine"
+_coarsefine(Bcoarse, Bfine, ::Val{false}, D, C) = @error "Not the same basis or Coarse>Fine"
 
-function _CoarseFine(Bcoarse, Bfine, ::Val{true}, Pfine, D, C)
+function _coarsefine(Bcoarse, Bfine, ::Val{true}, Pfine, D, C)
 	n =length(C)
 	# please remark that due to the indexes in julia starting with 1,
 	# ```R_{k,h,1} = R[k+1]``` and the following vector has length n+2
