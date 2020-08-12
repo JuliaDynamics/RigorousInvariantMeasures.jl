@@ -35,7 +35,7 @@ function ContractMatrix(B::Basis, P::AbstractMatrix{Interval{T}}, m) where {T}
 			v = PP*v
 			C[i] = max(C[i], norm(v, 1)/λ₁)
 			S[:, i]+=abs.(v)/λ₂
-		end	
+		end
 	end
 
 
@@ -47,8 +47,8 @@ function ContractMatrix(B::Basis, P::AbstractMatrix{Interval{T}}, m) where {T}
 	η₁ = BasisDefinition.SpaceConstant(B, Val(:L1))
 	η₂ = BasisDefinition.SpaceConstant(B, Val(:L∞))
 
- 	return η₁*C, η₂*tilde_C 
-end	
+ 	return η₁*C, η₂*tilde_C
+end
 
 """
 This function returns the bound on the weak norm of the discretized operator
@@ -58,13 +58,13 @@ function BoundNorm(B::Basis, P::AbstractMatrix{Interval{T}}, m) where {T}
 	α₁ = BasisDefinition.bound_linalg_norm_L1_from_weak(B)
 	α₂ = BasisDefinition.bound_linalg_norm_L∞_from_weak(B)
 	C, tilde_C = ContractMatrix(B, P, m)
-	return (W₁/α₁)*C+(W₂/α₂)*tilde_C	 
+	return (W₁/α₁)*C+(W₂/α₂)*tilde_C
 end
 
 
 """
 This function bounds the norms of the powers of the abstract discretized operator:
-the computed discretized operator is an interval of matrices 
+the computed discretized operator is an interval of matrices
 that contains the abstract discretized operator.
 Therefore, to get a rigorous bound we need to have an a priori bound on the norms
 of the powers of the abstract discretized operator
@@ -75,7 +75,7 @@ function boundstrongauxnormabsdiscroperator(Bas::Basis, D::Dynamic, k)
 	h = 1/length(Bas) ### TODO, add a function
 	M₁ = BasisDefinition.boundstrongbyweak(Bas)
 	M₂ = BasisDefinition.boundauxiliarybyweak(Bas)
-	
+
 	SmallMatrix = [1 0; E*h 1]*[A B; 0 1]
 	return (SmallMatrix^k)*[M₁/h; M₂]
 end
@@ -92,7 +92,7 @@ This avoids CoarseFine to be compiled for incompatible basis
 sanity_check(Bone::Basis, Btwo::Basis) = Val((typeof(Bone)==typeof(Btwo)) && (length(Bone)<length(Btwo)))
 
 """
-This function bounds the norm of a finer operator by using the norms of a 
+This function bounds the norm of a finer operator by using the norms of a
 coarse operator
 """
 function CoarseFine(Bcoarse::Basis, Bfine::Basis, Pfine, D::Dynamic, C)
@@ -112,11 +112,11 @@ function _CoarseFine(Bcoarse, Bfine, ::Val{true}, Pfine, D, C)
 	h = 1/length(Bcoarse)
 	for m in 1:n
 		temp = 0
-		for k in 0:m-1 
+		for k in 0:m-1
 			temp += C[m-k]*(Q*R[k+1]+R[k+2])
 		end
 		Cfine[m] = (C[m]+2*K*h*temp).hi
-	end 
+	end
 	return Cfine
 end
 
