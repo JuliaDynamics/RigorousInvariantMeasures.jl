@@ -24,6 +24,6 @@ using .DynamicDefinition, .BasisDefinition, .Mod1DynamicDefinition, .UlamBasis, 
 #include("Hat.jl")
 #include("GenericEstimate.jl")
 
-export Ulam, Mod1Dynamic, Basis, Dynamic, assemble, preim, Hat, EquispacedPartition
+export Ulam, Mod1Dynamic, Basis, Dynamic, assemble, preim, Hat, EquispacedPartition, L1, Linf, norm_of_powers
 
 end

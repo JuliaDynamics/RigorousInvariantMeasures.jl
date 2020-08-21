@@ -44,8 +44,8 @@ function contractmatrix(B::Basis, P::AbstractMatrix{Interval{T}}, m) where {T}
 	end
 
 	# we keep track of the error due to the basis we have chosen
-	η₁ = BasisDefinition.SpaceConstant(B, Val(:L1))
-	η₂ = BasisDefinition.SpaceConstant(B, Val(:L∞))
+	η₁ = BasisDefinition.spaceconstant(B, Val(:L1))
+	η₂ = BasisDefinition.spaceconstant(B, Val(:L∞))
 
  	return η₁*C, η₂*tilde_C
 end
@@ -57,7 +57,7 @@ function boundnorm(B::Basis, P::AbstractMatrix{Interval{T}}, m) where {T}
 	W₁, W₂ = BasisDefinition.bound_weak_norm_from_linalg_norm(B)
 	α₁ = BasisDefinition.bound_linalg_norm_L1_from_weak(B)
 	α₂ = BasisDefinition.bound_linalg_norm_L∞_from_weak(B)
-	C, tilde_C = ContractMatrix(B, P, m)
+	C, tilde_C = contractmatrix(B, P, m)
 	return (W₁/α₁)*C+(W₂/α₂)*tilde_C
 end
 

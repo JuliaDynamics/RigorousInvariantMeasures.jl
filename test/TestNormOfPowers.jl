@@ -1,5 +1,7 @@
 using InvariantMeasures
 using ValidatedNumerics
+using LinearAlgebra: I, opnorm
+using SparseArrays: sparse
 using Test
 
 n = 9
