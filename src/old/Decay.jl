@@ -1,15 +1,15 @@
 """
 Generic function to estimate decay time on a single vector
-	
+
 Args:
 	PP (scipy matrix): approximation of the discretized matrix to use
 	v (numpy vector):
 	my_norm (function):
 	M, K (reals with RNDU): constants such that :math:`\|P-PP\| \leq K` and :math:`\|P^n\| \leq M`, where :math:`P` is the exact discretized matrix.
-	
+
 Returns:
 	n such that :math:`\|PP^n v\| \leq target`.
-		
+
 Raises:
 	ValueError if insufficient precision is detected
 """
@@ -34,15 +34,15 @@ end
 Number of iterations needed to contract all vectors in `basis.contracting_pairs()` to a given target alpha
 """
 function decay_time(D::Dynamic, B::Basis, P::AbstractMatrix{Interval{T}}, alpha = 0.5, n_jobs = 1) where {T}
-	
+
 	PP = mid.(P)
-	
+
 	M = bound_on_norms_of_powers(B, D, project_left=True, project_right=True)
 	K = numerical_error(B, D, P, PP)
 	my_norm(v) = weak_norm(B, v)
-	
+
 	#alpha = Rdown(alpha) # we need a lower bound to alpha*s to make sure we contract below it
 	#decay_times = Parallel(n_jobs=n_jobs, verbose=1)(delayed(vector_decay_time)(PP, v, my_norm, M, K, alpha*s) for v, s in basis.contracting_pairs())
-	
+
 	return max(decay_times)
 end
