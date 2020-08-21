@@ -8,6 +8,9 @@ using FastRounding
 using ValidatedNumerics
 using ValidatedNumerics.IntervalArithmetic: round_expr
 
+"""
+Returns the maximum number of (structural) nonzeros in a row of A
+"""
 function max_nonzeros_per_row(A::SparseMatrixCSC)
     rows = rowvals(A)
     m, n = size(A)
@@ -18,6 +21,9 @@ function max_nonzeros_per_row(A::SparseMatrixCSC)
     return maximum(nonzeros_in_each_row)
 end
 
+"""
+γₙ constants for floating point error estimation, as in [Higham, Accuracy and Stability of Numerical Algorithms]
+"""
 function gamma(T, n::Integer)
     u = eps(T)
     nu = u ⊗₊ T(n)
@@ -27,13 +33,22 @@ end
 """
 Estimates the norms ||Q||, ||Q^2||, ... ||Q^m|| on U^0.
 
-The following constant may be specified as keyword arguments:
+Q is the matrix M if is_integral_preserving==true, or
+M + e*(f-f*M) otherwise. Here M is a matrix ∈ LL.
+
+U is the matrix [ones(1,n-1); I_(n-1,n-1)]. It is currently assumed that
+f*U==0, because the initial vectors v are supposed to have f*v==0.
+This assumption would better be relaxed in future.
+
+The following constants may be specified as keyword arguments:
 
 normQ, normE, normv0, normEF, normIEF, normN
 
+otherwise they are computed (which may be slower).
+
 e and f must be specified in case is_integral_preserving==false
 In case is_integral_preserving is true, they may be specified but they are then ignored.
-(TODO: maybe this should be integrated in the type).
+(TODO: maybe this should be better integrated in the syntax).
 """
 function norm_of_powers(N::NormKind, m::Integer, LL::SparseMatrixCSC{Interval{RealType}, IndexType}, is_integral_preserving::Bool ;
         e::Vector=[0.],
@@ -61,24 +76,24 @@ function norm_of_powers(N::NormKind, m::Integer, LL::SparseMatrixCSC{Interval{Re
     # precompute norms
     if !is_integral_preserving
         if normE == -1.
-            normE = normbound(e, N())
+            normE = opnormbound(e, N)
         end
         if normQ == -1.
             if is_integral_preserving
                 normQ = nrmM ⊕₊ δ
             else
-                defect = opnormbound(f - f*LL, N())
+                defect = opnormbound(f - f*LL, N)
                 normQ = nrmM ⊕₊ δ ⊕₊ normE * defect
             end
         end
         if normEF == -1.
-            normEF = opnormbound(e*f, N())
+            normEF = opnormbound(e*f, N)
         end
         if normIEF == -1.
-            normIEF =  opnormbound([Matrix(UniformScaling{Float64}(1),n,n) e*f], N())
+            normIEF =  opnormbound([Matrix(UniformScaling{Float64}(1),n,n) e*f], N)
         end
         if normN == -1.
-            normN = opnormbound(Matrix(UniformScaling{Float64}(1),n,n) - e*f)
+            normN = opnormbound(Matrix(UniformScaling{Float64}(1),n,n) - e*f, N)
         end
     end
 
@@ -106,7 +121,7 @@ function norm_of_powers(N::NormKind, m::Integer, LL::SparseMatrixCSC{Interval{Re
             else
                 v = w - e * (f*w)
                 new_nrmw = opnormbound(w, N)
-                ϵ = round_expr(γn*normIEF*(new_nrmw + nrmEF*nrmw) + nrmN*(γz*nrmM + δ)*nrmv + normQ*ϵ, RoundUp)
+                ϵ = round_expr(γn*normIEF*(new_nrmw + normEF*nrmw) + normN*(γz*nrmM + δ)*nrmv + normQ*ϵ, RoundUp)
                 nrmw = new_nrmw
             end
             nrmv = opnormbound(v, N)

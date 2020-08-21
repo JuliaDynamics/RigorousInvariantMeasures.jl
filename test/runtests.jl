@@ -8,6 +8,6 @@ include("TestDynamic.jl")
 include("TestAssemble.jl")
 include("TestAssembleHat.jl")
 include("TestEstimate.jl")
-
+include("TestNormsOfPowers.jl")
 
 end

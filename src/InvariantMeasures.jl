@@ -16,7 +16,8 @@ include("Mod1Dynamic.jl")
 include("UlamBasis.jl")
 include("HatBasis.jl")
 
-
+include("Norms.jl")
+include("NormsOfPowers.jl")
 
 using .DynamicDefinition, .BasisDefinition, .Mod1DynamicDefinition, .UlamBasis, .GenericAssembler, .GenericEstimate, .HatBasis
 
