@@ -72,6 +72,7 @@ Therefore, to get a rigorous bound we need to have an a priori bound on the norm
 of the powers of the abstract discretized operator
 """
 function boundstrongauxnormabsdiscroperator(Bas::Basis, D::Dynamic, k)
+	@warn "Must be rewritten making sure that operations are correctly rounded"
 	A, B = BasisDefinition.dfly(Bas, D)
 	E = BasisDefinition.boundweak(Bas)
 	h = 1/length(Bas) ### TODO, add a function
@@ -83,6 +84,7 @@ function boundstrongauxnormabsdiscroperator(Bas::Basis, D::Dynamic, k)
 end
 
 function boundweaknormabsdiscroperator(B::Basis, D::Dynamic, k)
+	@warn "Must be rewritten making sure that operations are correctly rounded"
 	S₁, S₂ = BasisDefinition.boundweakbystrongauxiliary(B)
 	return [S₁ S₂]*BasisDefinition.boundstrongauxnormabsdiscroperator(B, D, k)
 end
@@ -104,6 +106,7 @@ end
 _coarsefine(Bcoarse, Bfine, ::Val{false}, D, C) = @error "Not the same basis or Coarse>Fine"
 
 function _coarsefine(Bcoarse, Bfine, ::Val{true}, Pfine, D, C)
+	@warn "Must be rewritten making sure that operations are correctly rounded"
 	n =length(C)
 	# please remark that due to the indexes in julia starting with 1,
 	# ```R_{k,h,1} = R[k+1]``` and the following vector has length n+2

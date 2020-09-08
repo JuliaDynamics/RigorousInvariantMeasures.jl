@@ -128,3 +128,15 @@ function norms_of_powers(N::NormKind, m::Integer, LL::SparseMatrixCSC{Interval{R
     end
     return map(get_norm, normcachers)
 end
+
+"""
+Trivial bounds from ||Q^k|| ≤ ||Q||^k for the powers of a DiscretizedOperator (on the whole space)
+"""
+function norms_of_powers_trivial(N::NormKind, Q::DiscretizedOperator, m::Integer)
+    norms = fill(NaN, m)
+    norms[1] = opnormbound(N, Q)
+    for i = 2:m
+        norms[i] = norms[i-1] ⊗₀ norms[1]
+    end
+    return norms
+end

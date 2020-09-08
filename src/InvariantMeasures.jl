@@ -1,5 +1,6 @@
 module InvariantMeasures
 
+# TODO: not the best style, but unclear what to use
 abstract type NormKind end
 struct L1 <: NormKind end
 struct Linf <: NormKind end
