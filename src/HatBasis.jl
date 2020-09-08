@@ -5,6 +5,7 @@ Hat basis on the Torus [0,1]
 
 using ..BasisDefinition, ..Mod1DynamicDefinition, ..DynamicDefinition
 using ValidatedNumerics
+import ..BasisDefinition: one_vector, integral_covector, is_integral_preserving
 
 export Hat, HatFunction, HatFunctionOnTorus, IntervalOnTorus, EquispacedPartition
 
@@ -30,6 +31,7 @@ struct Hat{T<:AbstractVector} <:Basis
 	p::T
 	# TODO: check in constructor that p is sorted and starts with 0
 end
+Hat(n::Integer) = Hat(EquispacedPartition{Float64}(n))
 
 """
 Return the size of the Hat basis
@@ -185,6 +187,16 @@ function Base.iterate(S::DualComposedWithDynamic{T, Mod1Dynamic}, state = (1, 1)
 		return ((i, (x, absT′)), (i, k+1))
 	end
 end
+
+function integral_covector(B::Hat)
+	n = length(B)
+	return 1/n * ones(Interval{Float64}, n)'
+end
+
+function one_vector(B::Hat)
+	return ones(length(B))
+end
+
 
 """
 Return the range of indices of the elements of the basis whose support intersects

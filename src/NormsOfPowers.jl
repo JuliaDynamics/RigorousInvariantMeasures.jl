@@ -33,12 +33,12 @@ end
 """
 Estimates the norms ||Q||, ||Q^2||, ... ||Q^m|| on U^0.
 
-Q is the matrix M if is_integral_preserving==true, or
-M + e*(f-f*M) otherwise. Here M is a matrix ∈ LL.
+Q is the matrix L if is_integral_preserving==true, or
+L + e*(f-f*L) otherwise.
+An interval matrix LL ∋ L is given in input.
 
-U is the matrix [ones(1,n-1); I_(n-1,n-1)]. It is currently assumed that
-f*U==0, because the initial vectors v are supposed to have f*v==0.
-This assumption would better be relaxed in future.
+U is the matrix [ones(1,n-1); -I_(n-1,n-1)]. It is currently assumed that
+f*U==0 (i.e., all elements of f are equal).
 
 The following constants may be specified as keyword arguments:
 
@@ -48,7 +48,7 @@ otherwise they are computed (which may be slower).
 
 e and f must be specified in case is_integral_preserving==false
 In case is_integral_preserving is true, they may be specified but they are then ignored.
-(TODO: maybe this should be better integrated in the syntax).
+(TODO: maybe this should be better integrated in the syntax, using DiscretizedOperator).
 """
 function norm_of_powers(N::NormKind, m::Integer, LL::SparseMatrixCSC{Interval{RealType}, IndexType}, is_integral_preserving::Bool ;
         e::Vector=[0.],
@@ -69,22 +69,20 @@ function norm_of_powers(N::NormKind, m::Integer, LL::SparseMatrixCSC{Interval{Re
     ϵ = zero(RealType)
 
     nrmM = opnormbound(M, N)
-    if normQ == -1
-        normQ = is_integral_preserving ? nrmM ⊕₊ δ : nrmM ⊕₊ δ ⊕₊ normE * opnormbound(f - f*LL, N)
+
+    if normQ == -1.
+        if is_integral_preserving
+            normQ = nrmM ⊕₊ δ
+        else
+            defect = opnormbound(f - f*LL, N)
+            normQ = nrmM ⊕₊ δ ⊕₊ normE * defect
+        end
     end
 
     # precompute norms
     if !is_integral_preserving
         if normE == -1.
             normE = opnormbound(e, N)
-        end
-        if normQ == -1.
-            if is_integral_preserving
-                normQ = nrmM ⊕₊ δ
-            else
-                defect = opnormbound(f - f*LL, N)
-                normQ = nrmM ⊕₊ δ ⊕₊ normE * defect
-            end
         end
         if normEF == -1.
             normEF = opnormbound(e*f, N)

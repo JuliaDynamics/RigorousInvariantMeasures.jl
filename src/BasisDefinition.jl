@@ -3,8 +3,7 @@ using ..DynamicDefinition
 
 import Base
 
-export Basis, DualComposedWithDynamic, ProjectDualElement, AverageZero, assemble
-
+export Basis, DualComposedWithDynamic, ProjectDualElement, AverageZero, assemble, integral_covector, one_vector, is_integral_preserving
 
 abstract type Basis end
 
@@ -38,16 +37,31 @@ Base.iterate(S::ProjectDualElement{B}, state) where {B} = @error "Not Implemente
 evaluate(B::Basis, i, x) = @error "Not Implemented"
 evaluate_integral(B::Basis, i; T = Float64) = @error "Not Implemented"
 
+"""
+	Covector that represents the integral
+"""
+integral_covector(B::Basis) = @error "Must be specialized"
+
+"""
+	Vector that represents the function 1
+"""
+one_vector(B::Basis) = @error "Must be specialized"
+
+"""
+	Integral-preserving discretizations may specialize this to "true"
+"""
+is_integral_preserving(B::Basis) = false
+
+"""
+Integral of a function in U_h
+
+Args:
+	v (any type of vector):
+
+Returns:
+	the integral, computed with the arithmetic of v.
+"""
 function integral(B::Basis, v; T = Float64)
-	"""
-	 	Integral of a function in U_h
-
-	 	Args:
-	 		v (any type of vector):
-
-	 	Returns:
-	 		the integral, computed with the arithmetic of v.
-	"""
 	return sum([T(v[i])*evaluate_integral(B, i, T) for i in 1:length(B)])
 end
 

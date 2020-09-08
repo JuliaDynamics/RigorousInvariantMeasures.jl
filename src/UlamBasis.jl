@@ -3,6 +3,7 @@ module UlamBasis
 using ..BasisDefinition, ..DynamicDefinition, ..Contractors, ..Mod1DynamicDefinition
 using ValidatedNumerics, LinearAlgebra
 import Base: iterate
+import ..BasisDefinition: one_vector, integral_covector, is_integral_preserving
 
 export Ulam
 
@@ -91,6 +92,18 @@ function Base.iterate(S::AverageZero{Ulam}, state = 1)
 	v[state+1]=-1
 	return (v, state+1)
 end
+
+function integral_covector(B::Ulam)
+	n = length(B)
+	return 1/n * ones(Interval{Float64}, n)'
+end
+
+is_integral_preserving(B::Ulam) = true
+
+function one_vector(B::Ulam)
+	return ones(length(B))
+end
+
 
 """
 Returns constant η such that ``\\min ||Uv||\\geq η ||v||``, where
