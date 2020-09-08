@@ -102,3 +102,10 @@ function cospi(a::Interval{T}) where T
         return whole_range
     end
 end
+
+# These definitions were missing, too
+
+using TaylorSeries
+
+sinpi(x::TaylorSeries.Taylor1) = sin(x*π)
+cospi(x::TaylorSeries.Taylor1) = cos(x*π)

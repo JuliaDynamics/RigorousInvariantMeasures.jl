@@ -2,7 +2,7 @@ module DynamicDefinition
 
 using ValidatedNumerics
 import TaylorSeries
-export Dynamic, MarkovDynamic, der, der_der, der_n, preim, nbranches, plottable
+export Dynamic, MarkovDynamic, der, der_der, der_n, preim, nbranches, plottable, is_full_branch
 
 abstract type Dynamic end
 abstract type MarkovDynamic <: Dynamic end

@@ -2,12 +2,14 @@ using FastRounding
 using ValidatedNumerics
 
 """
-Functions to deal with various types of norms
+Functions to deal with various types of norms and seminorms
 """
 
 abstract type NormKind end
 struct L1 <: NormKind end
 struct Linf <: NormKind end
+struct Lipschitz <: NormKind end
+struct TotalVariation <: NormKind end
 
 """
 'Absolute value' definition that returns mag(I) for an interval and abs(x) for a real
@@ -99,4 +101,45 @@ end
 
 function get_norm(Cacher::NormCacherLinf)
     return maximum(Cacher.C)
+end
+
+"""
+(A, B) = dfly(strongnorm, auxnorm, dynamic)
+
+Constants (A, B) such that ||Lf||_s ≦ A||f||_s + B||f||_aux
+"""
+dfly(::NormKind, ::NormKind, ::Dynamic) = @error "Not implemented"
+
+function dfly(::TotalVariation, ::L1, D::Dynamic)
+
+	distorsion(x)=der_der(D, x)/(der(D, x)^2)
+	lambda(x) = 1/der(D, x)
+    dist = range_estimate(distorsion, D.domain)
+    lam = range_estimate(lambda, D.domain)
+
+    if !(abs(lam) < 1) # these are intervals, so this is *not* equal to abs(lam) <= 1.
+        @error "The function is not expanding"
+    end
+
+    if is_full_branch(D)
+        return abs(lam).hi, abs(dist).hi
+    else
+        if !(abs(lam) < 0.5)
+            @error "Expansivity is insufficient to prove a DFLY. Try with an iterate."
+        end
+        # We need a way to estimate the branch widths
+        @error "Not implemented"
+    end
+end
+
+function dfly(::Lipschitz, ::L1, D::Dynamic)
+    distorsion(x)=der_der(D, x)/(der(D, x)^2)
+	lambda(x) = 1/der(D, x)
+    dist = range_estimate(distorsion, D.domain)
+    lam = range_estimate(lambda, D.domain)
+
+    lam = abs(lam).hi
+    dist = abs(dist).hi
+
+    return round_expr(lam*(2*dist+1), RoundUp), round_expr(dist*(2*dist+1), RoundUp)
 end

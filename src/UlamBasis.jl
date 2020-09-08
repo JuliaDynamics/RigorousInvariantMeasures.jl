@@ -207,19 +207,6 @@ BasisDefinition.bound_linalg_norm_L1_from_weak(B::Ulam) = 1
 BasisDefinition.bound_linalg_norm_L∞_from_weak(B::Ulam) = length(B)
 
 
-"""
-	Returns constants A, B such that `||Lf||_s\\leq A||f||_s+B|||f|||`
-"""
-function BasisDefinition.dfly(B::Ulam, D::MarkovDynamic)
-	distorsion(x)=der_der(D, x)/(der(D, x)^2)
-	lambda(x) = 1/der(D, x)
-	dist = range_estimate(distorsion, D.domain)
-	lam = range_estimate(lambda, D.domain)
-	return abs(lam).hi, abs(dist).hi
-end
-
-
-
 using RecipesBase
 using LaTeXStrings
 
