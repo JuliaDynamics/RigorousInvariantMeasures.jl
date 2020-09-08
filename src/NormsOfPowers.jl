@@ -50,7 +50,7 @@ e and f must be specified in case is_integral_preserving==false
 In case is_integral_preserving is true, they may be specified but they are then ignored.
 (TODO: this should be better integrated in the syntax, using DiscretizedOperator).
 """
-function norm_of_powers(N::NormKind, m::Integer, LL::SparseMatrixCSC{Interval{RealType}, IndexType}, is_integral_preserving::Bool ;
+function norms_of_powers(N::NormKind, m::Integer, LL::SparseMatrixCSC{Interval{RealType}, IndexType}, is_integral_preserving::Bool ;
         e::Vector=[0.],
         f::Adjoint=adjoint([0.]),
         normv0::Real=-1., #used as "missing" value

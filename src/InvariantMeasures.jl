@@ -29,6 +29,6 @@ include("NormsOfPowers.jl")
 #include("Hat.jl")
 #include("GenericEstimate.jl")
 
-export Ulam, Mod1Dynamic, Basis, Dynamic, assemble, preim, Hat, EquispacedPartition, L1, Linf, Lipschitz, TotalVariation, norm_of_powers, sinpi, cospi, dfly, DiscretizedOperator, opnormbound
+export Ulam, Mod1Dynamic, Basis, Dynamic, assemble, preim, Hat, EquispacedPartition, L1, Linf, Lipschitz, TotalVariation, norms_of_powers, sinpi, cospi, dfly, DiscretizedOperator, opnormbound
 
 end

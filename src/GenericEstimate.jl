@@ -50,7 +50,7 @@ function contractmatrix(B::Basis, P::AbstractMatrix{Interval{T}}, m) where {T}
  	return η₁*C, η₂*tilde_C
 end
 
-@deprecate contractmatrix norm_of_powers
+@deprecate contractmatrix norms_of_powers
 
 """
 This function returns the bound on the weak norm of the discretized operator
