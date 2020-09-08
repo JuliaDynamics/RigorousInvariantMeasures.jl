@@ -63,18 +63,18 @@ function norms_of_powers(N::NormKind, m::Integer, LL::SparseMatrixCSC{Interval{R
     n = size(LL, 1)
     M = mid.(LL)
     R = radius.(LL)
-    δ = opnormbound(R, N)
+    δ = opnormbound(N, R)
     γz = gamma(RealType, max_nonzeros_per_row(LL))
     γn = gamma(RealType, n+3) # not n+2 like in the paper, because we wish to allow for f to be the result of rounding
     ϵ = zero(RealType)
 
-    nrmM = opnormbound(M, N)
+    nrmM = opnormbound(N, M)
 
     if normQ == -1.
         if is_integral_preserving
             normQ = nrmM ⊕₊ δ
         else
-            defect = opnormbound(f - f*LL, N)
+            defect = opnormbound(N, f - f*LL)
             normQ = nrmM ⊕₊ δ ⊕₊ normE * defect
         end
     end
@@ -82,16 +82,16 @@ function norms_of_powers(N::NormKind, m::Integer, LL::SparseMatrixCSC{Interval{R
     # precompute norms
     if !is_integral_preserving
         if normE == -1.
-            normE = opnormbound(e, N)
+            normE = opnormbound(N, e)
         end
         if normEF == -1.
-            normEF = opnormbound(e*f, N)
+            normEF = opnormbound(N, e*f)
         end
         if normIEF == -1.
-            normIEF =  opnormbound([Matrix(UniformScaling{Float64}(1),n,n) e*f], N)
+            normIEF =  opnormbound(N, [Matrix(UniformScaling{Float64}(1),n,n) e*f])
         end
         if normN == -1.
-            normN = opnormbound(Matrix(UniformScaling{Float64}(1),n,n) - e*f, N)
+            normN = opnormbound(N, Matrix(UniformScaling{Float64}(1),n,n) - e*f)
         end
     end
 
@@ -105,7 +105,7 @@ function norms_of_powers(N::NormKind, m::Integer, LL::SparseMatrixCSC{Interval{R
         v[1] = 1. # TODO: in full generality, this should contain entries of f rather than ±1
         v[j+1] = -1.
         if normv0 == -1.
-            nrmv = opnormbound(v, N)
+            nrmv = opnormbound(N, v)
         else
             nrmv = normv0
         end
@@ -118,11 +118,11 @@ function norms_of_powers(N::NormKind, m::Integer, LL::SparseMatrixCSC{Interval{R
                 ϵ = round_expr((γz * nrmM + δ)*nrmv + normQ*ϵ, RoundUp)
             else
                 v = w - e * (f*w)
-                new_nrmw = opnormbound(w, N)
+                new_nrmw = opnormbound(N, w)
                 ϵ = round_expr(γn*normIEF*(new_nrmw + normEF*nrmw) + normN*(γz*nrmM + δ)*nrmv + normQ*ϵ, RoundUp)
                 nrmw = new_nrmw
             end
-            nrmv = opnormbound(v, N)
+            nrmv = opnormbound(N, v)
             add_column!(normcachers[k], v, ϵ) #TODO: Could pass and reuse nrmv in the case of norm-1
         end
     end

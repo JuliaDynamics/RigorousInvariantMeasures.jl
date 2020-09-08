@@ -14,7 +14,7 @@ abs_or_mag(x::Interval) = mag(x)
 """
 Certified upper bound to ||A|| (of specified NormKind)
 """
-function opnormbound(A::AbstractVecOrMat{T}, ::L1) where {T}
+function opnormbound(::L1, A::AbstractVecOrMat{T}) where {T}
     # partly taken from JuliaLang's LinearAlgebra/src/generic.jl
     Tnorm = typeof(abs_or_mag(float(real(zero(T)))))
     Tsum = promote_type(Float64, Tnorm)
@@ -31,7 +31,7 @@ function opnormbound(A::AbstractVecOrMat{T}, ::L1) where {T}
     return convert(Tnorm, nrm)
 end
 
-function opnormbound(A::AbstractVecOrMat{T}, ::Linf) where {T}
+function opnormbound(::Linf, A::AbstractVecOrMat{T}) where {T}
     # partly taken from JuliaLang's LinearAlgebra/src/generic.jl
     Tnorm = typeof(abs_or_mag(float(real(zero(T)))))
     Tsum = promote_type(Float64, Tnorm)
@@ -79,7 +79,7 @@ Update a NormCacher to add one column to the matrix it is computing a norm of.
 This column may be affected by an error ε (in the same norm).
 """
 function add_column!(Cacher::NormCacherL1, v::AbstractVector, ε::Float64)
-    Cacher.C = max(Cacher.C, opnormbound(v, L1()) ⊕₊ ε)
+    Cacher.C = max(Cacher.C, opnormbound(L1(), v) ⊕₊ ε)
 end
 
 function add_column!(Cacher::NormCacherLinf, v::AbstractVector, ε::Float64)

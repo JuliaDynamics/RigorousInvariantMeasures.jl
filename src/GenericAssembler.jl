@@ -36,7 +36,7 @@ struct NonIntegralPreservingDiscretizedOperator{T<:AbstractMatrix, S<:AbstractVe
 end
 NonIntegralPreservingDiscretizedOperator(L, e, w) = NonIntegralPreservingDiscretizedOperator{typeof(L), typeof(e), typeof(w)}(L, e, w)
 
-opnormbound(Q::IntegralPreservingDiscretizedOperator, N::NormKind) = opnormbound(Q.L, N)
+opnormbound(N::NormKind, Q::IntegralPreservingDiscretizedOperator) = opnormbound(N, Q.L)
 
 function DiscretizedOperator(B::Basis, D::Dynamic, ϵ=2^(-40); T = Float64)
 	L = assemble(B, D, ϵ; T)
@@ -50,9 +50,9 @@ function DiscretizedOperator(B::Basis, D::Dynamic, ϵ=2^(-40); T = Float64)
 	end
 end
 
-function opnormbound(Q::NonIntegralPreservingDiscretizedOperator, N::NormKind)
-	normL = opnormbound(Q.L, N)
-	norme = opnormbound(Q.e, N)
-	normw = opnormbound(Q.w, N)
+function opnormbound(N::NormKind, Q::NonIntegralPreservingDiscretizedOperator)
+	normL = opnormbound(N, Q.L)
+	norme = opnormbound(N, Q.e)
+	normw = opnormbound(N, Q.w)
 	return round_expr(normL + norme * normw, RoundUp)
 end

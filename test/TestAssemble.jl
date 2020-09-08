@@ -20,5 +20,5 @@ Ptrue = Ptrue'
 
 @test all(contains_zero.(P-Ptrue))
 
-@test opnormbound(DiscretizedOperator(B, D), L1()) == 1
-@test opnormbound(DiscretizedOperator(B, D), Linf()) == 1
+@test opnormbound(L1(), DiscretizedOperator(B, D)) == 1
+@test opnormbound(Linf(), DiscretizedOperator(B, D)) == 1
