@@ -18,3 +18,6 @@ Ptrue = [
 Ptrue = Ptrue'
 
 @test all(contains_zero.(P-Ptrue))
+
+@test opnormbound(DiscretizedOperator(B, D), L1()) == 1
+@test opnormbound(DiscretizedOperator(B, D), Linf()) == 1

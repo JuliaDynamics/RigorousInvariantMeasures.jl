@@ -1,15 +1,9 @@
-using FastRounding
-using ValidatedNumerics
-
 """
 Functions to deal with various types of norms and seminorms
 """
 
-abstract type NormKind end
-struct L1 <: NormKind end
-struct Linf <: NormKind end
-struct Lipschitz <: NormKind end
-struct TotalVariation <: NormKind end
+using FastRounding
+using ValidatedNumerics
 
 """
 'Absolute value' definition that returns mag(I) for an interval and abs(x) for a real

@@ -48,7 +48,7 @@ otherwise they are computed (which may be slower).
 
 e and f must be specified in case is_integral_preserving==false
 In case is_integral_preserving is true, they may be specified but they are then ignored.
-(TODO: maybe this should be better integrated in the syntax, using DiscretizedOperator).
+(TODO: this should be better integrated in the syntax, using DiscretizedOperator).
 """
 function norm_of_powers(N::NormKind, m::Integer, LL::SparseMatrixCSC{Interval{RealType}, IndexType}, is_integral_preserving::Bool ;
         e::Vector=[0.],

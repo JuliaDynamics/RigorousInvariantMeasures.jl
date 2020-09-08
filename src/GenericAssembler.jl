@@ -1,8 +1,6 @@
-module GenericAssembler
 using ValidatedNumerics, SparseArrays
+using LinearAlgebra: Adjoint
 using ..DynamicDefinition, ..BasisDefinition
-
-export assemble
 
 """
 Very generic assembler function
@@ -21,20 +19,40 @@ function assemble(B::Basis, D::Dynamic, ϵ=2^(-40); T = Float64)
 	return P
 end
 
-# Kept here for possible future use
-#
-# abstract type DiscretizedOperator end
-#
-# struct IntegralPreservingDiscretizedOperator{T<:AbstractMatrix} <: DiscretizedOperator
-# 	L:: T
-# end
-#
-# """
-# An operator of the form Q = L + e*w (sparse plus rank-1)
-# """
-# struct NonIntegralPreservingDiscretizedOperator{T<:AbstractMatrix, S<:AbstractVector, U<:LinearAlgebra.Adjoint} <: DiscretizedOperator
-# 	L:: T
-# 	e:: S
-# 	w:: U
+abstract type DiscretizedOperator end
 
+struct IntegralPreservingDiscretizedOperator{T<:AbstractMatrix} <: DiscretizedOperator
+	L:: T
+end
+IntegralPreservingDiscretizedOperator(L) = IntegralPreservingDiscretizedOperator{typeof(L)}(L)
+
+"""
+An operator of the form Q = L + e*w (sparse plus rank-1)
+"""
+struct NonIntegralPreservingDiscretizedOperator{T<:AbstractMatrix, S<:AbstractVector, U<:Adjoint} <: DiscretizedOperator
+	L:: T
+	e:: S
+	w:: U
+end
+NonIntegralPreservingDiscretizedOperator(L, e, w) = NonIntegralPreservingDiscretizedOperator{typeof(L), typeof(e), typeof(w)}(L, e, w)
+
+opnormbound(Q::IntegralPreservingDiscretizedOperator, N::NormKind) = opnormbound(Q.L, N)
+
+function DiscretizedOperator(B::Basis, D::Dynamic, ϵ=2^(-40); T = Float64)
+	L = assemble(B, D, ϵ; T)
+	if is_integral_preserving(B)
+		return IntegralPreservingDiscretizedOperator(L)
+	else
+		f = integral_covector(B)
+		e = one_vector(B)
+		w = f - f*L #will use interval arithmetic when L is an interval matrix
+		return NonIntegralPreservingDiscretizedOperator(L, e, w)
+	end
+end
+
+function opnormbound(Q::NonIntegralPreservingDiscretizedOperator, N::NormKind)
+	normL = opnormbound(Q.L, N)
+	norme = opnormbound(Q.e, N)
+	normw = opnormbound(Q.w, N)
+	return round_expr(normL + norme * normw, RoundUp)
 end
