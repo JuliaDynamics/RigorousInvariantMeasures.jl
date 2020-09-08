@@ -11,7 +11,7 @@ abstract type MarkovDynamic <: Dynamic end
 nbranches(S::Dynamic) = @error "Not implemented"
 plottable(S::Dynamic) = @error "Not implemented"
 preim(S::Dynamic, k, y, ϵ) = @error "Not implemented"
-
+is_full_branch(S::Dynamic) = @error "Not implemented"
 
 der(S::Dynamic, x) = der_n(S, x, Val(1))
 der_der(S::Dynamic, x) = der_n(S, x, Val(2))

@@ -9,18 +9,22 @@ struct Mod1Dynamic <: MarkovDynamic
 	nbranches::Integer
 	orientation::Integer
 	domain::Interval
+	is_full_branch::Bool
 end
 
 function Mod1Dynamic(T::Function, nbranches = undef, domain::Interval{S} = Interval{Float64}(0,1)) where {S}
-	bound_values = T(1)-T(0)
-	nbranches = floor(Int64, abs(bound_values)) ### buggy
-	orientation = bound_values > 0 ? 1 : -1
-
-	return Mod1Dynamic(T, nbranches, orientation, domain)
+	@assert domain == 0..1 # TODO: this only works for domain == 0..1, for now
+	range_diff = T(1..1)-T(0..0)
+	@assert 0 ∉ range_diff # TODO: check that the function is always increasing OR decreasing with the derivative instead?
+	orientation = range_diff > 0 ? 1 : -1
+	nbranches = ceil(orientation * range_diff).hi
+	is_full_branch = isinteger(range_diff)
+	return Mod1Dynamic(T, nbranches, orientation, domain, is_full_branch)
 end
 
 DynamicDefinition.nbranches(S::Mod1Dynamic)=S.nbranches
-### for the moment we suppose T(0)=0
+
+DynamicDefinition.is_full_branch(S::Mod1Dynamic) = S.is_full_branch
 
 DynamicDefinition.plottable(S::Mod1Dynamic, x) = mod1(S.T(x), 1.0)
 
