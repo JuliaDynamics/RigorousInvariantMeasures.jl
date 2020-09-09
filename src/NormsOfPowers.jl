@@ -150,17 +150,17 @@ coming theoretically from iterated DFLY inequalities (the "small matrix method")
 Returns two arrays (strongs, norms) of length m:
 strongs[k] bounds ||Q^k f||_s, norms[k] bounds ||Q^k f||)
 """
-function norms_of_powers_dfly(B::Basis, D::Dynamic, m)
-    A, B = BasisDefinition.dfly(strong_norm(Bas), aux_norm(Bas), D)
+function norms_of_powers_dfly(Bas::Basis, D::Dynamic, m)
+    A, B = dfly(strong_norm(Bas), aux_norm(Bas), D)
     Eh = BasisDefinition.aux_normalized_projection_error(Bas)
     M₁n = BasisDefinition.strong_weak_bound(Bas)
     M₂ = BasisDefinition.aux_weak_bound(Bas)
-    S₁, S₂ = BasisDefinition.weak_by_strong_and_aux_bound(B)
+    S₁, S₂ = BasisDefinition.weak_by_strong_and_aux_bound(Bas)
 
     norms = fill(NaN, m)
     strongs = fill(NaN, m)
 
-    v = [M₁n; M₂]
+    v = Array{Float64}([M₁n; M₂])
     # We evaluate [S₁ S₂] * ([1 0; Eh 1]*[A B; 0 1])^k * [M₁n; M₂] (with correct rounding)
     for k = 1:m
         # invariant: v[1] bounds ||Q^kf||_s for ||f||_w=1
