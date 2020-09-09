@@ -1,11 +1,7 @@
-module UlamBasis
-
 using ..BasisDefinition, ..DynamicDefinition, ..Contractors, ..Mod1DynamicDefinition
 using ValidatedNumerics, LinearAlgebra
 import Base: iterate
-import ..BasisDefinition: one_vector, integral_covector, is_integral_preserving
-
-export Ulam
+import ..BasisDefinition: one_vector, integral_covector, is_integral_preserving, strong_norm, weak_norm, aux_norm
 
 """
 Equispaced Ulam basis on [0,1] of size n
@@ -104,6 +100,9 @@ function one_vector(B::Ulam)
 	return ones(length(B))
 end
 
+BasisDefinition.strong_norm(B::Ulam) = TotalVariation
+BasisDefinition.weak_norm(B::Ulam) = L1
+BasisDefinition.aux_norm(B::Ulam) = L1
 
 """
 Returns constant η such that ``\\min ||Uv||\\geq η ||v||``, where
@@ -174,49 +173,16 @@ BasisDefinition.matrix_norm_diameter(B::Ulam, P) = opnorm(diam.(P), 1)
 """
 BasisDefinition.residual_estimate(B::Ulam, P, v) = rigorous_weak_norm(P*v-v)
 
-"""
-	Returns a constant K such that `||P_h f-f||\\leq K h ||f||_s`
+# See BasisDefinition for docs on these constants
+# These must be rounded up correctly!
 
-	Arg:
-		B::Basis
-"""
-BasisDefinition.normapprox(B::Ulam) = 1/2
-
-"""
-	Returns a constant E such that `|||P_h f|||\\leq |||f|||+E h ||f||_s`
-	Arg:
-		B::Basis
-"""
-BasisDefinition.boundweak(B::Ulam) = 0
-
-"""
-	Returns a constant M₁ such that for a vector v in Uₕ `||v||_s\\leq \\frac{M_1}{h}||v||`
-"""
-BasisDefinition.boundstrongbyweak(B::Ulam) = 1
-
-"""
-	Returns a constant M₂ such that for a vector v in Uₕ `|||v|||\\leq M_2||v||`
-"""
-BasisDefinition.boundauxiliarybyweak(B::Ulam) = 1
-
-"""
-	Returns constants S₁, S₂ such that for a vector v in Uₕ `||v||\\leq S_1||v||_s+S_2|||v|||`
-"""
-BasisDefinition.boundweakbystrongauxiliary(B::Ulam) = (0, 1)
-
-"""
-	Returns constants W₁, W₂ such that for a vector v in Uₕ `||v||\\leq W_1||v||_1+W_2||v||_{\\infty}`
-"""
+BasisDefinition.weak_projection_error(B::Ulam) = round_expr(0.5/length(B), RoundUp)
+BasisDefinition.aux_normalized_projection_error(B::Ulam) = 0
+BasisDefinition.strong_weak_bound(B::Ulam) = length(B)
+BasisDefinition.aux_weak_bound(B::Ulam) = 1
+BasisDefinition.weak_by_strong_and_aux_bound(B::Ulam) = (0, 1)
 BasisDefinition.bound_weak_norm_from_linalg_norm(B::Ulam) = (1, 0)
-
-"""
-	Returns constant A such that for a vector v in Uₕ `||v||_1\\leq A||v||`
-"""
 BasisDefinition.bound_linalg_norm_L1_from_weak(B::Ulam) = 1
-
-"""
-	Returns constant A such that for a vector v in Uₕ `||v||_\\infty \\leq A||v||`
-"""
 BasisDefinition.bound_linalg_norm_L∞_from_weak(B::Ulam) = length(B)
 
 
@@ -265,6 +231,4 @@ using LaTeXStrings
 	    G = x-> der(D, x)
 	    collect(B), G.(collect(B))
 	end
-end
-
 end

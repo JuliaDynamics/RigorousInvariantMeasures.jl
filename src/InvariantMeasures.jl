@@ -21,7 +21,7 @@ include("Mod1Dynamic.jl")
 include("UlamBasis.jl")
 include("HatBasis.jl")
 
-using .DynamicDefinition, .BasisDefinition, .Mod1DynamicDefinition, .UlamBasis, .GenericEstimate, .HatBasis, .Contractors
+using .DynamicDefinition, .BasisDefinition, .Mod1DynamicDefinition, .GenericEstimate, .Contractors
 
 include("Norms.jl")
 include("pitrig.jl")
@@ -30,6 +30,7 @@ include("NormsOfPowers.jl")
 #include("Hat.jl")
 #include("GenericEstimate.jl")
 
-export Ulam, Mod1Dynamic, Basis, Dynamic, assemble, preim, Hat, EquispacedPartition, L1, Linf, Lipschitz, TotalVariation, norms_of_powers, sinpi, cospi, dfly, DiscretizedOperator, opnormbound
+export NormKind, L1, Linf, Lipschitz, TotalVariation
+export Ulam, Mod1Dynamic, Basis, Dynamic, assemble, preim, Hat, EquispacedPartition, norms_of_powers, sinpi, cospi, dfly, DiscretizedOperator, opnormbound
 
 end

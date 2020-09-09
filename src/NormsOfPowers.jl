@@ -130,7 +130,8 @@ function norms_of_powers(N::Type{<:NormKind}, m::Integer, LL::SparseMatrixCSC{In
 end
 
 """
-Trivial bounds from ||Q^k|| ≤ ||Q||^k for the powers of a DiscretizedOperator (on the whole space)
+Array of "trivial" bounds for the powers of a DiscretizedOperator (on the whole space)
+coming from from ||Q^k|| ≤ ||Q||^k
 """
 function norms_of_powers_trivial(N::Type{NormKind}, Q::DiscretizedOperator, m::Integer)
     norms = fill(NaN, m)
@@ -139,4 +140,35 @@ function norms_of_powers_trivial(N::Type{NormKind}, Q::DiscretizedOperator, m::I
         norms[i] = norms[i-1] ⊗₀ norms[1]
     end
     return norms
+end
+
+"""
+Arrays of bounds to ||Q^k||_{w → s} = sup_{||f||_w=1} ||Q^k f||_s
+and to ||Q^k||_{w}
+coming theoretically from iterated DFLY inequalities (the "small matrix method").
+
+Returns two arrays (strongs, norms) of length m:
+strongs[k] bounds ||Q^k f||_s, norms[k] bounds ||Q^k f||)
+"""
+function norms_of_powers_dfly(B::Basis, D::Dynamic, m)
+    A, B = BasisDefinition.dfly(strong_norm(Bas), aux_norm(Bas), D)
+    Eh = BasisDefinition.aux_normalized_projection_error(Bas)
+    M₁n = BasisDefinition.strong_weak_bound(Bas)
+    M₂ = BasisDefinition.aux_weak_bound(Bas)
+    S₁, S₂ = BasisDefinition.weak_by_strong_and_aux_bound(B)
+
+    norms = fill(NaN, m)
+    strongs = fill(NaN, m)
+
+    v = [M₁n; M₂]
+    # We evaluate [S₁ S₂] * ([1 0; Eh 1]*[A B; 0 1])^k * [M₁n; M₂] (with correct rounding)
+    for k = 1:m
+        # invariant: v[1] bounds ||Q^kf||_s for ||f||_w=1
+        # v[2] bounds |||Q^kf||| for ||f||_w=1
+        v[1] = round_expr(A*v[1] + B*v[2], RoundUp)
+        v[2] = round_expr(Eh*v[1] + v[2], RoundUp)
+        strongs[k] = v[1]
+        norms[k] = round_expr(S₁*v[1] + S₂*v[2], RoundUp)
+    end
+    return strongs, norms
 end

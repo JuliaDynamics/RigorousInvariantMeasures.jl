@@ -1,4 +1,3 @@
-module HatBasis
 """
 Hat basis on the Torus [0,1]
 """
@@ -6,8 +5,6 @@ Hat basis on the Torus [0,1]
 using ..BasisDefinition, ..Mod1DynamicDefinition, ..DynamicDefinition
 using ValidatedNumerics
 import ..BasisDefinition: one_vector, integral_covector, is_integral_preserving
-
-export Hat, HatFunction, HatFunctionOnTorus, IntervalOnTorus, EquispacedPartition
 
 """
 Equispaced partition of size n of [0,1]
@@ -233,6 +230,10 @@ function Base.iterate(S::ProjectDualElement{T}, state = S.j_min) where T <: Hat
 		    state+1)
 end
 
+BasisDefinition.strong_norm(B::Hat) = Lipschitz
+BasisDefinition.weak_norm(B::Hat) = Linf
+BasisDefinition.aux_norm(B::Hat) = L1
+
 evaluate_integral(B::Hat, i, T) = T(i)/length(B)
 
 function Base.iterate(S::AverageZero{Hat}, state = 1)
@@ -245,6 +246,17 @@ function Base.iterate(S::AverageZero{Hat}, state = 1)
 	v[state+1]=-1
 	return (v, state+1)
 end
+
+# TODO
+BasisDefinition.weak_projection_error(B::Hat) = round_expr(0.5/length(B), RoundUp)
+BasisDefinition.aux_normalized_projection_error(B::Hat) = round_expr(0.5/length(B), RoundUp)
+BasisDefinition.strong_weak_bound(B::Hat) = 2*length(B)
+BasisDefinition.aux_weak_bound(B::Hat) = 1
+BasisDefinition.weak_by_strong_and_aux_bound(B::Hat) = (1, 1)
+BasisDefinition.bound_weak_norm_from_linalg_norm(B::Hat) = @error "TODO"
+BasisDefinition.bound_linalg_norm_L1_from_weak(B::Hat) = @error "TODO"
+BasisDefinition.bound_linalg_norm_L∞_from_weak(B::Hat) = @error "TODO"
+
 
 using RecipesBase
 
@@ -259,6 +271,4 @@ using RecipesBase
 
 	seriestype := :path
 	collect(B), mid.(w)
-end
-
 end

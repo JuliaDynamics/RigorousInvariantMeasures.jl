@@ -3,7 +3,7 @@ using ..DynamicDefinition
 
 import Base
 
-export Basis, DualComposedWithDynamic, ProjectDualElement, AverageZero, assemble, integral_covector, one_vector, is_integral_preserving
+export Basis, DualComposedWithDynamic, ProjectDualElement, AverageZero, assemble, integral_covector, one_vector, is_integral_preserving, strong_norm, weak_norm, aux_norm
 
 abstract type Basis end
 
@@ -36,6 +36,10 @@ Base.iterate(S::ProjectDualElement{B}, state) where {B} = @error "Not Implemente
 
 evaluate(B::Basis, i, x) = @error "Not Implemented"
 evaluate_integral(B::Basis, i; T = Float64) = @error "Not Implemented"
+
+strong_norm(B::Basis) = @error "Must be specialized"
+weak_norm(B::Basis) = @error "Must be specialized"
+aux_norm(B::Basis) = @error "Must be specialized"
 
 """
 	Covector that represents the integral
@@ -146,53 +150,57 @@ matrix_norm_diameter(B::Basis, P) = @error "Not Implemented"
 residual_estimate(B::Basis, P, v) = @error "Not Implemented"
 
 """
-	Returns a constant K such that `||P_h f-f||\\leq K h ||f||_s`
+	Return a constant Kh (typically scales as h ~ 1/n) such that `||P_h f-f||\\leq Kh ||f||_s`
+	Must be rounded up correctly!
 
 	Arg:
 		B::Basis
 """
-normapprox(B::Basis) = @error "Not implemented"
+weak_projection_error(B::Basis) = @error "Not implemented"
 
 """
-	Returns a constant E such that `|||P_h f|||\\leq |||f|||+E h ||f||_s`
+	Return a constant Eh (typically scales as h ~ 1/n) such that `|||P_h f|||\\leq |||f|||+ Eh * ||f||_s`
+	Must be rounded up correctly!
+
 	Arg:
 		B::Basis
 """
-boundweak(B::Basis) = @error "Not implemented"
+aux_normalized_projection_error(B::Basis) = @error "Not implemented"
 
 """
-	Returns a constant M₁ such that for a vector v in Uₕ `||v||_s\\leq \\frac{M_1}{h}||v||`
+	Return a constant M₁n such that for a vector v in Uₕ `||v||_s\\leq M1n*||v||`
+	Must be rounded up correctly!
 """
-boundstrongbyweak(B::Basis) = @error "Not implemented"
+strong_weak_bound(B::Basis) = @error "Not implemented"
 
 """
-	Returns a constant M₂ such that for a vector v in Uₕ `|||v|||\\leq M_2||v||`
+	Return a constant M₂ such that for a vector v in Uₕ `|||v|||\\leq M_2||v||`
+	Must be rounded up correctly!
 """
-boundauxiliarybyweak(B::Basis) = @error "Not implemented"
+aux_weak_bound(B::Basis) = @error "Not implemented"
 
 """
-	Returns constants S₁, S₂ such that for a vector v in Uₕ `||v||\\leq S_1||v||_s+S_2|||v|||`
+	Return constants S₁, S₂ such that for a vector v in Uₕ `||v||\\leq S_1||v||_s+S_2|||v|||`
+	Must be rounded up correctly!
 """
-boundweakbystrongauxiliary(B::Basis) = @error "Not implemented"
+weak_by_strong_and_aux_bound(B::Basis) = @error "Not implemented"
 
 """
-	Returns constants W₁, W₂ such that for a vector v in Uₕ `||v||\\leq W_1||v||_1+W_2||v||_{\\infty}`
+	Return constants W₁, W₂ such that for a vector v in Uₕ `||v||\\leq W_1||v||_1+W_2||v||_{\\infty}`
+	Must be rounded up correctly!
 """
 bound_weak_norm_from_linalg_norm(B::Basis) = @error "Not implemented"
 
 """
-	Returns constant A such that for a vector v in Uₕ `||v||_1\\leq A||v||`
+	Return a constant A such that for a vector v in Uₕ `||v||_1\\leq A||v||`
+	Must be rounded up correctly!
 """
 bound_linalg_norm_L1_from_weak(B::Basis) = @error "Not implemented"
 
 """
-	Returns constant A such that for a vector v in Uₕ `||v||_\\infty \\leq A||v||`
+	Return a constant A such that for a vector v in Uₕ `||v||_\\infty \\leq A||v||`
+	Must be rounded up correctly!
 """
 bound_linalg_norm_L∞_from_weak(B::Basis) = @error "Not implemented"
-
-"""
-	Returns constants A, B such that `||Lf||_s\\leq A||f||_s+B|||f|||`
-"""
-dfly(B::Basis, D::Dynamic) = @error "Not implemented"
 
 end

@@ -71,24 +71,12 @@ that contains the abstract discretized operator.
 Therefore, to get a rigorous bound we need to have an a priori bound on the norms
 of the powers of the abstract discretized operator
 """
-function boundstrongauxnormabsdiscroperator(Bas::Basis, D::Dynamic, k)
-	@warn "Must be rewritten making sure that operations are correctly rounded"
-	A, B = BasisDefinition.dfly(Bas, D)
-	E = BasisDefinition.boundweak(Bas)
-	h = 1/length(Bas) ### TODO, add a function
-	M₁ = BasisDefinition.boundstrongbyweak(Bas)
-	M₂ = BasisDefinition.boundauxiliarybyweak(Bas)
-
-	SmallMatrix = [1 0; E*h 1]*[A B; 0 1]
-	return (SmallMatrix^k)*[M₁/h; M₂]
-end
 
 function boundweaknormabsdiscroperator(B::Basis, D::Dynamic, k)
 	@warn "Must be rewritten making sure that operations are correctly rounded"
-	S₁, S₂ = BasisDefinition.boundweakbystrongauxiliary(B)
+	S₁, S₂ = BasisDefinition.weak_by_strong_and_aux_bound(B)
 	return [S₁ S₂]*BasisDefinition.boundstrongauxnormabsdiscroperator(B, D, k)
 end
-
 
 """
 This avoids CoarseFine to be compiled for incompatible basis
@@ -113,14 +101,13 @@ function _coarsefine(Bcoarse, Bfine, ::Val{true}, Pfine, D, C)
 	R = [boundstrongauxnormabsdiscroperator(Bfine, D, i)[1] for i in 0:n+1]
 	Q = BasisDefinition.matrix_norm_estimate(Bfine, Pfine)
 	Cfine = Array{Float64}(undef, n)
-	K =  BasisDefinition.normapprox(Bcoarse)
-	h = 1/length(Bcoarse)
+	Kh =  BasisDefinition.weak_projection_error(Bcoarse)
 	for m in 1:n
 		temp = 0
 		for k in 0:m-1
 			temp += C[m-k]*(Q*R[k+1]+R[k+2])
 		end
-		Cfine[m] = (C[m]+2*K*h*temp).hi
+		Cfine[m] = (C[m]+2*Kh*temp).hi
 	end
 	return Cfine
 end
