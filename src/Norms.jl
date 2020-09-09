@@ -14,7 +14,7 @@ abs_or_mag(x::Interval) = mag(x)
 """
 Certified upper bound to ||A|| (of specified NormKind)
 """
-function opnormbound(::L1, A::AbstractVecOrMat{T}) where {T}
+function opnormbound(::Type{L1}, A::AbstractVecOrMat{T}) where {T}
     # partly taken from JuliaLang's LinearAlgebra/src/generic.jl
     Tnorm = typeof(abs_or_mag(float(real(zero(T)))))
     Tsum = promote_type(Float64, Tnorm)
@@ -31,7 +31,7 @@ function opnormbound(::L1, A::AbstractVecOrMat{T}) where {T}
     return convert(Tnorm, nrm)
 end
 
-function opnormbound(::Linf, A::AbstractVecOrMat{T}) where {T}
+function opnormbound(::Type{Linf}, A::AbstractVecOrMat{T}) where {T}
     # partly taken from JuliaLang's LinearAlgebra/src/generic.jl
     Tnorm = typeof(abs_or_mag(float(real(zero(T)))))
     Tsum = promote_type(Float64, Tnorm)
@@ -79,7 +79,7 @@ Update a NormCacher to add one column to the matrix it is computing a norm of.
 This column may be affected by an error ε (in the same norm).
 """
 function add_column!(Cacher::NormCacherL1, v::AbstractVector, ε::Float64)
-    Cacher.C = max(Cacher.C, opnormbound(L1(), v) ⊕₊ ε)
+    Cacher.C = max(Cacher.C, opnormbound(L1, v) ⊕₊ ε)
 end
 
 function add_column!(Cacher::NormCacherLinf, v::AbstractVector, ε::Float64)
@@ -102,9 +102,9 @@ end
 
 Constants (A, B) such that ||Lf||_s ≦ A||f||_s + B||f||_aux
 """
-dfly(::NormKind, ::NormKind, ::Dynamic) = @error "Not implemented"
+dfly(::Type{<:NormKind}, ::Type{<:NormKind}, ::Dynamic) = @error "Not implemented"
 
-function dfly(::TotalVariation, ::L1, D::Dynamic)
+function dfly(::Type{TotalVariation}, ::Type{L1}, D::Dynamic)
 
 	distorsion(x)=der_der(D, x)/(der(D, x)^2)
 	lambda(x) = 1/der(D, x)
@@ -126,7 +126,7 @@ function dfly(::TotalVariation, ::L1, D::Dynamic)
     end
 end
 
-function dfly(::Lipschitz, ::L1, D::Dynamic)
+function dfly(::Type{Lipschitz}, ::Type{L1}, D::Dynamic)
     distorsion(x)=der_der(D, x)/(der(D, x)^2)
 	lambda(x) = 1/der(D, x)
     dist = range_estimate(distorsion, D.domain)

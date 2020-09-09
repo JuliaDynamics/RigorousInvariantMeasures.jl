@@ -50,7 +50,7 @@ e and f must be specified in case is_integral_preserving==false
 In case is_integral_preserving is true, they may be specified but they are then ignored.
 (TODO: this should be better integrated in the syntax, using DiscretizedOperator).
 """
-function norms_of_powers(N::NormKind, m::Integer, LL::SparseMatrixCSC{Interval{RealType}, IndexType}, is_integral_preserving::Bool ;
+function norms_of_powers(N::Type{<:NormKind}, m::Integer, LL::SparseMatrixCSC{Interval{RealType}, IndexType}, is_integral_preserving::Bool ;
         e::Vector=[0.],
         f::Adjoint=adjoint([0.]),
         normv0::Real=-1., #used as "missing" value
@@ -96,7 +96,7 @@ function norms_of_powers(N::NormKind, m::Integer, LL::SparseMatrixCSC{Interval{R
     end
 
     # initialize normcachers
-    normcachers = [NormCacher{typeof(N)}(n) for j in 1:m]
+    normcachers = [NormCacher{N}(n) for j in 1:m]
 
     # main loop
 
@@ -132,7 +132,7 @@ end
 """
 Trivial bounds from ||Q^k|| ≤ ||Q||^k for the powers of a DiscretizedOperator (on the whole space)
 """
-function norms_of_powers_trivial(N::NormKind, Q::DiscretizedOperator, m::Integer)
+function norms_of_powers_trivial(N::Type{NormKind}, Q::DiscretizedOperator, m::Integer)
     norms = fill(NaN, m)
     norms[1] = opnormbound(N, Q)
     for i = 2:m
