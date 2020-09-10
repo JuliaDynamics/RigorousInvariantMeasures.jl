@@ -185,6 +185,8 @@ function Base.iterate(S::DualComposedWithDynamic{T, Mod1Dynamic}, state = (1, 1)
 	end
 end
 
+BasisDefinition.is_refinement(Bf::Hat, Bc::Hat) = Bc.p ⊆ Bf.p
+
 function integral_covector(B::Hat)
 	n = length(B)
 	return 1/n * ones(Interval{Float64}, n)'

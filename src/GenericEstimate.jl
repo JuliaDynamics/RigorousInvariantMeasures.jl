@@ -1,18 +1,32 @@
-module GenericEstimate
-
 using LinearAlgebra, Arpack, FastRounding, ValidatedNumerics
 using ..DynamicDefinition, ..BasisDefinition
 
-function perronvector(B::Basis, P::AbstractMatrix{Interval{T}}) where {T}
-	PP = mid.(P)
-	F = eigs(PP; nev=4, ritzvec=true, v0=ones((0,)))
-	return F[2][:, 1]
+export invariant_vector
+
+"""
+Return the (hopefully unique) invariant vector of the dynamic with discretized operator P.
+
+The vector is normalized so that integral_covector(B)*w = 1
+"""
+function invariant_vector(B::Basis, Q::DiscretizedOperator; tol = 0.0)
+	mQ = mid(Q)
+	n = size(Q)[1]
+	F = eigs(mQ; tol=tol, nev=4, ritzvec=true, v0=ones((n,)))
+	w = F[2][:, 1]
+	@assert imag(w) ≈ zeros(n)
+	w = real(w) # this seems a pretty safe assumption
+	# in the Ulam case, in principle we could enforece w >= 0, but in practice
+	# it will hardly ever be relevant.
+	w = w ./ (mid.(integral_covector(B))*w) #normalization
+	return w
 end
 
-function rigorousresidual(B::Basis, P::AbstractMatrix{Interval{T}}, w) where {T}
-	w_int = Interval{T}(w)
-	Pw_int = P*w_int
-	return BasisDefinition.rigorous_weak_norm(B, Pw_int-w_int)
+"""
+Return an upper bound to Q_h*w - w in the given norm
+"""
+function residual(N::Type{<:NormKind}, Q::DiscretizedOperator, w)
+	return opnormbound(N, Q*w - w)
+	@warn "TODO: check norm type"
 end
 
 
@@ -61,55 +75,4 @@ function boundnorm(B::Basis, P::AbstractMatrix{Interval{T}}, m) where {T}
 	α₂ = BasisDefinition.bound_linalg_norm_L∞_from_weak(B)
 	C, tilde_C = contractmatrix(B, P, m)
 	return (W₁/α₁)*C+(W₂/α₂)*tilde_C
-end
-
-
-"""
-This function bounds the norms of the powers of the abstract discretized operator:
-the computed discretized operator is an interval of matrices
-that contains the abstract discretized operator.
-Therefore, to get a rigorous bound we need to have an a priori bound on the norms
-of the powers of the abstract discretized operator
-"""
-
-function boundweaknormabsdiscroperator(B::Basis, D::Dynamic, k)
-	@warn "Must be rewritten making sure that operations are correctly rounded"
-	S₁, S₂ = BasisDefinition.weak_by_strong_and_aux_bound(B)
-	return [S₁ S₂]*BasisDefinition.boundstrongauxnormabsdiscroperator(B, D, k)
-end
-
-"""
-This avoids CoarseFine to be compiled for incompatible basis
-"""
-sanity_check(Bone::Basis, Btwo::Basis) = Val((typeof(Bone)==typeof(Btwo)) && (length(Bone)<length(Btwo)))
-
-"""
-This function bounds the norm of a finer operator by using the norms of a
-coarse operator
-"""
-function coarsefine(Bcoarse::Basis, Bfine::Basis, Pfine, D::Dynamic, C)
-	return _coarsefine(Bcoarse, Bfine, sanity_check(Bcoarse, Bfine), Pfine, D, C)
-end
-
-_coarsefine(Bcoarse, Bfine, ::Val{false}, D, C) = @error "Not the same basis or Coarse>Fine"
-
-function _coarsefine(Bcoarse, Bfine, ::Val{true}, Pfine, D, C)
-	@warn "Must be rewritten making sure that operations are correctly rounded"
-	n =length(C)
-	# please remark that due to the indexes in julia starting with 1,
-	# ```R_{k,h,1} = R[k+1]``` and the following vector has length n+2
-	R = [boundstrongauxnormabsdiscroperator(Bfine, D, i)[1] for i in 0:n+1]
-	Q = BasisDefinition.matrix_norm_estimate(Bfine, Pfine)
-	Cfine = Array{Float64}(undef, n)
-	Kh =  BasisDefinition.weak_projection_error(Bcoarse)
-	for m in 1:n
-		temp = 0
-		for k in 0:m-1
-			temp += C[m-k]*(Q*R[k+1]+R[k+2])
-		end
-		Cfine[m] = (C[m]+2*Kh*temp).hi
-	end
-	return Cfine
-end
-
 end

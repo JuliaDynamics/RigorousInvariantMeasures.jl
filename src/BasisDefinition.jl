@@ -42,6 +42,11 @@ weak_norm(B::Basis) = @error "Must be specialized"
 aux_norm(B::Basis) = @error "Must be specialized"
 
 """
+Check if Bfine is a refinement of Bcoarse
+"""
+is_refinement(Bfine::Basis, Bcoarse::Basis) = @error "Not implemented"
+
+"""
 	Covector that represents the integral
 """
 integral_covector(B::Basis) = @error "Must be specialized"

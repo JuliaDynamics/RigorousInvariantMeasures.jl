@@ -8,6 +8,8 @@ using FastRounding
 using ValidatedNumerics
 using ValidatedNumerics.IntervalArithmetic: round_expr
 
+export norms_of_powers, refine_norms_of_powers, norms_of_powers_dfly
+
 """
 Returns the maximum number of (structural) nonzeros in a row of A
 """
@@ -52,7 +54,7 @@ In case is_integral_preserving is true, they may be specified but they are then 
 """
 function norms_of_powers(N::Type{<:NormKind}, m::Integer, LL::SparseMatrixCSC{Interval{RealType}, IndexType}, is_integral_preserving::Bool ;
         e::Vector=[0.],
-        f::Adjoint=adjoint([0.]),
+        f::AbstractArray=[0.]',
         normv0::Real=-1., #used as "missing" value
         normQ::Real=-1.,
         normE::Real=-1.,
@@ -171,4 +173,52 @@ function norms_of_powers_dfly(Bas::Basis, D::Dynamic, m)
         norms[k] = round_expr(S₁*v[1] + S₂*v[2], RoundUp)
     end
     return strongs, norms
+end
+
+
+"""
+Compute better and/or more estimates of power norms using
+the fact that ||Q^{k+h}|| ≤ ||Q^k|| * ||Q^h||.
+This uses multiplicativity, so it will not work for mixed norms,
+e.g., ||Q^k||_{s → w}, or ||M^k|_{U^0}||
+(unless M preserves U^0, which is the case for Q|_{U^0}).
+"""
+function refine_norms_of_powers(norms::Vector, m)
+    better_norms = fill(NaN, m)
+    better_norms[1] = norms[1]
+    for k in 2:m
+        better_norms[k] = minimum(round_expr(better_norms[i]*better_norms[k-i], RoundUp) for i in 1:k-1)
+        if k <= length(norms)
+            better_norms[k] = min(better_norms[k], norms[k])
+        end
+    end
+    return better_norms
+end
+refine_norms_of_powers(norms::Vector) = refine_norms_of_powers(norms, length(norms))
+
+"""
+Estimate norms of powers from those on a coarser grid (see paper for details)
+"""
+function norms_of_powers_from_coarser_grid(fine_basis::Basis, coarse_basis::Basis, D::Dynamic, coarse_norms::Vector, normQ::Real)
+    if !is_refinement(fine_basis, coarse_basis)
+        @error "The fine basis is not a refinement of the coarse basis"
+    end
+    m = length(coarse_norms)
+    fine_norms = fill(NaN, m)
+    (strongs, norms) = norms_of_powers_dfly(fine_basis, D, m)
+
+    # adds a 0th element to strongs
+    strongs0 = OffsetArray(Float64,  0:m)
+    strongs0[0] = BasisDefinition.strong_weak_bound(Bas)
+    strongs0[1:m] = strongs
+
+    Kh =  BasisDefinition.weak_projection_error(Bcoarse)
+    for k in 1:m
+		temp = 0.
+		for k in 0:m-1
+			temp = round_expr(temp + coarse_norms[m-1-k]*(normQ*strongs0[k]+strongs0[k+1]), RoundUp)
+		end
+		fine_norms[m] = round_expr(coarse_norms[m] + 2*Kh*temp, RoundUp)
+	end
+    return fine_norms
 end

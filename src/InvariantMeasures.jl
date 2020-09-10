@@ -20,7 +20,7 @@ include("Mod1Dynamic.jl")
 include("UlamBasis.jl")
 include("HatBasis.jl")
 
-using .DynamicDefinition, .BasisDefinition, .Mod1DynamicDefinition, .GenericEstimate, .Contractors
+using .DynamicDefinition, .BasisDefinition, .Mod1DynamicDefinition, .Contractors
 
 include("Norms.jl")
 include("pitrig.jl")
