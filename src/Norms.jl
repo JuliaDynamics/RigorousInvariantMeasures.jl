@@ -51,6 +51,12 @@ end
 # TODO: specialize for sparse matrices
 
 """
+Rigorous upper bound on a vector norm. Note that Linf, L1 are the "analyst's" norms
+"""
+normbound(N::Type{L1}, v::AbstractVector) = opnormbound(L1, v) ⊘₊ Float64(length(v), RoundDown)
+normbound(N::Type{Linf}, v::AbstractVector) = opnormbound(Linf, v)
+
+"""
 Types to compute norms iteratively by "adding a column at a time".
 """
 abstract type NormCacher{T} end
@@ -135,5 +141,5 @@ function dfly(::Type{Lipschitz}, ::Type{L1}, D::Dynamic)
     lam = abs(lam).hi
     dist = abs(dist).hi
 
-    return round_expr(lam*(2*dist+1), RoundUp), round_expr(dist*(2*dist+1), RoundUp)
+    return lam ⊗₊ (2. ⊗₊  dist ⊕₊ 1.), dist ⊗₊ (2. ⊗₊ dist ⊕₊ 1.)
 end

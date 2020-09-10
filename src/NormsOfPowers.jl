@@ -6,7 +6,6 @@ using LinearAlgebra
 using SparseArrays
 using FastRounding
 using ValidatedNumerics
-using ValidatedNumerics.IntervalArithmetic: round_expr
 
 export norms_of_powers, refine_norms_of_powers, norms_of_powers_dfly
 
@@ -77,7 +76,7 @@ function norms_of_powers(N::Type{<:NormKind}, m::Integer, LL::SparseMatrixCSC{In
             normQ = nrmM ⊕₊ δ
         else
             defect = opnormbound(N, f - f*LL)
-            normQ = nrmM ⊕₊ δ ⊕₊ normE * defect
+            normQ = nrmM ⊕₊ δ ⊕₊ normE ⊗₊ defect
         end
     end
 
@@ -117,11 +116,11 @@ function norms_of_powers(N::Type{<:NormKind}, m::Integer, LL::SparseMatrixCSC{In
             w = M * v
             if is_integral_preserving
                 v = w
-                ϵ = round_expr((γz * nrmM + δ)*nrmv + normQ*ϵ, RoundUp)
+                ϵ = (γz ⊗₊ nrmM ⊕₊ δ) ⊗₊ nrmv ⊕₊ normQ ⊗₊ ϵ
             else
                 v = w - e * (f*w)
                 new_nrmw = opnormbound(N, w)
-                ϵ = round_expr(γn*normIEF*(new_nrmw + normEF*nrmw) + normN*(γz*nrmM + δ)*nrmv + normQ*ϵ, RoundUp)
+                ϵ = γn ⊗₊ normIEF ⊗₊ (new_nrmw ⊕₊ normEF ⊗₊ nrmw) ⊕₊ normN ⊗₊ (γz ⊗₊ nrmM ⊕₊ δ) ⊗₊ nrmv ⊕₊ normQ ⊗₊ ϵ
                 nrmw = new_nrmw
             end
             nrmv = opnormbound(N, v)
@@ -167,10 +166,10 @@ function norms_of_powers_dfly(Bas::Basis, D::Dynamic, m)
     for k = 1:m
         # invariant: v[1] bounds ||Q^kf||_s for ||f||_w=1
         # v[2] bounds |||Q^kf||| for ||f||_w=1
-        v[1] = round_expr(A*v[1] + B*v[2], RoundUp)
-        v[2] = round_expr(Eh*v[1] + v[2], RoundUp)
+        v[1] = A ⊗₊ v[1] ⊕₊ B ⊗ v[2]
+        v[2] = Eh ⊗₊ v[1] ⊕₊ v[2]
         strongs[k] = v[1]
-        norms[k] = round_expr(S₁*v[1] + S₂*v[2], RoundUp)
+        norms[k] = S₁ ⊗₊ v[1] ⊕₊ S₂ ⊗₊ v[2]
     end
     return strongs, norms
 end
@@ -187,7 +186,7 @@ function refine_norms_of_powers(norms::Vector, m)
     better_norms = fill(NaN, m)
     better_norms[1] = norms[1]
     for k in 2:m
-        better_norms[k] = minimum(round_expr(better_norms[i]*better_norms[k-i], RoundUp) for i in 1:k-1)
+        better_norms[k] = minimum(better_norms[i] ⊗₊ better_norms[k-i] for i in 1:k-1)
         if k <= length(norms)
             better_norms[k] = min(better_norms[k], norms[k])
         end
@@ -216,9 +215,9 @@ function norms_of_powers_from_coarser_grid(fine_basis::Basis, coarse_basis::Basi
     for k in 1:m
 		temp = 0.
 		for k in 0:m-1
-			temp = round_expr(temp + coarse_norms[m-1-k]*(normQ*strongs0[k]+strongs0[k+1]), RoundUp)
+			temp = temp ⊕₊ coarse_norms[m-1-k] ⊗₊ (normQ ⊗₊ strongs0[k] ⊕₊ strongs0[k+1])
 		end
-		fine_norms[m] = round_expr(coarse_norms[m] + 2*Kh*temp, RoundUp)
+		fine_norms[m] = coarse_norms[m] ⊕₊ 2. ⊗₊ Kh ⊗₊ temp
 	end
     return fine_norms
 end

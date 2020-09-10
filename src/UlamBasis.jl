@@ -106,86 +106,17 @@ BasisDefinition.strong_norm(B::Ulam) = TotalVariation
 BasisDefinition.weak_norm(B::Ulam) = L1
 BasisDefinition.aux_norm(B::Ulam) = L1
 
-"""
-Returns constant η such that ``\\min ||Uv||\\geq η ||v||``, where
-U = collect(AverageZero) (the matrix whose columns are the vectors in AverageZero)
-TODO: introduce a default method that uses rigorous SVD to bound these constants
-from below.
-This is used in the following estimate
-```math:
-	\\max_x ||Ax|_V||/||x|| = \\max ||AUz||/||Uz|| \\leq \\max_z \\eta||AUz||/||z||
-```
-"""
-BasisDefinition.spaceconstant(B::Ulam, ::Val{:L1}) = 1
-BasisDefinition.spaceconstant(B::Ulam, ::Val{:L∞}) = 1
-
-"""
- 	Rigorous estimate (from above) of ||v||_w
-
-	Args:
-		B basis
-	 	v (numpy vector):
-
-	Returns: x such that ``||v||_w \\leq x``
-"""
-BasisDefinition.norm_estimate(B::Ulam, v) = norm(v, 1)
-
-"""
-	Rigorous norm of a vector.
-
-	Args:
-		B basis
-	 	v
-
-	Returns:
-	 		its (weak) norm.
-"""
-BasisDefinition.rigorous_weak_norm(B::Ulam, v) = norm(v,1)
-
-"""
-	Rigorous estimate (from above) of the matrix norm
-
-	Args:
-		B Basis
-		PP Matrix
-
-	 	Returns: x such that ``||PP||_w``
-"""
-BasisDefinition.matrix_norm_estimate(B::Ulam, P) = opnorm(P, 1)
-
-"""
-	Diameter (in the matrix norm) of an interval matrix.
-
-	Must be rigorous.
-
-	Returns:
-	 		M such that :math:`\\|P_1-P_2\\|_w \\leq M` for all :math:`P_1,P_2 \\in P`.
-"""
-BasisDefinition.matrix_norm_diameter(B::Ulam, P) = opnorm(diam.(P), 1)
-
-"""
-	Computes the residual (in norm) of the computed Perron vector
-
-	Args:
-	 		P (interval matrix):
-	 		v (numpy vector):
-
-	Returns:
-	 		res (real RNDU): an upper bound to :math:`\\|Pv-v\\|`
-"""
-BasisDefinition.residual_estimate(B::Ulam, P, v) = rigorous_weak_norm(P*v-v)
-
 # See BasisDefinition for docs on these constants
 # These must be rounded up correctly!
 
-BasisDefinition.weak_projection_error(B::Ulam) = round_expr(0.5/length(B), RoundUp)
-BasisDefinition.aux_normalized_projection_error(B::Ulam) = 0
-BasisDefinition.strong_weak_bound(B::Ulam) = length(B)
-BasisDefinition.aux_weak_bound(B::Ulam) = 1
-BasisDefinition.weak_by_strong_and_aux_bound(B::Ulam) = (0, 1)
-BasisDefinition.bound_weak_norm_from_linalg_norm(B::Ulam) = (1, 0)
-BasisDefinition.bound_linalg_norm_L1_from_weak(B::Ulam) = 1
-BasisDefinition.bound_linalg_norm_L∞_from_weak(B::Ulam) = length(B)
+BasisDefinition.weak_projection_error(B::Ulam) = 0.5 ⊘₊ Float64(length(B), RoundDown)
+BasisDefinition.aux_normalized_projection_error(B::Ulam) = 0.
+BasisDefinition.strong_weak_bound(B::Ulam) = Float64(length(B), RoundUp)
+BasisDefinition.aux_weak_bound(B::Ulam) = 1.
+BasisDefinition.weak_by_strong_and_aux_bound(B::Ulam) = (0., 1.)
+BasisDefinition.bound_weak_norm_from_linalg_norm(B::Ulam) = (1., 0.)
+BasisDefinition.bound_linalg_norm_L1_from_weak(B::Ulam) = 1.
+BasisDefinition.bound_linalg_norm_L∞_from_weak(B::Ulam) = Float64(length(B), RoundUp)
 
 
 using RecipesBase

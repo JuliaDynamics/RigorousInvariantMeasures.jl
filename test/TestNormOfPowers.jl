@@ -24,5 +24,5 @@ f = 1/n*e'
 @test norms_of_powers(L1, m, sparse(LL), false, e=e, f=f) ≈ [opnorm((M+e*(f-f*M))^k*U,1) for k = 1:m]
 
 @test refine_norms_of_powers([0.5, 1, 2, 0.001]) == [0.5, 0.25, 0.125, 0.001]
-@test refine_norms_of_powers([0.5, 1, 2, 1e-3], 8) == [0.5, 0.25, 0.125, 1e-3, 0.5e-3, 0.25e-3, 0.125e-3, 1e-6]
-@test refine_norms_of_powers([2,0.2,0.1],4) == [2, 0.2, 0.1, 0.04000000000000001] #tests rounding up
+@test refine_norms_of_powers([0.5, 1, 2, 1e-3], 8) == [0.5, 0.25, 0.125, 1e-3, 0.5e-3, 0.25e-3, 0.125e-3, 1.0000000000000002e-6] # also tests correct rounding
+@test refine_norms_of_powers([2,0.2,0.1],4) == [2, 0.2, 0.1, 0.04000000000000001]

@@ -5,6 +5,8 @@ struct L1 <: NormKind end
 struct Linf <: NormKind end
 struct Lipschitz <: NormKind end
 struct TotalVariation <: NormKind end
+struct ℓ1 <: NormKind end
+struct ℓinf <: NormKind end
 
 # the module Contractors does not depend on any submodule
 include("Contractors.jl")

@@ -65,7 +65,7 @@ function opnormbound(N::Type{<:NormKind}, Q::NonIntegralPreservingDiscretizedOpe
 	normL = opnormbound(N, Q.L)
 	norme = opnormbound(N, Q.e)
 	normw = opnormbound(N, Q.w)
-	return round_expr(normL + norme * normw, RoundUp)
+	return normL ⊕₊ norme ⊗₊ normw
 end
 
 function IntervalArithmetic.mid(Q::IntegralPreservingDiscretizedOperator)

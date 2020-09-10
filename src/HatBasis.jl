@@ -249,12 +249,11 @@ function Base.iterate(S::AverageZero{Hat}, state = 1)
 	return (v, state+1)
 end
 
-# TODO
-BasisDefinition.weak_projection_error(B::Hat) = round_expr(0.5/length(B), RoundUp)
-BasisDefinition.aux_normalized_projection_error(B::Hat) = round_expr(0.5/length(B), RoundUp)
-BasisDefinition.strong_weak_bound(B::Hat) = 2*length(B)
-BasisDefinition.aux_weak_bound(B::Hat) = 1
-BasisDefinition.weak_by_strong_and_aux_bound(B::Hat) = (1, 1)
+BasisDefinition.weak_projection_error(B::Hat) = 0.5 ⊘₊ Float64(length(B), RoundDown)
+BasisDefinition.aux_normalized_projection_error(B::Hat) = 0.5 ⊘₊ Float64(length(B), RoundDown)
+BasisDefinition.strong_weak_bound(B::Hat) = 2. ⊗₊ Float64(length(B), RoundDown)
+BasisDefinition.aux_weak_bound(B::Hat) = 1.
+BasisDefinition.weak_by_strong_and_aux_bound(B::Hat) = (1., 1.)
 BasisDefinition.bound_weak_norm_from_linalg_norm(B::Hat) = @error "TODO"
 BasisDefinition.bound_linalg_norm_L1_from_weak(B::Hat) = @error "TODO"
 BasisDefinition.bound_linalg_norm_L∞_from_weak(B::Hat) = @error "TODO"
