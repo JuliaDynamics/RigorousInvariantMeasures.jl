@@ -24,16 +24,24 @@ end
 """
 Return an upper bound to Q_h*w - w in the given norm
 """
-function residualbound(N::Type{<:NormKind}, Q::DiscretizedOperator, w)
+function residualbound(N::Type{<:NormKind}, Q::DiscretizedOperator, w::AbstractVector)
 	return normbound(N, Q*w - w)
 end
 
 """
-Bounds rigorously the distance of w from the fixed point of Q,
+Bounds rigorously the distance of w from the fixed point of Q (normalized with integral = 1),
 using a vector of bounds norms[k] ≥ ||Q_h^k|_{U_h^0}||.
 """
-function distance_from_invariant(B::Basis, D::Dynamic, Q::DiscretizedOperator, w::AbstractVector, norms::Vector)
+function distance_from_invariant(B::Basis, D::Dynamic, Q::DiscretizedOperator, w::AbstractVector, norms::Vector; ε₁::Float64 = residualbound(weak_norm(B), Q, w), ε₂::Float64 = mag(integral_covector(B) * w - 1), normQ::Float64 = opnormbound(weak_norm(B), Q))
+	if ε₂ > 1e-8
+		@error "w does not seem normalized correctly"
+	end
+	us = BasisDefinition.invariant_measure_strong_norm_bound(B, D)
+	Cs = infinite_sum_norms(norms)
+	Kh =  BasisDefinition.weak_projection_error(B)
+	normw = normbound(weak_norm(B), w)
 
+	return Cs ⊗₊ (2. ⊗₊ Kh ⊗₊ (1. ⊕₊ normQ) ⊗₊ us ⊕₊ ε₁ ⊘₊ (1. ⊖₋ ε₂)) ⊕₊ ε₂ ⊘₊ (1. ⊖₋ ε₂) ⊗₊ normw
 end
 
 # """

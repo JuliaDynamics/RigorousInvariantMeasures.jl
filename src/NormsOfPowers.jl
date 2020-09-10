@@ -27,7 +27,7 @@ end
 """
 function gamma(T, n::Integer)
     u = eps(T)
-    nu = u ⊗₊ T(n)
+    nu = u ⊗₊ T(n) #TODO: in theory, this should be rounded up/down. In practice, all integers up to 2^53 or so fit in Float64, so it won't be needed.
     return nu ⊘₊ (one(T) ⊖₋ nu)
 end
 
@@ -220,4 +220,20 @@ function norms_of_powers_from_coarser_grid(fine_basis::Basis, coarse_basis::Basi
 		fine_norms[m] = coarse_norms[m] ⊕₊ 2. ⊗₊ Kh ⊗₊ temp
 	end
     return fine_norms
+end
+
+"""
+Estimate ||I + Q + Q^2 + … || (infinite sum) using a list of computed norm bounds norms[k] ≥ ||Q^k||.
+"""
+function infinite_sum_norms(norms::Vector)
+    m = length(norms)
+    if norms[m] > 1
+        @error "The last norm is > 1: the bounds are not sufficient to show that the sum converges"
+    end
+    S = 1.
+    for k = 1:m-1
+        S = S ⊕₊ norms[k]
+    end
+    S = S ⊘₊ (1. ⊖₋ norms[m])
+    return S
 end

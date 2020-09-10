@@ -138,4 +138,9 @@ bound_linalg_norm_L1_from_weak(B::Basis) = @error "Not implemented"
 """
 bound_linalg_norm_L∞_from_weak(B::Basis) = @error "Not implemented"
 
+"""
+	Bounds ||u||_s, where ||u|| is the invariant measure normalized with integral(u)=1.
+"""
+invariant_measure_strong_norm_bound(B::Basis, D::Dynamic) = @error "Must be specialized"
+
 end

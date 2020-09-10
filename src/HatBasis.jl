@@ -258,6 +258,12 @@ BasisDefinition.bound_weak_norm_from_linalg_norm(B::Hat) = @error "TODO"
 BasisDefinition.bound_linalg_norm_L1_from_weak(B::Hat) = @error "TODO"
 BasisDefinition.bound_linalg_norm_L∞_from_weak(B::Hat) = @error "TODO"
 
+function BasisDefinition.invariant_measure_strong_norm_bound(B::Hat, D::Dynamic)
+	A, B = dfly(strong_norm(B), aux_norm(B), D)
+	@assert A < 1.
+	return B ⊘₊ (1. ⊖₋ A)
+end
+
 
 using RecipesBase
 
