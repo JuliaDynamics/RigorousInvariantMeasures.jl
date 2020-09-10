@@ -1,5 +1,6 @@
 using InvariantMeasures
 using ValidatedNumerics
+using LinearAlgebra
 
 D = Mod1Dynamic(x->2*x)
 B = Hat(EquispacedPartition{Float64}(8))
