@@ -4,6 +4,7 @@ Functions to deal with various types of norms and seminorms
 
 using FastRounding
 using ValidatedNumerics
+using SparseArrays: getcolptr
 
 """
 'Absolute value' definition that returns mag(I) for an interval and abs(x) for a real
@@ -48,7 +49,37 @@ function opnormbound(::Type{Linf}, A::AbstractVecOrMat{T}) where {T}
     return convert(Tnorm, nrm)
 end
 
-# TODO: specialize for sparse matrices
+function opnormbound(::Type{L1}, A::SparseMatrixCSC) where {T}
+    # partly taken from JuliaLang's Sparsearray/src/linalg.jl
+    m, n = size(A)
+    Tnorm = typeof(abs_or_mag(float(real(zero(eltype(A))))))
+    Tsum = promote_type(Float64,Tnorm)
+    nA::Tsum = 0
+    @inbounds begin
+        for j=1:n
+            colSum::Tsum = 0
+            for i = getcolptr(A)[j]:getcolptr(A)[j+1]-1
+                colSum = colSum ⊕₊ abs_or_mag(nonzeros(A)[i])
+            end
+            nA = max(nA, colSum)
+        end
+    end
+    return convert(Tnorm, nA)
+end
+
+function opnormbound(::Type{Linf}, A::SparseMatrixCSC) where {T}
+    # partly taken from JuliaLang's Sparsearray/src/linalg.jl
+    m, n = size(A)
+    Tnorm = typeof(abs_or_mag(float(real(zero(eltype(A))))))
+    Tsum = promote_type(Float64,Tnorm)
+    rowSum = zeros(Tsum,m)
+    @inbounds begin
+        for i=1:length(nonzeros(A))
+            rowSum[rowvals(A)[i]] = rowSum[rowvals(A)[i]] ⊕₊ abs_or_mag(nonzeros(A)[i])
+        end
+    end
+    return convert(Tnorm, maximum(rowSum))
+end
 
 """
 Rigorous upper bound on a vector norm. Note that Linf, L1 are the "analyst's" norms

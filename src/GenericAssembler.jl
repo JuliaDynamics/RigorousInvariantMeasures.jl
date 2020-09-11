@@ -11,17 +11,22 @@ import LinearAlgebra: mul!
 Very generic assembler function
 """
 function assemble(B::Basis, D::Dynamic, ϵ=2^(-40); T = Float64)
+	I = Int64[]
+	J = Int64[]
+	nzvals = Interval{T}[]
 	n = length(B)
-	# TODO: this should be assembled using `sparse`, instead, for speed
- 	P = spzeros(Interval{T}, n, n)
+
+	# TODO: reasonable size hint?
 
 	for (i, dual_element) in DualComposedWithDynamic(B, D, ϵ)
 		for (j, x) in ProjectDualElement(B, dual_element)
-			P[i,mod(j,1:n)] += x
+			push!(I, i)
+			push!(J, mod(j,1:n))
+			push!(nzvals, x)
 		end
 	end
 
-	return P
+	return sparse(I, J, nzvals, n, n)
 end
 
 abstract type DiscretizedOperator end
