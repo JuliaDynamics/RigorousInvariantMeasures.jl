@@ -11,11 +11,12 @@ The vector is normalized so that integral_covector(B)*w ≈ 1
 function invariant_vector(B::Basis, Q::DiscretizedOperator; tol = 0.0)
 	mQ = mid(Q)
 	n = size(Q)[1]
-	F = eigs(mQ; tol=tol, nev=4, ritzvec=true, v0=ones((n,)))
+	# setting a larger nev seems to slow things down
+	F = eigs(mQ; tol=tol, nev=1, ritzvec=true, v0=ones((n,)))
 	w = F[2][:, 1]
 	@assert imag(w) ≈ zeros(n)
-	w = real(w) # this seems a pretty safe assumption
-	# in the Ulam case, in principle we could enforece w >= 0, but in practice
+	w = real(w) # this seems a pretty safe assumption.
+	# In the Ulam case, in principle we could enforce w >= 0, but in practice
 	# it will hardly ever be relevant.
 	w = w ./ (mid.(integral_covector(B))*w) #normalization
 	return w

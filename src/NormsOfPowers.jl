@@ -7,7 +7,7 @@ using SparseArrays
 using FastRounding
 using ValidatedNumerics
 
-export norms_of_powers, refine_norms_of_powers, norms_of_powers_dfly
+export norms_of_powers, refine_norms_of_powers, norms_of_powers_dfly, norms_of_powers_trivial, norms_of_powers_from_coarser_grid
 
 """
 Returns the maximum number of (structural) nonzeros in a row of A
@@ -134,7 +134,7 @@ end
 Array of "trivial" bounds for the powers of a DiscretizedOperator (on the whole space)
 coming from from ||Q^k|| ≤ ||Q||^k
 """
-function norms_of_powers_trivial(N::Type{NormKind}, Q::DiscretizedOperator, m::Integer)
+function norms_of_powers_trivial(N::Type{<:NormKind}, Q::DiscretizedOperator, m::Integer)
     norms = fill(NaN, m)
     norms[1] = opnormbound(N, Q)
     for i = 2:m
@@ -166,7 +166,7 @@ function norms_of_powers_dfly(Bas::Basis, D::Dynamic, m)
     for k = 1:m
         # invariant: v[1] bounds ||Q^kf||_s for ||f||_w=1
         # v[2] bounds |||Q^kf||| for ||f||_w=1
-        v[1] = A ⊗₊ v[1] ⊕₊ B ⊗ v[2]
+        v[1] = A ⊗₊ v[1] ⊕₊ B ⊗₊ v[2]
         v[2] = Eh ⊗₊ v[1] ⊕₊ v[2]
         strongs[k] = v[1]
         norms[k] = S₁ ⊗₊ v[1] ⊕₊ S₂ ⊗₊ v[2]
@@ -199,7 +199,7 @@ refine_norms_of_powers(norms::Vector) = refine_norms_of_powers(norms, length(nor
 Estimate norms of powers from those on a coarser grid (see paper for details)
 """
 function norms_of_powers_from_coarser_grid(fine_basis::Basis, coarse_basis::Basis, D::Dynamic, coarse_norms::Vector, normQ::Real)
-    if !is_refinement(fine_basis, coarse_basis)
+    if !BasisDefinition.is_refinement(fine_basis, coarse_basis)
         @error "The fine basis is not a refinement of the coarse basis"
     end
     m = length(coarse_norms)
@@ -207,17 +207,16 @@ function norms_of_powers_from_coarser_grid(fine_basis::Basis, coarse_basis::Basi
     (strongs, norms) = norms_of_powers_dfly(fine_basis, D, m)
 
     # adds a 0th element to strongs
-    strongs0 = OffsetArray(Float64,  0:m)
-    strongs0[0] = BasisDefinition.strong_weak_bound(Bas)
-    strongs0[1:m] = strongs
+    strongs0(k::Integer) = k==0 ? BasisDefinition.strong_weak_bound(fine_basis) : strongs[k]
+    coarse_norms0(k::Integer) = k==0 ? 1. : coarse_norms[k]
 
-    Kh =  BasisDefinition.weak_projection_error(Bcoarse)
+    Kh =  BasisDefinition.weak_projection_error(coarse_basis)
     for k in 1:m
 		temp = 0.
 		for k in 0:m-1
-			temp = temp ⊕₊ coarse_norms[m-1-k] ⊗₊ (normQ ⊗₊ strongs0[k] ⊕₊ strongs0[k+1])
+			temp = temp ⊕₊ coarse_norms0(m-1-k) ⊗₊ (normQ ⊗₊ strongs0(k) ⊕₊ strongs0(k+1))
 		end
-		fine_norms[m] = coarse_norms[m] ⊕₊ 2. ⊗₊ Kh ⊗₊ temp
+		fine_norms[k] = coarse_norms[k] ⊕₊ 2. ⊗₊ Kh ⊗₊ temp
 	end
     return fine_norms
 end
