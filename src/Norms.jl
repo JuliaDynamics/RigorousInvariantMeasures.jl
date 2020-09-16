@@ -3,7 +3,7 @@ Functions to deal with various types of norms and seminorms
 """
 
 using FastRounding
-using ValidatedNumerics
+using ValidatedNumerics, IntervalOptimisation
 using SparseArrays: getcolptr
 
 """
@@ -143,17 +143,17 @@ dfly(::Type{<:NormKind}, ::Type{<:NormKind}, ::Dynamic) = @error "Not implemente
 
 function dfly(::Type{TotalVariation}, ::Type{L1}, D::Dynamic)
 
-	distorsion(x)=der_der(D, x)/(der(D, x)^2)
-	lambda(x) = 1/der(D, x)
-    dist = range_estimate(distorsion, D.domain)
-    lam = range_estimate(lambda, D.domain)
+	distorsion(x)=abs(der_der(D, x)/(der(D, x)^2))
+	lambda(x) = abs(1/der(D, x))
+    dist = maximise(distorsion, D.domain)[1]
+    lam = maximise(lambda, D.domain)[1]
 
     if !(abs(lam) < 1) # these are intervals, so this is *not* equal to abs(lam) <= 1.
         @error "The function is not expanding"
     end
 
     if is_full_branch(D)
-        return abs(lam).hi, abs(dist).hi
+        return lam.hi, dist.hi
     else
         if !(abs(lam) < 0.5)
             @error "Expansivity is insufficient to prove a DFLY. Try with an iterate."
@@ -164,13 +164,13 @@ function dfly(::Type{TotalVariation}, ::Type{L1}, D::Dynamic)
 end
 
 function dfly(::Type{Lipschitz}, ::Type{L1}, D::Dynamic)
-    distorsion(x)=der_der(D, x)/(der(D, x)^2)
-	lambda(x) = 1/der(D, x)
-    dist = range_estimate(distorsion, D.domain)
-    lam = range_estimate(lambda, D.domain)
+    distorsion(x)=abs(der_der(D, x)/(der(D, x)^2))
+	lambda(x) = abs(1/der(D, x))
+    dist = maximise(distorsion, D.domain)[1]
+    lam = maximise(lambda, D.domain)[1]
 
-    lam = abs(lam).hi
-    dist = abs(dist).hi
+    lam = lam.hi
+    dist = dist.hi
 
     return lam ⊗₊ (2. ⊗₊  dist ⊕₊ 1.), dist ⊗₊ (2. ⊗₊ dist ⊕₊ 1.)
 end

@@ -23,6 +23,7 @@ function root(f, f′, x::Interval, ϵ; max_iter = 100)
 	return x
 end
 
+# superseded by IntervalOptimisation.jl
 function range_estimate(f, domain, recstep = 5)
 	if recstep == 1
 		return f(domain)
