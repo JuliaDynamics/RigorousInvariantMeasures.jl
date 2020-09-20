@@ -89,7 +89,7 @@ function Base.iterate(S::AverageZero{Ulam}, state = 1)
 	return (v, state+1)
 end
 
-BasisDefinition.is_refinement(Bf::Ulam, Bc::Ulam) = rem(bf.n, bc.n) == 0
+BasisDefinition.is_refinement(Bf::Ulam, Bc::Ulam) = rem(Bf.n, Bc.n) == 0
 
 function integral_covector(B::Ulam)
 	n = length(B)
