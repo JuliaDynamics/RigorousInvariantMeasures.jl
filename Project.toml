@@ -1,6 +1,6 @@
 name = "InvariantMeasures"
 uuid = "07926553-d30c-41c2-8456-6c4d18765e90"
-authors = ["Isaia Nisoli <nisoli@im.ufrj.br> and contributors"]
+authors = ["Isaia Nisoli <nisoli@im.ufrj.br>, Federico Poloni <federico.poloni@unipi.it> and contributors"]
 version = "0.1.0"
 
 [deps]
