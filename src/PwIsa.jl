@@ -43,9 +43,9 @@ function Base.iterate(S::DualComposedWithDynamic{Ulam, PwIsa}, state = (1, 1))
 	# incomplete branches
 
 	x₁ = preim(S.dynamic, k, getindex(S.basis, i-1), S.ϵ)
-	@info "x₁" x₁
+	#@info "x₁" x₁
 	x₂ = preim(S.dynamic, k, getindex(S.basis, i), S.ϵ)
-	@info "x₂" x₂
+	#@info "x₂" x₂
 	
 
 	if S.dynamic.orientations[k]>0
