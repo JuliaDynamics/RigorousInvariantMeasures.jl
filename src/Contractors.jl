@@ -18,6 +18,9 @@ function root(f, f′, x::Interval, ϵ; max_iter = 100)
 		if diam(x)<ϵ
 			return x
 		end
+		if isempty(x)
+			return x
+		end
 	end
 	@info "Maximum iterates reached" max_iter
 	return x
