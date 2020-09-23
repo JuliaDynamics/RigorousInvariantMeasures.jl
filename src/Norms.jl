@@ -178,7 +178,12 @@ function dfly(::Type{TotalVariation}, ::Type{L1}, D::PwMap)
         low_rad = (abs(D.endpoints[i]-D.endpoints[i+1])/2).lo
         disc = max(disc, ((1/Interval(low_rad)).hi))
     end
-    return 2*lam, dist+disc
+
+    if is_full_branch(D)
+        return lam, dist
+    else
+        return 2*lam, dist+disc
+    end
 end
 
 function dfly(::Type{Lipschitz}, ::Type{L1}, D::Dynamic)
