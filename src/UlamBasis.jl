@@ -50,13 +50,9 @@ end
 """
 Returns the indices of the elements of the Ulam basis that intersect with the interval y
 """
-function BasisDefinition.nonzero_on(B::Ulam, y)
-	if isempty(y[1]) && isempty(y[2])
-		return Tuple{}
- 	else
-  		return max(floor(Int64, y[1].lo*length(B)), 1), min(ceil(Int64, y[2].hi*length(B)), length(B))
-  	end
-end
+BasisDefinition.nonzero_on(B::Ulam, y) = max(floor(Int64, y[1].lo*length(B)), 1), min(ceil(Int64, y[2].hi*length(B)), length(B))
+  	
+
 
 function relative_measure(S::Ulam, y, a, b)
 	lower = max(y[1], a)
