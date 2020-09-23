@@ -1,4 +1,4 @@
-using ..BasisDefinition, ..DynamicDefinition, ..Contractors, ..Mod1DynamicDefinition
+using ..BasisDefinition, ..DynamicDefinition, ..Contractors, ..Mod1DynamicDefinition, ..PwDynamicDefinition
 using ValidatedNumerics, LinearAlgebra
 import Base: iterate
 import ..BasisDefinition: one_vector, integral_covector, is_integral_preserving, strong_norm, weak_norm, aux_norm
@@ -46,6 +46,55 @@ function Base.iterate(S::DualComposedWithDynamic{Ulam, <:Dynamic}, state = (1, 1
 		return ((i, (lower, upper)), (i, k+1))
 	end
 end
+
+function Base.iterate(S::DualComposedWithDynamic{Ulam, PwMap}, state = (1, 1))
+	i, k = state
+
+	if i == length(S.basis)+1
+			return nothing
+	end
+
+	# remark that this version supposes that for each i there exists a preimage
+	# another more specific version should be implemented for maps with
+	# incomplete branches
+
+	x₁ = preim(S.dynamic, k, getindex(S.basis, i-1), S.ϵ)
+	#@info "x₁" x₁
+	x₂ = preim(S.dynamic, k, getindex(S.basis, i), S.ϵ)
+	#@info "x₂" x₂
+	
+
+	if S.dynamic.orientations[k]>0
+			if isempty(x₁) && !isempty(x₁)
+				x₁ = S.dynamic.endpoints[k] 
+			end
+			if isempty(x₂) && !isempty(x₁)
+				x₂ = S.dynamic.endpoints[k+1] 
+			end
+			lower, upper = x₁, x₂
+	elseif	S.dynamic.orientations[k]<0
+			if isempty(x₂) && !isempty(x₁)
+				x₂ = S.dynamic.endpoints[k] 
+			end
+			if isempty(x₁) && !isempty(x₂)
+				x₁ = S.dynamic.endpoints[k+1] 
+			end
+			lower, upper = x₂, x₁
+	end
+
+	if k == nbranches(S.dynamic)
+		if isempty(lower) && isempty(upper)
+			return ((i, :∅), (i+1, 1))
+		end
+		return ((i, (lower, upper)), (i+1, 1))
+	else
+		if isempty(lower) && isempty(upper)
+			return ((i, :∅), (i, k+1))
+		end
+		return ((i, (lower, upper)), (i, k+1))
+	end
+end
+
 
 """
 Returns the indices of the elements of the Ulam basis that intersect with the interval y

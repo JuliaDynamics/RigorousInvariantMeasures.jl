@@ -142,7 +142,6 @@ Constants (A, B) such that ||Lf||_s ≦ A||f||_s + B||f||_aux
 dfly(::Type{<:NormKind}, ::Type{<:NormKind}, ::Dynamic) = @error "Not implemented"
 
 function dfly(::Type{TotalVariation}, ::Type{L1}, D::Dynamic)
-
 	distorsion(x)=abs(der_der(D, x)/(der(D, x)^2))
 	lambda(x) = abs(1/der(D, x))
     dist = maximise(distorsion, D.domain)[1]
@@ -161,6 +160,25 @@ function dfly(::Type{TotalVariation}, ::Type{L1}, D::Dynamic)
         # We need a way to estimate the branch widths
         @error "Not implemented"
     end
+end
+
+function dfly(::Type{TotalVariation}, ::Type{L1}, D::PwMap)
+    dist = 0
+    lam = 0
+    disc = 0
+    for i in 1:nbranches(D)
+        f(x) = D.Ts[i](x)
+        domain = hull(D.endpoints[i], D.endpoints[i+1])
+        fprime(x) = f(TaylorSeries.Taylor1([x, 1], 1))[1]
+        fsecond(x) = f(TaylorSeries.Taylor1([x, 1], 2))[2]/2
+        distorsion(x)=abs(fsecond(x)/(fprime(x)^2))
+        lambda(x) = abs(1/fprime(x))
+        dist = max(dist, maximise(distorsion, domain)[1].hi)
+        lam = max(lam, maximise(lambda, domain)[1].hi)
+        low_rad = (abs(D.endpoints[i]-D.endpoints[i+1])/2).lo
+        disc = max(disc, ((1/Interval(low_rad)).hi))
+    end
+    return 2*lam, dist+disc
 end
 
 function dfly(::Type{Lipschitz}, ::Type{L1}, D::Dynamic)
