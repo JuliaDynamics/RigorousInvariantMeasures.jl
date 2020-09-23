@@ -38,7 +38,9 @@ include("InducedLSV.jl")
 using .InducedLSVMapDefinition
 export ApproxInducedLSV
 
-include("PwIsa.jl")
+include("PwDynamicDefinition.jl")
+using .PwDynamicDefinition
+export PwMap
 
 
 end

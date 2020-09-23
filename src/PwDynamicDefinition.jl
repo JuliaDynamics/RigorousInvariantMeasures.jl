@@ -1,25 +1,25 @@
-module PwDynamicDefinitionIsaia
+module PwDynamicDefinition
 using ValidatedNumerics
 using ..DynamicDefinition, ..Contractors
 
-export PwIsa, preim, nbranches, plottable
+export PwMap, preim, nbranches, plottable
 
-struct PwIsa <: Dynamic
+struct PwMap <: Dynamic
 	Ts::Array{Function, 1}
 	endpoints::Array{Interval, 1}
 	orientations
 end
 
-DynamicDefinition.nbranches(D::PwIsa)=length(D.endpoints)-1
+DynamicDefinition.nbranches(D::PwMap)=length(D.endpoints)-1
 
-DynamicDefinition.is_full_branch(D::PwIsa) = false
+DynamicDefinition.is_full_branch(D::PwMap) = false
 
 import DualNumbers: Dual
-PwIsa(Ts, endpoints) = PwIsa(Ts, endpoints, [sign(Ts[i](Dual((endpoints[i]+endpoints[i+1])/2, 1)).epsilon) for i in 1:length(endpoints)-1])
+PwMap(Ts, endpoints) = PwMap(Ts, endpoints, [sign(Ts[i](Dual((endpoints[i]+endpoints[i+1])/2, 1)).epsilon) for i in 1:length(endpoints)-1])
 
 
 
-function DynamicDefinition.preim(D::PwIsa, k, y, ϵ)
+function DynamicDefinition.preim(D::PwMap, k, y, ϵ)
 	# we need to treat the case with the other orientation, 0 not fixed point...
 	@assert 1 <= k <= nbranches(D)
 	domain = hull(D.endpoints[k], D.endpoints[k+1])
@@ -30,7 +30,7 @@ import Base: iterate
 import ..BasisDefinition: DualComposedWithDynamic
 import InvariantMeasures: Ulam
 
-function Base.iterate(S::DualComposedWithDynamic{Ulam, PwIsa}, state = (1, 1))
+function Base.iterate(S::DualComposedWithDynamic{Ulam, PwMap}, state = (1, 1))
 	i, k = state
 
 	if i == length(S.basis)+1
@@ -78,7 +78,7 @@ function Base.iterate(S::DualComposedWithDynamic{Ulam, PwIsa}, state = (1, 1))
 	end
 end
 
-function DynamicDefinition.plottable(D::PwIsa, x) 
+function DynamicDefinition.plottable(D::PwMap, x) 
 	for k in nbranches(D)
 		domain = hull(D.endpoints[k], D.endpoints[k+1])
 		if x in domain
@@ -92,7 +92,7 @@ end
 import TaylorSeries
 import InvariantMeasures: dfly
 
-function dfly(::Type{TotalVariation}, ::Type{L1}, D::InvariantMeasures.PwDynamicDefinitionIsaia.PwIsa)
+function dfly(::Type{TotalVariation}, ::Type{L1}, D::InvariantMeasures.PwDynamicDefinition.PwMap)
 	dist = 0
 	lam = 0
 	disc = 0

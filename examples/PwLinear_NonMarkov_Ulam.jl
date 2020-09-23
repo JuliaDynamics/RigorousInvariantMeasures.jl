@@ -4,7 +4,7 @@ using ValidatedNumerics
 m = 30
 m_extend = 100
 
-D = InvariantMeasures.PwDynamicDefinitionIsaia.PwIsa([x->2.5*x, x->4*x-1, x->4*x-2, x-> 4*x-3], 
+D = PwMap([x->2.5*x, x->4*x-1, x->4*x-2, x-> 4*x-3], 
 	[Interval(0), Interval(0.25), Interval(0.5), Interval(0.75), Interval(1)])
 B = Ulam(1024)
 Q = DiscretizedOperator(B, D)
