@@ -4,7 +4,8 @@ using ValidatedNumerics
 m = 30
 m_extend = 100
 
-D = InvariantMeasures.PwDynamicDefinitionIsaia.PwIsa([x->2.5*x, x->4*x-1, x->4*x-2, x-> 4*x-3], [Interval(0, 0.25), Interval(0.25, 0.5), Interval(0.5, 0.75), Interval(0.75, 1)])
+D = InvariantMeasures.PwDynamicDefinitionIsaia.PwIsa([x->2.5*x, x->4*x-1, x->4*x-2, x-> 4*x-3], 
+	[Interval(0), Interval(0.25), Interval(0.5), Interval(0.75), Interval(1)])
 B = Ulam(1024)
 Q = DiscretizedOperator(B, D)
 
@@ -22,7 +23,7 @@ better_norms = refine_norms_of_powers(norms, m_extend)
 w = invariant_vector(B, Q)
 @show distance_from_invariant(B, D, Q, w, better_norms)
 
-B_fine = Ulam(2^20)
+B_fine = Ulam(2^15)
 Q_fine = DiscretizedOperator(B_fine, D)
 norm_Q_fine = opnormbound(weak_norm(B_fine), Q_fine)
 

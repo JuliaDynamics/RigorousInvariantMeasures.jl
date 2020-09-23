@@ -6,25 +6,24 @@ export PwIsa, preim, nbranches, plottable
 
 struct PwIsa <: Dynamic
 	Ts::Array{Function, 1}
-	domains::Array{Interval, 1}
+	endpoints::Array{Interval, 1}
 	orientations
 end
 
-DynamicDefinition.nbranches(D::PwIsa)=length(D.domains)
+DynamicDefinition.nbranches(D::PwIsa)=length(D.endpoints)-1
 
-DynamicDefinition.is_full_branch(D::PwIsa) = D.is_full_branch
-
-DynamicDefinition.plottable(D::PwIsa, x) = @error "Not Implemented"
+DynamicDefinition.is_full_branch(D::PwIsa) = false
 
 import DualNumbers: Dual
-PwIsa(Ts, domains) = PwIsa(Ts, domains, [sign(Ts[i](Dual(mid(domains[i]), 1)).epsilon) for i in 1:length(domains)])
+PwIsa(Ts, endpoints) = PwIsa(Ts, endpoints, [sign(Ts[i](Dual((endpoints[i]+endpoints[i+1])/2, 1)).epsilon) for i in 1:length(endpoints)-1])
 
 
 
 function DynamicDefinition.preim(D::PwIsa, k, y, ϵ)
 	# we need to treat the case with the other orientation, 0 not fixed point...
-	@assert 1 <= k <= length(D.domains)
-	root(x->D.Ts[k](x)-y, D.domains[k], ϵ)
+	@assert 1 <= k <= nbranches(D)
+	domain = hull(D.endpoints[k], D.endpoints[k+1])
+	root(x->D.Ts[k](x)-y, domain, ϵ)
 end
 
 import Base: iterate
@@ -50,18 +49,18 @@ function Base.iterate(S::DualComposedWithDynamic{Ulam, PwIsa}, state = (1, 1))
 
 	if S.dynamic.orientations[k]>0
 			if isempty(x₁) && !isempty(x₁)
-				x₁ = typeof(x₂)(S.dynamic.domains[k].lo) 
+				x₁ = S.dynamic.endpoints[k] 
 			end
 			if isempty(x₂) && !isempty(x₁)
-				x₂ = typeof(x₁)(S.dynamic.domains[k].hi) 
+				x₂ = S.dynamic.endpoints[k+1] 
 			end
 			lower, upper = x₁, x₂
 	elseif	S.dynamic.orientations[k]<0
 			if isempty(x₂) && !isempty(x₁)
-				x₂ = typeof(x₁)(S.dynamic.domains[k].lo) 
+				x₂ = S.dynamic.endpoints[k] 
 			end
 			if isempty(x₁) && !isempty(x₂)
-				x₁ = typeof(x₂)(S.dynamic.domains[k].hi) 
+				x₁ = S.dynamic.endpoints[k+1] 
 			end
 			lower, upper = x₂, x₁
 	end
@@ -79,6 +78,15 @@ function Base.iterate(S::DualComposedWithDynamic{Ulam, PwIsa}, state = (1, 1))
 	end
 end
 
+function DynamicDefinition.plottable(D::PwIsa, x) 
+	for k in nbranches(D)
+		domain = hull(D.endpoints[k], D.endpoints[k+1])
+		if x in domain
+			return D.Ts[k](x)
+		end
+	end
+end
+
 end
 
 import TaylorSeries
@@ -90,14 +98,15 @@ function dfly(::Type{TotalVariation}, ::Type{L1}, D::InvariantMeasures.PwDynamic
 	disc = 0
 	for i in 1:nbranches(D)
 		f(x) = D.Ts[i](x)
-		domain = D.domains[i]
+		domain = hull(D.endpoints[i], D.endpoints[i+1])
 		fprime(x) = f(TaylorSeries.Taylor1([x, 1], 1))[1]
 		fsecond(x) = f(TaylorSeries.Taylor1([x, 1], 2))[2]/2
 		distorsion(x)=abs(fsecond(x)/(fprime(x)^2))
 		lambda(x) = abs(1/fprime(x))
     	dist = max(dist, maximise(distorsion, domain)[1].hi)
     	lam = max(lam, maximise(lambda, domain)[1].hi)
-		disc = max(disc, (1/Interval(radius(domain)).hi))
+    	low_rad = (abs(D.endpoints[i]-D.endpoints[i+1])/2).lo
+		disc = max(disc, ((1/Interval(low_rad)).hi))
 	end
 	return 2*lam, dist+disc
 end
