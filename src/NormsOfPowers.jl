@@ -34,12 +34,10 @@ end
 """
 Estimates the norms ||Q||, ||Q^2||, ... ||Q^m|| on U^0.
 
-Q is the matrix L if is_integral_preserving==true, or
-L + e*(f-f*L) otherwise.
-An interval matrix LL ∋ L is given in input.
-
 U is the matrix [ones(1,n-1); -I_(n-1,n-1)]. It is currently assumed that
 f*U==0 (i.e., all elements of f are equal).
+
+f must be an interval vector.
 
 The following constants may be specified as keyword arguments:
 
@@ -49,62 +47,64 @@ otherwise they are computed (which may be slower).
 
 e and f must be specified in case is_integral_preserving==false
 In case is_integral_preserving is true, they may be specified but they are then ignored.
-(TODO: this should be better integrated in the syntax, using DiscretizedOperator).
 """
-function norms_of_powers(N::Type{<:NormKind}, m::Integer, LL::SparseMatrixCSC{Interval{RealType}, IndexType}, is_integral_preserving::Bool ;
-        e::Vector=[0.],
-        f::AbstractArray=[0.]',
+function norms_of_powers(N::Type{<:NormKind}, m::Integer, Q::DiscretizedOperator, f::AbstractArray;
         normv0::Real=-1., #used as "missing" value
         normQ::Real=-1.,
         normE::Real=-1.,
         normEF::Real=-1.,
         normIEF::Real=-1.,
-        normN::Real=-1.) where {RealType, IndexType}
+        normN::Real=-1.)
 
-    n = size(LL, 1)
-    M = mid.(LL)
-    R = radius.(LL)
+    @assert eltype(f) <: Interval
+    T = typeof(zero(eltype(Q.L)).hi) # gets "Float64" from Q.L
+    n = size(Q.L, 1)
+    M = mid.(Q.L)
+    R = radius.(Q.L)
     δ = opnormbound(N, R)
-    γz = gamma(RealType, max_nonzeros_per_row(LL))
-    γn = gamma(RealType, n+3) # not n+2 like in the paper, because we wish to allow for f to be the result of rounding
-    ϵ = zero(RealType)
+    γz = gamma(T, max_nonzeros_per_row(Q.L))
+    γn = gamma(T, n+3) # not n+2 like in the paper, because we wish to allow for f to be the result of rounding
+    ϵ = zero(T)
 
     nrmM = opnormbound(N, M)
 
     if normQ == -1.
-        if is_integral_preserving
+        if is_integral_preserving(Q)
             normQ = nrmM ⊕₊ δ
         else
-            defect = opnormbound(N, f - f*LL)
+            defect = opnormbound(N, Q.w)
             normQ = nrmM ⊕₊ δ ⊕₊ normE ⊗₊ defect
         end
     end
 
     # precompute norms
-    if !is_integral_preserving
+    if !is_integral_preserving(Q)
         if normE == -1.
-            normE = opnormbound(N, e)
+            normE = opnormbound(N, Q.e)
         end
         if normEF == -1.
-            normEF = opnormbound(N, e*f)
+            normEF = opnormbound(N, Q.e*f)
         end
         if normIEF == -1.
-            normIEF =  opnormbound(N, [Matrix(UniformScaling{Float64}(1),n,n) e*f])
+            normIEF =  opnormbound(N, [Matrix(UniformScaling{Float64}(1),n,n) Q.e*f])
         end
         if normN == -1.
-            normN = opnormbound(N, Matrix(UniformScaling{Float64}(1),n,n) - e*f)
+            normN = opnormbound(N, Matrix(UniformScaling{Float64}(1),n,n) - Q.e*f)
         end
     end
 
     # initialize normcachers
     normcachers = [NormCacher{N}(n) for j in 1:m]
 
+    midf = map(mid, f)
+
     # main loop
 
+    v = zeros(T, n)
     for j = 1:n-1
-        v = zeros(n) # TODO: check for type stability in cases with unusual types
-        v[1] = 1. # TODO: in full generality, this should contain entries of f rather than ±1
-        v[j+1] = -1.
+        v .= zero(T) # TODO: check for type stability in cases with unusual types
+        v[1] = one(T) # TODO: in full generality, this should contain entries of f rather than ±1
+        v[j+1] = -one(T)
         if normv0 == -1.
             nrmv = opnormbound(N, v)
         else
@@ -114,11 +114,11 @@ function norms_of_powers(N::Type{<:NormKind}, m::Integer, LL::SparseMatrixCSC{In
         nrmw = nrmv # we assume that initial vectors are already integral-preserving
         for k = 1:m
             w = M * v
-            if is_integral_preserving
+            if is_integral_preserving(Q)
                 v = w
                 ϵ = (γz ⊗₊ nrmM ⊕₊ δ) ⊗₊ nrmv ⊕₊ normQ ⊗₊ ϵ
             else
-                v = w - e * (f*w)
+                v = w - Q.e * (midf*w)  # TODO: we are currently assuming that f is not too large, to estimate the error (the result of only one floating point operation)
                 new_nrmw = opnormbound(N, w)
                 ϵ = γn ⊗₊ normIEF ⊗₊ (new_nrmw ⊕₊ normEF ⊗₊ nrmw) ⊕₊ normN ⊗₊ (γz ⊗₊ nrmM ⊕₊ δ) ⊗₊ nrmv ⊕₊ normQ ⊗₊ ϵ
                 nrmw = new_nrmw

@@ -30,9 +30,11 @@ include("pitrig.jl")
 include("NormsOfPowers.jl")
 
 export NormKind, L1, Linf, Lipschitz, TotalVariation
+
 export Ulam, PwMap, Mod1Dynamic, Basis, Dynamic, assemble, preim, Hat, EquispacedPartition, norms_of_powers, sinpi, cospi, dfly, DiscretizedOperator, opnormbound, weak_norm, strong_norm, aux_norm, integral_covector, distance_from_invariant
 import ValidatedNumerics: Interval
 export Interval
+
 
 # a special example, the induced map for the LSV map
 include("InducedLSV.jl")

@@ -103,3 +103,6 @@ function Base.:*(Q::NonIntegralPreservingDiscretizedOperator, v::Array)
 	T = Base.promote_eltype(Q.e, Q.w)
 	return Q.L * v + convert(Array{T},Q.e) * (Q.w * v)
 end
+
+BasisDefinition.is_integral_preserving(Q::NonIntegralPreservingDiscretizedOperator) = false
+BasisDefinition.is_integral_preserving(Q::IntegralPreservingDiscretizedOperator) = true

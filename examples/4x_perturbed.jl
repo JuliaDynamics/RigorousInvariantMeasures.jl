@@ -11,7 +11,7 @@ Q = DiscretizedOperator(B, D)
 normQ = opnormbound(weak_norm(B), Q)
 
 trivial_norms = norms_of_powers_trivial(weak_norm(B), Q, m)
-computed_norms = norms_of_powers(weak_norm(B), m, Q.L, false, e=Q.e, f=map(mid, integral_covector(B)))
+computed_norms = norms_of_powers(weak_norm(B), m, Q, integral_covector(B))
 
 (dfly_strongs, dfly_norms) = norms_of_powers_dfly(B, D, m)
 
