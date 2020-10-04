@@ -1,10 +1,14 @@
 using InvariantMeasures
 using ValidatedNumerics
 
-m = 15
+m = 30
 m_extend = 100
 
-D = Mod1Dynamic(x -> 4*x + 0.01*InvariantMeasures.sinpi(8*x))
+D = PwMap([x->17*x/5, 
+	x->(34*((17*x-5)/17)/25+3)*((17*x-5)/17), 
+	x->(34*((17*x-10)/17)/25+3)*((17*x-10)/17), 
+	x->17*((17*x-15)/17)/5], 
+	[Interval(0), Interval(5)/17, Interval(10)/17, Interval(15)/17, Interval(1)])
 B = Ulam(1024)
 Q = DiscretizedOperator(B, D)
 
@@ -22,7 +26,7 @@ better_norms = refine_norms_of_powers(norms, m_extend)
 w = invariant_vector(B, Q)
 @show distance_from_invariant(B, D, Q, w, better_norms)
 
-B_fine = Ulam(2^16)
+B_fine = Ulam(2^15)
 Q_fine = DiscretizedOperator(B_fine, D)
 norm_Q_fine = opnormbound(weak_norm(B_fine), Q_fine)
 

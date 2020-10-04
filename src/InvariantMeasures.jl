@@ -2,6 +2,7 @@ module InvariantMeasures
 
 abstract type NormKind end
 struct L1 <: NormKind end
+struct L2 <: NormKind end
 struct Linf <: NormKind end
 struct Lipschitz <: NormKind end
 struct TotalVariation <: NormKind end
@@ -28,6 +29,9 @@ using .DynamicDefinition, .BasisDefinition, .Mod1DynamicDefinition, .Contractors
 include("Norms.jl")
 include("pitrig.jl")
 include("NormsOfPowers.jl")
+
+include("NoiseKernel.jl")
+include("NormsOfPowersNoise.jl")
 
 export NormKind, L1, Linf, Lipschitz, TotalVariation
 
