@@ -68,15 +68,6 @@ function norms_of_powers(N::Type{<:NormKind}, m::Integer, Q::DiscretizedOperator
 
     nrmM = opnormbound(N, M)
 
-    if normQ == -1.
-        if is_integral_preserving(Q)
-            normQ = nrmM ⊕₊ δ
-        else
-            defect = opnormbound(N, Q.w)
-            normQ = nrmM ⊕₊ δ ⊕₊ normE ⊗₊ defect
-        end
-    end
-
     # precompute norms
     if !is_integral_preserving(Q)
         if normE == -1.
@@ -90,6 +81,15 @@ function norms_of_powers(N::Type{<:NormKind}, m::Integer, Q::DiscretizedOperator
         end
         if normN == -1.
             normN = opnormbound(N, Matrix(UniformScaling{Float64}(1),n,n) - Q.e*f)
+        end
+    end
+
+    if normQ == -1.
+        if is_integral_preserving(Q)
+            normQ = nrmM ⊕₊ δ
+        else
+            defect = opnormbound(N, Q.w)
+            normQ = nrmM ⊕₊ δ ⊕₊ normE ⊗₊ defect
         end
     end
 
