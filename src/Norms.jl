@@ -147,7 +147,7 @@ function dfly(::Type{TotalVariation}, ::Type{L1}, D::Dynamic)
     dist = maximise(distorsion, D.domain)[1]
     lam = maximise(lambda, D.domain)[1]
 
-    if !(abs(lam) < 1) # these are intervals, so this is *not* equal to abs(lam) <= 1.
+    if !(abs(lam) < 1) # these are intervals, so this is *not* equal to abs(lam) >= 1.
         @error "The function is not expanding"
     end
 
@@ -180,9 +180,15 @@ function dfly(::Type{TotalVariation}, ::Type{L1}, D::PwMap)
     end
 
     if is_full_branch(D)
+        if !(abs(lam) < 1) # these are intervals, so this is *not* equal to abs(lam) >= 1.
+            @error "The function is not expanding"
+        end
         return lam, dist
     else
-        return 2*lam, dist+disc
+        if !(abs(2⊗₊lam) < 1)
+            @error "Expansivity is insufficient to prove a DFLY. Try with an iterate."
+        end
+        return 2⊗₊lam, dist ⊕₊ disc
     end
 end
 
