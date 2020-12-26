@@ -45,14 +45,14 @@ end
 
 using LinearAlgebra
 
-# this function generates the Jacobian for 
+# this function generates the Jacobian for
 # f(x_0)=x_1, f(x_1)=x_2, ..., f(x_{n-1})=y
 
 
 
-coeff_interval(x::Array{Interval{T}, 1}) where {T} = T 
+coeff_interval(x::Array{Interval{T}, 1}) where {T} = T
 
-function Jac(fprime, v::Vector{T}) where {T} 
+function Jac(fprime, v::Vector{T}) where {T}
     dv = fprime.(v)
     ev = -ones(T, length(v)-1)
     return Bidiagonal{T}(dv, ev, :U)
@@ -60,7 +60,7 @@ end
 
 function ShootingMethod(f, fprime, n, x, y, rigstep = 10)
 	F = x->(f.(x)-[x[2:end]; y])
-	
+
 	for i in 1:rigstep
 		x_mid = Interval{coeff_interval(x)}.(mid.(x))
 		x = intersect.(x, x_mid-Jac(fprime, x)\F(x_mid))

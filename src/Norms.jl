@@ -197,8 +197,8 @@ function dfly(::Type{Lipschitz}, ::Type{L1}, D::Dynamic)
     # TODO: should assert that D is globally C2 instead, but we don't have that kind of infrastructure yet.
     @assert is_full_branch(D)
 
-    dist = maximise(x -> distorsion(D, x), D.domain)[1]
-    lam = maximise(x-> abs(1/derivative(D, x)), D.domain)[1]
+    dist = maximise(x -> distorsion(D, x), domain(D))[1]
+    lam = maximise(x-> abs(1/derivative(D, x)), domain(D))[1]
 
     lam = lam.hi
     dist = dist.hi
