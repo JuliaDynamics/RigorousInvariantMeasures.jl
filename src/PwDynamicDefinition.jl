@@ -1,6 +1,7 @@
 module PwDynamicDefinition
 using ValidatedNumerics
 using ..DynamicDefinition, ..Contractors
+using TaylorSeries: Taylor1
 
 export PwMap, preim, nbranches, plottable
 
@@ -18,15 +19,17 @@ struct PwMap <: Dynamic
 	orientations # these will be filled in automatically, usually
 end
 
+
+# the isempty check is required because otherwise derivative(x -> 4*x, ∅) == 4.
+derivative(f, x) = isempty(x) ?  ∅ : f(Taylor1([x, 1], 1))[1]
+
+PwMap(Ts, endpoints) = PwMap(Ts, endpoints, fill(false, length(endpoints)-1))
+PwMap(Ts, endpoints, is_full) = PwMap(Ts, map(Interval, endpoints), is_full, [derivative(Ts[i], (endpoints[i]+endpoints[i+1])/2) for i in 1:length(endpoints)-1])
+
 DynamicDefinition.nbranches(D::PwMap)=length(D.endpoints)-1
 
 DynamicDefinition.is_full_branch(D::PwMap) = all(D.is_full)
 
-import DualNumbers: Dual
-
-PwMap(Ts, endpoints) = PwMap(Ts, endpoints, fill(false, length(endpoints)-1))
-
-PwMap(Ts, endpoints, is_full) = PwMap(Ts, endpoints, is_full, [sign(Ts[i](Dual((endpoints[i]+endpoints[i+1])/2, 1)).epsilon) for i in 1:length(endpoints)-1])
 
 function DynamicDefinition.preim(D::PwMap, k, y, ϵ)
 	@assert 1 <= k <= nbranches(D)
@@ -41,6 +44,15 @@ function DynamicDefinition.plottable(D::PwMap, x)
 			return D.Ts[k](x)
 		end
 	end
+end
+
+"""
+Computes the hull of an iterable of intervals
+"""
+common_hull(S) = interval(minimum(x.lo for x in S), maximum(x.hi for x in S))
+
+function DynamicDefinition.der(D::PwMap, x)
+	common_hull(derivative(D.Ts[i], x ∩ hull(D.endpoints[i],D.endpoints[i+1])) for i in 1:length(D.endpoints)-1)
 end
 
 end
