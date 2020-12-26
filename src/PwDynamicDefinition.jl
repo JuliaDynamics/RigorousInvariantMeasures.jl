@@ -1,7 +1,10 @@
 module PwDynamicDefinition
 using ValidatedNumerics
-using ..DynamicDefinition, ..Contractors
+using ..DynamicDefinition
+using ..Contractors
 using TaylorSeries: Taylor1
+
+using ..DynamicDefinition: derivative
 
 export PwMap, preim, nbranches, plottable
 
@@ -19,9 +22,7 @@ struct PwMap <: Dynamic
 	orientations # these will be filled in automatically, usually
 end
 
-
-# the isempty check is required because otherwise derivative(x -> 4*x, ∅) == 4.
-derivative(f, x) = isempty(x) ?  ∅ : f(Taylor1([x, 1], 1))[1]
+DynamicDefinition.domain(S::PwMap) = interval(S.endpoints[1], S.endpoints[end])
 
 PwMap(Ts, endpoints) = PwMap(Ts, endpoints, fill(false, length(endpoints)-1))
 PwMap(Ts, endpoints, is_full) = PwMap(Ts, map(Interval, endpoints), is_full, [derivative(Ts[i], (endpoints[i]+endpoints[i+1])/2) for i in 1:length(endpoints)-1])
@@ -51,8 +52,13 @@ Computes the hull of an iterable of intervals
 """
 common_hull(S) = interval(minimum(x.lo for x in S), maximum(x.hi for x in S))
 
-function DynamicDefinition.der(D::PwMap, x)
-	common_hull(derivative(D.Ts[i], x ∩ hull(D.endpoints[i],D.endpoints[i+1])) for i in 1:length(D.endpoints)-1)
+function DynamicDefinition.derivative(n, D::PwMap, x)
+	common_hull(derivative(n, D.Ts[i], x ∩ hull(D.endpoints[i],D.endpoints[i+1])) for i in 1:length(D.endpoints)-1)
 end
+
+function DynamicDefinition.distorsion(D::PwMap, x)
+	common_hull(distorsion(D.Ts[i], x ∩ hull(D.endpoints[i],D.endpoints[i+1])) for i in 1:length(D.endpoints)-1)
+end
+
 
 end

@@ -49,16 +49,16 @@ end
 
 function DefineTnPlottable(branches, α)
     Tleft(x)=x*(1+(2*x)^α)
-    
+
     Tnlist = Array{Function, 1}(undef, branches+1)
     Tnlist[branches+1] = x->2*x-1
 
     for i=branches:-1:2
         Tnlist[i] = x-> Tleft(Tnlist[i+1](x))
     end
-    
+
     right = mid(ShootingLSV(branches, 0.5, α)[1])
-		
+
     Tnlist[1] = x-> 0.5*1/(right-0.5)*(x-0.5)+0.5
     return Tnlist
 end
@@ -67,7 +67,7 @@ end
 This constructor builds the induced LSV map on [0.5, 1],
 truncated with k branches
 """
-function ApproxInducedLSV(α, k) 
+function ApproxInducedLSV(α, k)
 	nbranches = k+1
 	domains = GetDomains(k, α)
 	TnListPlottable = DefineTnPlottable(k, α)
@@ -99,8 +99,8 @@ function DynamicDefinition.preim(D::ApproxInducedLSV, k, y, ϵ)
 	_y = InvCoordinateChange(y)
 	if k == 1
 		right = ShootingLSV(D.nbranches-1, 0.5, D.α)[1]
-		_x = (2*_y-1)*(right-0.5)+0.5  
-		return CoordinateChange(_x) 
+		_x = (2*_y-1)*(right-0.5)+0.5
+		return CoordinateChange(_x)
 	elseif k == nbranches
 		_x = (_y+1)/2
 		return CoordinateChange(_x)
@@ -117,7 +117,7 @@ function iterate_LSV(x, i, α)
 	for j in 2:i
 		x = x*(1+(2*x)^α)
 	end
-	return x 
+	return x
 end
 
 
@@ -128,7 +128,7 @@ end
 
 # this function belongs to the InvariantMeasures namespace,
 # this is the reason why we define it outside
-import TaylorSeries
+using TaylorSeries: Taylor1
 
 
 
@@ -157,4 +157,3 @@ function dfly(::Type{TotalVariation}, ::Type{L1}, D::InvariantMeasures.InducedLS
 	end
 	return lam, dist
 end
-

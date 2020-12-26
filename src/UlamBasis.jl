@@ -217,7 +217,7 @@ using LaTeXStrings
 		linecolor := :red
 	    seriestype := :path
 	    label := L"T'(x)"
-	    G = x-> der(D, x)
+	    G = x-> derivative(D, x)
 	    collect(B), G.(collect(B))
 	end
 end

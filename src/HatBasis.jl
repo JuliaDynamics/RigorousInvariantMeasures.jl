@@ -164,19 +164,17 @@ end
 Return (in an iterator) the pairs (i, (x, |T'(x)|)) where x is a preimage of p[i], which
 describe the "dual" L* evaluation(p[i])
 """
-function Base.iterate(S::DualComposedWithDynamic{T, Mod1Dynamic}, state = (1, 1)) where T<:Hat
+function Base.iterate(S::DualComposedWithDynamic{T, D}, state = (1, 1)) where T<:Hat where D<:Dynamic
+	@assert is_full_branch(S.dynamic)
+
 	i, k = state
 
 	if i == length(S.basis)+1
 			return nothing
 	end
 
-	# remark that this version supposes that for each i there exists a preimage
-	# another more specific version should be implemented for maps with
-	# incomplete branches
-
 	x = preim(S.dynamic, k, S.basis.p[i], S.ϵ)
-	absT′ = abs(der(S.dynamic, x))
+	absT′ = abs(derivative(S.dynamic, x))
 
 	if k == nbranches(S.dynamic)
 		return ((i, (x, absT′)), (i+1, 1))

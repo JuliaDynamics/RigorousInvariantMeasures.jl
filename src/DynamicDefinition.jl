@@ -1,32 +1,52 @@
 module DynamicDefinition
 
 using ValidatedNumerics
-import TaylorSeries
-export Dynamic, MarkovDynamic, der, der_der, der_n, preim, nbranches, plottable, is_full_branch
+using TaylorSeries:Taylor1
+export Dynamic, MarkovDynamic, der, der_der, der_n, preim, nbranches, plottable, is_full_branch, domain, derivative, distorsion
 
 abstract type Dynamic end
 abstract type MarkovDynamic <: Dynamic end
 
-
+function domain(S::Dynamic) end # declares a function with no methods; this should be better practice than @error "Not Implemented", we will switch later
 nbranches(S::Dynamic) = @error "Not implemented"
 plottable(S::Dynamic) = @error "Not implemented"
 preim(S::Dynamic, k, y, ϵ) = @error "Not implemented"
 is_full_branch(S::Dynamic) = @error "Not implemented"
 
-der(S::Dynamic, x) = der_n(S, x, Val(1))
-der_der(S::Dynamic, x) = der_n(S, x, Val(2))
 
-der_n(S::Dynamic, x, n) = der_n(S, x, Val(n))
-der_n(S::Dynamic, x, ::Val{n}) where {n} = S.T(TaylorSeries.Taylor1([x, 1], n))[n]/factorial(n)
+# Derivative and distorsion of a generic function (*not* a dynamic). Here for convenience,
+# since subtypes will need them.
 
-function iterate(T, x, ::Val{n}) where {n}
-	for i in 1:n
-		x=T(x)
+# the isempty check is required because otherwise derivative(x -> 4*x, ∅) == 4.
+"""
+Nth derivative of a function (or a dynamic)
+"""
+derivative(f, x) = derivative(1, f, x)
+derivative(n, f::Function, x) = isempty(x) ?  ∅ : f(Taylor1([x, 1], n))[n] * factorial(n)
+
+"""
+Distorsion of a function (or a dynamic), i.e., |f′ / f′′^2|
+"""
+function distorsion(f::Function, x)
+	if isempty(x)
+		return ∅
 	end
-	return x
+	series = f(Taylor1([x, 1], 2))
+	f′ = series[1]
+	f′′ = 2*series[2]
+	return abs(f′′ / f′^2)
 end
 
-iterate(T, x, n)=iterate(T, x, Val(n))
+# TODO: these do not necessarily work properly, since T() for a Mod1Dynamic contains the unquotiented map. Better not to use them at all.
+
+# function iterate(T, x, ::Val{n}) where {n}
+# 	for i in 1:n
+# 		x=T(x)
+# 	end
+# 	return x
+# end
+#
+# iterate(T, x, n)=iterate(T, x, Val(n))
 
 
 

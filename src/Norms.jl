@@ -3,8 +3,11 @@ Functions to deal with various types of norms and seminorms
 """
 
 using FastRounding
-using ValidatedNumerics, IntervalOptimisation
+using IntervalOptimisation
 using SparseArrays: getcolptr
+using .DynamicDefinition
+
+using .DynamicDefinition: derivative
 
 """
 'Absolute value' definition that returns mag(I) for an interval and abs(x) for a real
@@ -142,10 +145,8 @@ Constants (A, B) such that ||Lf||_s ≦ A||f||_s + B||f||_aux
 dfly(::Type{<:NormKind}, ::Type{<:NormKind}, ::Dynamic) = @error "Not implemented"
 
 function dfly(::Type{TotalVariation}, ::Type{L1}, D::Dynamic)
-	distorsion(x)=abs(der_der(D, x)/(der(D, x)^2))
-	lambda(x) = abs(1/der(D, x))
-    dist = maximise(distorsion, D.domain)[1]
-    lam = maximise(lambda, D.domain)[1]
+    dist = maximise(x -> distorsion(D, x), D.domain)[1]
+    lam = maximise(x-> abs(1/derivative(D, x)), D.domain)[1]
 
     if !(abs(lam) < 1) # these are intervals, so this is *not* equal to abs(lam) >= 1.
         @error "The function is not expanding"
@@ -193,10 +194,11 @@ function dfly(::Type{TotalVariation}, ::Type{L1}, D::PwMap)
 end
 
 function dfly(::Type{Lipschitz}, ::Type{L1}, D::Dynamic)
-    distorsion(x)=abs(der_der(D, x)/(der(D, x)^2))
-	lambda(x) = abs(1/der(D, x))
-    dist = maximise(distorsion, D.domain)[1]
-    lam = maximise(lambda, D.domain)[1]
+    # TODO: should assert that D is globally C2 instead, but we don't have that kind of infrastructure yet.
+    @assert is_full_branch(D)
+
+    dist = maximise(x -> distorsion(D, x), D.domain)[1]
+    lam = maximise(x-> abs(1/derivative(D, x)), D.domain)[1]
 
     lam = lam.hi
     dist = dist.hi

@@ -2,6 +2,8 @@ module Mod1DynamicDefinition
 using ValidatedNumerics
 using ..DynamicDefinition, ..Contractors
 
+using ..DynamicDefinition: derivative
+
 export Mod1Dynamic, preim, nbranches, plottable
 
 struct Mod1Dynamic <: MarkovDynamic
@@ -12,6 +14,7 @@ struct Mod1Dynamic <: MarkovDynamic
 	is_full_branch::Bool
 end
 
+
 function Mod1Dynamic(T::Function, nbranches = undef, domain::Interval{S} = Interval{Float64}(0,1)) where {S}
 	@assert domain == 0..1 # TODO: this only works for domain == 0..1, for now
 	range_diff = T(1..1)-T(0..0)
@@ -21,6 +24,8 @@ function Mod1Dynamic(T::Function, nbranches = undef, domain::Interval{S} = Inter
 	is_full_branch = isinteger(range_diff)
 	return Mod1Dynamic(T, nbranches, orientation, domain, is_full_branch)
 end
+
+DynamicDefinition.domain(S::Mod1Dynamic) = S.domain
 
 DynamicDefinition.nbranches(S::Mod1Dynamic)=S.nbranches
 
@@ -34,5 +39,8 @@ function DynamicDefinition.preim(D::Mod1Dynamic, k, y, ϵ)
 	f(x) = D.T(x)-D.T(0)-(y-D.T(0)+(k-1)*D.orientation)
 	root(f, D.domain, ϵ)
 end
+
+DynamicDefinition.derivative(n, D::Mod1Dynamic, x) = derivative(n, D.T, x)
+DynamicDefinition.distorsion(D::Mod1Dynamic, x) = distorsion(D.T, x)
 
 end
