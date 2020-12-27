@@ -5,10 +5,11 @@ Args:
 	PP (scipy matrix): approximation of the discretized matrix to use
 	v (numpy vector):
 	my_norm (function):
-	M, K (reals with RNDU): constants such that :math:`\|P-PP\| \leq K` and :math:`\|P^n\| \leq M`, where :math:`P` is the exact discretized matrix.
+	M, K (reals with RNDU): constants such that ||P-PP|| ≤ K` and ||P^n|| ≤ M`,
+	where P is the exact discretized matrix.
 
 Returns:
-	n such that :math:`\|PP^n v\| \leq target`.
+	n such that ||PP^n v|| ≤ target`.
 
 Raises:
 	ValueError if insufficient precision is detected
@@ -19,14 +20,16 @@ function vector_decay_time(B::Basis, PP, v, M=0, K=0, target = 0.5)
 	n = 0
 	MK = M * K
 	error_propagation_constant = K #this constant is K at the first step and MK afterwards; see notes
-	while current_norm + error_on_computed_norm >= target:
+	while current_norm + error_on_computed_norm >= target
 		n += 1
 		v = PP * v
 		current_norm = weak_norm(B, v)
 		error_on_computed_norm += error_propagation_constant * current_norm
 		error_propagation_constant = MK
-		if error_on_computed_norm > target:
-			raise ValueError, 'Insufficient precision'
+		if error_on_computed_norm > target
+			raise() # ValueError, 'Insufficient precision'
+		end
+	end
 	return n
 end
 
