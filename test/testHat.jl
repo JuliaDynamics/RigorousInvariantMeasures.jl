@@ -1,3 +1,5 @@
+@testset "Hat basis" begin
+
 using ValidatedNumerics
 using InvariantMeasures.HatBasis: HatFunction, IntervalOnTorus, Hat, nonzero_on, EquispacedPartition
 
@@ -31,3 +33,5 @@ B = Hat(EquispacedPartition{Float64}(4))
 @test nonzero_on(B, 0.1..0.3) == (1,3)
 @test nonzero_on(B, 0..1) == (1,4)
 @test nonzero_on(B, 0.3..0.31) == (2,3)
+
+end

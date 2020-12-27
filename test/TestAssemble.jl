@@ -1,6 +1,8 @@
 using InvariantMeasures
 using ValidatedNumerics
 
+@testset "Ulam assembler" begin
+
 D = Mod1Dynamic(x->2*x)
 B = Ulam(8)
 P = assemble(B, D)
@@ -22,3 +24,5 @@ Ptrue = Ptrue'
 
 @test opnormbound(L1, DiscretizedOperator(B, D)) == 1
 @test opnormbound(Linf, DiscretizedOperator(B, D)) == 1
+
+end

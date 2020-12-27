@@ -2,6 +2,8 @@ using InvariantMeasures
 using ValidatedNumerics
 using LinearAlgebra
 
+@testset "Hat assembler" begin
+
 D = Mod1Dynamic(x->2*x)
 B = Hat(EquispacedPartition{Float64}(8))
 P = assemble(B, D)
@@ -36,3 +38,5 @@ mQ = mid(Q)
 
 fQ = mQ.L + mQ.e * mQ.w
 @test fQ * e ≈ mQ * e
+
+end
