@@ -25,7 +25,7 @@ end
 DynamicDefinition.domain(S::PwMap) = hull(S.endpoints[1], S.endpoints[end])
 
 PwMap(Ts, endpoints) = PwMap(Ts, endpoints, fill(false, length(endpoints)-1))
-PwMap(Ts, endpoints, is_full) = PwMap(Ts, map(Interval, endpoints), is_full, [derivative(Ts[i], (endpoints[i]+endpoints[i+1])/2) for i in 1:length(endpoints)-1])
+PwMap(Ts, endpoints, is_full) = PwMap(Ts, map(Interval, endpoints), is_full, [sign(derivative(Ts[i], (endpoints[i]+endpoints[i+1])/2)) for i in 1:length(endpoints)-1])
 
 DynamicDefinition.nbranches(D::PwMap)=length(D.endpoints)-1
 
