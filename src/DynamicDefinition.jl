@@ -1,3 +1,7 @@
+"""
+defines generic Dynamic type
+"""
+
 module DynamicDefinition
 
 using ValidatedNumerics
