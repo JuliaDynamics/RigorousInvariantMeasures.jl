@@ -4,16 +4,18 @@ using TaylorSeries
 
 m = 15
 m_extend = 100
-eps = 1e-12
+# eps = 1e-12
+#
+# T = x-> 4*x + 0.01*InvariantMeasures.sinpi(8*x)
+# Tprime = x-> T(TaylorSeries.Taylor1([x, 1], 1))[1]
+# a1 = InvariantMeasures.root(x->T(x)-1, Tprime, 0..1, eps)
+# a2 = InvariantMeasures.root(x->T(x)-2, Tprime, 0..1, eps)
+# a3 = InvariantMeasures.root(x->T(x)-3, Tprime, 0..1, eps)
+#
+# D = PwMap([x->T(x), x->T(x)-1, x->T(x)-2, x->T(x)-3],
+# 	[Interval(0), a1, a2, a3, Interval(1)], fill(true, 4))
 
-T = x-> 4*x + 0.01*InvariantMeasures.sinpi(8*x)
-Tprime = x-> T(TaylorSeries.Taylor1([x, 1], 1))[1]
-a1 = InvariantMeasures.root(x->T(x)-1, Tprime, 0..1, eps)
-a2 = InvariantMeasures.root(x->T(x)-2, Tprime, 0..1, eps)
-a3 = InvariantMeasures.root(x->T(x)-3, Tprime, 0..1, eps)
-
-D = PwMap([x->T(x), x->T(x)-1, x->T(x)-2, x->T(x)-3],
-	[Interval(0), a1, a2, a3, Interval(1)], fill(true, 4))
+D = mod1_dynamic(x-> 4*x + 0.01*InvariantMeasures.sinpi(8*x))
 B = Ulam(1024)
 Q = DiscretizedOperator(B, D)
 

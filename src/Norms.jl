@@ -4,6 +4,7 @@ Functions to deal with various types of norms and seminorms
 
 using FastRounding
 using IntervalOptimisation
+using TaylorSeries: Taylor1
 using SparseArrays: getcolptr
 using .DynamicDefinition
 
@@ -145,8 +146,8 @@ Constants (A, B) such that ||Lf||_s ≦ A||f||_s + B||f||_aux
 dfly(::Type{<:NormKind}, ::Type{<:NormKind}, ::Dynamic) = @error "Not implemented"
 
 function dfly(::Type{TotalVariation}, ::Type{L1}, D::Dynamic)
-    dist = maximise(x -> distorsion(D, x), D.domain)[1]
-    lam = maximise(x-> abs(1/derivative(D, x)), D.domain)[1]
+    dist = maximise(x -> distorsion(D, x), domain(D))[1]
+    lam = maximise(x-> abs(1/derivative(D, x)), domain(D))[1]
 
     if !(abs(lam) < 1) # these are intervals, so this is *not* equal to abs(lam) >= 1.
         @error "The function is not expanding"
@@ -170,8 +171,8 @@ function dfly(::Type{TotalVariation}, ::Type{L1}, D::PwMap)
     for i in 1:nbranches(D)
         f(x) = D.Ts[i](x)
         domain = hull(D.endpoints[i], D.endpoints[i+1])
-        fprime(x) = f(TaylorSeries.Taylor1([x, 1], 1))[1]
-        fsecond(x) = f(TaylorSeries.Taylor1([x, 1], 2))[2]/2
+        fprime(x) = f(Taylor1([x, 1], 1))[1]
+        fsecond(x) = f(Taylor1([x, 1], 2))[2]*2
         distorsion(x)=abs(fsecond(x)/(fprime(x)^2))
         lambda(x) = abs(1/fprime(x))
         dist = max(dist, maximise(distorsion, domain)[1].hi)
