@@ -5,14 +5,20 @@ using DualNumbers
 
 export N_rig, root, range_estimate, ShootingMethod
 
-function N_rig(f, f′, x::Interval{T}) where {T}
-	x_mid = Interval{T}(mid(x))
-	return intersect(x, x_mid-f(x_mid)/f′(x))
+"""
+Step of rigorous Newton (possibly multivariate)
+"""
+function N_rig(f, f′, x) where {T}
+	x_mid = Interval.(mid.(x))
+	return intersect(x, x_mid - f′(x) \ f(x_mid))
 end
 
+"""
+Compute a single root with (possibly multivariate) interval Newton
+"""
 root(f, x::Interval, ϵ; max_iter = 100) = root(f, x->f(Dual(x, 1)).epsilon, x, ϵ; max_iter = max_iter)
 
-function root(f, f′, x::Interval, ϵ; max_iter = 100)
+function root(f, f′, x, ϵ; max_iter = 100)
 	for i in 1:max_iter
 		x = N_rig(f, f′, x)
 		if diam(x)<ϵ
@@ -48,8 +54,6 @@ using LinearAlgebra
 # this function generates the Jacobian for
 # f(x_0)=x_1, f(x_1)=x_2, ..., f(x_{n-1})=y
 
-
-
 coeff_interval(x::Array{Interval{T}, 1}) where {T} = T
 
 function Jac(fprime, v::Vector{T}) where {T}
@@ -58,6 +62,7 @@ function Jac(fprime, v::Vector{T}) where {T}
     return Bidiagonal{T}(dv, ev, :U)
 end
 
+# Used in InducedLSV; won't touch it to avoid breaking stuff --federico
 function ShootingMethod(f, fprime, n, x, y, rigstep = 10)
 	F = x->(f.(x)-[x[2:end]; y])
 
@@ -67,6 +72,5 @@ function ShootingMethod(f, fprime, n, x, y, rigstep = 10)
 	end
 	return x
 end
-
 
 end
