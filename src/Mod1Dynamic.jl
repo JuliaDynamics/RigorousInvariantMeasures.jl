@@ -8,8 +8,8 @@ export Mod1Dynamic, preim, nbranches, plottable
 
 struct Mod1Dynamic <: MarkovDynamic
 	T::Function
-	nbranches::Integer
-	orientation::Integer
+	nbranches::Int
+	orientation::Int
 	domain::Interval
 	is_full_branch::Bool
 end

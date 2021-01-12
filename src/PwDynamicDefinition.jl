@@ -48,17 +48,29 @@ function DynamicDefinition.plottable(D::PwMap, x)
 end
 
 """
-Computes the hull of an iterable of intervals
+hull of an iterable of intervals
 """
 common_hull(S) = interval(minimum(x.lo for x in S), maximum(x.hi for x in S))
 
-function DynamicDefinition.derivative(n, D::PwMap, x)
-	common_hull(derivative(n, D.Ts[i], x ∩ hull(D.endpoints[i],D.endpoints[i+1])) for i in 1:length(D.endpoints)-1)
-end
 
-function DynamicDefinition.distorsion(D::PwMap, x)
-	common_hull(distorsion(D.Ts[i], x ∩ hull(D.endpoints[i],D.endpoints[i+1])) for i in 1:length(D.endpoints)-1)
+# Rather than defining derivatives of a PwMap, we define Taylor1 expansions directly
+# and let the generic functions in DynamicDefinition to the work
+"""
+Function call, and Taylor expansion, of a PwMap.
+Note that this ignores discontinuities; users are free to shoot themselves
+in the foot and call this on a non-smooth piecewise map. No better solutions for now.
+"""
+function (D::PwMap)(x::Taylor1)
+	fx = fill(∅, x.order)
+	x_restricted = deepcopy(x)
+	for i = 1:length(D.endpoints)-1
+		x_restricted[0] = x[0] ∩ hull(D.endpoints[i],D.endpoints[i+1])
+		if !isempty(x_restricted[0])
+			fx_restricted = D.Ts[i](x_restricted)
+			fx = fx .∪ fx_restricted.coeffs
+		end
+	end
+	return Taylor1(fx, x.order)
 end
-
 
 end

@@ -26,12 +26,12 @@ is_full_branch(S::Dynamic) = @error "Not implemented"
 Nth derivative of a function (or a dynamic)
 """
 derivative(f, x) = derivative(1, f, x)
-derivative(n, f::Function, x) = isempty(x) ?  ∅ : f(Taylor1([x, 1], n))[n] * factorial(n)
+derivative(n, f, x) = isempty(x) ?  ∅ : f(Taylor1([x, 1], n))[n] * factorial(n)
 
 """
 Distorsion of a function (or a dynamic), i.e., |f′ / f′′^2|
 """
-function distorsion(f::Function, x)
+function distorsion(f, x)
 	if isempty(x)
 		return ∅
 	end
