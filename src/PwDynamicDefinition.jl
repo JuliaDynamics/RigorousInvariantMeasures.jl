@@ -22,6 +22,8 @@ struct PwMap <: Dynamic
 	orientations # these will be filled in automatically, usually
 end
 
+Base.show(io::IO, D::PwMap) = print(io, "Piecewise-defined dynamic with $(nbranches(D)) branches")
+
 DynamicDefinition.domain(S::PwMap) = hull(S.endpoints[1], S.endpoints[end])
 
 PwMap(Ts, endpoints) = PwMap(Ts, endpoints, fill(false, length(endpoints)-1))

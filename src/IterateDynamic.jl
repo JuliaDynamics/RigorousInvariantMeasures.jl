@@ -11,6 +11,8 @@ struct Iterate <: Dynamic
     n::Int
 end
 
+Base.show(io::IO, D::Iterate) = print(io, "$(D.n)-times iterate of: ", D.D)
+
 function (D::Iterate)(x::Taylor1)
     y = x
     for i = 1:D.n
