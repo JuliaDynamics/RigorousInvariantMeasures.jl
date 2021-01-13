@@ -20,6 +20,7 @@ include("GenericEstimate.jl")
 include("PwDynamicDefinition.jl")
 include("Mod1Dynamic.jl")
 include("Mod1PwDynamic.jl")
+include("IterateDynamic.jl")
 
 include("UlamBasis.jl")
 include("HatBasis.jl")
@@ -36,7 +37,9 @@ export Ulam, PwMap, Mod1Dynamic, Basis, Dynamic, assemble, preim, Hat,
 	EquispacedPartition, norms_of_powers, sinpi, cospi, dfly,
 	DiscretizedOperator, IntegralPreservingDiscretizedOperator, NonIntegralPreservingDiscretizedOperator,
 	opnormbound, weak_norm, strong_norm, aux_norm, integral_covector, distance_from_invariant,
-	mod1_dynamic
+	mod1_dynamic,
+	Iterate, derivative, distorsion
+
 import ValidatedNumerics: Interval
 export Interval
 

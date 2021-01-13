@@ -15,12 +15,16 @@ end
 
 """
 Compute a single root with (possibly multivariate) interval Newton
+
+x must be an Interval (univariate) or IntervalBox (multivariate)
 """
 root(f, x::Interval, ϵ; max_iter = 100) = root(f, x->f(Dual(x, 1)).epsilon, x, ϵ; max_iter = max_iter)
 
 function root(f, f′, x, ϵ; max_iter = 100)
+	@debug x
 	for i in 1:max_iter
 		x = N_rig(f, f′, x)
+		@debug diam(x)
 		if diam(x)<ϵ
 			return x
 		end

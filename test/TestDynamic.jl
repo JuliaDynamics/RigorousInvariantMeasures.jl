@@ -42,5 +42,22 @@ D = mod1_dynamic(x -> -3.5x + 0.5)
 @test D.is_full == [0,1,1,1]
 @test D.orientations == [-1,-1,-1,-1]
 
+D = Iterate(mod1_dynamic(x->2*x), 3)
+
+using InvariantMeasures.DynamicDefinition: derivative, distorsion, nbranches
+
+@test derivative(D, 0.1..0.2) == 8..8
+@test distorsion(D, 0.1..0.2) == 0..0
+@test map(k->preim(D, k, 0.5), 1:8) == [1//16, 3//16, 5//16, 7//16, 9//16, 11//16, 13//16, 15//16]
+
+# Lanford map, so that we test also something that is not linear
+f = x->2*x+0.5*x*(1-x)
+D = Iterate(mod1_dynamic(f), 3)
+# Interval Newton should converge in 4 steps here, so we set max_iter = 4
+# to make sure that we haven't inadvertently implemented something that is not quadratically convergent
+# (for instance, by using the wrong Jacobian)
+its = map(k->preim(D, k, 0.5, 1e-15, max_iter = 4), 1:nbranches(D))
+g(x) = f(x) - floor(f(x))
+@test g.(g.(g.(its))) ≈ fill(0.5, 8)
 
 end

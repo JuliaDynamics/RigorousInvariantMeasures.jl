@@ -6,7 +6,7 @@ module DynamicDefinition
 
 using ValidatedNumerics
 using TaylorSeries:Taylor1
-export Dynamic, MarkovDynamic, der, der_der, der_n, preim, nbranches, plottable, is_full_branch, domain, derivative, distorsion
+export Dynamic, MarkovDynamic, preim, nbranches, plottable, is_full_branch, domain, derivative, distorsion
 
 abstract type Dynamic end
 abstract type MarkovDynamic <: Dynamic end

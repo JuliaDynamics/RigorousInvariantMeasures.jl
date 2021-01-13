@@ -31,8 +31,7 @@ DynamicDefinition.nbranches(D::PwMap)=length(D.endpoints)-1
 
 DynamicDefinition.is_full_branch(D::PwMap) = all(D.is_full)
 
-
-function DynamicDefinition.preim(D::PwMap, k, y, ϵ)
+function DynamicDefinition.preim(D::PwMap, k, y, ϵ = 1e-15)
 	@assert 1 <= k <= nbranches(D)
 	domain = hull(D.endpoints[k], D.endpoints[k+1])
 	root(x->D.Ts[k](x)-y, domain, ϵ)
@@ -61,7 +60,7 @@ Note that this ignores discontinuities; users are free to shoot themselves
 in the foot and call this on a non-smooth piecewise map. No better solutions for now.
 """
 function (D::PwMap)(x::Taylor1)
-	fx = fill(∅, x.order)
+	fx = fill(∅, x.order+1)
 	x_restricted = deepcopy(x)
 	for i = 1:length(D.endpoints)-1
 		x_restricted[0] = x[0] ∩ hull(D.endpoints[i],D.endpoints[i+1])
