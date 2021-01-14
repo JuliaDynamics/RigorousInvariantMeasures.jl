@@ -25,12 +25,28 @@ DynamicDefinition.nbranches(D::Iterate) = nbranches(D.D)^D.n
 DynamicDefinition.is_full_branch(D::Iterate) = is_full_branch(D.D)
 DynamicDefinition.domain(D::Iterate) = domain(D.D)
 
-using LinearAlgebra: Bidiagonal
+"""
+Find discontinuity points of f ∘ g, where g has discontinuity points endpoints
+and f is a given PwMap.
+"endpoints" alsways include the extrema of the given domain.
+It is assumed that f and g have the same domain.
+"""
+function compose_endpoints(D, endpoints)
+    v = [D.endpoints[1]]
+    for k = 1:nbranches(D)
+        append!(v, preim(D, k, x) for x in endpoints[2:end-1])
+        append!(v, [D.endpoints[k+1]])
+    end
+    return v
+end
 
-function Jac(fprime, v::Vector{T}) where {T}
-    dv = fprime.(v)
-    ev = -ones(T, length(v)-1)
-    return Bidiagonal{T}(dv, ev, :U)
+function DynamicDefinition.endpoints(D::Iterate)
+    @assert D.n >= 1
+    endpoints = D.D.endpoints
+    for k = 2:D.n
+        endpoints = compose_endpoints(D.D, endpoints)
+    end
+    return endpoints
 end
 
 """
@@ -50,6 +66,24 @@ function unpack(k, b, n)
     return v .+ 1
 end
 
+function DynamicDefinition.branch(D::Iterate, k, x)
+    @assert 1 ≤ k ≤ nbranches(D)
+    n = D.n
+    v = unpack(k, nbranches(D.D), n)
+    for i = 1:n
+        x = branch(D.D, v[i], x)
+    end
+    return x
+end
+
+using LinearAlgebra: Bidiagonal
+
+function Jac(fprime, v::Vector{T}) where {T}
+    dv = fprime.(v)
+    ev = -ones(T, length(v)-1)
+    return Bidiagonal{T}(dv, ev, :U)
+end
+
 """
 Compute the preimage of an Iterate D in its k'th branch
 """
@@ -67,5 +101,4 @@ function DynamicDefinition.preim(D::Iterate, k, y, ϵ=1e-15; max_iter = 100)
     f′ = x -> Bidiagonal([derivative(D.D.Ts[v[i]], x[i]) for i in 1:n],  fill(-Interval(1.), n-1), :U)
     S = IntervalBox(hull(D.D.endpoints[v[i]], D.D.endpoints[v[i]+1]) for i in 1:n)
     return root(f, f′, S, ϵ; max_iter = max_iter)[1]
-
 end

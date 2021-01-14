@@ -13,6 +13,8 @@ Dynamic based on a piecewise defined map.
 
 The map is defined as T(x) = Ts[k](x) if x ∈ [endpoints[k], endpoints[k+1]).
 
+Each branch must be monotonic.
+
 We set is_full[k]==true if we can prove/assume that the kth branch is full, i.e., Ts[k](endpoints[k])==0 and Ts[k](endpoints[k+1])==1 or vice versa.
 """
 struct PwMap <: Dynamic
@@ -29,7 +31,8 @@ DynamicDefinition.domain(S::PwMap) = hull(S.endpoints[1], S.endpoints[end])
 PwMap(Ts, endpoints) = PwMap(Ts, endpoints, fill(false, length(endpoints)-1))
 PwMap(Ts, endpoints, is_full) = PwMap(Ts, map(Interval, endpoints), is_full, [sign(derivative(Ts[i], (endpoints[i]+endpoints[i+1])/2)) for i in 1:length(endpoints)-1])
 
-DynamicDefinition.nbranches(D::PwMap)=length(D.endpoints)-1
+DynamicDefinition.nbranches(D::PwMap) = length(D.endpoints)-1
+DynamicDefinition.endpoints(D::PwMap) = D.endpoints
 
 DynamicDefinition.is_full_branch(D::PwMap) = all(D.is_full)
 
@@ -39,19 +42,30 @@ function DynamicDefinition.preim(D::PwMap, k, y, ϵ = 1e-15)
 	root(x->D.Ts[k](x)-y, domain, ϵ)
 end
 
+"""
+function that evaluates the k-th branch of a dynamic on a point x.
+"""
+function DynamicDefinition.branch(D::PwMap, k, x)
+	x = x ∩ hull(D.endpoints[k], D.endpoints[k+1])
+	return D.Ts[k](x)
+end
+
+branch(D::PwMap, k, x) =  D.Ts[k](x)
+
 function DynamicDefinition.plottable(D::PwMap, x)
 	for k in nbranches(D)
 		domain = hull(D.endpoints[k], D.endpoints[k+1])
 		if x in domain
-			return D.Ts[k](x)
+			return branch(D,k)(x)
 		end
 	end
 end
 
-"""
-hull of an iterable of intervals
-"""
-common_hull(S) = interval(minimum(x.lo for x in S), maximum(x.hi for x in S))
+# Unused as of now
+# """
+# hull of an iterable of intervals
+# """
+# common_hull(S) = interval(minimum(x.lo for x in S), maximum(x.hi for x in S))
 
 
 # Rather than defining derivatives of a PwMap, we define Taylor1 expansions directly
@@ -71,6 +85,7 @@ function (D::PwMap)(x::Taylor1)
 			fx = fx .∪ fx_restricted.coeffs
 		end
 	end
+	@debug "Piecewise f($(x)) = $(Taylor1(fx, x.order))"
 	return Taylor1(fx, x.order)
 end
 

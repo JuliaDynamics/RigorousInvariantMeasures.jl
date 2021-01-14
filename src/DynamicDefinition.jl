@@ -6,17 +6,31 @@ module DynamicDefinition
 
 using ValidatedNumerics
 using TaylorSeries:Taylor1
-export Dynamic, MarkovDynamic, preim, nbranches, plottable, is_full_branch, domain, derivative, distorsion
+export Dynamic, MarkovDynamic, preim, nbranches, plottable, is_full_branch, domain, derivative, distorsion, endpoints, branch
 
 abstract type Dynamic end
 abstract type MarkovDynamic <: Dynamic end
 
-function domain(S::Dynamic) end # declares a function with no methods; this should be better practice than @error "Not Implemented", we will switch later
+domain(S::Dynamic) = @error "Not implemented"
 nbranches(S::Dynamic) = @error "Not implemented"
+branch(S::Dynamic, k, x) = @error "Not implemented"
 plottable(S::Dynamic) = @error "Not implemented"
 preim(S::Dynamic, k, y, ϵ) = @error "Not implemented"
 is_full_branch(S::Dynamic) = @error "Not implemented"
 
+"""
+Endpoints of the branches, in increasing order (returned as a vector of intervals)
+"""
+endpoints(S::Dynamic) = @error "Not implemented"
+
+"""
+Maximum of |1/T'|
+"""
+expansivity(S::Dynamic) = @error "Not implemented"
+"""
+Maximum of distorsion(D, x) = T'' / (T')^2
+"""
+max_distorsion(S::Dynamic) = @error "Not implemented"
 
 # Derivative and distorsion of a generic function (*not* a dynamic). Here for convenience,
 # since subtypes will need them.
@@ -29,7 +43,7 @@ derivative(f, x) = derivative(1, f, x)
 derivative(n, f, x) = isempty(x) ?  ∅ : f(Taylor1([x, 1], n))[n] * factorial(n)
 
 """
-Distorsion of a function (or a dynamic), i.e., |f′ / f′′^2|
+Distorsion of a function (or a dynamic), i.e., |f′′ / f′^2|
 """
 function distorsion(f, x)
 	if isempty(x)
