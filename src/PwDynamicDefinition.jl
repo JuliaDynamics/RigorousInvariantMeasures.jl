@@ -43,14 +43,12 @@ function DynamicDefinition.preim(D::PwMap, k, y, ϵ = 1e-15)
 end
 
 """
-function that evaluates the k-th branch of a dynamic on a point x.
+function that evaluates the k-th branch of a dynamic on a point x
+	(assuming it's in its domain, otherwise ∅)
 """
-function DynamicDefinition.branch(D::PwMap, k, x)
-	x = x ∩ hull(D.endpoints[k], D.endpoints[k+1])
-	return D.Ts[k](x)
+function DynamicDefinition.branch(D::PwMap, k)
+	return x -> D.Ts[k](x ∩ hull(D.endpoints[k], D.endpoints[k+1]))
 end
-
-branch(D::PwMap, k, x) =  D.Ts[k](x)
 
 function DynamicDefinition.plottable(D::PwMap, x)
 	for k in nbranches(D)

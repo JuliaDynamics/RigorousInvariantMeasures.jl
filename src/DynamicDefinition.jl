@@ -6,14 +6,14 @@ module DynamicDefinition
 
 using ValidatedNumerics
 using TaylorSeries:Taylor1
-export Dynamic, MarkovDynamic, preim, nbranches, plottable, is_full_branch, domain, derivative, distorsion, endpoints, branch
+export Dynamic, MarkovDynamic, preim, nbranches, plottable, is_full_branch, domain, derivative, distorsion, endpoints, branch, expansivity, max_distorsion
 
 abstract type Dynamic end
 abstract type MarkovDynamic <: Dynamic end
 
 domain(S::Dynamic) = @error "Not implemented"
 nbranches(S::Dynamic) = @error "Not implemented"
-branch(S::Dynamic, k, x) = @error "Not implemented"
+branch(S::Dynamic, k) = @error "Not implemented"
 plottable(S::Dynamic) = @error "Not implemented"
 preim(S::Dynamic, k, y, ϵ) = @error "Not implemented"
 is_full_branch(S::Dynamic) = @error "Not implemented"
@@ -23,17 +23,7 @@ Endpoints of the branches, in increasing order (returned as a vector of interval
 """
 endpoints(S::Dynamic) = @error "Not implemented"
 
-"""
-Maximum of |1/T'|
-"""
-expansivity(S::Dynamic) = @error "Not implemented"
-"""
-Maximum of distorsion(D, x) = T'' / (T')^2
-"""
-max_distorsion(S::Dynamic) = @error "Not implemented"
-
 # Derivative and distorsion of a generic function (*not* a dynamic). Here for convenience,
-# since subtypes will need them.
 
 # the isempty check is required because otherwise derivative(x -> 4*x, ∅) == 4.
 """
@@ -55,7 +45,23 @@ function distorsion(f, x)
 	return abs(f′′ / f′^2)
 end
 
-# TODO: these do not necessarily work properly, since T() for a Mod1Dynamic contains the unquotiented map. Better not to use them at all.
+"""
+Maximum of |1/T'|
+"""
+function expansivity(D::Dynamic)
+	v = endpoints(D)
+	return maximum(maximise(x -> abs(1/derivative(branch(D,k), x)), hull(v[k], v[k+1]))[1] for k in 1:nbranches(D))
+end
+
+"""
+Maximum of distorsion(D, x) = |T''| / (T')^2, over all branches
+"""
+function max_distorsion(D::Dynamic)
+	v = endpoints(D)
+	return maximum(maximise(x -> distorsion(branch(D, k) , x), hull(v[k], v[k+1]))[1] for k in 1:nbranches(D))
+end
+
+# these do not work properly, since T() for a Mod1Dynamic contains the unquotiented map. Better not to use them at all.
 
 # function iterate(T, x, ::Val{n}) where {n}
 # 	for i in 1:n
@@ -65,7 +71,5 @@ end
 # end
 #
 # iterate(T, x, n)=iterate(T, x, Val(n))
-
-
 
 end

@@ -66,15 +66,17 @@ function unpack(k, b, n)
     return v .+ 1
 end
 
-function DynamicDefinition.branch(D::Iterate, k, x)
+function evaluate_branch(D::Iterate, k, x)
     @assert 1 ≤ k ≤ nbranches(D)
     n = D.n
     v = unpack(k, nbranches(D.D), n)
     for i = 1:n
-        x = branch(D.D, v[i], x)
+        x = branch(D.D, v[i])(x)
     end
     return x
 end
+
+DynamicDefinition.branch(D::Iterate, k) = x -> evaluate_branch(D, k, x)
 
 using LinearAlgebra: Bidiagonal
 
