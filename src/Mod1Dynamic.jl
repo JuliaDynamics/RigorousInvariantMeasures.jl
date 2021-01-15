@@ -43,4 +43,7 @@ end
 DynamicDefinition.derivative(n, D::Mod1Dynamic, x) = derivative(n, D.T, x)
 DynamicDefinition.distorsion(D::Mod1Dynamic, x) = distorsion(D.T, x)
 
+DynamicDefinition.max_distorsion(D::Mod1Dynamic, tol=1e-8) = maximise(x -> distorsion(D.T, x), domain(D), tol=tol)[1]
+DynamicDefinition.expansivity(D::Mod1Dynamic, tol=1e-8) = maximise(x -> abs(1/derivative(D, x)), domain(D), tol=tol)[1]
+
 end

@@ -145,6 +145,7 @@ Constants (A, B) such that ||Lf||_s ≦ A||f||_s + B||f||_aux
 """
 dfly(::Type{<:NormKind}, ::Type{<:NormKind}, ::Dynamic) = @error "Not implemented"
 
+# I don't think this is used in production anymore
 function dfly(::Type{TotalVariation}, ::Type{L1}, D::Dynamic)
     dist = max_distorsion(D)
     lam = expansivity(D)
@@ -165,33 +166,21 @@ function dfly(::Type{TotalVariation}, ::Type{L1}, D::Dynamic)
 end
 
 function dfly(::Type{TotalVariation}, ::Type{L1}, D::PwMap)
-    dist = 0
-    lam = 0
-    disc = 0
-    for i in 1:nbranches(D)
-        f(x) = D.Ts[i](x)
-        domain = hull(D.endpoints[i], D.endpoints[i+1])
-        fprime(x) = f(Taylor1([x, 1], 1))[1]
-        fsecond(x) = f(Taylor1([x, 1], 2))[2]*2
-        distorsion(x)=abs(fsecond(x)/(fprime(x)^2))
-        lambda(x) = abs(1/fprime(x))
-        dist = max_distorsion(D)
-        lam = expansivity(D)
-        vec = endpoints(D)
-        low_rad = (abs(vec[i]-vec[i+1])/2).lo
-        disc = max(disc, ((1/Interval(low_rad)).hi))
-    end
+    dist = max_distorsion(D)
+    lam = expansivity(D)
+    vec = endpoints(D)
+    disc = maximum(2/abs(vec[i]-vec[i+1]) for i in nbranches(D))
 
     if is_full_branch(D)
         if !(abs(lam) < 1) # these are intervals, so this is *not* equal to abs(lam) >= 1.
             @error "The function is not expanding"
         end
-        return lam, dist
+        return lam.hi, dist.hi
     else
-        if !(abs(2⊗₊lam) < 1)
+        if !(abs(2*lam) < 1)
             @error "Expansivity is insufficient to prove a DFLY. Try with an iterate."
         end
-        return 2⊗₊lam, dist ⊕₊ disc
+        return (2*lam).hi, (dist + disc).hi
     end
 end
 
@@ -202,8 +191,5 @@ function dfly(::Type{Lipschitz}, ::Type{L1}, D::Dynamic)
     dist = max_distorsion(D)
     lam = expansivity(D)
 
-    lam = lam.hi
-    dist = dist.hi
-
-    return lam ⊗₊ (2. ⊗₊  dist ⊕₊ 1.), dist ⊗₊ (2. ⊗₊ dist ⊕₊ 1.)
+    return ((lam*(2*dist+1)).hi, (dist*(dist+1)).hi)
 end
