@@ -43,11 +43,17 @@ function DynamicDefinition.preim(D::PwMap, k, y, ϵ = 1e-15)
 end
 
 """
+Intersect an Interval or TaylorSeries with I
+"""
+restrict(I, x) = I ∩ x
+restrict(I, x::Taylor1) = Taylor1([I ∩ x[0]; x[1:end]], x.order)
+
+"""
 function that evaluates the k-th branch of a dynamic on a point x
 	(assuming it's in its domain, otherwise ∅)
 """
 function DynamicDefinition.branch(D::PwMap, k)
-	return x -> D.Ts[k](x ∩ hull(D.endpoints[k], D.endpoints[k+1]))
+	return x -> D.Ts[k](restrict(hull(D.endpoints[k], D.endpoints[k+1]), x))
 end
 
 function DynamicDefinition.plottable(D::PwMap, x)

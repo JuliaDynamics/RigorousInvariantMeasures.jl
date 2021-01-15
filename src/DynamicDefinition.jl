@@ -48,17 +48,17 @@ end
 """
 Maximum of |1/T'|
 """
-function expansivity(D::Dynamic)
+function expansivity(D::Dynamic, tol=1e-8)
 	v = endpoints(D)
-	return maximum(maximise(x -> abs(1/derivative(branch(D,k), x)), hull(v[k], v[k+1]))[1] for k in 1:nbranches(D))
+	return maximum(maximise(x -> abs(1/derivative(branch(D,k), x)), hull(v[k], v[k+1]), tol=tol)[1] for k in 1:nbranches(D))
 end
 
 """
 Maximum of distorsion(D, x) = |T''| / (T')^2, over all branches
 """
-function max_distorsion(D::Dynamic)
+function max_distorsion(D::Dynamic, tol=1e-8)
 	v = endpoints(D)
-	return maximum(maximise(x -> distorsion(branch(D, k) , x), hull(v[k], v[k+1]))[1] for k in 1:nbranches(D))
+	return maximum(maximise(x -> distorsion(branch(D, k) , x), hull(v[k], v[k+1]), tol=tol)[1] for k in 1:nbranches(D))
 end
 
 # these do not work properly, since T() for a Mod1Dynamic contains the unquotiented map. Better not to use them at all.
