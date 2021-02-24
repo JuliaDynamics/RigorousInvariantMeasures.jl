@@ -147,8 +147,8 @@ function dfly(::Type{TotalVariation}, ::Type{L1}, D::InvariantMeasures.InducedLS
 			dist =  max(dist, 0)
 		else
 			f(x) = InducedLSVMapDefinition.iterate_LSV(x, D.nbranches-i+1, D.α)
-			fprime(x) = f(TaylorSeries.Taylor1([x, 1], 1))[1]
-			fsecond(x) = f(TaylorSeries.Taylor1([x, 1], 2))[2]/2
+			fprime(x) = f(Taylor1([x, 1], 1))[1]
+			fsecond(x) = f(Taylor1([x, 1], 2))[2]/2
 			distorsion(x)=abs(fsecond(x)/(fprime(x)^2))
 			lambda(x) = abs(1/fprime(x))
     		dist = max(dist, maximise(distorsion, D.domains[i])[1].hi)
