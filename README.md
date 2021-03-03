@@ -20,7 +20,7 @@ We are currently working on the implementation of the Ulam scheme for system wit
 ## Caveat
 The function sinpi is currently only working using the CRlibm.jl
 package, so, be careful when defining the dynamics. The example below, indeed, needs this function to work.
-    
+
 ## Basic Usage
 Examples of usage are present in the directory examples.
 
@@ -51,10 +51,13 @@ Inside the examples it is showed how to use the coarse-fine scheme to obtain bet
 ## References
 <a id="1">[1]</a>
 Galatolo S., Monge M., Nisoli I., Existence of noise induced order, a computer aided proof Nonlinearity 33 (9), 4237 (2020)
+
 <a id="2">[2]</a>
 Galatolo S., Nisoli I., An elementary approach to rigorous approximation of invariant
 measures SIAM J. Appl Dyn Sys.13 pp. 958-985 (2014)
+
 <a id="3">[3]</a> Galatolo S., Nisoli I. Rigorous computation of invariant measures and fractal dimension for maps with contracting fibers: 2D Lorenz-like maps  
 Ergodic Theory and Dynamical Systems 36 (6), 1865-1891 (2016)
+
 <a id="4">[4]</a> Viana M., Olivera K. Foundations of Ergodic Theory
 Cambridge studies in advanced mathematics, Cambridge University Press 2016
