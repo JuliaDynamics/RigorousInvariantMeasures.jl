@@ -56,15 +56,6 @@ function DynamicDefinition.branch(D::PwMap, k)
 	return x -> D.Ts[k](restrict(hull(D.endpoints[k], D.endpoints[k+1]), x))
 end
 
-function DynamicDefinition.plottable(D::PwMap, x)
-	for k in nbranches(D)
-		domain = hull(D.endpoints[k], D.endpoints[k+1])
-		if x in domain
-			return branch(D,k)(x)
-		end
-	end
-end
-
 # Unused as of now
 # """
 # hull of an iterable of intervals
@@ -84,7 +75,7 @@ function (D::PwMap)(x::Taylor1)
 	x_restricted = deepcopy(x)
 	for i = 1:length(D.endpoints)-1
 		x_restricted[0] = x[0] ∩ hull(D.endpoints[i],D.endpoints[i+1])
-		if !isempty(x_restricted[0])
+		if !isempty(x_res:tricted[0])
 			fx_restricted = D.Ts[i](x_restricted)
 			fx = fx .∪ fx_restricted.coeffs
 		end
@@ -92,5 +83,18 @@ function (D::PwMap)(x::Taylor1)
 	@debug "Piecewise f($(x)) = $(Taylor1(fx, x.order))"
 	return Taylor1(fx, x.order)
 end
+
+function DynamicDefinition.plottable(D::PwMap, x)
+	@assert 0 <= x <= 1
+	for k in 1:nbranches(D)
+		domain = hull(D.endpoints[k], D.endpoints[k+1])
+		if x in domain
+			return D.Ts[k](x)
+		end
+	end
+end
+
+using RecipesBase
+@recipe f(::Type{PwMap}, D::PwMap) = x -> plottable(D, x)
 
 end

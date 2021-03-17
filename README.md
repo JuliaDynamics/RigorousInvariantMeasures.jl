@@ -25,6 +25,7 @@ package, so, be careful when defining the dynamics. The example below, indeed, n
 Examples of usage are present in the directory examples.
 
 ```julia
+using InvariantMeasures
 D = Mod1Dynamic(x -> 4*x + 0.01*InvariantMeasures.sinpi(8*x))
 B = Ulam(1024)
 Q = DiscretizedOperator(B, D)
@@ -32,6 +33,8 @@ Q = DiscretizedOperator(B, D)
 
 The code snippet above defines a dynamic D(x) = 4x+0.01 sin(8πx),
 a basis B associated to the Ulam discretization on a partition of 1024 homogenous interval and computes the discretized operator Q, a Markov chain whose entries are P(T(x)∈ Iᵢ | x ∈ Iⱼ).
+
+Note the usage of `InvariantMeasures.sinpi(8*x)` rather than `Base.sinpi` or `Base.sin(8\pi*x)`. This detail is required to ensure that D(8) = 4 exactly.
 
 ```julia
 norms = norms_of_powers(weak_norm(B), m, Q, integral_covector(B))
@@ -42,11 +45,11 @@ rigorous estimate.
 
 ```julia
 w = invariant_vector(B, Q)
-distance_from_invariant(B, D, Q, w, better_norms)
+distance_from_invariant(B, D, Q, w, norms)
 ```
-the approximation of the invariant measure is stored in w, and distance from invariant computes the L¹ distance between w and the density of the absolutely continuous invariant measure of the system.
+the computed approximation of the invariant measure of D is stored in w, and `distance_from_invariant` computes an upper bound for the L¹ distance between w and the density of the absolutely continuous invariant measure of the system.
 
-Inside the examples it is showed how to use the coarse-fine scheme to obtain better L¹ bounds.  
+Inside the examples it is showed how to use the coarse-fine scheme to obtain better L¹ bounds and reduce the computational time.
 
 ## References
 <a id="1">[1]</a>

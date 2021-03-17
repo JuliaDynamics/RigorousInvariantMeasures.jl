@@ -201,7 +201,7 @@ using LaTeXStrings
 		fillalpha := 0.8
 		seriestype := :bar
 		label := L"f_{\delta}"
-		collect(B), w
+		collect(Float64, B), w
 	end
 
 	#dynamic plot
@@ -209,8 +209,8 @@ using LaTeXStrings
 		linecolor := :green
 	    seriestype := :path
 	    label := L"T(x)"
-	    G = x-> plottable(D, x)
-	    collect(B), G.(collect(B))
+	    G = D
+	    collect(Float64, B), G.(collect(Float64, B))
 	end
 
 	@series begin
@@ -218,6 +218,6 @@ using LaTeXStrings
 	    seriestype := :path
 	    label := L"T'(x)"
 	    G = x-> derivative(D, x)
-	    collect(B), G.(collect(B))
+	    collect(Float64, B), G.(collect(Float64, B))
 	end
 end
