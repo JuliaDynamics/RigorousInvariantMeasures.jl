@@ -265,15 +265,29 @@ end
 
 using RecipesBase
 
-@userplot PlotHat
-@recipe function f(h::PlotHat)
-	if length(h.args)!= 2 || (typeof(h.args[1])!= Ulam) || !(typeof(h.args[2])<:AbstractVector)
-		error("Plot Ulam needs as an input a Ulam Basis and a vector")
+@recipe function f(B::Hat, w, error=NaN)
+
+	legend --> :bottomright
+
+	if eltype(w) <: Interval
+		w = mid.(w)
 	end
 
-	B = h.args[1]
-	w = h.args[2]
+	# bar plot
+	@series begin
+		seriestype --> :path
+		label --> L"f_{\delta}"
+		ylims --> (0, NaN)
+		vcat(B.p, 1.), vcat(w, w[end])
+	end
 
-	seriestype := :path
-	collect(B), mid.(w)
+	if isfinite(error)
+		@series begin
+			seriestype --> :path
+			seriesalpha --> 0.5
+			fillrange --> vcat(w, w[end]) .- error
+			label --> "Error area"
+			vcat(B.p, 1.), vcat(w, w[end]) .+ error
+		end
+	end
 end

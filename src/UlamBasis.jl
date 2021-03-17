@@ -178,17 +178,9 @@ end
 using RecipesBase
 using LaTeXStrings
 
-@userplot PlotUlam
-@recipe function f(h::PlotUlam)
-	if length(h.args)<2 || (typeof(h.args[1])!= Ulam) || !(typeof(h.args[2])<:AbstractVector)
-		error("Plot Ulam needs as an input a Ulam Basis and a vector")
-	end
-	B = h.args[1]
-	w = h.args[2]
-	D = h.args[3]
+@recipe function f(B::Ulam, w, error=NaN)
 
-	layout := (3, 1)
-	link := :both
+	legend --> :bottomright
 
 	if eltype(w) <: Interval
 		w = mid.(w)
@@ -196,28 +188,19 @@ using LaTeXStrings
 
 	# bar plot
 	@series begin
-		linecolor := :blue
-		linealpha := 0.8
-		fillalpha := 0.8
-		seriestype := :bar
-		label := L"f_{\delta}"
-		collect(Float64, B), w
+		seriestype --> :steppost
+		label --> L"f_{\delta}"
+		ylims --> (0, NaN)
+		vcat(collect(Float64, B), 1.), vcat(w, w[end])
 	end
 
-	#dynamic plot
-	@series begin
-		linecolor := :green
-	    seriestype := :path
-	    label := L"T(x)"
-	    G = D
-	    collect(Float64, B), G.(collect(Float64, B))
-	end
-
-	@series begin
-		linecolor := :red
-	    seriestype := :path
-	    label := L"T'(x)"
-	    G = x-> derivative(D, x)
-	    collect(Float64, B), G.(collect(Float64, B))
+	if isfinite(error)
+		@series begin
+			seriestype --> :path
+			seriesalpha --> 0.5
+			fillrange --> 0
+			label --> "Error area"
+			[0; sqrt(error)], [sqrt(error); sqrt(error)]
+		end
 	end
 end
