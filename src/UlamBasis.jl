@@ -178,7 +178,10 @@ end
 using RecipesBase
 using LaTeXStrings
 
-@recipe function f(B::Ulam, w, error=NaN)
+"""
+Plots a function in the Ulam basis
+"""
+@recipe function f(B::Ulam, w::AbstractVector)
 
 	legend --> :bottomright
 
@@ -186,20 +189,28 @@ using LaTeXStrings
 		w = mid.(w)
 	end
 
-	# bar plot
 	@series begin
 		seriestype --> :steppost
 		label --> L"f_{\delta}"
 		ylims --> (0, NaN)
 		vcat(collect(Float64, B), 1.), vcat(w, w[end])
 	end
+end
+
+"""
+Displays error on a function in the Ulam basis
+
+The w argument is unused, but kept for compatibility with other functions
+for different bases
+"""
+@recipe function f(B::Ulam, error::Number, w=nothing)
 
 	if isfinite(error)
 		@series begin
 			seriestype --> :path
 			seriesalpha --> 0.5
 			fillrange --> 0
-			label --> "Error area"
+			label --> "L1 Error"
 			[0; sqrt(error)], [sqrt(error); sqrt(error)]
 		end
 	end

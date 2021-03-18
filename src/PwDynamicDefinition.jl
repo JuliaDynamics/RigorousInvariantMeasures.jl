@@ -75,7 +75,7 @@ function (D::PwMap)(x::Taylor1)
 	x_restricted = deepcopy(x)
 	for i = 1:length(D.endpoints)-1
 		x_restricted[0] = x[0] ∩ hull(D.endpoints[i],D.endpoints[i+1])
-		if !isempty(x_res:tricted[0])
+		if !isempty(x_restricted[0])
 			fx_restricted = D.Ts[i](x_restricted)
 			fx = fx .∪ fx_restricted.coeffs
 		end

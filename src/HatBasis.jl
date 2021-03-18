@@ -265,7 +265,10 @@ end
 
 using RecipesBase
 
-@recipe function f(B::Hat, w, error=NaN)
+"""
+Plots a function in the Hat basis
+"""
+@recipe function f(B::Hat, w::AbstractVector)
 
 	legend --> :bottomright
 
@@ -273,12 +276,21 @@ using RecipesBase
 		w = mid.(w)
 	end
 
-	# bar plot
 	@series begin
 		seriestype --> :path
 		label --> L"f_{\delta}"
 		ylims --> (0, NaN)
 		vcat(B.p, 1.), vcat(w, w[end])
+	end
+end
+
+"""
+Displays error on a function in the Ulam basis
+"""
+@recipe function f(B::Hat, error::Number, w)
+
+	if eltype(w) <: Interval
+		w = mid.(w)
 	end
 
 	if isfinite(error)

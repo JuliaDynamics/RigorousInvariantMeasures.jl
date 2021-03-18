@@ -1,10 +1,11 @@
 using LinearAlgebra, Arpack, FastRounding, ValidatedNumerics
 using ..DynamicDefinition, ..BasisDefinition
 
-export invariant_vector
+export invariant_vector, finepowernormbounds, powernormbounds
 
 """
-Return the (hopefully unique) invariant vector of the dynamic with discretized operator P.
+Return a numerical approximation to the (hopefully unique) invariant vector
+of the dynamic with discretized operator Q.
 
 The vector is normalized so that integral_covector(B)*w ≈ 1
 """
@@ -90,4 +91,46 @@ function boundnorm(B::Basis, P::AbstractMatrix{Interval{T}}, m) where {T}
 	α₂ = BasisDefinition.bound_linalg_norm_L∞_from_weak(B)
 	C, tilde_C = contractmatrix(B, P, m)
 	return (W₁/α₁)*C+(W₂/α₂)*tilde_C
+end
+
+"""
+Uses different strategies to compute power norm bounds.
+
+`m` norms of powers are estimated computationally, and then
+`m_extend` norms are obtained with a cheaper refinement process.
+
+A vector of length m_extend is returned, such that norms[k] ≥ ||Q_h^k|_{U_h^0}||
+"""
+function powernormbounds(B, D, m, m_extend; Q=DiscretizedOperator(B, D))
+	trivial_norms = norms_of_powers_trivial(weak_norm(B), Q, m)
+	computed_norms = norms_of_powers(weak_norm(B), m, Q, integral_covector(B))
+
+	(dfly_strongs, dfly_norms) = norms_of_powers_dfly(B, D, m)
+	# in the current version, dfly_norms seem to be always larger and could be omitted
+	# however they do not cost much to compute
+	norms = min.(trivial_norms, computed_norms, dfly_norms)
+
+	better_norms = refine_norms_of_powers(norms, m_extend)
+
+	return better_norms
+end
+
+"""
+Uses power norm bounds already computed for a coarse operator to estimate
+the same norms for a finer operator
+"""
+function finepowernormbounds(B, B_fine, D, coarse_norms; Q_fine=DiscretizedOperator(B_fine, D))
+	m = length(coarse_norms)
+
+	norm_Q_fine = opnormbound(weak_norm(B_fine), Q_fine)
+
+	trivial_norms_fine = norms_of_powers_trivial(weak_norm(B_fine), Q_fine, m)
+	twogrid_norms_fine = norms_of_powers_from_coarser_grid(B_fine, B, D, coarse_norms, norm_Q_fine)
+
+	(dfly_strongs_fine, dfly_norms_fine) = norms_of_powers_dfly(B_fine, D, m)
+
+	norms_fine = min.(trivial_norms_fine, twogrid_norms_fine, dfly_norms_fine)
+
+	better_norms_fine = refine_norms_of_powers(norms_fine, m)
+	return better_norms_fine
 end

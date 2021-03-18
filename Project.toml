@@ -17,6 +17,7 @@ Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 RecipesBase = "3cdcf5f2-1ef4-517c-9805-6587b60abb01"
 Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
+StatsPlots = "f3b207a7-027a-5e70-b257-86293d7955fd"
 TaylorSeries = "6aa5eb33-94cf-58f4-a9d0-e4b2c4fc25ea"
 ValidatedNumerics = "d621b6e3-7715-5857-9c6f-c67000ef6083"
 

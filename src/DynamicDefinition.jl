@@ -56,7 +56,7 @@ end
 """
 Maximum of distorsion(D, x) = |T''| / (T')^2, over all branches
 """
-function max_distorsion(D::Dynamic, tol=1e-8)
+function max_distorsion(D::Dynamic, tol=1e-3)
 	v = endpoints(D)
 	return maximum(maximise(x -> distorsion(branch(D, k) , x), hull(v[k], v[k+1]), tol=tol)[1] for k in 1:nbranches(D))
 end
