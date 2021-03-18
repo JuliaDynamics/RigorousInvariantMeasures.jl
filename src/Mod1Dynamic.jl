@@ -49,7 +49,7 @@ DynamicDefinition.distorsion(D::Mod1Dynamic, x) = distorsion(D.T, x)
 DynamicDefinition.max_distorsion(D::Mod1Dynamic, tol=1e-3) = maximise(x -> distorsion(D.T, x), domain(D), tol=tol)[1]
 DynamicDefinition.expansivity(D::Mod1Dynamic, tol=1e-3) = maximise(x -> abs(1/derivative(D, x)), domain(D), tol=tol)[1]
 
-function DynamicDefinition.plottable(D, x)
+function DynamicDefinition.plottable(D::Mod1Dynamic, x)
 	@assert 0 <= x <= 1
 	return mod(D.T(x), 1.)
 end

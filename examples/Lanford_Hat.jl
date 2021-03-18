@@ -1,39 +1,125 @@
 using InvariantMeasures
 using ValidatedNumerics
 
-m = 30
-m_extend = 100
+using Plots
+using LaTeXStrings
+using StatsPlots
+
+function runExperiment()
+
+    # number of norms to compute and extend
+    m = 15
+    m_extend = 100
+
+    time_assembling = @elapsed begin
+
+        DD = mod1_dynamic(x->2*x+0.5*x*(1-x))
+        # Taking an iterate is necessary here to get a DFLY inequality with A < 1
+        D = Iterate(DD, 3)
+        B = Ulam(1024)
+        Q = DiscretizedOperator(B, D)
+    end
+
+    time_norms = @elapsed norms = powernormbounds(B, D, m, m_extend; Q=Q)
+    time_eigen = @elapsed w = invariant_vector(B, Q)
+    time_error = @elapsed error = distance_from_invariant(B, D, Q, w, norms)
+
+    time_assembling_fine = @elapsed begin
+        B_fine = Ulam(2^16)
+        Q_fine = DiscretizedOperator(B_fine, D)
+    end
+
+    time_norms_fine = @elapsed norms_fine = finepowernormbounds(B, B_fine, D, norms; Q_fine=Q_fine)
+    time_eigen_fine = @elapsed w_fine = invariant_vector(B_fine, Q_fine)
+    time_error_fine = @elapsed error_fine = distance_from_invariant(B_fine, D, Q_fine, w_fine, norms_fine)
+
+    p1 = plot(D, title="Dynamic", label=L"T(x)", legend=:bottomright)
+    p2 = plot(B, w, title="Invariant measure (n=$(length(B)))")
+    p2 = plot!(p2, B, error, w, label="L1 error $(round(error, sigdigits=2))")
+
+    p3 = plot(B_fine, w_fine, title="Invariant measure (n=$(length(B_fine)))")
+    p3 = plot!(p3, B_fine, error_fine, w_fine, label="L1 error $(round(error_fine, sigdigits=2))")
+
+    p4 = groupedbar(
+        vcat(
+            [time_error time_eigen time_norms time_assembling 0],
+            [time_error_fine time_eigen_fine time_norms_fine time_assembling_fine time_assembling+time_norms]
+        ),
+        bar_position = :stack,
+        legend = :topleft,
+        label = ["err" "eigen" "norm" "matrix" "coarse"],
+        title = "CPU time breakdown",
+        xticks = (1:2, ["1-grid estimate", "2-grid estimate"])
+    )
+
+    plot(p1, p2, p3, p4, layout=4)
+
+end
+
+runExperiment()
+
+
+
+using InvariantMeasures
+using ValidatedNumerics
 
 D = Mod1Dynamic(x->2*x+0.5*x*(1-x))
-B = Hat(1024)
-Q = DiscretizedOperator(B, D)
 
-normQ = opnormbound(weak_norm(B), Q)
+using Plots
+using LaTeXStrings
+using StatsPlots
 
-trivial_norms = norms_of_powers_trivial(weak_norm(B), Q, m)
-computed_norms = norms_of_powers(weak_norm(B), m, Q, integral_covector(B))
+function runExperiment()
 
-(dfly_strongs, dfly_norms) = norms_of_powers_dfly(B, D, m)
+    # number of norms to compute and extend
+    m = 15
+    m_extend = 100
 
-norms = min.(trivial_norms, computed_norms, dfly_norms) # in the current version, dfly_norms are always larger and can be omitted
+    time_assembling = @elapsed begin
 
-better_norms = refine_norms_of_powers(norms, m_extend)
+        D = Mod1Dynamic(x -> 4*x + 0.01*InvariantMeasures.sinpi(8*x))
+        # different backend, a tad slower
+        # D = mod1_dynamic(x -> 4*x + 0.01*InvariantMeasures.sinpi(8*x))
+        B = Hat(1024)
+        Q = DiscretizedOperator(B, D)
+    end
 
-w = invariant_vector(B, Q)
-@show distance_from_invariant(B, D, Q, w, better_norms)
+    time_norms = @elapsed norms = powernormbounds(B, D, m, m_extend; Q=Q)
+    time_eigen = @elapsed w = invariant_vector(B, Q)
+    time_error = @elapsed error = distance_from_invariant(B, D, Q, w, norms)
 
-B_fine = Hat(2^16)
-Q_fine = DiscretizedOperator(B_fine, D)
-norm_Q_fine = opnormbound(weak_norm(B_fine), Q_fine)
+    time_assembling_fine = @elapsed begin
+        B_fine = Hat(2^16)
+        Q_fine = DiscretizedOperator(B_fine, D)
+    end
 
-trivial_norms_fine = norms_of_powers_trivial(weak_norm(B_fine), Q_fine, m_extend)
-twogrid_norms_fine = norms_of_powers_from_coarser_grid(B_fine, B, D, better_norms, norm_Q_fine)
+    time_norms_fine = @elapsed norms_fine = finepowernormbounds(B, B_fine, D, norms; Q_fine=Q_fine)
+    time_eigen_fine = @elapsed w_fine = invariant_vector(B_fine, Q_fine)
+    time_error_fine = @elapsed error_fine = distance_from_invariant(B_fine, D, Q_fine, w_fine, norms_fine)
 
-(dfly_strongs_fine, dfly_norms_fine) = norms_of_powers_dfly(B_fine, D, m_extend)
 
-norms_fine = min.(trivial_norms_fine, twogrid_norms_fine, dfly_norms_fine)
 
-better_norms_fine = refine_norms_of_powers(norms_fine, m_extend)
+    p1 = plot(D, title="Dynamic", label=L"T(x)", legend=:bottomright)
+    p2 = plot(B, w, title="Invariant measure (n=$(length(B)))")
+    p2 = plot!(p2, B, error, w, label="L-inf error $(round(error, sigdigits=2))")
 
-w_fine = invariant_vector(B_fine, Q_fine)
-@show distance_from_invariant(B_fine, D, Q_fine, w_fine, better_norms_fine)
+    p3 = plot(B_fine, w_fine, title="Invariant measure (n=$(length(B_fine)))")
+    p3 = plot!(p3, B_fine, error_fine, w_fine, label="L-inf error $(round(error_fine, sigdigits=2))")
+
+    p4 = groupedbar(
+        vcat(
+            [time_error time_eigen time_norms time_assembling 0],
+            [time_error_fine time_eigen_fine time_norms_fine time_assembling_fine time_assembling+time_norms]
+        ),
+        bar_position = :stack,
+        legend = :topleft,
+        label = ["err" "eigen" "norm" "matrix" "coarse"],
+        title = "CPU time breakdown",
+        xticks = (1:2, ["1-grid estimate", "2-grid estimate"])
+    )
+
+    plot(p1, p2, p3, p4, layout=4)
+
+end
+
+runExperiment()

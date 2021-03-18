@@ -2,7 +2,7 @@ using ValidatedNumerics
 using .DynamicDefinition, .PwDynamicDefinition
 using .Contractors
 
-using .DynamicDefinition: derivative
+using .DynamicDefinition: derivative, plottable
 
 using TaylorSeries: Taylor1
 
@@ -104,3 +104,20 @@ function DynamicDefinition.preim(D::Iterate, k, y, ϵ=1e-15; max_iter = 100)
     S = IntervalBox(hull(D.D.endpoints[v[i]], D.D.endpoints[v[i]+1]) for i in 1:n)
     return root(f, f′, S, ϵ; max_iter = max_iter)[1]
 end
+
+function DynamicDefinition.plottable(D::Iterate, x)
+	@assert 0 <= x <= 1
+    for k = 1:D.n
+        x = DynamicDefinition.plottable(D.D, x)
+        if x < 0
+            x = 0
+        end
+        if x > 1
+            x = 1
+        end
+    end
+    return x
+end
+
+using RecipesBase
+@recipe f(::Type{Iterate}, D::Iterate) = x -> plottable(D, x)
