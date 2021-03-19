@@ -8,7 +8,7 @@ using StatsPlots
 function runExperiment()
 
     # number of norms to compute and extend
-    m = 15
+    m = 30
     m_extend = 100
 
     time_assembling = @elapsed begin
@@ -33,7 +33,8 @@ function runExperiment()
     time_eigen_fine = @elapsed w_fine = invariant_vector(B_fine, Q_fine)
     time_error_fine = @elapsed error_fine = distance_from_invariant(B_fine, D, Q_fine, w_fine, norms_fine)
 
-    p1 = plot(D, title="Dynamic", label=L"T(x)", legend=:bottomright)
+    A, BB = dfly(strong_norm(B), aux_norm(B), D)
+    p1 = plot(D, title="Dynamic (dfly coeffs $(round(A, sigdigits=2)),$(round(BB, sigdigits=2)))", label=L"T(x)", legend=:bottomright)
     p2 = plot(B, w, title="Invariant measure (n=$(length(B)))")
     p2 = plot!(p2, B, error, w, label="L1 error $(round(error, sigdigits=2))")
 
@@ -47,8 +48,8 @@ function runExperiment()
         ),
         bar_position = :stack,
         legend = :topleft,
-        label = ["err" "eigen" "norm" "matrix" "coarse"],
-        title = "CPU time breakdown",
+        label = ["err" "eigen" "norms" "matrix" "coarse"],
+        title = "CPU time breakdown (s)",
         xticks = (1:2, ["1-grid estimate", "2-grid estimate"])
     )
 
