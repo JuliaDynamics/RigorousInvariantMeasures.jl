@@ -183,6 +183,11 @@ function Base.iterate(S::DualComposedWithDynamic{T, D}, state = (1, 1)) where T<
 	end
 end
 
+function BasisDefinition.is_dual_element_empty(::Hat, d)
+	# these elements are never empty
+	return false
+end
+
 BasisDefinition.is_refinement(Bf::Hat, Bc::Hat) = Bc.p ⊆ Bf.p
 
 function integral_covector(B::Hat)

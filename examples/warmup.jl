@@ -23,7 +23,7 @@ Q_fine = DiscretizedOperator(B_fine, D)
 
 norms_fine = finepowernormbounds(B, B_fine, D, norms; Q_fine=Q_fine)
 w_fine = invariant_vector(B_fine, Q_fine)
-@show error_fine = distance_from_invariant(B_fine, D, Q_fine, w_fine, norms_fine)
+error_fine = distance_from_invariant(B_fine, D, Q_fine, w_fine, norms_fine)
 
 D = Mod1Dynamic(x -> 4*x + 0.01*InvariantMeasures.sinpi(8*x))
 B = Hat(64)
@@ -36,4 +36,4 @@ Q_fine = DiscretizedOperator(B_fine, D)
 
 norms_fine = finepowernormbounds(B, B_fine, D, norms; Q_fine=Q_fine)
 w_fine = invariant_vector(B_fine, Q_fine)
-@show error_fine = distance_from_invariant(B_fine, D, Q_fine, w_fine, norms_fine)
+error_fine = distance_from_invariant(B_fine, D, Q_fine, w_fine, norms_fine)

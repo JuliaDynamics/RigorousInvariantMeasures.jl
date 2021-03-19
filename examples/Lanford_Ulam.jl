@@ -5,6 +5,8 @@ using Plots
 using LaTeXStrings
 using StatsPlots
 
+include("warmup.jl")
+
 function runExperiment()
 
     # number of norms to compute and extend

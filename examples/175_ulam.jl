@@ -15,10 +15,8 @@ function runExperiment()
 
     time_assembling = @elapsed begin
 
-        D = Mod1Dynamic(x -> 4*x + 0.01*InvariantMeasures.sinpi(8*x))
-        # different backend, a tad slower
-        # D = mod1_dynamic(x -> 4*x + 0.01*InvariantMeasures.sinpi(8*x))
-        B = Hat(1024)
+		D = mod1_dynamic(x -> 17//5 * x)
+        B = Ulam(1024)
         Q = DiscretizedOperator(B, D)
     end
 
@@ -27,7 +25,7 @@ function runExperiment()
     time_error = @elapsed error = distance_from_invariant(B, D, Q, w, norms)
 
     time_assembling_fine = @elapsed begin
-        B_fine = Hat(2^16)
+        B_fine = Ulam(2^16)
         Q_fine = DiscretizedOperator(B_fine, D)
     end
 
@@ -35,13 +33,13 @@ function runExperiment()
     time_eigen_fine = @elapsed w_fine = invariant_vector(B_fine, Q_fine)
     time_error_fine = @elapsed error_fine = distance_from_invariant(B_fine, D, Q_fine, w_fine, norms_fine)
 
-    A, BB = dfly(strong_norm(B), aux_norm(B), D)
+	A, BB = dfly(strong_norm(B), aux_norm(B), D)
     p1 = plot(D, title="Dynamic (dfly coeffs $(round(A, sigdigits=2)),$(round(BB, sigdigits=2)))", label=L"T(x)", legend=:bottomright)
     p2 = plot(B, w, title="Invariant measure (n=$(length(B)))")
-    p2 = plot!(p2, B, error, w, label="L-inf error $(round(error, sigdigits=2))")
+    p2 = plot!(p2, B, error, w, label="L1 error $(round(error, sigdigits=2))")
 
     p3 = plot(B_fine, w_fine, title="Invariant measure (n=$(length(B_fine)))")
-    p3 = plot!(p3, B_fine, error_fine, w_fine, label="L-inf error $(round(error_fine, sigdigits=2))")
+    p3 = plot!(p3, B_fine, error_fine, w_fine, label="L1 error $(round(error_fine, sigdigits=2))")
 
     p4 = groupedbar(
         vcat(

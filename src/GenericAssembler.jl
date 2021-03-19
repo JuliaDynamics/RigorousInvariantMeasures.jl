@@ -19,7 +19,7 @@ function assemble(B::Basis, D::Dynamic, ϵ=2^(-40); T = Float64)
 	# TODO: reasonable size hint?
 
 	for (i, dual_element) in DualComposedWithDynamic(B, D, ϵ)
-		if dual_element != :∅
+		if !is_dual_element_empty(B, dual_element)
 			for (j, x) in ProjectDualElement(B, dual_element)
 				push!(I, i)
 				push!(J, mod(j,1:n))

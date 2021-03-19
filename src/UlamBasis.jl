@@ -24,19 +24,22 @@ Base.getindex(B::Ulam, i) = Float64(i)/B.n
 This iterator returns the preimages of the endpoints
 of the intervals defining the Ulam basis through the dynamic
 """
-function Base.iterate(S::DualComposedWithDynamic{Ulam, <:Dynamic}, state = (1, 1))
+function Base.iterate(S::DualComposedWithDynamic{Ulam, Mod1Dynamic}, state = (1, 1))
 	i, k = state
 
 	if i == length(S.basis)+1
 			return nothing
 	end
 
+	x₁ = preim(S.dynamic, k, getindex(S.basis, i-1), S.ϵ)
+	x₂ = preim(S.dynamic, k, getindex(S.basis, i), S.ϵ)
+
 	# remark that this version supposes that for each i there exists a preimage
 	# another more specific version should be implemented for maps with
 	# incomplete branches
 
-	x₁ = preim(S.dynamic, k, getindex(S.basis, i-1), S.ϵ)
-	x₂ = preim(S.dynamic, k, getindex(S.basis, i), S.ϵ)
+	@assert !isempty(x₁)
+	@assert !isempty(x₂)
 
 	lower, upper = x₁, x₂
 
@@ -47,49 +50,53 @@ function Base.iterate(S::DualComposedWithDynamic{Ulam, <:Dynamic}, state = (1, 1
 	end
 end
 
-function Base.iterate(S::DualComposedWithDynamic{Ulam, PwMap}, state = (1, 1))
+function BasisDefinition.is_dual_element_empty(::Ulam, d)
+	return isempty(d[1])
+end
+
+function Base.iterate(S::DualComposedWithDynamic{Ulam, <:Dynamic}, state = (1, 1))
 	i, k = state
 
 	if i == length(S.basis)+1
 			return nothing
 	end
 
-	# remark that this version supposes that for each i there exists a preimage
-	# another more specific version should be implemented for maps with
-	# incomplete branches
-
 	x₁ = preim(S.dynamic, k, getindex(S.basis, i-1), S.ϵ)
 	#@info "x₁" x₁
 	x₂ = preim(S.dynamic, k, getindex(S.basis, i), S.ϵ)
 	#@info "x₂" x₂
 
+	ep = DynamicDefinition.endpoints(S.dynamic)
+	orientation = sign(ep[k+1] - ep[k])
+	@assert isthin(orientation)
+	orientation = orientation.hi
 
-	if S.dynamic.orientations[k]>0
+	if orientation>0
 			if isempty(x₁) && !isempty(x₁)
-				x₁ = S.dynamic.endpoints[k]
+				x₁ = ep[k]
 			end
 			if isempty(x₂) && !isempty(x₁)
-				x₂ = S.dynamic.endpoints[k+1]
+				x₂ = ep[k+1]
 			end
 			lower, upper = x₁, x₂
-	elseif	S.dynamic.orientations[k]<0
+	elseif	orientation<0
 			if isempty(x₂) && !isempty(x₁)
-				x₂ = S.dynamic.endpoints[k]
+				x₂ = ep[k]
 			end
 			if isempty(x₁) && !isempty(x₂)
-				x₁ = S.dynamic.endpoints[k+1]
+				x₁ = ep[k+1]
 			end
 			lower, upper = x₂, x₁
 	end
 
 	if k == nbranches(S.dynamic)
 		if isempty(lower) && isempty(upper)
-			return ((i, :∅), (i+1, 1))
+			return ((i, ∅), (i+1, 1))
 		end
 		return ((i, (lower, upper)), (i+1, 1))
 	else
 		if isempty(lower) && isempty(upper)
-			return ((i, :∅), (i, k+1))
+			return ((i, ∅), (i, k+1))
 		end
 		return ((i, (lower, upper)), (i, k+1))
 	end
@@ -100,8 +107,6 @@ end
 Returns the indices of the elements of the Ulam basis that intersect with the interval y
 """
 BasisDefinition.nonzero_on(B::Ulam, y) = max(floor(Int64, y[1].lo*length(B)), 1), min(ceil(Int64, y[2].hi*length(B)), length(B))
-
-
 
 function relative_measure(S::Ulam, y, a, b)
 	lower = max(y[1], a)

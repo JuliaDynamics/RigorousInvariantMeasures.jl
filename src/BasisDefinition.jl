@@ -3,7 +3,7 @@ using ..DynamicDefinition
 
 import Base
 
-export Basis, DualComposedWithDynamic, ProjectDualElement, AverageZero, assemble, integral_covector, one_vector, is_integral_preserving, strong_norm, weak_norm, aux_norm
+export Basis, DualComposedWithDynamic, ProjectDualElement, AverageZero, assemble, integral_covector, one_vector, is_integral_preserving, strong_norm, weak_norm, aux_norm, is_dual_element_empty
 
 abstract type Basis end
 
@@ -25,6 +25,7 @@ struct ProjectDualElement{B<:Basis}
 end
 ProjectDualElement(basis::B, j_min, j_max, y) where {B} = ProjectDualElement{B}(basis, j_min, j_max, y)
 
+is_dual_element_empty(B::Basis, I) = @error "Not Implemented"
 nonzero_on(B::Basis, I) = @error "Not Implemented"
 
 function ProjectDualElement(B::Basis, y)

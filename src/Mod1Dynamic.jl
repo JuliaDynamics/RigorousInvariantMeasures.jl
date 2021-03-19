@@ -7,7 +7,7 @@ using ..DynamicDefinition: derivative
 export Mod1Dynamic, preim, nbranches, plottable
 
 """
-Defines a Dynamic as the Mod-1 quotient of a given map.
+Defines a Dynamic on [0,1] as the Mod-1 quotient of a given map.
 
 An alternative newer implementation relying on piecewise-defined functions is in `mod1_dynamic`
 """
@@ -19,6 +19,7 @@ struct Mod1Dynamic <: MarkovDynamic
 	is_full_branch::Bool
 end
 
+# TODO: serious doubts that this works if T(0) is not an integer...
 
 function Mod1Dynamic(T::Function, nbranches = undef, domain = Interval{Float64}(0,1)) where {S}
 	@assert domain == 0..1 # TODO: this only works for domain == 0..1, for now
