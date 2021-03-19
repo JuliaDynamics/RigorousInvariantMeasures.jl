@@ -2,12 +2,12 @@ using InvariantMeasures
 using Test
 
 @testset "InvariantMeasures.jl" begin
-    # Write your tests here.
 
-include("TestDynamic.jl")
-include("TestAssemble.jl")
-include("TestAssembleHat.jl")
-include("TestEstimate.jl")
-include("TestNormOfPowers.jl")
+    include("TestDynamic.jl")
+    include("TestHat.jl")
+    include("TestAssemble.jl")
+    include("TestAssembleHat.jl")
+    include("TestEstimate.jl")
+    include("TestNormOfPowers.jl")
 
 end

@@ -80,7 +80,7 @@ The interval is normalized in the constructor: the caller may assume that
 """
 struct IntervalOnTorus{T <: Real}
 	I::Interval{T}
-	function IntervalOnTorus{T}(I::Interval) where T<:Real
+	function IntervalOnTorus{T}(I::Interval) where {T<:Real}
 		# Note that this test may "expand" intervals such as 1e-30..1, to 0..1, but it is not a big issue anyway
 		if diam(I) >= 1.
 			new{T}(0..1)
@@ -104,7 +104,7 @@ struct HatFunctionOnTorus{T<: Number}
 	lo::T
 	mi::T
 	hi::T
-	function HatFunctionOnTorus{T}(lo, mi, hi) where T <: Number
+	function HatFunctionOnTorus{T}(lo, mi, hi) where {T <: Number}
 		@assert 0 <= lo < 1
 		@assert 0 <= mi < 1
 		@assert 0 <= hi < 1
@@ -120,7 +120,7 @@ Evaluate a HatFunctionOnTorus correctly on an IntervalOnTorus
 Assumption: this is only called on functions defined on our partition,
 so either mi==0, hi==0, or the three values are in increasing order
 """
-function (f::HatFunctionOnTorus{T})(x::IntervalOnTorus{T}) where T <: Number
+function (f::HatFunctionOnTorus{T})(x::IntervalOnTorus) where {T}
 	lo = Interval{T}(f.lo)
 	mi = Interval{T}(f.mi)
 	hi = Interval{T}(f.hi)

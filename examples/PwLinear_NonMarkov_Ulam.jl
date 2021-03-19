@@ -16,7 +16,7 @@ function runExperiment()
     time_assembling = @elapsed begin
 
 		D = PwMap([x->2.5*x, x->4*x-1, x->4*x-2, x-> 4*x-3],
-			[Interval(0), Interval(0.25), Interval(0.5), Interval(0.75), Interval(1)])
+			[@interval(0), @interval(0.25), @interval(0.5), @interval(0.75), @interval(1)])
         B = Ulam(1024)
         Q = DiscretizedOperator(B, D)
     end

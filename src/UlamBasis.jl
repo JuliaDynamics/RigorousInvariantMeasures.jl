@@ -54,6 +54,8 @@ function BasisDefinition.is_dual_element_empty(::Ulam, d)
 	return isempty(d[1])
 end
 
+Base.length(S::DualComposedWithDynamic{Ulam, <:Dynamic}) = length(S.basis) * nbranches(S.dynamic)
+
 function Base.iterate(S::DualComposedWithDynamic{Ulam, <:Dynamic}, state = (1, 1))
 	i, k = state
 
@@ -91,12 +93,12 @@ function Base.iterate(S::DualComposedWithDynamic{Ulam, <:Dynamic}, state = (1, 1
 
 	if k == nbranches(S.dynamic)
 		if isempty(lower) && isempty(upper)
-			return ((i, ∅), (i+1, 1))
+			return ((i, (∅,∅)), (i+1, 1))
 		end
 		return ((i, (lower, upper)), (i+1, 1))
 	else
 		if isempty(lower) && isempty(upper)
-			return ((i, ∅), (i, k+1))
+			return ((i, (∅,∅)), (i, k+1))
 		end
 		return ((i, (lower, upper)), (i, k+1))
 	end
