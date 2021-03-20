@@ -6,144 +6,153 @@ import ..BasisDefinition: one_vector, integral_covector, is_integral_preserving,
 """
 Equispaced Ulam basis on [0,1] of size n
 """
-struct Ulam <:Basis
-	n::Integer #TODO, change to partition
+struct Ulam{T<:AbstractVector} <:Basis
+	p::T
+	# TODO: check in constructor that p is sorted, starts with 0 and ends with 1
 end
+Ulam(n::Integer) = Ulam(LinRange(0., 1., n+1))
+Base.length(B::Ulam) = length(B.p) - 1
 
-Base.length(B::Ulam) = B.n
+# Base.iterate(B::Ulam, state = 1) = state < length(B)+1 ? (B[state-1], state+1) : nothing
 
-Base.iterate(B::Ulam, state = 1) = state < length(B)+1 ? (B[state-1], state+1) : nothing
+# To be rewritten to return a custom type
+# """
+# Returns the left endpoint of the i-th element of the Ulam basis
+# """
+# Base.getindex(B::Ulam, i) = Float64(i)/B.n
 
-"""
-Returns the left endpoint of the i-th element of the Ulam basis
-"""
-Base.getindex(B::Ulam, i) = Float64(i)/B.n
 
-
-"""
-This iterator returns the preimages of the endpoints
-of the intervals defining the Ulam basis through the dynamic
-"""
-function Base.iterate(S::DualComposedWithDynamic{Ulam, Mod1Dynamic}, state = (1, 1))
-	i, k = state
-
-	if i == length(S.basis)+1
-			return nothing
-	end
-
-	x₁ = preim(S.dynamic, k, getindex(S.basis, i-1), S.ϵ)
-	x₂ = preim(S.dynamic, k, getindex(S.basis, i), S.ϵ)
-
-	# remark that this version supposes that for each i there exists a preimage
-	# another more specific version should be implemented for maps with
-	# incomplete branches
-
-	@assert !isempty(x₁)
-	@assert !isempty(x₂)
-
-	lower, upper = x₁, x₂
-
-	if k == nbranches(S.dynamic)
-		return ((i, (lower, upper)), (i+1, 1))
-	else
-		return ((i, (lower, upper)), (i, k+1))
-	end
-end
+# should be obsolete now that we have the next one
+# """
+# This iterator returns the preimages of the endpoints
+# of the intervals defining the Ulam basis through the dynamic
+# """
+# function Base.iterate(S::DualComposedWithDynamic{Ulam, Mod1Dynamic}, state = (1, 1))
+# 	i, k = state
+#
+# 	if i == length(S.basis)+1
+# 			return nothing
+# 	end
+#
+# 	# TODO: this iterator could be rewritten to cut by 2 the number of preimages,
+# 	# since the same preimage is computed at 2 successive steps
+# 	x₁ = preim(S.dynamic, k, B.p[i], S.ϵ)
+# 	x₂ = preim(S.dynamic, k, B.p[i+1], S.ϵ)
+#
+# 	# remark that this version supposes that for each i there exists a preimage
+# 	# another more specific version should be implemented for maps with
+# 	# incomplete branches
+#
+# 	@assert !isempty(x₁)
+# 	@assert !isempty(x₂)
+#
+# 	lower, upper = x₁, x₂
+#
+# 	if k == nbranches(S.dynamic)
+# 		return ((i, (lower, upper)), (i+1, 1))
+# 	else
+# 		return ((i, (lower, upper)), (i, k+1))
+# 	end
+# end
 
 function BasisDefinition.is_dual_element_empty(::Ulam, d)
 	return isempty(d[1])
 end
 
-Base.length(S::DualComposedWithDynamic{Ulam, <:Dynamic}) = length(S.basis) * nbranches(S.dynamic)
+Base.length(S::DualComposedWithDynamic{<:Ulam, <:Dynamic}) = length(S.basis) * nbranches(S.dynamic)
 
-function Base.iterate(S::DualComposedWithDynamic{Ulam, <:Dynamic}, state = (1, 1))
+"""
+Returns dual elements which are pairs (i, (a,b))
+i is an interval index, and (a,b) are the endpoints of its preimage
+"""
+function Base.iterate(S::DualComposedWithDynamic{<:Ulam, <:Dynamic}, state = (1, 1))
 	i, k = state
 
 	if i == length(S.basis)+1
 			return nothing
 	end
 
-	x₁ = preim(S.dynamic, k, getindex(S.basis, i-1), S.ϵ)
-	#@info "x₁" x₁
-	x₂ = preim(S.dynamic, k, getindex(S.basis, i), S.ϵ)
-	#@info "x₂" x₂
+	a = preim(S.dynamic, k, S.basis.p[i], S.ϵ)
+	b = preim(S.dynamic, k, S.basis.p[i+1], S.ϵ)
 
-
-	orientation = sign(x₂ - x₁)
-	@assert isthin(orientation)
-	orientation = orientation.hi
-
-	if orientation>0
-			if isempty(x₁) && !isempty(x₁)
-				ep = DynamicDefinition.endpoints(S.dynamic)
-				x₁ = ep[k]
-			end
-			if isempty(x₂) && !isempty(x₁)
-				ep = DynamicDefinition.endpoints(S.dynamic)
-				x₂ = ep[k+1]
-			end
-			lower, upper = x₁, x₂
-	elseif	orientation<0
-			if isempty(x₂) && !isempty(x₁)
-				ep = DynamicDefinition.endpoints(S.dynamic)
-				x₂ = ep[k]
-			end
-			if isempty(x₁) && !isempty(x₂)
-				ep = DynamicDefinition.endpoints(S.dynamic)
-				x₁ = ep[k+1]
-			end
-			lower, upper = x₂, x₁
+	if isempty(a) && !isempty(b)
+		ep = endpoints(S.dynamic)
+		if orientation(S.dynamic, k) > 0
+			a = convert(typeof(b), ep[k])
+		else
+			a = convert(typeof(b), ep[k+1])
+		end
+	elseif isempty(b) && !isempty(a)
+		ep = endpoints(S.dynamic)
+		if orientation(S.dynamic, k) > 0
+			b = convert(typeof(a), ep[k+1])
+		else
+			b = convert(typeof(a), ep[k])
+		end
 	end
+
+	# this is a bit lazy because we could compute orientations and tell which is which
+	# but it won't matter unless a,b are computed with very low precision
+	a, b = min(a,b), max(a,b)
 
 	if k == nbranches(S.dynamic)
-		if isempty(lower) && isempty(upper)
-			return ((i, (∅,∅)), (i+1, 1))
-		end
-		return ((i, (lower, upper)), (i+1, 1))
+		return ((i, (a, b)), (i+1, 1))
 	else
-		if isempty(lower) && isempty(upper)
-			return ((i, (∅,∅)), (i, k+1))
-		end
-		return ((i, (lower, upper)), (i, k+1))
+		return ((i, (a, b)), (i, k+1))
 	end
 end
-
 
 """
 Returns the indices of the elements of the Ulam basis that intersect with the interval y
+We do not assume an order of a and b; this should not matter unless
+the preimages are computed with very low accuracy
 """
-function BasisDefinition.nonzero_on(B::Ulam, y)
-	@assert ispow2(length(B)) # because we use checks like n*a < n*b instead of a < b
-	# TODO: bug here
-	return clamp(ceil(Int64, y[1].lo*length(B)), 1, length(B)), clamp(ceil(Int64, y[2].hi*length(B)), 1, length(B))
+function BasisDefinition.nonzero_on(B::Ulam, (a, b))
+	y = hull(a, b)
+
+	# finds in which semi-open interval [p[k], p[k+1]) y.lo and y.hi fall
+	lo = searchsortedlast(B.p, y.lo)
+	hi = searchsortedlast(B.p, y.hi)
+
+	# they may be n+1 if y.hi==1
+	lo = min(lo, length(B))
+	hi = min(hi, length(B))
+
+	return (lo, hi)
 end
-function relative_measure(S::Ulam, y, a, b)
-	lower = max(y[1], a)
-	upper = min(y[2], b)
-	return max(upper-lower, 0)/(b-a)
+
+"""
+Relative measure of the intersection of (a,b) wrt the whole interval (c,d)
+Assumes that a,b and c,d are sorted correctly
+"""
+function relative_measure((a,b)::Tuple{<:Interval,<:Interval}, (c,d)::Tuple{<:Interval,<:Interval})
+	lower = max(a, c)
+	upper = min(b, d)
+	intersection = max(upper - lower, 0) / (d-c)
 end
 
 """
 Given a preimage of an interval ```I_i```, this iterator returns
 its relative intersection with all the elements of the Ulam basis that
-have nonzero intersection with him
+have nonzero intersection with it
 """
-function Base.iterate(S::ProjectDualElement{Ulam}, state = S.j_min)
+function Base.iterate(S::ProjectDualElement{Ulam{T}}, state = S.j_min) where {T}
 	if state == S.j_max+1
 		return nothing
-	end
 
-	return ((state, relative_measure(S.basis, S.dual_element,
-			getindex(S.basis, state-1),
-			getindex(S.basis, state))),
-		    state+1)
+	end
+	j = state
+	x = relative_measure(S.dual_element,
+			(@interval(S.basis.p[j]),
+			@interval(S.basis.p[j+1])))
+	return (j, x), state+1
 end
 
-BasisDefinition.evaluate(B::Ulam, i, x) = (x>(i-1)/n) && (x<i/n) ? 1 : 0
+BasisDefinition.evaluate(B::Ulam{T}, i, x) where {T} = (x>(i-1)/n) && (x<i/n) ? 1 : 0
 
-BasisDefinition.evaluate_integral(B::Ulam, i, T::Type)  = T(i)/length(B)
+BasisDefinition.evaluate_integral(B::Ulam{S}, i, T::Type) where{S} = T(i)/length(B)
 
-function Base.iterate(S::AverageZero{Ulam}, state = 1)
+function Base.iterate(S::AverageZero{Ulam{T}}, state = 1) where{T}
 	n = length(S.basis)
 	if state == n
 		return nothing
@@ -154,14 +163,14 @@ function Base.iterate(S::AverageZero{Ulam}, state = 1)
 	return (v, state+1)
 end
 
-BasisDefinition.is_refinement(Bf::Ulam, Bc::Ulam) = rem(Bf.n, Bc.n) == 0
+BasisDefinition.is_refinement(Bf::Ulam, Bc::Ulam) = Bc.p ⊆ Bf.p
 
-function integral_covector(B::Ulam)
+function integral_covector(B::Ulam{T}) where{T}
 	n = length(B)
 	return 1/n * ones(Interval{Float64}, n)'
 end
 
-is_integral_preserving(B::Ulam) = true
+is_integral_preserving(B::Ulam{T}) where {T} = true
 
 function one_vector(B::Ulam)
 	return ones(length(B))
@@ -207,7 +216,7 @@ Plots a function in the Ulam basis
 		seriestype --> :steppost
 		label --> L"f_{\delta}"
 		ylims --> (0, NaN)
-		vcat(collect(Float64, B), 1.), vcat(w, w[end])
+		B.p, vcat(w, w[end])
 	end
 end
 

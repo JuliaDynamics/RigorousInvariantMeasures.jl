@@ -35,4 +35,9 @@ B = Hat(4)
 @test nonzero_on(B, (0..1, NaN)) == (1,4)
 @test nonzero_on(B, (0.3..0.31, NaN)) == (2,3)
 
+@test is_refinement(Hat(8), Hat(4))
+@test is_refinement(Hat(8), Hat(8))
+@test !is_refinement(Hat(4), Hat(8))
+
+
 end

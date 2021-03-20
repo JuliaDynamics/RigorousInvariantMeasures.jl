@@ -6,7 +6,7 @@ module DynamicDefinition
 
 using ValidatedNumerics
 using TaylorSeries:Taylor1
-export Dynamic, MarkovDynamic, preim, nbranches, plottable, is_full_branch, domain, derivative, distorsion, endpoints, branch, expansivity, max_distorsion
+export Dynamic, MarkovDynamic, preim, nbranches, plottable, is_full_branch, domain, derivative, distorsion, endpoints, branch, expansivity, max_distorsion, orientation
 
 abstract type Dynamic end
 abstract type MarkovDynamic <: Dynamic end
@@ -61,15 +61,16 @@ function max_distorsion(D::Dynamic, tol=1e-3)
 	return maximum(maximise(x -> distorsion(branch(D, k) , x), hull(v[k], v[k+1]), tol=tol)[1] for k in 1:nbranches(D))
 end
 
-# these do not work properly, since T() for a Mod1Dynamic contains the unquotiented map. Better not to use them at all.
-
-# function iterate(T, x, ::Val{n}) where {n}
-# 	for i in 1:n
-# 		x=T(x)
-# 	end
-# 	return x
-# end
-#
-# iterate(T, x, n)=iterate(T, x, Val(n))
+"""
+Orientation of branch k: 1 for increasing, -1 for decreasing
+"""
+function orientation(D::Dynamic, k)
+	ep = endpoints(D)
+	a = branch(D, k)(ep[k])
+	b = branch(D, k)(ep[k+1])
+	orient = sign(b-a)
+	@assert isthin(orient)
+	return orient.hi
+end
 
 end

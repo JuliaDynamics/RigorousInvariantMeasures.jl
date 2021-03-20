@@ -200,6 +200,7 @@ function BasisDefinition.nonzero_on(B::Hat, dual_element)
 	# finds in which semi-open interval [p[k], p[k+1]) y.lo and y.hi fall
 	lo = searchsortedlast(B.p, y.lo)
 	hi = searchsortedlast(B.p, y.hi)
+	lo = min(lo, length(B)) # lo may be n+1 if y.lo==1
 	hi = min(hi, length(B)) # hi may be n+1 if y.hi==1
 	hi = hi + 1 # because the hat centered in p[k] is also nonzero in the interval before
 

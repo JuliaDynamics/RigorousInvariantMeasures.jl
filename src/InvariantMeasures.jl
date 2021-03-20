@@ -37,7 +37,7 @@ export Ulam, PwMap, Mod1Dynamic, Basis, Dynamic, assemble, preim, Hat,
 	DiscretizedOperator, IntegralPreservingDiscretizedOperator, NonIntegralPreservingDiscretizedOperator,
 	opnormbound, weak_norm, strong_norm, aux_norm, integral_covector, distance_from_invariant,
 	mod1_dynamic, Iterate, derivative, distorsion, endpoints, nbranches, branch,
-	expansivity, max_distorsion
+	expansivity, max_distorsion, is_refinement
 
 import ValidatedNumerics: Interval
 export Interval

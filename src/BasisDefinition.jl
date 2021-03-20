@@ -5,7 +5,7 @@ import Base
 
 export Basis, DualComposedWithDynamic, ProjectDualElement, AverageZero, assemble,
 		integral_covector, one_vector, is_integral_preserving, strong_norm,
-		weak_norm, aux_norm, is_dual_element_empty, nonzero_on
+		weak_norm, aux_norm, is_dual_element_empty, nonzero_on, is_refinement
 
 abstract type Basis end
 
@@ -19,6 +19,7 @@ end
 
 Base.iterate(S::DualComposedWithDynamic{B, D}, state) where {B<:Basis, D<:Dynamic} = @error "Not implemented"
 
+# TODO ADD TYPES!!! XXX
 struct ProjectDualElement{B<:Basis}
 	basis::B
 	j_min

@@ -1,4 +1,4 @@
-@testset "Hat basis" begin
+@testset "Ulam basis" begin
 
 using ValidatedNumerics
 using InvariantMeasures
@@ -11,5 +11,8 @@ B = Ulam(4)
 @test nonzero_on(B, (@interval(0.3), @interval(0.31))) == (2,2)
 @test nonzero_on(B, (@interval(1), @interval(1))) == (4,4)
 
+@test is_refinement(Ulam(8), Ulam(4))
+@test is_refinement(Ulam(8), Ulam(8))
+@test !is_refinement(Ulam(4), Ulam(8))
 
 end
