@@ -30,7 +30,7 @@ f = HatFunctionOnTorus(0.875, 0, 0.125)
 x = IntervalOnTorus(0.9375..1)
 @test f(x) == 0.5..1
 
-B = Hat(EquispacedPartition{Float64}(4))
+B = Hat(4)
 @test nonzero_on(B, (0.1..0.3, NaN)) == (1,3)
 @test nonzero_on(B, (0..1, NaN)) == (1,4)
 @test nonzero_on(B, (0.3..0.31, NaN)) == (2,3)

@@ -6,34 +6,16 @@ using ..BasisDefinition, ..Mod1DynamicDefinition, ..DynamicDefinition
 using ValidatedNumerics
 import ..BasisDefinition: one_vector, integral_covector, is_integral_preserving
 
-"""
-Equispaced partition of size n of [0,1]
-"""
-struct EquispacedPartition{T} <: AbstractVector{T}
-	n::Integer
-end
-function Base.getindex(p::EquispacedPartition{T}, i::Int) where {T}
-	@boundscheck 1 <= i <= p.n || throw(BoundsError(p, i))
-	return convert(T, i-1) / p.n
-end
-EquispacedPartition(i::Int) = @error "The real type must be specified explicitly"
-
-Base.size(p::EquispacedPartition) = (p.n,)
-Base.IndexStyle(::Type{<:EquispacedPartition}) = IndexLinear()
-Base.issorted(p::EquispacedPartition) = true
-
-# TODO: specialize searchsortedfirst, searchsortedlast
-
 struct Hat{T<:AbstractVector} <:Basis
 	p::T
-	# TODO: check in constructor that p is sorted and starts with 0
+	# TODO: check in constructor that p is sorted, starts with 0 and ends with 1
 end
-Hat(n::Integer) = Hat(EquispacedPartition{Float64}(n))
+Hat(n::Integer) = Hat(LinRange(0., 1., n+1))
 
 """
 Return the size of the Hat basis
 """
-Base.length(B::Hat) = length(B.p)
+Base.length(B::Hat) = length(B.p) - 1
 
 """
 Hat function (on the reals)
@@ -210,9 +192,18 @@ it means that it intersects with the hat function peaked in 0 as well
 function BasisDefinition.nonzero_on(B::Hat, dual_element)
 	y, absT′ = dual_element
 	# Note that this cannot rely on arithmetic unless it is verified
-	lo = max(searchsortedfirst(B.p, y.lo) -1, 1)
-	hi = searchsortedfirst(B.p, y.hi)
-	if lo == 1 # 1:N+1 does not make sense and becomes 1:N
+
+	y = y ∩ @interval(0.,1.) # we assume it's bona-fide interval in [0,1]
+	# this should work for preims(), since they are supposed to return
+	# a number in [0,1]
+
+	# finds in which semi-open interval [p[k], p[k+1]) y.lo and y.hi fall
+	lo = searchsortedlast(B.p, y.lo)
+	hi = searchsortedlast(B.p, y.hi)
+	hi = min(hi, length(B)) # hi may be n+1 if y.hi==1
+	hi = hi + 1 # because the hat centered in p[k] is also nonzero in the interval before
+
+	if lo == 1 # 1:N+1 does not make sense and would mean tht the first interval is counted twice
 		hi = min(hi, length(B))
 	end
 	return (lo, hi)
@@ -285,7 +276,7 @@ Plots a function in the Hat basis
 		seriestype --> :path
 		label --> L"f_{\delta}"
 		ylims --> (0, NaN)
-		vcat(B.p, 1.), vcat(w, w[end])
+		B.p, vcat(w, w[end])
 	end
 end
 
@@ -304,7 +295,7 @@ Displays error on a function in the Hat basis
 			seriesalpha --> 0.5
 			fillrange --> vcat(w, w[end]) .- error
 			label --> "Error area"
-			vcat(B.p, 1.), vcat(w, w[end]) .+ error
+			B.p, vcat(w, w[end]) .+ error
 		end
 	end
 end

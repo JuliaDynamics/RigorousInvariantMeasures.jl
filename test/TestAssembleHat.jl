@@ -5,7 +5,7 @@ using LinearAlgebra
 @testset "Hat assembler" begin
 
 D = Mod1Dynamic(x->2*x)
-B = Hat(EquispacedPartition{Float64}(8))
+B = Hat(8)
 P = assemble(B, D)
 
 Ptrue = [
