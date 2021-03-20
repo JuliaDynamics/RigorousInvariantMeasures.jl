@@ -13,48 +13,6 @@ end
 Ulam(n::Integer) = Ulam(LinRange(0., 1., n+1))
 Base.length(B::Ulam) = length(B.p) - 1
 
-# Base.iterate(B::Ulam, state = 1) = state < length(B)+1 ? (B[state-1], state+1) : nothing
-
-# To be rewritten to return a custom type
-# """
-# Returns the left endpoint of the i-th element of the Ulam basis
-# """
-# Base.getindex(B::Ulam, i) = Float64(i)/B.n
-
-
-# should be obsolete now that we have the next one
-# """
-# This iterator returns the preimages of the endpoints
-# of the intervals defining the Ulam basis through the dynamic
-# """
-# function Base.iterate(S::DualComposedWithDynamic{Ulam, Mod1Dynamic}, state = (1, 1))
-# 	i, k = state
-#
-# 	if i == length(S.basis)+1
-# 			return nothing
-# 	end
-#
-# 	# TODO: this iterator could be rewritten to cut by 2 the number of preimages,
-# 	# since the same preimage is computed at 2 successive steps
-# 	x₁ = preim(S.dynamic, k, B.p[i], S.ϵ)
-# 	x₂ = preim(S.dynamic, k, B.p[i+1], S.ϵ)
-#
-# 	# remark that this version supposes that for each i there exists a preimage
-# 	# another more specific version should be implemented for maps with
-# 	# incomplete branches
-#
-# 	@assert !isempty(x₁)
-# 	@assert !isempty(x₂)
-#
-# 	lower, upper = x₁, x₂
-#
-# 	if k == nbranches(S.dynamic)
-# 		return ((i, (lower, upper)), (i+1, 1))
-# 	else
-# 		return ((i, (lower, upper)), (i, k+1))
-# 	end
-# end
-
 function BasisDefinition.is_dual_element_empty(::Ulam, d)
 	return isempty(d[1])
 end
@@ -136,10 +94,9 @@ Given a preimage of an interval ```I_i```, this iterator returns
 its relative intersection with all the elements of the Ulam basis that
 have nonzero intersection with it
 """
-function Base.iterate(S::ProjectDualElement{Ulam{T}}, state = S.j_min) where {T}
+function Base.iterate(S::ProjectDualElement{BT,DT}, state = S.j_min) where {BT<:Ulam,DT}
 	if state == S.j_max+1
 		return nothing
-
 	end
 	j = state
 	x = relative_measure(S.dual_element,

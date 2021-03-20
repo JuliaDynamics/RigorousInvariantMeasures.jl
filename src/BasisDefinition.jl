@@ -19,15 +19,14 @@ end
 
 Base.iterate(S::DualComposedWithDynamic{B, D}, state) where {B<:Basis, D<:Dynamic} = @error "Not implemented"
 
-# TODO ADD TYPES!!! XXX
-struct ProjectDualElement{B<:Basis}
+struct ProjectDualElement{B<:Basis, DT}
 	basis::B
-	j_min
-	j_max
-	dual_element
+	j_min::Int64
+	j_max::Int64
+	dual_element::DT
 end
-ProjectDualElement(basis::B, j_min, j_max, y) where {B} = ProjectDualElement{B}(basis, j_min, j_max, y)
-Base.length(S::ProjectDualElement{B}) where {B} = S.j_max - S.j_min + 1
+ProjectDualElement(basis::B, j_min, j_max, y::DT) where {B,DT} = ProjectDualElement{B,DT}(basis, j_min, j_max, y)
+Base.length(S::ProjectDualElement{B,DT}) where {B,DT} = S.j_max - S.j_min + 1
 
 is_dual_element_empty(B::Basis, I) = @error "Not Implemented"
 nonzero_on(B::Basis, I) = @error "Not Implemented"
@@ -37,7 +36,7 @@ function ProjectDualElement(B::Basis, y)
  	return ProjectDualElement(B, j_min, j_max, y)
 end
 
-Base.iterate(S::ProjectDualElement{B}, state) where {B} = @error "Not Implemented"
+# Base.iterate(S::ProjectDualElement, state) = @error "Not Implemented"
 
 evaluate(B::Basis, i, x) = @error "Not Implemented"
 evaluate_integral(B::Basis, i; T = Float64) = @error "Not Implemented"
