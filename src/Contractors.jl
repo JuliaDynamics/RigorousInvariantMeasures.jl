@@ -1,6 +1,5 @@
 module Contractors
 using ValidatedNumerics
-using TaylorSeries
 
 export N_rig, root, range_estimate, ShootingMethod
 
@@ -12,7 +11,12 @@ function N_rig(f, f′, x)
 	return intersect(x, x_mid - f′(x) \ f(x_mid))
 end
 
-derivative(f) = x-> f(Taylor1([x,1.],1))[1]
+# this seems slower
+#using TaylorSeries
+#derivative(f) = x-> f(Taylor1([x,1.],1))[1]
+
+using DualNumbers
+derivative(f) = x->f(Dual(x, 1..1)).epsilon
 
 """
 Compute a single root with (possibly multivariate) interval Newton
