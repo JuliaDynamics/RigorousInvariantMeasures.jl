@@ -19,7 +19,7 @@ We set is_full[k]==true if we can prove/assume that the kth branch is full, i.e.
 """
 struct PwMap <: Dynamic
 	Ts::Array{Function, 1}
-	endpoints::Array{Interval, 1}
+	endpoints::Array{Interval{Float64}, 1}
 	is_full
 	orientations # these will be filled in automatically, usually
 end

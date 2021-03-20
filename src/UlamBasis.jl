@@ -10,6 +10,7 @@ struct Ulam{T<:AbstractVector} <:Basis
 	p::T
 	# TODO: check in constructor that p is sorted, starts with 0 and ends with 1
 end
+
 Ulam(n::Integer) = Ulam(LinRange(0., 1., n+1))
 Base.length(B::Ulam) = length(B.p) - 1
 
@@ -60,6 +61,8 @@ function Base.iterate(S::DualComposedWithDynamic{<:Ulam, <:Dynamic}, state = (1,
 	end
 end
 
+Base.eltype(f::DualComposedWithDynamic{<:Ulam, <:Dynamic}) = Tuple{Int64,Tuple{Interval{Float64},Interval{Float64}}}
+
 """
 Returns the indices of the elements of the Ulam basis that intersect with the interval y
 We do not assume an order of a and b; this should not matter unless
@@ -87,6 +90,7 @@ function relative_measure((a,b)::Tuple{<:Interval,<:Interval}, (c,d)::Tuple{<:In
 	lower = max(a, c)
 	upper = min(b, d)
 	intersection = max(upper - lower, 0) / (d-c)
+	return intersection
 end
 
 """
@@ -104,6 +108,7 @@ function Base.iterate(S::ProjectDualElement{BT,DT}, state = S.j_min) where {BT<:
 			@interval(S.basis.p[j+1])))
 	return (j, x), state+1
 end
+Base.eltype(f::ProjectDualElement{<:Ulam, DT}) where{DT} = Tuple{Int64,Interval{Float64}}
 
 BasisDefinition.evaluate(B::Ulam{T}, i, x) where {T} = (x>(i-1)/n) && (x<i/n) ? 1 : 0
 
