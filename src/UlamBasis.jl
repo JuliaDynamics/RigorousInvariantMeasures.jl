@@ -68,24 +68,28 @@ function Base.iterate(S::DualComposedWithDynamic{Ulam, <:Dynamic}, state = (1, 1
 	x₂ = preim(S.dynamic, k, getindex(S.basis, i), S.ϵ)
 	#@info "x₂" x₂
 
-	ep = DynamicDefinition.endpoints(S.dynamic)
-	orientation = sign(ep[k+1] - ep[k])
+
+	orientation = sign(x₂ - x₁)
 	@assert isthin(orientation)
 	orientation = orientation.hi
 
 	if orientation>0
 			if isempty(x₁) && !isempty(x₁)
+				ep = DynamicDefinition.endpoints(S.dynamic)
 				x₁ = ep[k]
 			end
 			if isempty(x₂) && !isempty(x₁)
+				ep = DynamicDefinition.endpoints(S.dynamic)
 				x₂ = ep[k+1]
 			end
 			lower, upper = x₁, x₂
 	elseif	orientation<0
 			if isempty(x₂) && !isempty(x₁)
+				ep = DynamicDefinition.endpoints(S.dynamic)
 				x₂ = ep[k]
 			end
 			if isempty(x₁) && !isempty(x₂)
+				ep = DynamicDefinition.endpoints(S.dynamic)
 				x₁ = ep[k+1]
 			end
 			lower, upper = x₂, x₁
@@ -108,8 +112,11 @@ end
 """
 Returns the indices of the elements of the Ulam basis that intersect with the interval y
 """
-BasisDefinition.nonzero_on(B::Ulam, y) = max(floor(Int64, y[1].lo*length(B)), 1), min(ceil(Int64, y[2].hi*length(B)), length(B))
-
+function BasisDefinition.nonzero_on(B::Ulam, y)
+	@assert ispow2(length(B)) # because we use checks like n*a < n*b instead of a < b
+	# TODO: bug here
+	return clamp(ceil(Int64, y[1].lo*length(B)), 1, length(B)), clamp(ceil(Int64, y[2].hi*length(B)), 1, length(B))
+end
 function relative_measure(S::Ulam, y, a, b)
 	lower = max(y[1], a)
 	upper = min(y[2], b)

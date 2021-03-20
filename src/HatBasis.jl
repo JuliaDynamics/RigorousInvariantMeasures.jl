@@ -33,7 +33,7 @@ Hat(n::Integer) = Hat(EquispacedPartition{Float64}(n))
 """
 Return the size of the Hat basis
 """
-Base.length(b::Hat) = length(b.p)
+Base.length(B::Hat) = length(B.p)
 
 """
 Hat function (on the reals)
@@ -184,7 +184,7 @@ function Base.iterate(S::DualComposedWithDynamic{T, D}, state = (1, 1)) where T<
 end
 
 function BasisDefinition.is_dual_element_empty(::Hat, d)
-	# these elements are never empty
+	# TODO: the preim() may indeed be empty, so there could be an additional check here
 	return false
 end
 
@@ -290,7 +290,7 @@ Plots a function in the Hat basis
 end
 
 """
-Displays error on a function in the Ulam basis
+Displays error on a function in the Hat basis
 """
 @recipe function f(B::Hat, error::Number, w)
 

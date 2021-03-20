@@ -5,6 +5,7 @@ using Test
 
     include("TestDynamic.jl")
     include("TestHat.jl")
+    include("TestUlam.jl")
     include("TestAssemble.jl")
     include("TestAssembleHat.jl")
     include("TestEstimate.jl")
