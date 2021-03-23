@@ -30,6 +30,8 @@ include("Norms.jl")
 include("pitrig.jl")
 include("NormsOfPowers.jl")
 
+include("precompile.jl")
+
 export NormKind, L1, Linf, Lipschitz, TotalVariation
 
 export Ulam, PwMap, Mod1Dynamic, Basis, Dynamic, assemble, preim, Hat,
