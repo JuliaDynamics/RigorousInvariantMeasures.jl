@@ -17,39 +17,36 @@ The Ulam approximation schemes works under relatively weak hypothesis on the dyn
 We are currently working on the implementation of the Ulam scheme for system with additive uniform noise, as the one used in
 [[1]](#1)
 
-## Caveat
-The function sinpi is currently only working using the CRlibm.jl
-package, so, be careful when defining the dynamics. The example below, indeed, needs this function to work.
-
 ## Basic Usage
 Examples of usage are present in the directory examples.
 
 ```julia
 using InvariantMeasures
-D = Mod1Dynamic(x -> 4*x + 0.01*InvariantMeasures.sinpi(8*x))
+D = Mod1Dynamic(x -> 4x + 0.01InvariantMeasures.sinpi(8x))
 B = Ulam(1024)
 Q = DiscretizedOperator(B, D)
 ```
 
-The code snippet above defines a dynamic D(x) = 4x+0.01 sin(8πx),
-a basis B associated to the Ulam discretization on a partition of 1024 homogenous interval and computes the discretized operator Q, a Markov chain whose entries are P(T(x)∈ Iᵢ | x ∈ Iⱼ).
+The code snippet above defines a dynamic obtained by reducing f(x) = 4x+0.01 sin(8πx) modulo 1, a basis B associated to the Ulam discretization on a partition of 1024 homogenous intervals, and computes the discretized operator Q, a Markov chain whose entries are P[T(x)∈ Iᵢ | x ∈ Iⱼ].
 
-Note the usage of `InvariantMeasures.sinpi(8*x)` rather than `Base.sinpi` or `Base.sin(8\pi*x)`. This detail is required to ensure that D(8) = 4 exactly.
+Note the usage of `InvariantMeasures.sinpi(8*x)` rather than `Base.sinpi` or `Base.sin(8\pi*x)`. This detail is required to ensure that f(1) == 4 exactly.
 
 ```julia
-norms = norms_of_powers(weak_norm(B), m, Q, integral_covector(B))
+norms = norms = powernormbounds(B, D; Q=Q)
 ```
 
-the function norm of powers computes the L¹ norm of Q when restricted to the space of average 0 vectors. This gives us the a posteriori estimate for the mixing time of the Markov chain and is used in our
-rigorous estimate.
+This function computes the L¹ norm of Q^k, for k = 1,2,...,k_max (up to a sufficiently large number of powers to observe decay) when restricted to the space U of average-0 vectors. This gives us the a posteriori estimate for the mixing time of the Markov chain and is used in our rigorous estimate.
 
 ```julia
 w = invariant_vector(B, Q)
 distance_from_invariant(B, D, Q, w, norms)
 ```
-the computed approximation of the invariant measure of D is stored in w, and `distance_from_invariant` computes an upper bound for the L¹ distance between w and the density of the absolutely continuous invariant measure of the system.
+This computes a (non-rigorous) approximation of the invariant measure of D; then  `distance_from_invariant` computes an upper bound for the L¹ distance between w and the density of the absolutely continuous invariant measure of the system.
 
 Inside the examples it is showed how to use the coarse-fine scheme to obtain better L¹ bounds and reduce the computational time.
+
+### Caveat
+The function `sinpi` in the interval arithmetic package that we are using relies on the `CRlibm.jl` package, which currently works only under Linux. So the examples that use trigonometric functions only work on this OS.
 
 ## References
 <a id="1">[1]</a>
