@@ -67,6 +67,8 @@ Base.eltype(f::DualComposedWithDynamic{<:Ulam, <:Dynamic}) = Tuple{Int64,Tuple{I
 Returns the indices of the elements of the Ulam basis that intersect with the interval y
 We do not assume an order of a and b; this should not matter unless
 the preimages are computed with very low accuracy
+We assume, though, that y comes from the (possibly inexact) numerical approximation
+of an interval in [0,1], i.e., we restrict to y ∩ [0,1]
 """
 function BasisDefinition.nonzero_on(B::Ulam, (a, b))
 	y = hull(a, b)
@@ -76,8 +78,8 @@ function BasisDefinition.nonzero_on(B::Ulam, (a, b))
 	hi = searchsortedlast(B.p, y.hi)
 
 	# they may be n+1 if y.hi==1
-	lo = min(lo, length(B))
-	hi = min(hi, length(B))
+	lo = clamp(lo, 1, length(B))
+	hi = clamp(hi, 1, length(B))
 
 	return (lo, hi)
 end

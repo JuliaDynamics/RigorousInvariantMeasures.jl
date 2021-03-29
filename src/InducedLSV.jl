@@ -10,9 +10,8 @@ the induced map for the Liverani-Saussol-Vaienti maps
 on the interval I = [0.5, 1].
 The interval I is then mapped to [0,1]
 """
-
 struct ApproxInducedLSV <: Dynamic
-	TnlistPlottable::Array{Function, 1}
+	TnListPlottable::Array{Function, 1}
 	nbranches::Integer
 	domains::Array{Interval, 1}
 	α::Real
@@ -27,7 +26,7 @@ end
 function ShootingLSV(n, y, α, rigstep = 10; T = Float64)
 	x = [Interval{T}(0.5, 1); Interval{T}(0, 0.5)*ones(Interval{T}, n-1)]
 	f(x) = 0<=x<=0.5 ? x*(1+(2*x)^α) : 2x-1
-	fprime(x) = 0<=x<=0.5 ? 1+(α+1)*(2*x)^α : 2
+	fprime(x) = 0<=x<=0.5 ? 1+(α+1)*(2*x)^α : 2.
 	return ShootingMethod(f, fprime, n, x, y, rigstep)
 end
 
@@ -83,6 +82,7 @@ DynamicDefinition.nbranches(S::ApproxInducedLSV)=S.nbranches
 DynamicDefinition.is_full_branch(S::ApproxInducedLSV) = true
 
 function _T(x, domains, TnList)
+	@assert 0 ≤ x ≤ 1
 	x = InvCoordinateChange(x)
 	for (i, I) in enumerate(domains)
 		if x in I
@@ -120,7 +120,8 @@ function iterate_LSV(x, i, α)
 	return x
 end
 
-
+using RecipesBase
+@recipe f(::Type{ApproxInducedLSV}, D::ApproxInducedLSV) where {FT} = x -> plottable(D, x)
 
 end
 
@@ -131,12 +132,9 @@ end
 using TaylorSeries: Taylor1
 
 
-
-
-
 function dfly(::Type{TotalVariation}, ::Type{L1}, D::InvariantMeasures.InducedLSVMapDefinition.ApproxInducedLSV)
-	dist = 0
-	lam = 0
+	dist = @interval(0.)
+	lam = @interval(0.)
 	for i in 1:D.nbranches
 		if i==1
 			right = InducedLSVMapDefinition.ShootingLSV(D.nbranches-1, 0.5, D.α)[1]
