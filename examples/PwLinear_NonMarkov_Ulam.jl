@@ -9,10 +9,6 @@ include("warmup.jl")
 
 function runExperiment()
 
-    # number of norms to compute and extend
-    m = 15
-    m_extend = 100
-
     time_assembling = @elapsed begin
 
 		D = PwMap([x->2.5*x, x->4*x-1, x->4*x-2, x-> 4*x-3],
@@ -21,7 +17,7 @@ function runExperiment()
         Q = DiscretizedOperator(B, D)
     end
 
-    time_norms = @elapsed norms = powernormbounds(B, D, m, m_extend; Q=Q)
+    time_norms = @elapsed norms = powernormbounds(B, D; Q=Q)
     time_eigen = @elapsed w = invariant_vector(B, Q)
     time_error = @elapsed error = distance_from_invariant(B, D, Q, w, norms)
 

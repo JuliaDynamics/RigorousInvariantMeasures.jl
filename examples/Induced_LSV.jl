@@ -5,7 +5,7 @@ m = 30
 m_extend = 100
 
 D = ApproxInducedLSV(0.5, 15)
-B = Ulam(1024)
+B = Ulam(128)
 Q = DiscretizedOperator(B, D)
 
 normQ = opnormbound(weak_norm(B), Q)
@@ -23,7 +23,7 @@ better_norms = refine_norms_of_powers(norms, m_extend)
 w = invariant_vector(B, Q)
 @show distance_from_invariant(B, D, Q, w, better_norms)
 
-B_fine = Ulam(8192)
+B_fine = Ulam(1024)
 Q_fine = DiscretizedOperator(B_fine, D)
 norm_Q_fine = opnormbound(weak_norm(B_fine), Q_fine)
 

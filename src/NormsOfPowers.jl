@@ -47,6 +47,10 @@ otherwise they are computed (which may be slower).
 
 e and f must be specified in case is_integral_preserving==false
 In case is_integral_preserving is true, they may be specified but they are then ignored.
+
+Implementation note: currently we perform this computation one column at a time,
+to be able to scale (slowly) to cases with large size; for moderate sizes, it would
+indeed be better to do the computation all columns at the same time, in BLAS level 3.
 """
 function norms_of_powers(N::Type{<:NormKind}, m::Integer, Q::DiscretizedOperator, f::AbstractArray;
         normv0::Real=-1., #used as "missing" value

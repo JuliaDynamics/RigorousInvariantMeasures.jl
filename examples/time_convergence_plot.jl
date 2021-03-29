@@ -9,9 +9,6 @@ T = x->2*x+0.5*x*(1-x)
 Btype = Ulam
 
 function onegrid(T, Btype, size)
-    # number of norms to compute and extend
-    m = 20
-    m_extend = 100
 
     time_assembling = @elapsed begin
         # Note that (unlike the experiment in [Galatolo, Nisoli] paper) we do not need
@@ -24,7 +21,7 @@ function onegrid(T, Btype, size)
         Q = DiscretizedOperator(B, D)
     end
 
-    time_norms = @elapsed norms = powernormbounds(B, D, m, m_extend; Q=Q)
+    time_norms = @elapsed norms = powernormbounds(B, D; Q=Q)
     time_eigen = @elapsed w = invariant_vector(B, Q)
     time_error = @elapsed error = distance_from_invariant(B, D, Q, w, norms)
 
@@ -116,4 +113,4 @@ p4 = plot(
 
 p = plot(p1, p2, p3, p4)
 
-savefig(p, "time_convergence_plot.pdf")
+#savefig(p, "time_convergence_plot.pdf")

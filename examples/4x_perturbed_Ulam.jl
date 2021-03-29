@@ -9,10 +9,6 @@ include("warmup.jl")
 
 function runExperiment()
 
-    # number of norms to compute and extend
-    m = 30
-    m_extend = 100
-
     time_assembling = @elapsed begin
 
         D = Mod1Dynamic(x -> 4*x + 0.01*InvariantMeasures.sinpi(8*x))
@@ -22,7 +18,7 @@ function runExperiment()
         Q = DiscretizedOperator(B, D)
     end
 
-    time_norms = @elapsed norms = powernormbounds(B, D, m, m_extend; Q=Q)
+    time_norms = @elapsed norms = powernormbounds(B, D, Q=Q)
     time_eigen = @elapsed w = invariant_vector(B, Q)
     time_error = @elapsed error = distance_from_invariant(B, D, Q, w, norms)
 

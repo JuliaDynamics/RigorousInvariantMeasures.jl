@@ -96,8 +96,9 @@ end
 """
 Uses different strategies to compute power norm bounds.
 
-`m` norms of powers are estimated computationally, and then
-`m_extend` norms are obtained with a cheaper refinement process.
+If specified, `m` norms of powers are estimated computationally, and then
+`m_extend` norms are obtained with a cheaper refinement process. Otherwise
+these numbers are selected automatically.
 
 A vector of length m_extend is returned, such that norms[k] ≥ ||Q_h^k|_{U_h^0}||
 """
@@ -114,6 +115,37 @@ function powernormbounds(B, D, m, m_extend; Q=DiscretizedOperator(B, D))
 
 	return better_norms
 end
+
+function powernormbounds(B, D; Q=DiscretizedOperator(B, D))
+	m = 8
+	computed_norms = []
+	while true
+		computed_norms = norms_of_powers(weak_norm(B), m, Q, integral_covector(B))
+		if any(computed_norms .< 1)
+			break
+		end
+		m = 2*m
+	end
+	trivial_norms = norms_of_powers_trivial(weak_norm(B), Q, m)
+	(dfly_strongs, dfly_norms) = norms_of_powers_dfly(B, D, m)
+	# in the current version, dfly_norms seem to be always larger and could be omitted
+	# however they do not cost much to compute
+	norms = min.(trivial_norms, computed_norms, dfly_norms)
+
+	m_extend = 2*m
+	better_norms = []
+	while true
+		better_norms = refine_norms_of_powers(norms, m_extend)
+		if better_norms[end] < 1e-8
+			break
+		end
+		m_extend = 2*m_extend
+	end
+
+	return better_norms
+
+end
+
 
 """
 Uses power norm bounds already computed for a coarse operator to estimate
