@@ -226,8 +226,8 @@ Estimate ||I + Q + Q^2 + … || (infinite sum) using a list of computed norm bou
 """
 function infinite_sum_norms(norms::Vector)
     m = length(norms)
-    if norms[m] > 1
-        @error "The last norm is > 1: the bounds are not sufficient to show that the sum converges"
+    if norms[m] >= 1
+        @error "The last norm is >= 1: the bounds are not sufficient to show that the sum converges"
     end
     S = 1.
     for k = 1:m-1

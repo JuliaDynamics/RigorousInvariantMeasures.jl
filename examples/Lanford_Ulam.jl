@@ -10,7 +10,7 @@ include("warmup.jl")
 function runExperiment()
 
     # number of norms to compute and extend
-    m = 15
+    m = 20
     m_extend = 100
 
     time_assembling = @elapsed begin
