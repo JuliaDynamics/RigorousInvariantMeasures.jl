@@ -29,19 +29,22 @@ computed_norms = norms_of_powers(weak_norm(B), num_norms, Q, integral_covector(B
 norms = min.(trivial_norms, computed_norms, dfly_norms)
 better_norms = refine_norms_of_powers(norms, num_norms)
 
+pgfplotsx()
 p = plot(trivial_norms,
-    label = "power of ||Q||",
+    label = L"$\|Q\|^k$",
     yscale = :log10,
     legend = :bottomleft,
     title = "Various bounds for norms of powers",
-    xlabel = "k",
-    ylabel = "bound to ||Q^k|_U||"
+    xlabel = L"$k$",
+    ylabel = L"bound to $\|Q^k|_U\|$"
     )
 plot!(p, computed_norms,
-    label = "computational bound")
+    label = "computational bounds")
 
 plot!(p, dfly_norms,
-    label = "DFLY 2x2 matrix bound")
+    label = L"DFLY $2\times 2$ matrix bounds")
 
 plot!(p, better_norms,
-    label = "minimum + refinement")
+    label = "min(previous) + refinement")
+
+# savefig(p, "norm_bounds_kinds.tikz")

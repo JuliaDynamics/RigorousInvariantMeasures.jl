@@ -5,15 +5,9 @@ using Plots
 using LaTeXStrings
 using StatsPlots
 
-T = x->2*x+0.5*x*(1-x)
-Btype = Ulam
-
 function onegrid(T, Btype, size)
 
     time_assembling = @elapsed begin
-        # Note that (unlike the experiment in [Galatolo, Nisoli] paper) we do not need
-        # to take Iterate(D, 2) here
-
         D = Mod1Dynamic(T)
         # different backend, a tad slower
         # D = mod1_dynamic(x -> x->2*x+0.5*x*(1-x))
@@ -44,73 +38,78 @@ function twogrid(Btype, size, (B, D, norms, time_coarse))
     return times_fine, error_fine
 end
 
-n_onegrid = 2 .^ (8:11)
-times_onegrid = fill(NaN, length(n_onegrid), 5)
-errors_onegrid = fill(NaN, size(n_onegrid))
-onegrid(T, Btype, n_onegrid[1]) #warmup
-for i in 1:length(n_onegrid)
-    times_onegrid[i,:], errors_onegrid[i], _ = onegrid(T, Btype, n_onegrid[i])
+function time_convergence_plot(T, Btype, n_onegrid, n_twogrid)
+
+    times_onegrid = fill(NaN, length(n_onegrid), 5)
+    errors_onegrid = fill(NaN, size(n_onegrid))
+    onegrid(T, Btype, n_onegrid[1]) #warmup
+    for i in 1:length(n_onegrid)
+        times_onegrid[i,:], errors_onegrid[i], _ = onegrid(T, Btype, n_onegrid[i])
+    end
+
+    _, _, coarse_data = onegrid(T, Btype, 1024)
+    times_twogrid = fill(NaN, length(n_twogrid), 5)
+    errors_twogrid = fill(NaN, size(n_twogrid))
+
+    twogrid(Btype, n_twogrid[1], coarse_data) #warmup
+    for i in 1:length(n_twogrid)
+        times_twogrid[i,:], errors_twogrid[i] = twogrid(Btype, n_twogrid[i], coarse_data)
+    end
+
+    pgfplotsx()
+    p1 = groupedbar(
+        times_onegrid,
+        bar_position = :stack,
+        legend = :topleft,
+        label = ["err" "eigen" "norm" "matrix" "coarse"],
+        title = "CPU time breakdown (s)",
+        xticks = (1:length(n_onegrid), string.(n_onegrid)),
+        link = :y,
+    )
+
+    p2 = groupedbar(
+        times_twogrid,
+        bar_position = :stack,
+        legend = false,
+    #    legend = :topleft,
+    #    label = ["err" "eigen" "norm" "matrix" "coarse"],
+        title = "CPU time breakdown (s)",
+        xticks = (1:length(n_twogrid), string.(n_twogrid)),
+        link = :y,
+    )
+
+    p3 = plot(
+        n_onegrid,
+        errors_onegrid,
+        title = "Error",
+        mark = :dot,
+        yscale = :log10,
+        xscale = :log10,
+        xticks = (n_onegrid, string.(n_onegrid)),
+        label = "One-grid strategy",
+        legend = :bottomleft,
+        link = :y,
+    )
+
+
+    p4 = plot(
+        n_twogrid,
+        errors_twogrid,
+        title = "Error",
+        mark = :dot,
+        yscale = :log10,
+        xscale = :log10,
+        color = :red,
+        xticks = (n_twogrid, string.(n_twogrid)),
+        label = "Two-grid strategy",
+        legend = :bottomleft,
+        link = :y,
+    )
+
+    p = plot(p1, p2, p3, p4)
+
 end
 
-n_twogrid = 2 .^ (11:16)
-_, _, coarse_data = onegrid(T, Btype, 1024)
-times_twogrid = fill(NaN, length(n_twogrid), 5)
-errors_twogrid = fill(NaN, size(n_twogrid))
+p = time_convergence_plot(x->2x+0.5x*(1-x), Ulam, 2 .^ (8:11), 2 .^ (11:16))
 
-twogrid(Btype, n_twogrid[1], coarse_data) #warmup
-for i in 1:length(n_twogrid)
-    times_twogrid[i,:], errors_twogrid[i] = twogrid(Btype, n_twogrid[i], coarse_data)
-end
-
-p1 = groupedbar(
-    times_onegrid,
-    bar_position = :stack,
-    legend = :topleft,
-    label = ["err" "eigen" "norm" "matrix" "coarse"],
-    title = "CPU time breakdown (s)",
-    xticks = (1:length(n_onegrid), string.(n_onegrid)),
-    link = :y,
-)
-
-p2 = groupedbar(
-    times_twogrid,
-    bar_position = :stack,
-    legend = false,
-#    legend = :topleft,
-#    label = ["err" "eigen" "norm" "matrix" "coarse"],
-    title = "CPU time breakdown (s)",
-    xticks = (1:length(n_twogrid), string.(n_twogrid)),
-    link = :y,
-)
-
-p3 = plot(
-    n_onegrid,
-    errors_onegrid,
-    title = "Error",
-    mark = :dot,
-    yscale = :log10,
-    xscale = :log10,
-    xticks = (n_onegrid, string.(n_onegrid)),
-    label = "One-grid strategy",
-    legend = :bottomleft,
-    link = :y,
-)
-
-
-p4 = plot(
-    n_twogrid,
-    errors_twogrid,
-    title = "Error",
-    mark = :dot,
-    yscale = :log10,
-    xscale = :log10,
-    color = :red,
-    xticks = (n_twogrid, string.(n_twogrid)),
-    label = "Two-grid strategy",
-    legend = :bottomleft,
-    link = :y,
-)
-
-p = plot(p1, p2, p3, p4)
-
-#savefig(p, "time_convergence_plot.pdf")
+# savefig(p, "time_convergence_plot.tikz")
