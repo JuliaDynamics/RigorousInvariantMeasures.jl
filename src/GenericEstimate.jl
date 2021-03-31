@@ -121,7 +121,7 @@ function powernormbounds(B, D; Q=DiscretizedOperator(B, D))
 	computed_norms = []
 	while true
 		computed_norms = norms_of_powers(weak_norm(B), m, Q, integral_covector(B))
-		if any(computed_norms .< 1)
+		if any(computed_norms .< 0.1)
 			break
 		end
 		m = 2*m
