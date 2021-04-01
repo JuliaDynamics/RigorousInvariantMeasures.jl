@@ -5,6 +5,8 @@ using Plots
 using LaTeXStrings
 using StatsPlots
 
+pgfplotsx()
+
 function onegrid(T, Btype, size)
 
     time_assembling = @elapsed begin
@@ -38,7 +40,8 @@ function twogrid(Btype, size, (B, D, norms, time_coarse))
     return times_fine, error_fine
 end
 
-function time_convergence_plot(T, Btype, n_onegrid, n_twogrid)
+function time_convergence_plot(T, Btype, k_onegrid, k_twogrid)
+    n_onegrid = 2 .^ k_onegrid
 
     times_onegrid = fill(NaN, length(n_onegrid), 5)
     errors_onegrid = fill(NaN, size(n_onegrid))
@@ -47,6 +50,7 @@ function time_convergence_plot(T, Btype, n_onegrid, n_twogrid)
         times_onegrid[i,:], errors_onegrid[i], _ = onegrid(T, Btype, n_onegrid[i])
     end
 
+    n_twogrid = 2 .^ k_twogrid
     _, _, coarse_data = onegrid(T, Btype, 1024)
     times_twogrid = fill(NaN, length(n_twogrid), 5)
     errors_twogrid = fill(NaN, size(n_twogrid))
@@ -56,14 +60,13 @@ function time_convergence_plot(T, Btype, n_onegrid, n_twogrid)
         times_twogrid[i,:], errors_twogrid[i] = twogrid(Btype, n_twogrid[i], coarse_data)
     end
 
-    pgfplotsx()
     p1 = groupedbar(
         times_onegrid,
         bar_position = :stack,
-        legend = :topleft,
+        legend = false,
         label = ["err" "eigen" "norm" "matrix" "coarse"],
         title = "CPU time breakdown (s)",
-        xticks = (1:length(n_onegrid), string.(n_onegrid)),
+        xticks = (1:length(n_onegrid), LaTeXString.(raw"2^{" .* string.(k_onegrid) .* raw"}")),
         link = :y,
     )
 
@@ -71,10 +74,9 @@ function time_convergence_plot(T, Btype, n_onegrid, n_twogrid)
         times_twogrid,
         bar_position = :stack,
         legend = false,
-    #    legend = :topleft,
-    #    label = ["err" "eigen" "norm" "matrix" "coarse"],
+        label = ["err" "eigen" "norm" "matrix" "coarse"],
         title = "CPU time breakdown (s)",
-        xticks = (1:length(n_twogrid), string.(n_twogrid)),
+        xticks = (1:length(n_twogrid), LaTeXString.(raw"2^{" .* string.(k_twogrid) .* raw"}")),
         link = :y,
     )
 
@@ -85,7 +87,7 @@ function time_convergence_plot(T, Btype, n_onegrid, n_twogrid)
         mark = :dot,
         yscale = :log10,
         xscale = :log10,
-        xticks = (n_onegrid, string.(n_onegrid)),
+        xticks = (n_onegrid, LaTeXString.(raw"2^{" .* string.(k_onegrid) .* raw"}" )),
         label = "One-grid strategy",
         legend = :bottomleft,
         link = :y,
@@ -100,7 +102,7 @@ function time_convergence_plot(T, Btype, n_onegrid, n_twogrid)
         yscale = :log10,
         xscale = :log10,
         color = :red,
-        xticks = (n_twogrid, string.(n_twogrid)),
+        xticks = (n_twogrid, LaTeXString.(raw"2^{" .* string.(k_twogrid) .* raw"}")),
         label = "Two-grid strategy",
         legend = :bottomleft,
         link = :y,
@@ -110,6 +112,10 @@ function time_convergence_plot(T, Btype, n_onegrid, n_twogrid)
 
 end
 
-p = time_convergence_plot(x->2x+0.5x*(1-x), Ulam, 2 .^ (8:11), 2 .^ (11:16))
+p = time_convergence_plot(x->2x+0.5x*(1-x), Ulam, 8:11, 11:14)
+
+# large-scale version:
+# p = time_convergence_plot(x->2x+0.5x*(1-x), Ulam, 8:14, 13:26); savefig(p, "time_convergence_plot.tikz"); savefig(p, "time_convergence_plot.pdf");
+
 
 # savefig(p, "time_convergence_plot.tikz")
