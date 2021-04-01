@@ -23,7 +23,7 @@ ValidatedNumerics = "d621b6e3-7715-5857-9c6f-c67000ef6083"
 
 [compat]
 Arpack = "0.4.0"
-CRlibm = "0.8.0"
+CRlibm = "0.8.0, 1.0"
 DualNumbers = "0.6.4"
 FastRounding = "0.2.0"
 IntervalArithmetic = "0.17.7"
