@@ -1,7 +1,7 @@
 module Contractors
 using ValidatedNumerics
 
-export N_rig, root, range_estimate, ShootingMethod
+export N_rig, root, range_estimate, ShootingMethod, nthpreimage
 
 """
 Step of rigorous Newton (possibly multivariate)
@@ -26,12 +26,15 @@ x must be an Interval (univariate) or IntervalBox (multivariate)
 root(f, x, ϵ; max_iter = 100) = root(f, derivative(f), x, ϵ; max_iter = max_iter)
 
 function root(f, f′, x, ϵ; max_iter = 100)
-#	@debug x
 	for i in 1:max_iter
+		x_old = x
 		x = N_rig(f, f′, x)
 		if diam(x) < ϵ
 			return x
 		end
+		# if x_old == x
+		# 	return x
+		# end
 		if isempty(x)
 			return x
 		end
@@ -76,4 +79,35 @@ function ShootingMethod(f, fprime, n, x, y, rigstep = 10)
 	return x
 end
 
+"""
+Newer version of the 'shooting method' to compute the kth preimage of a point (or interval y)
+fs contains k functions, X contains their domains. This computes a solution of
+fk(f_{k-1}( ...  f1(x) ... )) = y.
+
+Tries to avoid allocations and stuff.
+"""
+function nthpreimage!(X, fs, y; max_iter = 100)
+	newX = zero(X)
+	Xmid = zero(X)
+	b = zero(X)
+	n = length(X)
+	for i in 1:max_iter
+		Xmid .= Interval.(mid.(X))
+		for i = 1:n-1
+			b[i] = fs[i](Xmid[i]) - Xmid[i+1]
+		end
+		b[end] = fs[end](Xmid[end]) - y
+		newX[end] = b[end] / derivative(fs[end])(X[end])
+		for i = length(X)-1:-1:1
+			newX[i] = (b[i] + newX[i+1]) / derivative(fs[i])(X[i])
+		end
+		newX .= intersect.(Xmid - newX, X)
+		if isempty(newX) || newX == X
+			return newX
+		end
+		X .= newX
+	end
 end
+
+
+end #module
