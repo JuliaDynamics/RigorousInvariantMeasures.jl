@@ -17,11 +17,11 @@ Each branch must be monotonic.
 
 We set is_full[k]==true if we can prove/assume that the kth branch is full, i.e., Ts[k](endpoints[k])==0 and Ts[k](endpoints[k+1])==1 or vice versa.
 """
-struct PwMap <: Dynamic
-	Ts::Array{Function, 1}
-	endpoints::Array{Interval{Float64}, 1}
-	is_full
-	orientations # these will be filled in automatically, usually
+struct PwMap{FT} <: Dynamic
+	Ts::FT
+	endpoints::Vector{Interval{Float64}}
+	is_full::Vector{Bool}
+	orientations::Vector{Float64} # these will be filled in automatically, usually
 end
 
 Base.show(io::IO, D::PwMap) = print(io, "Piecewise-defined dynamic with $(nbranches(D)) branches")
@@ -29,7 +29,7 @@ Base.show(io::IO, D::PwMap) = print(io, "Piecewise-defined dynamic with $(nbranc
 DynamicDefinition.domain(S::PwMap) = hull(S.endpoints[1], S.endpoints[end])
 
 PwMap(Ts, endpoints) = PwMap(Ts, endpoints, fill(false, length(endpoints)-1))
-PwMap(Ts, endpoints, is_full) = PwMap(Ts, map(Interval, endpoints), is_full, [sign(derivative(Ts[i], (endpoints[i]+endpoints[i+1])/2)) for i in 1:length(endpoints)-1])
+PwMap(Ts, endpoints, is_full) = PwMap{typeof(Ts)}(Ts, map(Interval, endpoints), is_full, [sign(derivative(Ts[i], (endpoints[i]+endpoints[i+1])/2)) for i in 1:length(endpoints)-1])
 
 DynamicDefinition.nbranches(D::PwMap) = length(D.endpoints)-1
 DynamicDefinition.endpoints(D::PwMap) = D.endpoints

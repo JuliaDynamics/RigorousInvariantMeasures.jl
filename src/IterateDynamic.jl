@@ -96,13 +96,9 @@ function DynamicDefinition.preim(D::Iterate, k, y, ϵ=1e-15; max_iter = 100)
 
     v = unpack(k, nbranches(D.D), n)
 
-    # Uses the "shooting method", i.e., the multivariate interval Newton method on
-    # [f(x_1)-x_2, f(x_2)-x_3, ..., f(x_{n})-y] == 0
-
-    f = x -> [D.D.Ts[v[i]](x[i]) for i in 1:n] - [x[2:end]; y]
-    f′ = x -> Bidiagonal([derivative(D.D.Ts[v[i]], x[i]) for i in 1:n],  fill(-Interval(1.), n-1), :U)
-    S = IntervalBox(hull(D.D.endpoints[v[i]], D.D.endpoints[v[i]+1]) for i in 1:n)
-    return root(f, f′, S, ϵ; max_iter = max_iter)[1]
+    fs = D.D.Ts[v]
+    S = [hull(D.D.endpoints[v[i]], D.D.endpoints[v[i]+1]) for i in 1:n]
+    return nthpreimage!(S, fs, y)[1]
 end
 
 function DynamicDefinition.plottable(D::Iterate, x)

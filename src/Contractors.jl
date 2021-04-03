@@ -80,7 +80,8 @@ end
 Newer version of the 'shooting method' to compute the kth preimage of a point (or interval y)
 fs contains k functions, X contains their domains. This computes a solution of
 fk(f_{k-1}( ...  f1(x) ... )) = y.
-Overwrites X with the solution, for performance reasons
+Overwrites X with [x f1(x) f2(f1(x)) ... f_{k-1}(...)], so the
+true solution is X[1].
 
 Tries to avoid allocations and stuff.
 """
