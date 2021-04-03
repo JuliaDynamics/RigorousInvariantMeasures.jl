@@ -24,14 +24,20 @@ Base.length(S::DualComposedWithDynamic{<:Ulam, <:Dynamic}) = length(S.basis) * n
 Returns dual elements which are pairs (i, (a,b))
 i is an interval index, and (a,b) are the endpoints of its preimage
 """
-function Base.iterate(S::DualComposedWithDynamic{<:Ulam, <:Dynamic}, state = (1, 1))
-	i, k = state
+function Base.iterate(S::DualComposedWithDynamic{<:Ulam, <:Dynamic}, state = (1, 1, nothing))
+	# a = preim(S.dynamic, k, S.basis.p[i], S.ϵ) is cached in the state (when i \neq 1)
+	i, k, a = state
 
-	if i == length(S.basis)+1
-			return nothing
+	if k == nbranches(S.dynamic)+1
+		return nothing
 	end
 
-	a = preim(S.dynamic, k, S.basis.p[i], S.ϵ)
+	if a == nothing
+		@assert i==1
+		a = preim(S.dynamic, k, S.basis.p[i], S.ϵ)
+	end
+
+	# a = preim(S.dynamic, k, S.basis.p[i], S.ϵ) # moved into state
 	b = preim(S.dynamic, k, S.basis.p[i+1], S.ϵ)
 
 	if isempty(a) && !isempty(b)
@@ -54,10 +60,10 @@ function Base.iterate(S::DualComposedWithDynamic{<:Ulam, <:Dynamic}, state = (1,
 	# but it won't matter unless a,b are computed with very low precision
 	a, b = min(a,b), max(a,b)
 
-	if k == nbranches(S.dynamic)
-		return ((i, (a, b)), (i+1, 1))
+	if i == length(S.basis)
+		return ((i, (a, b)), (1, k+1, nothing))
 	else
-		return ((i, (a, b)), (i, k+1))
+		return ((i, (a, b)), (i+1, k, b))
 	end
 end
 
