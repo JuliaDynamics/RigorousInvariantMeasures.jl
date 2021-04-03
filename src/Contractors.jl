@@ -1,15 +1,7 @@
 module Contractors
 using ValidatedNumerics
 
-export N_rig, root, range_estimate, ShootingMethod, nthpreimage!
-
-"""
-Step of rigorous Newton (possibly multivariate)
-"""
-function N_rig(f, f′, x)
-	x_mid = Interval.(mid.(x))
-	return intersect(x, x_mid - f′(x) \ f(x_mid))
-end
+export root, range_estimate, ShootingMethod, nthpreimage!
 
 # this seems slower
 #using TaylorSeries
@@ -31,7 +23,8 @@ root(f, x, ϵ; max_iter = 100) = root(f, derivative(f), x, ϵ; max_iter = max_it
 function root(f, f′, x, ϵ; max_iter = 100)
 	for i in 1:max_iter
 		x_old = x
-		x = N_rig(f, f′, x)
+		x_mid = Interval(mid(x))
+		x = intersect(x, x_mid - f′(x) \ f(x_mid))
 		if x_old == x || isempty(x) || diam(x) < ϵ
 			return x
 		end
