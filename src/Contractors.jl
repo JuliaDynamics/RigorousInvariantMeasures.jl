@@ -1,7 +1,7 @@
 module Contractors
 using ValidatedNumerics
 
-export N_rig, root, range_estimate, ShootingMethod, nthpreimage
+export N_rig, root, range_estimate, ShootingMethod, nthpreimage!
 
 """
 Step of rigorous Newton (possibly multivariate)
@@ -22,6 +22,9 @@ derivative(f) = x->f(Dual(x, 1..1)).epsilon
 Compute a single root with (possibly multivariate) interval Newton
 
 x must be an Interval (univariate) or IntervalBox (multivariate)
+
+Stops when the interval reaches a fixed point, when the diameter is smaller than ε,
+or when max_iter iterations are reached (with an error)
 """
 root(f, x, ϵ; max_iter = 100) = root(f, derivative(f), x, ϵ; max_iter = max_iter)
 
@@ -29,13 +32,7 @@ function root(f, f′, x, ϵ; max_iter = 100)
 	for i in 1:max_iter
 		x_old = x
 		x = N_rig(f, f′, x)
-		if diam(x) < ϵ
-			return x
-		end
-		# if x_old == x
-		# 	return x
-		# end
-		if isempty(x)
+		if x_old == x || isempty(x) || diam(x) < ϵ
 			return x
 		end
 	end
@@ -89,17 +86,12 @@ Tries to avoid allocations and stuff.
 function nthpreimage!(X, fs, y; max_iter = 100)
 	newX = zero(X)
 	Xmid = zero(X)
-	b = zero(X)
 	n = length(X)
 	for i in 1:max_iter
 		Xmid .= Interval.(mid.(X))
-		for i = 1:n-1
-			b[i] = fs[i](Xmid[i]) - Xmid[i+1]
-		end
-		b[end] = fs[end](Xmid[end]) - y
-		newX[end] = b[end] / derivative(fs[end])(X[end])
+		newX[end] = (fs[end](Xmid[end]) - y) / derivative(fs[end])(X[end])
 		for i = length(X)-1:-1:1
-			newX[i] = (b[i] + newX[i+1]) / derivative(fs[i])(X[i])
+			newX[i] = (fs[i](Xmid[i]) - Xmid[i+1] + newX[i+1]) / derivative(fs[i])(X[i])
 		end
 		newX .= intersect.(Xmid - newX, X)
 		if isempty(newX) || newX == X
@@ -107,7 +99,8 @@ function nthpreimage!(X, fs, y; max_iter = 100)
 		end
 		X .= newX
 	end
+	@info "Maximum iterates reached" max_iter
+	return X
 end
-
 
 end #module
