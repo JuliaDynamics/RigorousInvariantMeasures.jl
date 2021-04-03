@@ -10,7 +10,7 @@ import LinearAlgebra: mul!
 """
 Very generic assembler function
 """
-function assemble(B::Basis, D::Dynamic, ϵ=2^(-40); T = Float64)
+function assemble(B::Basis, D::Dynamic, ϵ=0.0; T = Float64)
 	I = Int64[]
 	J = Int64[]
 	nzvals = Interval{T}[]
@@ -56,7 +56,7 @@ LinearAlgebra.issymmetric(Q::NonIntegralPreservingDiscretizedOperator) = issymme
 
 opnormbound(N::Type{<:NormKind}, Q::IntegralPreservingDiscretizedOperator) = opnormbound(N, Q.L)
 
-function DiscretizedOperator(B, D, ϵ=2^(-40); T = Float64)
+function DiscretizedOperator(B, D, ϵ=0.0; T = Float64)
 	L = assemble(B, D, ϵ; T)
 	if is_integral_preserving(B)
 		return IntegralPreservingDiscretizedOperator(L)
