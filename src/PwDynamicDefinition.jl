@@ -29,7 +29,7 @@ Base.show(io::IO, D::PwMap) = print(io, "Piecewise-defined dynamic with $(nbranc
 DynamicDefinition.domain(S::PwMap) = hull(S.endpoints[1], S.endpoints[end])
 
 PwMap(Ts, endpoints) = PwMap(Ts, endpoints, fill(false, length(endpoints)-1))
-PwMap(Ts, endpoints, is_full) = PwMap{typeof(Ts)}(Ts, map(Interval, endpoints), is_full, [sign(derivative(Ts[i], (endpoints[i]+endpoints[i+1])/2)) for i in 1:length(endpoints)-1])
+PwMap(Ts, endpoints, is_full) = PwMap{typeof(Ts)}(Ts, map(Interval, endpoints), is_full, [unique_sign(Ts[k](@interval(endpoints[k+1])) - Ts[k](@interval(endpoints[k]))) for k=1:length(Ts)])
 
 DynamicDefinition.nbranches(D::PwMap) = length(D.endpoints)-1
 DynamicDefinition.endpoints(D::PwMap) = D.endpoints

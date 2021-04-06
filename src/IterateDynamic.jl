@@ -26,15 +26,22 @@ DynamicDefinition.is_full_branch(D::Iterate) = is_full_branch(D.D)
 DynamicDefinition.domain(D::Iterate) = domain(D.D)
 
 """
-Find discontinuity points of f ∘ g, where g has discontinuity points endpoints
-and f is a given PwMap.
-"endpoints" alsways include the extrema of the given domain.
-It is assumed that f and g have the same domain.
+compose_endpoints(D, endpointsf)
+
+Find discontinuity points of f ∘ D, where f has discontinuity points endpointsf
+and D is a given PwMap.
+"endpoints" always include the extrema of the given domain.
 """
-function compose_endpoints(D, endpoints)
+function compose_endpoints(D, endpointsf)
     v = [D.endpoints[1]]
     for k = 1:nbranches(D)
-        append!(v, preim(D, k, x) for x in endpoints[2:end-1])
+        preims = [preim(D, k, x) for x in endpointsf[2:end-1]]
+        if orientation(D, k) > 0
+            # TODO: still trouble if the branches are not full
+            append!(v, preims)
+        else
+            append!(v, preims[end:-1:1])
+        end
         append!(v, [D.endpoints[k+1]])
     end
     return v
@@ -50,6 +57,8 @@ function DynamicDefinition.endpoints(D::Iterate)
 end
 
 """
+unpack(k, b, D)
+
 Convert an integer k∈[1,b^n] into a tuple ∈[1,b]^n bijectively
 
 This is used to index preimages: the k'th of the b^n preimages of an Iterate
