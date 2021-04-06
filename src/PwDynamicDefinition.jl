@@ -4,7 +4,7 @@ using ..DynamicDefinition
 using ..Contractors
 using TaylorSeries: Taylor1
 
-using ..DynamicDefinition: derivative
+using ..DynamicDefinition: derivative, orientation
 
 export PwMap, preim, nbranches, plottable
 
@@ -33,6 +33,8 @@ PwMap(Ts, endpoints, is_full) = PwMap{typeof(Ts)}(Ts, map(Interval, endpoints), 
 
 DynamicDefinition.nbranches(D::PwMap) = length(D.endpoints)-1
 DynamicDefinition.endpoints(D::PwMap) = D.endpoints
+
+DynamicDefinition.orientation(D::PwMap, k) = D.orientations[k]
 
 DynamicDefinition.is_full_branch(D::PwMap) = all(D.is_full)
 

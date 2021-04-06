@@ -101,16 +101,16 @@ function DynamicDefinition.preim(D::Iterate, k, y, ϵ=1e-15; max_iter = 100)
     return nthpreimage!(S, fs, y)[1]
 end
 
+function DynamicDefinition.orientation(D::Iterate, k)
+    v = unpack(k, nbranches(D.D), D.n)
+    return prod([orientation(D.D, k) for k in v])
+end
+
 function DynamicDefinition.plottable(D::Iterate, x)
 	@assert 0 <= x <= 1
     for k = 1:D.n
         x = DynamicDefinition.plottable(D.D, x)
-        if x < 0
-            x = 0
-        end
-        if x > 1
-            x = 1
-        end
+        x = clamp(x, 0, 1)
     end
     return x
 end

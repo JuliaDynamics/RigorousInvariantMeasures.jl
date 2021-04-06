@@ -6,7 +6,7 @@ module DynamicDefinition
 
 using ValidatedNumerics
 using TaylorSeries:Taylor1
-export Dynamic, MarkovDynamic, preim, nbranches, plottable, is_full_branch, domain, derivative, distorsion, endpoints, branch, expansivity, max_distorsion, orientation
+export Dynamic, MarkovDynamic, preim, nbranches, plottable, is_full_branch, domain, derivative, distorsion, endpoints, branch, expansivity, max_distorsion, orientation, unique_sign
 
 abstract type Dynamic end
 abstract type MarkovDynamic <: Dynamic end
@@ -15,7 +15,13 @@ domain(S::Dynamic) = @error "Not implemented"
 nbranches(S::Dynamic) = @error "Not implemented"
 branch(S::Dynamic, k) = @error "Not implemented"
 plottable(S::Dynamic) = @error "Not implemented"
-preim(S::Dynamic, k, y, ϵ) = @error "Not implemented"
+
+"""
+preim(S::Dynamic, k, y, ϵ)
+
+Computes the preim of y in branch k of a dynamic, with accuracy ϵ
+"""
+function preim end
 is_full_branch(S::Dynamic) = @error "Not implemented"
 
 """
@@ -62,15 +68,22 @@ function max_distorsion(D::Dynamic, tol=1e-3)
 end
 
 """
-Orientation of branch k: 1 for increasing, -1 for decreasing
+orientation(D, k)
+
+Orientation of branch k: 1. for increasing, -1. for decreasing
 """
-function orientation(D::Dynamic, k)
-	ep = endpoints(D)
-	a = branch(D, k)(ep[k])
-	b = branch(D, k)(ep[k+1])
-	orient = sign(b-a)
-	@assert isthin(orient)
-	return orient.hi
+function orientation end
+
+"""
+unique_sign(x)
+
+Sign of an interval, but requiring that it's unique.
+Used by various functions to compute orientations
+"""
+function unique_sign(x)
+	s = sign(x)
+	@assert isthin(s)
+	return s.hi
 end
 
 end
