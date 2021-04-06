@@ -95,6 +95,6 @@ function DynamicDefinition.plottable(D::PwMap, x)
 end
 
 using RecipesBase
-@recipe f(::Type{PwMap}, D::PwMap) = x -> plottable(D, x)
+@recipe f(::Type{PM}, D::PM) where {PM <: PwMap} = x -> plottable(D, x)
 
 end
