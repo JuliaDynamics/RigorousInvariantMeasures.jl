@@ -56,10 +56,6 @@ function Base.iterate(S::DualComposedWithDynamic{<:Ulam, <:Dynamic}, state = (1,
 		end
 	end
 
-	# this is a bit lazy because we could compute orientations and tell which is which
-	# but it won't matter unless a,b are computed with very low precision
-	a, b = min(a,b), max(a,b)
-
 	if i == length(S.basis)
 		return ((i, (a, b)), (1, k+1, nothing))
 	else
@@ -95,6 +91,10 @@ Relative measure of the intersection of (a,b) wrt the whole interval (c,d)
 Assumes that a,b and c,d are sorted correctly
 """
 function relative_measure((a,b)::Tuple{<:Interval,<:Interval}, (c,d)::Tuple{<:Interval,<:Interval})
+	# this is a bit lazy because we could compute orientations and tell which is which
+	# but it won't matter unless a,b are computed with very low precision
+	a, b = min(a,b), max(a,b)
+
 	lower = max(a, c)
 	upper = min(b, d)
 	intersection = max(upper - lower, 0) / (d-c)
