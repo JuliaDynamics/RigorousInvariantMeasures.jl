@@ -147,4 +147,10 @@ bound_linalg_norm_L∞_from_weak(B::Basis) = @error "Not implemented"
 """
 invariant_measure_strong_norm_bound(B::Basis, D::Dynamic) = @error "Must be specialized"
 
+
+"""
+	Returns an a priori bound on the weak norm of the abstract operator L
+"""
+bound_weak_norm_abstract(B::Basis) = @error "Must be specialized"
+
 end

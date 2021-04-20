@@ -50,4 +50,6 @@ include("InducedLSV.jl")
 using .InducedLSVMapDefinition
 export ApproxInducedLSV
 
+include("ConvergenceRatesOriginal.jl")
+
 end

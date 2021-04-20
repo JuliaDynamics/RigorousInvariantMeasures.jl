@@ -161,6 +161,7 @@ BasisDefinition.weak_by_strong_and_aux_bound(B::Ulam) = (0., 1.)
 BasisDefinition.bound_weak_norm_from_linalg_norm(B::Ulam) = (1., 0.)
 BasisDefinition.bound_linalg_norm_L1_from_weak(B::Ulam) = 1.
 BasisDefinition.bound_linalg_norm_L∞_from_weak(B::Ulam) = Float64(length(B), RoundUp)
+BasisDefinition.bound_weak_norm_abstract(B::Ulam) = 1.
 
 function BasisDefinition.invariant_measure_strong_norm_bound(B::Ulam, D::Dynamic)
 	A, B = dfly(strong_norm(B), aux_norm(B), D)

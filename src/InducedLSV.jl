@@ -153,5 +153,5 @@ function dfly(::Type{TotalVariation}, ::Type{L1}, D::InvariantMeasures.InducedLS
     		lam = max(lam, maximise(lambda, D.domains[i])[1].hi)
 		end
 	end
-	return lam, dist
+	return lam.hi, dist.hi
 end
