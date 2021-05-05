@@ -78,7 +78,7 @@ true solution is X[1].
 
 Tries to avoid allocations and stuff.
 """
-function nthpreimage!(X, fs, y; max_iter = 100)
+function nthpreimage!(y, fs, X; max_iter = 100)
 	newX = zero(X)
 	Xmid = zero(X)
 	n = length(X)

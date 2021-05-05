@@ -12,17 +12,17 @@ using ValidatedNumerics
 fs = (x -> x^2, x -> x^3)
 X = [0..1, 0..1]
 y = 0.1
-nthpreimage!(X, fs, y; max_iter = 100)
+nthpreimage!(y, fs, X; max_iter = 100)
 @test X[1]^6 ≈ y
 @test X[2]^3 ≈ y
 X = @MVector[0..1, 0..1]
-nthpreimage!(X, fs, y; max_iter = 9)
+nthpreimage!(y, fs, X; max_iter = 9)
 @test X[1]^6 ≈ y
 @test X[2]^3 ≈ y
 
 fs = (x -> x^2, x -> x^3, x -> x^4)
 X = @MVector[0..1, 0..1, 0..1]
-nthpreimage!(X, fs, y)
+nthpreimage!(y, fs, X)
 @test X[1]^24 ≈ y
 
 end #testset

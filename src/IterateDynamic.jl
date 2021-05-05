@@ -107,7 +107,7 @@ function DynamicDefinition.preim(D::Iterate, k, y, ϵ=1e-15; max_iter = 100)
 
     fs = D.D.Ts[v]
     S = [hull(D.D.endpoints[v[i]], D.D.endpoints[v[i]+1]) for i in 1:n]
-    return nthpreimage!(S, fs, y)[1]
+    return nthpreimage!(y, fs, S)[1]
 end
 
 function DynamicDefinition.orientation(D::Iterate, k)
