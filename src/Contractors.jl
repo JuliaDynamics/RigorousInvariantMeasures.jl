@@ -1,7 +1,34 @@
 module Contractors
 using ValidatedNumerics
 
-export root, range_estimate, ShootingMethod, nthpreimage!, preimage
+export root, range_estimate, ShootingMethod, nthpreimage!, preimage, unique_sign
+
+"""
+unique_sign(x)
+
+Sign of an interval, but throws an error if it is not unique.
+Used by various functions to compute orientations
+"""
+function unique_sign(x)
+	s = sign(x)
+	@assert isthin(s)
+	return s.hi
+end
+
+"""
+unique_increasing(a, b)
+
+Given intervals a, b, returns `true` if a < b, `false` if b < a, and raises an error if it is not uniquely determined.
+"""
+function unique_increasing(a, b)
+	if a.hi < b.lo
+		return true
+	elseif b.hi < a.lo
+		return false
+	else
+		error("Insufficient precision to check the sign of this function")
+	end
+end
 
 # this seems slower
 #using TaylorSeries

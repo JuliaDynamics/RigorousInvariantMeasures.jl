@@ -6,7 +6,7 @@ module DynamicDefinition
 
 using ValidatedNumerics
 using TaylorSeries:Taylor1
-export Dynamic, MarkovDynamic, preim, nbranches, plottable, is_full_branch, domain, derivative, distorsion, endpoints, branch, expansivity, max_distorsion, orientation, unique_sign
+export Dynamic, MarkovDynamic, preim, nbranches, plottable, is_full_branch, domain, derivative, distorsion, endpoints, branch, expansivity, max_distorsion, orientation
 
 abstract type Dynamic end
 abstract type MarkovDynamic <: Dynamic end
@@ -73,17 +73,5 @@ orientation(D, k)
 Orientation of branch k: 1. for increasing, -1. for decreasing
 """
 function orientation end
-
-"""
-unique_sign(x)
-
-Sign of an interval, but requiring that it's unique.
-Used by various functions to compute orientations
-"""
-function unique_sign(x)
-	s = sign(x)
-	@assert isthin(s)
-	return s.hi
-end
 
 end
