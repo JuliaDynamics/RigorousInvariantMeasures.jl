@@ -10,6 +10,7 @@ struct ℓinf <: NormKind end
 
 # the module Contractors does not depend on any submodule
 include("Contractors.jl")
+include("preimages.jl")
 
 include("DynamicDefinition.jl")
 include("BasisDefinition.jl")
@@ -39,7 +40,8 @@ export Ulam, PwMap, Mod1Dynamic, Basis, Dynamic, assemble, preim, Hat,
 	DiscretizedOperator, IntegralPreservingDiscretizedOperator, NonIntegralPreservingDiscretizedOperator,
 	opnormbound, weak_norm, strong_norm, aux_norm, integral_covector, distance_from_invariant,
 	mod1_dynamic, Iterate, derivative, distorsion, endpoints, nbranches, branch,
-	expansivity, max_distorsion, is_refinement
+	expansivity, max_distorsion, is_refinement,
+	skip_beginning, last_end, preimages
 
 import ValidatedNumerics: Interval
 export Interval

@@ -11,5 +11,6 @@ using Test
     include("TestAssembleHat.jl")
     include("TestEstimate.jl")
     include("TestNormOfPowers.jl")
+    include("TestPreimages.jl")
 
 end
