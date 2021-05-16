@@ -41,7 +41,7 @@ DynamicDefinition.is_full_branch(D::PwMap) = all(D.is_full)
 function DynamicDefinition.preim(D::PwMap, k, y, ϵ = 1e-15)
 	@assert 1 <= k <= nbranches(D)
 	domain = hull(D.endpoints[k], D.endpoints[k+1])
-	root(x->D.Ts[k](x)-y, domain, ϵ)
+	return preimage(y, D.Ts[k], domain, ϵ)
 end
 
 """

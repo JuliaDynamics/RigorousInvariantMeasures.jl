@@ -10,8 +10,7 @@ We assume that T is monotonic and differentiable, for now (this is not restricti
 TODO: having the domain as an interval isn't a good idea; it is better to use a pair of intervals for its endpoints
 """
 function mod1_dynamic(T::Function, domain = Interval(0,1), ε = 1e-15)
-    Tprime = x -> derivative(T, x)
-
+    
     T0 = T(Interval(domain.lo))
     T1 = T(Interval(domain.hi))
     orientation = sign(T1 - T0)
@@ -19,6 +18,7 @@ function mod1_dynamic(T::Function, domain = Interval(0,1), ε = 1e-15)
     orientation = mid(orientation)
 
     # check monotonicity
+    Tprime = x -> derivative(T, x)
     @assert minimise(x -> Tprime(x)*orientation, domain)[1] > 0
 
     if !isthin(floor(T0))
@@ -37,7 +37,7 @@ function mod1_dynamic(T::Function, domain = Interval(0,1), ε = 1e-15)
 
     if orientation > 0
         Ts = [x->T(x)-k for k in first_branch_integer_part:last_branch_integer_part]
-        endpoints = [Interval(domain.lo); [root(x->T(x)-k, Tprime, domain, ε) for k in first_branch_integer_part+1:last_branch_integer_part]; Interval(domain.hi)]
+        endpoints = [Interval(domain.lo); [preimage(k, T, domain, ε) for k in first_branch_integer_part+1:last_branch_integer_part]; Interval(domain.hi)]
         if length(Ts) == 1
             is_full = [isinteger(T0) && isinteger(T1)]
         else
@@ -45,7 +45,7 @@ function mod1_dynamic(T::Function, domain = Interval(0,1), ε = 1e-15)
         end
     else
         Ts = [x->T(x)-k for k in first_branch_integer_part:-1:last_branch_integer_part]
-        endpoints = [Interval(domain.lo); [root(x->T(x)-k, Tprime, domain, ε) for k in first_branch_integer_part:-1:last_branch_integer_part+1]; Interval(domain.hi)]
+        endpoints = [Interval(domain.lo); [preimage(k, T, domain, ε) for k in first_branch_integer_part:-1:last_branch_integer_part+1]; Interval(domain.hi)]
         if length(Ts) == 1
             is_full = [isinteger(T0) && isinteger(T1)]
         else

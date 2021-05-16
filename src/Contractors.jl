@@ -1,7 +1,7 @@
 module Contractors
 using ValidatedNumerics
 
-export root, range_estimate, ShootingMethod, nthpreimage!
+export root, range_estimate, ShootingMethod, nthpreimage!, preimage
 
 # this seems slower
 #using TaylorSeries
@@ -32,6 +32,8 @@ function root(f, f′, x, ϵ; max_iter = 100)
 	@info "Maximum iterates reached" max_iter
 	return x
 end
+
+preimage(y, f, X, ϵ; max_iter=100) = root(x -> f(x)-y, X, ϵ; max_iter)
 
 # superseded by IntervalOptimisation.jl
 function range_estimate(f, domain, recstep = 5)
