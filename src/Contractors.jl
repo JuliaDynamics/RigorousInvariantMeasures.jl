@@ -1,7 +1,7 @@
 module Contractors
 using ValidatedNumerics
 
-export root, range_estimate, ShootingMethod, nthpreimage!, preimage, unique_sign
+export root, range_estimate, ShootingMethod, nthpreimage!, preimage, unique_sign, unique_increasing
 
 """
 unique_sign(x)

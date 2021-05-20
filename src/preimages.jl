@@ -50,6 +50,7 @@ Rationale: this is more efficient than returning a vector with a lot of empty in
 need to know how many of the empty values come from the *beginning* of the array rather than its end.
 
 Fills the array by using a bisection strategy to save computations: if y ∈ [a,b], then f⁻¹(y) ∈ [f⁻¹(a),f⁻¹(b)] (paying attention to orientation).
+So we can fill v by filling in first entries `v[k+1]` with higher dyadic valuation of k.
 
 Currently this works only for 1-based 1-dimensional arrays y.
 """
