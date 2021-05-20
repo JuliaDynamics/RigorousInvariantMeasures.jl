@@ -38,12 +38,20 @@ for a = (a1, a2, a3)
     end
 end
 
+# checking for equality with looser tolerance
+function approxintervals(a, b)
+    return a.lo ≈ b.lo && a.hi ≈ b.hi
+end
 
-
-
-
-# (v, skip) = preimages(y, x->x/2, @interval(0.1, 0.6))
-
-
+# checks various combinations of increasing and decreasing functions
+for a = (a1, a2, a1[end:-1:1], a2[end:-1:1])
+    for f in (x->x/2, x->1+x/2, x-> 1-x/2)
+        f = x-> 1-x/2
+        X = 0..1
+        (v, skip) = preimages(a, f, @interval(0,1))
+        image = hull(f(@interval(X.lo)),f(@interval(X.hi)))
+        @test all(approxintervals.(f.(v), intersect.(map(Interval, a), image)[skip+1:skip+length(v)]))
+    end
+end
 
 end #testset

@@ -20,13 +20,22 @@ unique_increasing(a, b)
 
 Given intervals a, b, returns `true` if a < b, `false` if b < a, and raises an error if it is not uniquely determined.
 """
-function unique_increasing(a, b)
+function unique_increasing(a::Interval, b::Interval)
 	if a.hi < b.lo
 		return true
 	elseif b.hi < a.lo
 		return false
 	else
 		error("Insufficient precision to check the sign of this function")
+	end
+end
+function unique_increasing(a, b) # Fallback for Float64
+	if a < b
+		return true
+	elseif a > b
+		return false
+	else
+		error("Could not determine sign")
 	end
 end
 

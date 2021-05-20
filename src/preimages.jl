@@ -55,11 +55,11 @@ So we can fill v by filling in first entries `v[k+1]` with higher dyadic valuati
 Currently this works only for 1-based 1-dimensional arrays y.
 """
 function preimages(y, f, X, ϵ = 0.0)
-    fa = preimage(X.lo, f, X, ϵ)
-    fb = preimage(X.hi, f, X, ϵ)
+    fa = f(@interval(X.lo))
+    fb = f(@interval(X.hi))
     f_increasing = unique_increasing(fa, fb) #TODO: we will want to compute these bools outside, I guess, to handle special cases, e.g., length(y)==1
     y_increasing = unique_increasing(y[begin], y[end])
-    v_increasing = !(f_increasing ⊻ y_increasing) # unused, but maybe we'll want to return it as well?
+    v_increasing = !(f_increasing ⊻ y_increasing) #TODO: unused, but maybe we'll want to return it as well?
 
     skip = skip_beginning(y, ifelse(f_increasing ⊻ y_increasing, fb, fa), y_increasing)
     last = last_end(y, ifelse(f_increasing ⊻ y_increasing, fa, fb), y_increasing)
@@ -67,17 +67,19 @@ function preimages(y, f, X, ϵ = 0.0)
     n = last - skip
 
     v = fill((-∞..∞)::typeof(X), n)
+    if n == 0
+        return (v, skip)
+    end
     v[1] = preimage(y[skip+1], f, X, ϵ)
     if n == 1
         return (v, skip)
     end
     v[end] = preimage(y[skip+n], f, X, ϵ)
     stride = prevpow(2, n-1)
-    while stride > 1
+    while stride >= 1
         # fill in v[i] using v[i-stride] and v[i+stride]
-        for i = 1+stride:2*stride:n-1
-            # this hull() could be replaced with the proper [a.lo..b.hi], if we know orientations
-            X = hull(v[i-stride], v[min(i+stride, n)])
+        for i = 1+stride:2*stride:n-1            
+            X = hull(v[i-stride], v[min(i+stride, n)]) #TODO: this hull() could be replaced with the proper [a.lo..b.hi], since we know orientations
             v[i] = preimage(y[skip+i], f, X, ϵ)
         end
         stride = stride ÷ 2
