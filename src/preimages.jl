@@ -49,10 +49,17 @@ struct Branch{T,S}
     X::S
     Y::S
     increasing::Bool
+    # TODO: rewrite replacing X with (a,b). (and Y with fa, fb?)
 end
-Branch(f, X, Y=hull(f(@interval(X.lo)), f(@interval(X.hi))), 
-  increasing=unique_increasing(f(@interval(X.lo)), f(@interval(X.hi)))) = Branch{typeof(f), typeof(X)}(f, X, Y, increasing)
-
+function Branch(f, X, Y=nothing, increasing=nothing)
+  if Y === nothing
+    Y = hull(f(@interval(X.lo)), f(@interval(X.hi)))
+  end
+  if increasing === nothing
+    increasing=unique_increasing(f(@interval(X.lo)), f(@interval(X.hi)))
+  end
+  return Branch{typeof(f), typeof(X)}(f, X, Y, increasing)
+end
 """
 Construct preimages of a monotonic array y under a monotonic function f in a domain X.
 
@@ -92,7 +99,7 @@ function preimages(seq, branch, ϵ = 0.0)
         # fill in v[i] using v[i-stride] and v[i+stride]
         for i = 1+stride:2*stride:n-1
             X = hull(v[i-stride], v[min(i+stride, n)]) #TODO: this hull() could be replaced with the proper [a.lo..b.hi], since we know orientations
-            v[i] = preimage(seq.v[skip+i], branch.f, branch.X, ϵ)
+            v[i] = preimage(seq.v[skip+i], branch.f, X, ϵ)
         end
         stride = stride ÷ 2
     end

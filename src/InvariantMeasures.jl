@@ -25,6 +25,8 @@ include("IterateDynamic.jl")
 include("UlamBasis.jl")
 include("HatBasis.jl")
 
+include("preimages_assembler.jl")
+
 using .DynamicDefinition, .BasisDefinition, .Mod1DynamicDefinition, .Contractors, .PwDynamicDefinition
 
 include("Norms.jl")
