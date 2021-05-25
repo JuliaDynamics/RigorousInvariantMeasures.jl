@@ -42,23 +42,23 @@ end
 PointSequence(v, skip=0, increasing=unique_increasing(v[begin], v[end])) = PointSequence{typeof(v)}(v, skip, increasing)
 
 """
-Type used to represent a "branch" of a dynamic. The branch is represented by monotonic map `f` with domain `X` and f(X) ⊂ Y
+Type used to represent a "branch" of a dynamic. The branch is represented by a monotonic map `f` with domain `X=(a,b)` (typically intervals) 
+`Y=(f(a),f(b))` and `increasing` are cached.
 """
 struct Branch{T,S}
     f::T
-    X::S
-    Y::S
+    X::Tuple{S, S}
+    Y::Tuple{S, S}
     increasing::Bool
-    # TODO: rewrite replacing X with (a,b). (and Y with fa, fb?)
 end
 function Branch(f, X, Y=nothing, increasing=nothing)
   if Y === nothing
-    Y = hull(f(@interval(X.lo)), f(@interval(X.hi)))
+    Y = (f(Interval(X[1])), f(Interval(X[2])))
   end
   if increasing === nothing
-    increasing=unique_increasing(f(@interval(X.lo)), f(@interval(X.hi)))
+    increasing=unique_increasing(Y[1], Y[2])
   end
-  return Branch{typeof(f), typeof(X)}(f, X, Y, increasing)
+  return Branch{typeof(f), typeof(X[1])}(f, X, Y, increasing)
 end
 """
 Construct preimages of a monotonic array y under a monotonic function f in a domain X.
@@ -67,7 +67,7 @@ In general, there may be a certain number of points in y that have no preimage a
 they fall out of the interval R = [f(X.lo), f(X.hi)]. In the worst case, no point has a preimage, because y[i] < R < y[i+1] for some 
 i (or vice versa with orientations).
 
-We return the pair `(v, skip)`, where `v` is a vector of preimages, and `skip` is the number of elements of y that have no preimage
+We return a PointSequence where `v` is a vector of preimages, and `skip` is the number of elements of y that have no preimage
 at the *beginning* of the interval. So for instance if f and y are increasing but y[i] < R < y[i+1], we return skip=i and v = [].
 The number of intervals that have no image at the *end* of the interval is then `length(y) - length(v) - skip`
 
@@ -81,19 +81,19 @@ Currently this works only for 1-based 1-dimensional arrays y.
 """
 function preimages(seq, branch, ϵ = 0.0)
     v_increasing = !(seq.increasing ⊻ branch.increasing)
-    (skip, last) = skipandlast(seq, branch.Y)
+    (skip, last) = skipandlast(seq, hull(branch.Y...))
 
     n = last - skip
 
-    v = fill((-∞..∞)::typeof(branch.X), n)
+    v = fill((-∞..∞)::typeof(Interval(branch.X[1])), n)
     if n == 0
         return PointSequence(v, seq.skip+skip, v_increasing)
     end
-    v[1] = preimage(seq.v[skip+1], branch.f, branch.X, ϵ)
+    v[1] = preimage(seq.v[skip+1], branch.f, hull(branch.X...), ϵ)
     if n == 1
         return PointSequence(v, seq.skip+skip, v_increasing)
     end
-    v[end] = preimage(seq.v[skip+n], branch.f, branch.X, ϵ)
+    v[end] = preimage(seq.v[skip+n], branch.f, hull(branch.X...), ϵ)
     stride = prevpow(2, n-1)
     while stride >= 1
         # fill in v[i] using v[i-stride] and v[i+stride]

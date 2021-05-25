@@ -45,10 +45,10 @@ end
 # checks various combinations of increasing and decreasing branches and sequences
 for a = (a1, a2, a1[end:-1:1], a2[end:-1:1])
     for f in (x->x/2, x->1+x/2, x-> 1-x/2)
-        b = InvariantMeasures.Branch(f, 0..1)
+        b = InvariantMeasures.Branch(f, (@interval(0), @interval(1)))
         seq = InvariantMeasures.PointSequence(a, 3)
         preseq = preimages(seq, b)
-        @test all(approxintervals.(b.f.(preseq.v), intersect.(map(Interval, a), b.Y)[preseq.skip-seq.skip+1:preseq.skip-seq.skip+length(preseq.v)]))
+        @test all(approxintervals.(b.f.(preseq.v), intersect.(map(Interval, a), hull(b.Y...))[preseq.skip-seq.skip+1:preseq.skip-seq.skip+length(preseq.v)]))
     end
 end
 
