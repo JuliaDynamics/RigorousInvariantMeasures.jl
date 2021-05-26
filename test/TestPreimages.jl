@@ -54,9 +54,9 @@ end
 
 for a = (a1, a2, a1[end:-1:1], a2[end:-1:1])
         D = PwMap([x->1/3 + 1/4*x, x->1/3-1/4*x, x->2x], [@interval(0), @interval(0.1), @interval(0.2), @interval(1)])
-        for b in InvariantMeasures.branches(D)
-            d = InvariantMeasures.ulam_duals(b, a)
-            a = PointSequence(a)
+        for branch in InvariantMeasures.branches(D)
+            B = Ulam(a)
+            d = InvariantMeasures.duals(B, branch)
             # TODO: tricky to set up a good test, we'll resort to integration later?
         end
 end
