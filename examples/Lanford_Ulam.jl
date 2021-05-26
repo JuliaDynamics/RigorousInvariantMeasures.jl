@@ -15,7 +15,7 @@ function runExperiment()
 
         D = Mod1Dynamic(x->2*x+0.5*x*(1-x))
         # different backend, a tad slower
-        # D = mod1_dynamic(x -> x->2*x+0.5*x*(1-x))
+        # D = mod1_dynamic(x -> 2*x+0.5*x*(1-x))
         B = Ulam(1024)
         Q = DiscretizedOperator(B, D)
     end
