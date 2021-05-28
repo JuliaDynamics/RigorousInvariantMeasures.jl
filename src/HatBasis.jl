@@ -193,7 +193,7 @@ function BasisDefinition.nonzero_on(B::Hat, dual_element)
 	y, absT′ = dual_element
 	# Note that this cannot rely on arithmetic unless it is verified
 
-	y = y ∩ @interval(0.,1.) # we assume it's bona-fide interval in [0,1]
+	y = y ∩ Interval(0.,1.) # we assume it's bona-fide interval in [0,1]
 	# this should work for preims(), since they are supposed to return
 	# a number in [0,1]
 
@@ -204,7 +204,7 @@ function BasisDefinition.nonzero_on(B::Hat, dual_element)
 	hi = min(hi, length(B)) # hi may be n+1 if y.hi==1
 	hi = hi + 1 # because the hat centered in p[k] is also nonzero in the interval before
 
-	if lo == 1 # 1:N+1 does not make sense and would mean tht the first interval is counted twice
+	if lo == 1 # 1:N+1 does not make sense and would mean that the first interval is counted twice
 		hi = min(hi, length(B))
 	end
 	return (lo, hi)

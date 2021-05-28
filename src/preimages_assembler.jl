@@ -58,6 +58,19 @@ function callback_duals(f, B::Ulam, branch::Branch, preims=nothing)
     return nothing
 end
 
+function callback_duals(f, B::Hat, branch::Branch, preims=nothing)
+    if preims === nothing
+        preims = preimages(PointSequence(B.p), b)
+    end
+    @assert preims.skip == 0
+    @assert length(preims.v) == length(B.p) # The Hat basis estimation works only for full-branch maps
+    for i = 1:length(B) # this skips p[n+1]==1
+        x = preims.v[i]
+        absT′ = abs(derivative(branch.f, x))
+        f(i, (x, absT′))
+    end
+end
+
 function callback_duals(f, B::Basis, D::Dynamic)
     for (branch, preim) in zip(branches(D), preimages(PointSequence(B.p), D))
         callback_duals(f, B, branch, preim)
