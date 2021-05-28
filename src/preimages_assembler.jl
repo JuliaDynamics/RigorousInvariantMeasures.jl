@@ -19,12 +19,11 @@ end
 """
 Constructs associated "Ulam duals" for a branch b,
 i.e., the sequence (k, (T⁻¹(p[k]), T⁻¹(p[k+1]))),
-handling endpoints correctly. The duals are then put! to a channel.
+handling endpoints correctly. A callback `f(k, (a, b))` is called on each dual.
 
 This should eventually replace `DualComposedWithDynamic`.
 """
-put_duals!(ch, B::Ulam, branch::Branch, preims=nothing) = put_duals!(ch, B, branch, preims)
-function put_duals!(ch::Channel, B::Ulam, branch::Branch, preims=nothing)
+function callback_duals(f, B::Ulam, branch::Branch, preims=nothing)
     if preims === nothing
         preims = preimages(PointSequence(B.p), b)
     end
@@ -37,40 +36,53 @@ function put_duals!(ch::Channel, B::Ulam, branch::Branch, preims=nothing)
         first_endpoint = preims.increasing ? branch.X[1] : branch.X[2]
         last_endpoint = preims.increasing ? branch.X[2] : branch.X[1]
 
-        put!(ch, (preims.skip, (first_endpoint, last_endpoint)))
+        f(preims.skip, (first_endpoint, last_endpoint))
         return nothing
     end
 
     if preims.skip > 0
         first_endpoint = preims.increasing ? branch.X[1] : branch.X[2]
         if first_endpoint != preims.v[1]
-            put!(ch, (preims.skip, (first_endpoint, preims.v[1])))
+            f(preims.skip, (first_endpoint, preims.v[1]))
         end
     end
     for k in 1:n-1
-        put!(ch, (preims.skip+k, (preims.v[k], preims.v[k+1])))
+        f(preims.skip+k, (preims.v[k], preims.v[k+1]))
     end
     if preims.skip + n < length(B.p)  # if there are skipped entries at the end of preims
         last_endpoint = preims.increasing ? b.X[2] : b.X[1]
         if last_endpoint != preims.v[n]
-            put!(ch, (preims.skip+n, (preims.v[n], last_endpoint)))
+            f(preims.skip+n, (preims.v[n], last_endpoint))
         end
     end
     return nothing
 end
 
-function put_duals!(ch, B::Basis, D::Dynamic)
+function callback_duals(f, B::Basis, D::Dynamic)
     for (branch, preim) in zip(branches(D), preimages(PointSequence(B.p), D))
-        put_duals!(ch, B, branch, preim)
+        callback_duals(f, B, branch, preim)
     end
 end
 
-"""
-Generator that returns duals
-"""
-function duals(B::Basis, D)
-    T = Tuple{Int, Tuple{Interval{Float64}, Interval{Float64}}} # TODO: replace for more genericity?
-    Channel{T}() do ch
-        put_duals!(ch, B, D)
+function assemble2(B::Basis, D::Dynamic, ϵ=0.0; T = Float64)
+    # putting types here in hope to improve callback inference
+	I::Vector{Int64} = Int64[]
+	J::Vector{Int64} = Int64[]
+	nzvals::Vector{Interval{T}} = Interval{T}[]
+	n::Int64 = length(B)
+
+	# TODO: reasonable size hint?
+
+    function assemble_callback(i, dual_element)
+		if !is_dual_element_empty(B, dual_element)
+			for (j, x) in ProjectDualElement(B, dual_element)
+				push!(I, i)
+				push!(J, mod(j,1:n))
+				push!(nzvals, x)
+			end
+		end
     end
+    callback_duals(assemble_callback, B, D)
+
+	return sparse(I, J, nzvals, n, n)
 end
