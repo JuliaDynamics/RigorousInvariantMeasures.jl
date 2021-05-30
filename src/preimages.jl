@@ -42,8 +42,8 @@ end
 PointSequence(v, skip=0, increasing=unique_increasing(v[begin], v[end])) = PointSequence{typeof(v)}(v, skip, increasing)
 
 """
-Type used to represent a "branch" of a dynamic. The branch is represented by a monotonic map `f` with domain `X=(a,b)` (typically intervals) 
-`Y=(f(a),f(b))` and `increasing` are cached.
+Type used to represent a "branch" of a dynamic. The branch is represented by a monotonic map `f` with domain `X=(a,b)` with a≤b (where typically a,b are intervals). 
+`Y=(f(a),f(b))` and `increasing` may be provided (for instance if we know that `Y=(0,1)`), otherwise they are computed automatically.
 """
 struct Branch{T,S}
     f::T
@@ -51,15 +51,8 @@ struct Branch{T,S}
     Y::Tuple{S, S}
     increasing::Bool
 end
-function Branch(f, X, Y=nothing, increasing=nothing)
-  if Y === nothing
-    Y = (f(Interval(X[1])), f(Interval(X[2])))
-  end
-  if increasing === nothing
-    increasing=unique_increasing(Y[1], Y[2])
-  end
-  return Branch{typeof(f), typeof(X[1])}(f, X, Y, increasing)
-end
+Branch(f, X, Y=(f(Interval(X[1])), f(Interval(X[2]))), increasing=unique_increasing(Y[1], Y[2])) = Branch{typeof(f), typeof(X[1])}(f, X, Y, increasing)
+
 """
 Construct preimages of a monotonic array y under a monotonic function f in a domain X.
 
@@ -78,6 +71,9 @@ Fills the array by using a bisection strategy to save computations: if y ∈ [a,
 So we can fill v by filling in first entries `v[k+1]` with higher dyadic valuation of k.
 
 Currently this works only for 1-based 1-dimensional arrays y.
+
+TODO: Idea: replace this with a function that returns an *increasing* vector v that is guaranteed to start/end with v = (a,...,b), and a sequence of indices `locs` like k:m or m:-1:k
+such that v[i], v[i+1] is inside `locs[i]` for all `i`. This constructs "slices" more explicitly, and composes much better. Unclear: how to keep 'full-branched' info in this framework?
 """
 function preimages(seq, branch, ϵ = 0.0)
     v_increasing = !(seq.increasing ⊻ branch.increasing)

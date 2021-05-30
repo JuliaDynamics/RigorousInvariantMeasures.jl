@@ -5,7 +5,7 @@ using .DynamicDefinition
 Return Branches for a given dynamic, in an iterable
 """
 function branches(D::PwMap)
-    return [Branch(D.Ts[k], (D.endpoints[k], D.endpoints[k+1]), D.is_full[k] ? (Interval(0),Interval(1)) : nothing, D.orientations[k]==1) for k in 1:length(D.Ts)]
+    return [Branch(D.Ts[k], (D.endpoints[k], D.endpoints[k+1]), D.is_full[k] ? (Interval(0),Interval(1)) : (D.Ts[k](Interval(D.endpoints[k]), D.Ts[k](Interval(D.endpoints[k+1])))), D.orientations[k]==1) for k in 1:length(D.Ts)]
 end
 
 """
@@ -99,3 +99,5 @@ function assemble2(B::Basis, D::Dynamic, ϵ=0.0; T = Float64)
 
 	return sparse(I, J, nzvals, n, n)
 end
+
+
