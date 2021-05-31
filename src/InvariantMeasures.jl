@@ -10,7 +10,6 @@ struct ℓinf <: NormKind end
 
 # the module Contractors does not depend on any submodule
 include("Contractors.jl")
-include("preimages.jl")
 
 include("DynamicDefinition.jl")
 include("BasisDefinition.jl")
@@ -30,6 +29,8 @@ using .DynamicDefinition, .BasisDefinition, .Mod1DynamicDefinition, .Contractors
 include("Norms.jl")
 include("pitrig.jl")
 include("NormsOfPowers.jl")
+
+include("preimages.jl")
 
 include("precompile.jl")
 
