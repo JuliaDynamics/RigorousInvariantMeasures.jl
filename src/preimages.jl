@@ -161,3 +161,15 @@ function assemble2(B::Basis, D::Dynamic, ϵ=0.0; T = Float64)
 
 	return sparse(I, J, nzvals, n, n)
 end
+
+function DiscretizedOperator2(B, D, ϵ=0.0; T = Float64)
+	L = assemble2(B, D, ϵ; T)
+	if is_integral_preserving(B)
+		return IntegralPreservingDiscretizedOperator(L)
+	else
+		f = integral_covector(B)
+		e = one_vector(B)
+		w = f - f*L #will use interval arithmetic when L is an interval matrix
+		return NonIntegralPreservingDiscretizedOperator(L, e, w)
+	end
+end
