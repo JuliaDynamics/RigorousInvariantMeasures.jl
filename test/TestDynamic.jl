@@ -28,24 +28,24 @@ D = PwMap([x->2*x, x->2-2*x], [@interval(0), @interval(0.5), @interval(1)])
 @test InvariantMeasures.orientation(D, 1) == 1
 @test InvariantMeasures.orientation(D, 2) == -1
 
-D = mod1_dynamic(x -> 3.5x, 0..1)
+D = mod1_dynamic(x -> 3.5x, (0,1))
 
 @test D.endpoints ≈ [0, 2/7, 4/7, 6/7, 1]
 @test D.Ts[2](0.5) == 0.75
-@test D.is_full == [1, 1, 1, 0]
-@test D.orientations == [1,1,1,1]
+@test D.y_endpoints == [0 1; 0 1; 0 1; 0 0.5]
+@test D.increasing == [1,1,1,1]
 
 D = mod1_dynamic(x -> 3.5x + 0.5)
 @test D.endpoints ≈ [0, 1/7, 3/7, 5/7, 1]
 @test D.Ts[end](1) == 1
-@test D.is_full == [0,1,1,1]
-@test D.orientations == [1,1,1,1]
+@test D.y_endpoints == [0.5 1; 0 1; 0 1; 0 1]
+@test D.increasing == [1,1,1,1]
 
 D = mod1_dynamic(x -> -3.5x + 0.5)
 @test D.endpoints ≈ [0, 1/7, 3/7, 5/7, 1]
 @test D.Ts[end](5/7) == 1
-@test D.is_full == [0,1,1,1]
-@test D.orientations == [-1,-1,-1,-1]
+@test D.y_endpoints == [0.5 0; 1 0; 1 0; 1 0]
+@test D.increasing == [0,0,0,0]
 
 D = Iterate(mod1_dynamic(x->2*x), 3)
 

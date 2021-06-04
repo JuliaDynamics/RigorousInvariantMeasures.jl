@@ -9,34 +9,33 @@ using ..DynamicDefinition: derivative, orientation
 export PwMap, preim, nbranches, plottable
 
 """
-Dynamic based on a piecewise defined map.
+Dynamic based on a piecewise monotonic map.
 
 The map is defined as T(x) = Ts[k](x) if x ∈ [endpoints[k], endpoints[k+1]).
 
-Each branch must be monotonic.
-
-We set is_full[k]==true if we can prove/assume that the kth branch is full, i.e., Ts[k](endpoints[k])==0 and Ts[k](endpoints[k+1])==1 or vice versa.
+`y_endpoints` (kx2 matrix) contains the result of applying Ts to the endpoints of each interval. These can be filled in automatically from `endpoints`,
+but sometimes they are known to higher accuracy, for instance for `x -> mod(3x, 1)` we know that it is full-branch exactly.
 """
 struct PwMap{FT} <: Dynamic
 	Ts::FT
 	endpoints::Vector{Interval{Float64}}
-	is_full::Vector{Bool}
-	orientations::Vector{Float64} # these will be filled in automatically, usually
+	y_endpoints::Matrix{Interval{Float64}}
+	increasing::Vector{Bool} # these will be filled in automatically, usually
 end
 
 Base.show(io::IO, D::PwMap) = print(io, "Piecewise-defined dynamic with $(nbranches(D)) branches")
 
 DynamicDefinition.domain(S::PwMap) = hull(S.endpoints[1], S.endpoints[end])
 
-PwMap(Ts, endpoints) = PwMap(Ts, endpoints, fill(false, length(endpoints)-1))
-PwMap(Ts, endpoints, is_full) = PwMap{typeof(Ts)}(Ts, map(Interval, endpoints), is_full, [unique_sign(Ts[k](@interval(endpoints[k+1])) - Ts[k](@interval(endpoints[k]))) for k=1:length(Ts)])
+PwMap(Ts, endpoints) = PwMap(Ts, endpoints, hcat([Ts[k](Interval(endpoints[k])) for k in 1:length(Ts)], [Ts[k](Interval(endpoints[k+1])) for k in 1:length(Ts)]))
+PwMap(Ts, endpoints, y_endpoints) = PwMap{typeof(Ts)}(Ts, map(Interval, endpoints), y_endpoints, [unique_increasing(y_endpoints[k,1], y_endpoints[k,2]) for k=1:length(Ts)])
 
 DynamicDefinition.nbranches(D::PwMap) = length(D.endpoints)-1
 DynamicDefinition.endpoints(D::PwMap) = D.endpoints
 
-DynamicDefinition.orientation(D::PwMap, k) = D.orientations[k]
+DynamicDefinition.orientation(D::PwMap, k) = D.increasing[k] ? 1. : -1.
 
-DynamicDefinition.is_full_branch(D::PwMap) = all(D.is_full)
+DynamicDefinition.is_full_branch(D::PwMap) = all(r == [0.,1.] || r == [1.,0.] for r in eachrow(D.y_endpoints))
 
 function DynamicDefinition.preim(D::PwMap, k, y, ϵ = 1e-15)
 	@assert 1 <= k <= nbranches(D)

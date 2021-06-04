@@ -15,14 +15,14 @@ struct Branch{T,S}
     Y::Tuple{S, S}
     increasing::Bool
 end
-Branch(f, X, Y=(f(Interval(X[1])), f(Interval(X[2]))), increasing=unique_increasing(Y[1], Y[2])) = Branch{typeof(f), typeof(X[1])}(f, X, Y, increasing)
+Branch(f, X, Y=(f(Interval(X[1])), f(Interval(X[2]))), increasing=unique_increasing(Y[1], Y[2])) = Branch{typeof(f), typeof(interval(X[1]))}(f, X, Y, increasing)
 
 """
 Return Branches for a given dynamic, in an iterable
 """
 function branches(D::PwMap) # TODO: should probably be rewritten at the interface level, if we go for this approach. D.is_full is not the correct thing for decreasing branches.
     domain = hull(Interval(D.endpoints[begin]), Interval(D.endpoints[end]))
-    return [Branch(D.Ts[k], (D.endpoints[k], D.endpoints[k+1]), D.is_full[k] ? (Interval(0),Interval(1)) : (D.Ts[k](Interval(D.endpoints[k])) ∩ domain, D.Ts[k](Interval(D.endpoints[k+1])) ∩ domain), D.orientations[k]==1) for k in 1:length(D.Ts)]
+    return [Branch(D.Ts[k], (D.endpoints[k], D.endpoints[k+1]), (D.y_endpoints[k,1], D.y_endpoints[k,2]), D.increasing[k]) for k in 1:length(D.Ts)]
 end
 
 """
@@ -141,7 +141,9 @@ end
 Base.length(dual::Dual{<:Ulam}) = length(dual.x)
 Base.eltype(dual::Dual{<:Ulam}) = Tuple{eltype(dual.xlabel), Tuple{eltype(dual.x), eltype(dual.x)}}
 
-function assemble2(B::Basis, D::Dynamic, ϵ=0.0; T = Float64)
+# Variants of assemble and DiscretizedOperator; here for easier comparison
+
+function assemble2(B, D, ϵ=0.0; T = Float64)
 	I = Int64[]
 	J = Int64[]
 	nzvals = Interval{T}[]
