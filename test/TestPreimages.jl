@@ -48,4 +48,12 @@ for y = (a1, a2)
     end
 end
 
+D = mod1_dynamic(x -> 2x)
+DD = ∘(D, D, D, D)
+p = [0, 0.2, 0.4, 0.6, 0.8]
+
+x, xlabel = preimages(p, DD)
+@test x ≈ 0:1/80:79/80
+@test xlabel == repeat([1,2,3,4,5],16)
+
 end #testset

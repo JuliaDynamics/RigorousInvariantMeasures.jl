@@ -115,9 +115,19 @@ function preimages(y, D::Dynamic, ylabel = 1:length(y), ϵ = 0.0)
     return x, xlabel
 end
 
-function preimages(z, D::ComposedFunction, zlabel = 1:length(z), ϵ = 0.0)
-    y, ylabel = preimages(z, D.outer, zlabel, ϵ)
-    return preimages(y, D.outer, ylabel, ϵ)
+"""
+Composed maps
+"""
+struct ComposedDynamic <: Dynamic
+    dyns::Tuple{Vararg{Dynamic}}
+end
+Base.:∘(d::Dynamic...) = ComposedDynamic(d)
+
+function preimages(z, Ds::ComposedDynamic, zlabel = 1:length(z), ϵ = 0.0)
+    for d in Ds.dyns
+        z, zlabel = preimages(z, d, zlabel, ϵ)
+    end
+    return z, zlabel
 end
 
 struct Dual{Ulam}

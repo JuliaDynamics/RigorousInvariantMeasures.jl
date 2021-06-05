@@ -30,7 +30,14 @@ function mod1_dynamic(f::Function, X = (0.,1.), ε = 0.0)
         y_endpoints = hcat(fill(1., n), fill(0., n))
     end
     y_endpoints[1, 1] = br.Y[begin] - integer_parts[begin]
+    if y_endpoints[1, 1] == 0.
+        y_endpoints[1, 1] = 0. # hack to get rid of -0..0 intervals
+    end
     y_endpoints[end, end] = br.Y[end] - integer_parts[end]
+    if y_endpoints[end, end] == 0.
+        y_endpoints[end, end] = 0. # hack to get rid of -0..0 intervals
+    end
+
 
     # if !isthin(floor(T0))
     #     @error "T(I.lo) does not have a unique integer part; we did not implement this more complicated case"
