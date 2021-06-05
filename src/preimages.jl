@@ -116,12 +116,15 @@ function preimages(y, D::Dynamic, ylabel = 1:length(y), ϵ = 0.0)
 end
 
 """
-Composed maps
+Composed map D1 ∘ D2 ∘ D3, stored with [D1, D2, D3] in this order
 """
 struct ComposedDynamic <: Dynamic
     dyns::Tuple{Vararg{Dynamic}}
 end
 Base.:∘(d::Dynamic...) = ComposedDynamic(d)
+
+domain(D::PwMap) = (D.endpoints[begin], D.endpoints[end])
+domain(D::ComposedDynamic) = domain(D.dyns[end])
 
 function preimages(z, Ds::ComposedDynamic, zlabel = 1:length(z), ϵ = 0.0)
     for d in Ds.dyns
@@ -136,7 +139,7 @@ struct Dual{Ulam}
     lastpoint::Interval
 end
 
-Dual(B, D, ϵ) = Dual{typeof(B)}(preimages(B.p, D, 1:length(B.p)-1, ϵ)..., endpoints(D)[end])
+Dual(B, D, ϵ) = Dual{typeof(B)}(preimages(B.p, D, 1:length(B.p)-1, ϵ)..., domain(D)[end])
 
 function iterate(dual::Dual, state = 1)
     n = length(dual.x)
