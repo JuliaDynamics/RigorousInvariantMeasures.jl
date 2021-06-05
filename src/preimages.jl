@@ -18,17 +18,18 @@ end
 Branch(f, X, Y=(f(Interval(X[1])), f(Interval(X[2]))), increasing=unique_increasing(Y[1], Y[2])) = Branch{typeof(f), typeof(interval(X[1]))}(f, X, Y, increasing)
 
 """
-Return Branches for a given dynamic, in an iterable
+Return Branches for a given PwMap, in an iterable.
+
+TODO: in future, maybe it is a better idea to replace the type PwMap directly with an array of branches, since that's all we need
 """
-function branches(D::PwMap) # TODO: should probably be rewritten at the interface level, if we go for this approach. D.is_full is not the correct thing for decreasing branches.
-    domain = hull(Interval(D.endpoints[begin]), Interval(D.endpoints[end]))
+function branches(D::PwMap)
     return [Branch(D.Ts[k], (D.endpoints[k], D.endpoints[k+1]), (D.y_endpoints[k,1], D.y_endpoints[k,2]), D.increasing[k]) for k in 1:length(D.Ts)]
 end
 
 """
 Smallest possible i such that a is in the semi-open interval [y[i], y[i+1]).
 
-This should work properly even if `a, y` contain intervals.
+This should work properly even if `a, y` are intervals; in this case it returns the *smallest* possible value of i over all possible "assignments" of a, y inside those intervals.
 Assumes y is sorted, i.e., map(y, x->Interval(x).lo) and map(y, x->Interval(x).hi) are sorted.
 """
 function first_overlapping(y, a)
@@ -38,7 +39,7 @@ end
 """
 Largest possible j such that a-ε is in the semi-open interval [y[j], y[j+1]).
 
-This should work properly even if `a, y` contain intervals.
+This should work properly even if `a, y` are intervals; in this case it returns the *largest* possible value of i over all possible "assignments" of a, y inside those intervals.
 Assumes y is sorted, i.e., map(y, x->Interval(x).lo) and map(y, x->Interval(x).hi) are sorted.
 """
 function last_overlapping(y, a)
@@ -48,21 +49,23 @@ end
 """
 Construct preimages of an increasing array y under a monotonic branch defined on X = (a, b), propagating additional labels `ylabel`
 
-In general, there may be a certain number of points in y that have no preimage at the beginning and the end of the sequence, because 
-they fall out of the range R = [f(a), f(b)]. In the worst case, no point has a preimage, because y[i] < R < y[i+1] for some 
-i (or vice versa with orientations).
+The sequence y subdivides the y-axis into semi-open intervals [y[l], y[l+1]); each of them is identified by the label `ylabel[l]`. We construct an increasing sequence 
+x that splits X (in the x-axis) into semi-open intervals, each of them with f([x[k], x[k+1]) ⊂ [y[l], y[l+1]) for a certain l. 
+We set xlabel[k] = ylabel[l], and return the pair (x, xlabel).
 
-The sequence y identifies semi-open intervals [y[l], y[l+1]); each of them is identified by label `ylabel[l]`. We construct a sequence x that splits X
-into semi-open intervals, each of them with f([x[k], x[k+1]) ⊂ [y[l], y[l+1]) for a different l. We set xlabel[k] = ylabel[l] in this case, and return the pair (x, xlabel).
+In the simplest case where D is full-branch, the points in x are preimages of the points in y, but in the general case they can also include D.endpoints:
+in general, there may be a certain number of points in y that have no preimage at the beginning and the end of the sequence, because 
+they fall out of the range R = [f(a), f(b)]. In the worst case, no point has a preimage, because y[i] < R < y[i+1] for some 
+i (or vice versa with orientations), and in this case we just return the 1-element vectors x = [branch.X[1]] and xlabel = [i].
 
 x[begin] always coincides with branch.X[1], while branch.X[2] is "the point after x[end]", and is not stored explicitly in x, for easier composing.
-
 In this way x and xlabel have the same length.
 
 This function fills the array by using a bisection strategy to save computations: if y ∈ [a,b], then f⁻¹(y) ∈ [f⁻¹(a),f⁻¹(b)] (paying attention to orientation).
 So we can fill v by filling in first entries `v[k+1]` with higher dyadic valuation of k.
 
-Currently this works only for 1-based 1-dimensional arrays y.
+For a dynamic with multiple branches, preimages(y, D) is simply the concatenation of x, xlabel for b in all branches. These values still form an increasing sequence that
+splits X into intervals, each of which is mapped into a different semi-open interval [y[k], y[k+1]).
 """
 function preimages(y, br::Branch, ylabel = 1:length(y), ϵ = 0.0)
 
@@ -76,6 +79,12 @@ function preimages(y, br::Branch, ylabel = 1:length(y), ϵ = 0.0)
         if n == 1
             return (x, xlabel)
         end
+        # the bisection strategy: fill the array in "strides" of length `stride`, then halve the stride and repeat
+        # for instance, if the array is 1..13 (with x[1] filled in already), we first take stride=8 and fill in x[9],
+        # then stride=4 and fill in x[5], x[13], (note that the distance is `2stride`, since x[9], and in general all the even multiples of `stride`, is already filled in)
+        # then stride=2 and fill in x[3], x[7], x[11],
+        # then stride=1 and fill in x[2], x[4], x[6], x[8], x[10], x[12]
+        # at each step we have bracketed the preimage in a "search range" given by already-computed preimages x[k-stride] and x[k+stride].
         stride = prevpow(2, n-1)
         while stride >= 1
             # fill in v[i] using x[i-stride].lo and x[i+stride].hi as range for the preimage search
@@ -116,13 +125,18 @@ function preimages(y, D::Dynamic, ylabel = 1:length(y), ϵ = 0.0)
 end
 
 """
-Composed map D1 ∘ D2 ∘ D3, stored with [D1, D2, D3] in this order
+Composed map D1 ∘ D2 ∘ D3. We store with [D1, D2, D3] in this order.
+
+We overwrite ∘ in base, so one can simply write D1 ∘ D2 or ∘(D1, D2, D3) to construct them.
 """
 struct ComposedDynamic <: Dynamic
     dyns::Tuple{Vararg{Dynamic}}
 end
 Base.:∘(d::Dynamic...) = ComposedDynamic(d)
 
+"""
+Utility function to return the domain of a dynamic
+"""
 domain(D::PwMap) = (D.endpoints[begin], D.endpoints[end])
 domain(D::ComposedDynamic) = domain(D.dyns[end])
 
@@ -133,15 +147,18 @@ function preimages(z, Ds::ComposedDynamic, zlabel = 1:length(z), ϵ = 0.0)
     return z, zlabel
 end
 
+"""
+Replacement of DualComposedWithDynamic.
+"""
 struct Dual{Ulam}
-    x::Vector{Interval} #TODO: more generic type needed in future
+    x::Vector{Interval} #TODO: a more generic type may be needed in future
     xlabel::Vector{Int}
     lastpoint::Interval
 end
 
 Dual(B, D, ϵ) = Dual{typeof(B)}(preimages(B.p, D, 1:length(B.p)-1, ϵ)..., domain(D)[end])
 
-function iterate(dual::Dual, state = 1)
+function iterate(dual::Dual{<:Ulam}, state = 1)
     n = length(dual.x)
     if state < n
         return (dual.xlabel[state], (dual.x[state], dual.x[state+1])), state+1
@@ -154,7 +171,7 @@ end
 Base.length(dual::Dual{<:Ulam}) = length(dual.x)
 Base.eltype(dual::Dual{<:Ulam}) = Tuple{eltype(dual.xlabel), Tuple{eltype(dual.x), eltype(dual.x)}}
 
-# Variants of assemble and DiscretizedOperator; here for easier comparison
+# Variants of assemble and DiscretizedOperator; the code is repeated here for easier comparison with the older algorithm
 
 function assemble2(B, D, ϵ=0.0; T = Float64)
 	I = Int64[]
