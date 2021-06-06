@@ -190,15 +190,18 @@ end
 """
 Replacement of DualComposedWithDynamic.
 """
-struct Dual{Ulam}
+abstract type Dual end
+
+struct UlamDual <: Dual
     x::Vector{Interval} #TODO: a more generic type may be needed in future
     xlabel::Vector{Int}
     lastpoint::Interval
 end
+Dual(B::Ulam, D, ϵ) = UlamDual(preimages(B.p, D, 1:length(B.p)-1, ϵ)..., domain(D)[end])
 
-Dual(B, D, ϵ) = Dual{typeof(B)}(preimages(B.p, D, 1:length(B.p)-1, ϵ)..., domain(D)[end])
-
-function iterate(dual::Dual{<:Ulam}, state = 1)
+Base.length(dual::UlamDual) = length(dual.x)
+Base.eltype(dual::UlamDual) = Tuple{eltype(dual.xlabel), Tuple{eltype(dual.x), eltype(dual.x)}}
+function iterate(dual::UlamDual, state = 1)
     n = length(dual.x)
     if state < n
         return (dual.xlabel[state], (dual.x[state], dual.x[state+1])), state+1
@@ -208,11 +211,25 @@ function iterate(dual::Dual{<:Ulam}, state = 1)
         return nothing
     end
 end
-Base.length(dual::Dual{<:Ulam}) = length(dual.x)
-Base.eltype(dual::Dual{<:Ulam}) = Tuple{eltype(dual.xlabel), Tuple{eltype(dual.x), eltype(dual.x)}}
+
+struct HatDual <: Dual
+    x::Vector{Interval} #TODO: a more generic type may be needed in future
+    xlabel::Vector{Int}
+    x′::Vector{Interval}
+end
+
+Dual(B::Hat, D, ϵ) = HatDual(preimages_and_derivatives(B.p, D, 1:length(B.p)-1, ϵ)...)
+Base.length(dual::HatDual) = length(dual.x)
+Base.eltype(dual::HatDual) = Tuple{eltype(dual.xlabel), Tuple{eltype(dual.x), eltype(dual.x′)}}
+function iterate(dual::HatDual, state=1)
+    if state <= length(dual.x)
+        return ((dual.xlabel[state], (dual.x[state], abs(dual.x′[state]))), state+1)
+    else
+        return nothing
+    end
+end
 
 # Variants of assemble and DiscretizedOperator; the code is repeated here for easier comparison with the older algorithm
-
 function assemble2(B, D, ϵ=0.0; T = Float64)
 	I = Int64[]
 	J = Int64[]
