@@ -33,6 +33,9 @@ This should work properly even if `a, y` are intervals; in this case it returns 
 Assumes y is sorted, i.e., map(y, x->Interval(x).lo) and map(y, x->Interval(x).hi) are sorted.
 """
 function first_overlapping(y, a)
+    if iszero(a) # avoids -0 crap
+        a = zero(a)
+    end
     searchsortedlast(y, Interval(a).lo, by=x->Interval(x).hi)
 end
 
@@ -43,6 +46,9 @@ This should work properly even if `a, y` are intervals; in this case it returns 
 Assumes y is sorted, i.e., map(y, x->Interval(x).lo) and map(y, x->Interval(x).hi) are sorted.
 """
 function last_overlapping(y, a)
+    if iszero(a) # avoids -0 crap
+        a = zero(a)
+    end
     searchsortedfirst(y, Interval(a).hi, by=x->Interval(x).lo) - 1
 end
 
@@ -125,6 +131,31 @@ function preimages(y, D::Dynamic, ylabel = 1:length(y), ϵ = 0.0)
 end
 
 """
+Compute preimages of D *and* the derivatives f'(x) in each point.
+
+Returns: x, xlabel, x′
+
+Assumes that the dynamic is full-branch, because otherwise things may compose the wrong way.
+This is not restrictive because we'll need it only for the Hat assembler (at the moment)
+
+We combine them in a single function because there are avenues to optimize by recycling some computations (not completely exploited for now)
+"""
+function preimages_and_derivatives(y, br::Branch, ylabel = 1:length(y), ϵ = 0.0)
+    x, xlabel = preimages(y, br, ylabel, ϵ)
+    f′ = Contractors.derivative(br.f)
+    x′ = f′.(x)
+    return x, xlabel, x′
+end
+function preimages_and_derivatives(y, D::Dynamic, ylabel = 1:length(y), ϵ = 0.0)
+    @assert is_full_branch(D)
+    results = collect(preimages_and_derivatives(y, b, ylabel, ϵ) for b in branches(D))
+    x = vcat((result[1] for result in results)...)
+    xlabel = vcat((result[2] for result in results)...)
+    x′ = vcat((result[3] for result in results)...)
+    return x, xlabel, x′
+end
+
+"""
 Composed map D1 ∘ D2 ∘ D3. We store with [D1, D2, D3] in this order.
 
 We overwrite ∘ in base, so one can simply write D1 ∘ D2 or ∘(D1, D2, D3) to construct them.
@@ -145,6 +176,15 @@ function preimages(z, Ds::ComposedDynamic, zlabel = 1:length(z), ϵ = 0.0)
         z, zlabel = preimages(z, d, zlabel, ϵ)
     end
     return z, zlabel
+end
+function preimages_and_derivatives(z, Ds::ComposedDynamic, zlabel = 1:length(z), ϵ = 0.0)
+    derivatives = fill(1, 1:length(z))
+    for d in Ds.dyns
+        z, zindex, z′ = preimages_and_derivatives(z, d, 1:length(z), ϵ)
+        zlabel = zlabel[zindex]
+        derivatives = derivatives[zindex] .* z′ 
+    end
+    return z, zlabel, derivatives
 end
 
 """

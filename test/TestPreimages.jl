@@ -70,4 +70,18 @@ x, xlabel = preimages(y, D1 ∘ D2)
 @test f.(g.(x)) ≈ 0:0.2:1.8
 @test xlabel ≈ repeat(1:5, 2)
 
+D1 = PwMap([x->2x, x->6x-3, x->3x-2], [0, 0.5, @interval(2/3), 1], [0 1; 0 1; 0 1])
+D2 = PwMap([x->2x, x->4x-2, x->4x-3], [0, 0.5, 0.75, 1], [0 1; 0 1; 0 1])
+
+z = 0:0.3:1
+y, ylabel, y′ = InvariantMeasures.preimages_and_derivatives(z, D1)
+
+@test y ≈ [0, 0.15, 0.3, 0.45, 0.5, 0.5+0.05, 0.5+0.1, 0.5+0.15, 2/3, 2/3+0.1, 2/3+0.2, 2/3+0.3]
+@test ylabel == repeat(1:4, 3)
+@test y′ ≈ [2,2,2,2,6,6,6,6,3,3,3,3]
+
+x, xlabel, x′ = InvariantMeasures.preimages_and_derivatives(z, D1∘D2)
+@test all(x .≈ vcat(y/2, 0.5 .+ y/4, 0.75 .+ y/4))
+@test x′ == kron([4,12,6,8,24,12,8,24,12], [1,1,1,1])
+
 end #testset
