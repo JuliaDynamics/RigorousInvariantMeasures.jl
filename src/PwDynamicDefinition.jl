@@ -35,7 +35,7 @@ DynamicDefinition.endpoints(D::PwMap) = D.endpoints
 
 DynamicDefinition.orientation(D::PwMap, k) = D.increasing[k] ? 1. : -1.
 
-DynamicDefinition.is_full_branch(D::PwMap) = all(r == [0.,1.] || r == [1.,0.] for r in eachrow(D.y_endpoints))
+DynamicDefinition.is_full_branch(D::PwMap) = all(r == [0.,1.] || r == [1.,0.] for r in eachrow(D.y_endpoints))  # TODO: this assumes domain == [0,1] unnecessarily
 
 function DynamicDefinition.preim(D::PwMap, k, y, ϵ = 1e-15)
 	@assert 1 <= k <= nbranches(D)

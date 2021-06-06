@@ -56,4 +56,18 @@ x, xlabel = preimages(p, DD)
 @test x ≈ 0:1/80:79/80
 @test xlabel == repeat([1,2,3,4,5],16)
 
+# test composing two different functions, to check that composition is handled in the correct order
+
+f = x-> 2x
+g = x -> (x+x^2)/2
+
+D1 = mod1_dynamic(f)
+D2 = mod1_dynamic(g)
+
+y = 0:0.2:1
+x, xlabel = preimages(y, D1 ∘ D2)
+
+@test f.(g.(x)) ≈ 0:0.2:1.8
+@test xlabel ≈ repeat(1:5, 2)
+
 end #testset
