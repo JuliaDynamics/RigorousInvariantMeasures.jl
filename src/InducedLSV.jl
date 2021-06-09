@@ -1,6 +1,9 @@
 module InducedLSVMapDefinition
 using ValidatedNumerics
 using ..DynamicDefinition, ..Contractors
+import ..Hat
+import ..BasisDefinition: DualComposedWithDynamic
+
 
 export ApproxInducedLSV, preim, nbranches, plottable
 
@@ -22,6 +25,19 @@ end
 @inline CoordinateChange(x) = 2*x-1
 # inverse coordinate change
 @inline InvCoordinateChange(x) = x/2+0.5
+
+function derleft(D::ApproxInducedLSV, x) 
+	@assert 0<=x<=0.5
+	α = D.α
+	return 1+2^α*(α+1)*x^α # check that α must be an interv)al? 
+end
+
+function derderleft(D::ApproxInducedLSV, x) 
+	@assert 0<=x<=0.5
+	α = D.α
+	return 2^α*(α+1)*α*x^(α-1) # check that α must be an interval? 
+end
+
 
 function ShootingLSV(n, y, α, rigstep = 10; T = Float64)
 	x = [Interval{T}(0.5, 1); Interval{T}(0, 0.5)*ones(Interval{T}, n-1)]
@@ -110,6 +126,70 @@ function DynamicDefinition.preim(D::ApproxInducedLSV, k, y, ϵ)
 	end
 end
 
+#returns the preimage of a point in a branch with the der and the second derivative
+function preimwithder_derder(D::ApproxInducedLSV, k, y, ϵ) #::NTuple{Interval, 3}
+	@assert 1 <= k <= D.nbranches
+
+	y = Interval(y) #hack, please check
+	_y = InvCoordinateChange(y)
+	
+	if k == 1 # the manufactured branch
+		right = ShootingLSV(D.nbranches-1, 0.5, D.α)[1]
+		_x = (2*_y-1)*(right-0.5)+0.5  
+		return CoordinateChange(_x), 0.5/(right-0.5), 0  
+
+	elseif k == D.nbranches # the linear branch
+		_x = (_y+1)/2
+		return CoordinateChange(_x), 2, 0
+	else		
+		orbit_x = ShootingLSV(D.nbranches-k+1, _y, D.α)
+		
+		der = 2
+		derder = 0
+		for i in 2:length(orbit_x)
+			dx = derleft(D, orbit_x[i])
+			ddx = derderleft(D, orbit_x[i])
+			derder = ddx*der^2+dx*derder
+			der*=dx
+		end
+			
+		return CoordinateChange(orbit_x[1]), der, derder/2
+		# this /2 follows from the coordinate change
+		# i.e., we are looking at the map F(x) = ψ(f(ϕ(x))) where
+		# ϕ maps linearly [0,1]->[0.5, 1] and ψ is the
+		# inverse map
+		# by a direct computation we get  F''(x) = ψ'(f(ϕ(x)))f''(ϕ(x))(ϕ'(x))^2
+	end
+end
+
+
+"""
+Return (in an iterator) the pairs (i, (x, |T'(x)|)) where x is a preimage of p[i], which
+describe the "dual" L* evaluation(p[i])
+"""
+function Base.iterate(S::DualComposedWithDynamic{T, ApproxInducedLSV}, state = (1, 1)) where T<:Hat
+	i, k = state
+
+	if i == length(S.basis)+1
+			return nothing
+	end
+
+	n = length(S.basis.p)
+	
+	x, der, derder = preimwithder_derder(S.dynamic, k, S.basis.p[i], S.ϵ)
+	ret = x, abs(der)   
+	
+	if k == nbranches(S.dynamic)
+		return ((i, ret), (i+1, 1))
+	else
+		return ((i, ret), (i, k+1))
+	end
+end
+
+function DynamicDefinition.derivative(D::ApproxInducedLSV, x)
+	@error "Not implemented"
+end
+
 
 function iterate_LSV(x, i, α)
 	@assert i>0
@@ -154,4 +234,50 @@ function dfly(::Type{TotalVariation}, ::Type{L1}, D::InvariantMeasures.InducedLS
 		end
 	end
 	return lam.hi, dist.hi
+end
+
+using TaylorSeries
+
+function derivatives_D(α, k, l; T = Float64)
+	w = zeros(Interval, (l, l))
+	right = Interval(1.0)
+	for i in 1:k
+		@info i
+		left = InducedLSVMapDefinition.ShootingLSV(i, 0.5, α; T = T)[1]
+		dom = hull(left, right)
+		f(x) = InducedLSVMapDefinition.iterate_LSV(x, i, α)
+		g(x) = 1/(TaylorSeries.derivative(f(Taylor1([x, 1], l))))
+				
+		dom = Interval(left.lo, right.hi)
+		tol = diam(dom)*2^(-10)
+		for i = 0:l-1, j=0:l-1
+			h(x) = abs((factorial(i)*g(x)[i])*g(x)[0]^j) # \partial^i (1/T') * (1/T')^j
+			val = maximise(h, dom, tol = tol)[1]
+			w[i+1, j+1] = max(w[i+1, j+1], val) 
+		end
+		right = left
+		if mod(i,20) == 0
+			@info w
+		end
+	end
+	return w
+end
+
+using DualNumbers
+function bound_b_ω(α, k; T = Float64)
+	right = Interval(1.0)
+	for i in 1:k
+		@info i
+		left = InducedLSVMapDefinition.ShootingLSV(i, 0.5, α; T = T)[1]
+		dom = hull(left, right)
+		f(α, x) = InducedLSVMapDefinition.iterate_LSV(x, i, α)
+		f_prime_α(x) = f(Dual(α, 1), x).epsilon
+		f_prime_x(x) = f(α, Dual(x, 1)).epsilon
+		h(x) = -f_prime_α(x)/f_prime_x(x)
+		dom = Interval(left.lo, right.hi)
+		tol = diam(dom)*2^(-10)
+		val = maximise(h, dom, tol = tol)[1]
+		@info val
+	end
+	return w
 end

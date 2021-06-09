@@ -53,5 +53,6 @@ using .InducedLSVMapDefinition
 export ApproxInducedLSV
 
 include("ConvergenceRatesOriginal.jl")
+include("HigherDFLY.jl")
 
 end
