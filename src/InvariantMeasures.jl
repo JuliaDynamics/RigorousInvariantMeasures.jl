@@ -55,5 +55,7 @@ export ApproxInducedLSV
 
 include("ConvergenceRatesOriginal.jl")
 include("HigherDFLY.jl")
+include("Chebyshev.jl")
+
 
 end
