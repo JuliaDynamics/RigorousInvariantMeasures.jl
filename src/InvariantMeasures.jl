@@ -54,5 +54,7 @@ using .InducedLSVMapDefinition
 export ApproxInducedLSV
 
 include("ConvergenceRatesOriginal.jl")
+include("Chebyshev.jl")
+
 
 end
