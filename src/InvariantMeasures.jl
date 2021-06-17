@@ -47,6 +47,10 @@ export Ulam, PwMap, Mod1Dynamic, Basis, Dynamic, assemble, preim, Hat,
 import ValidatedNumerics: Interval
 export Interval
 
+include("C2Basis.jl")
+using .C2BasisDefinition
+export C2Basis
+include("ContractionC1.jl")
 
 # a special example, the induced map for the LSV map
 include("InducedLSV.jl")

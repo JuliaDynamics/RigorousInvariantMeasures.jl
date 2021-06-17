@@ -3,6 +3,7 @@ using ValidatedNumerics
 using ..DynamicDefinition, ..Contractors
 import ..Hat
 import ..BasisDefinition: DualComposedWithDynamic
+import ..C2BasisDefinition: C2Basis, dual_val, dual_der
 
 
 export ApproxInducedLSV, preim, nbranches, plottable
@@ -186,6 +187,33 @@ function Base.iterate(S::DualComposedWithDynamic{T, ApproxInducedLSV}, state = (
 	end
 end
 
+"""
+Return (in an iterator) the pairs (i, (x, |T'(x)|)) where x is a preimage of p[i], which
+describe the "dual" L* evaluation(p[i])
+"""
+function Base.iterate(S::DualComposedWithDynamic{T, ApproxInducedLSV}, state = (1, 1)) where T<:C2Basis
+	i, k = state
+
+	if i == length(S.basis)+1
+			return nothing
+	end
+
+	n = length(S.basis.p)
+	
+	if i <= n
+		x, der, derder = preimwithder_derder(S.dynamic, k, S.basis.p[i], S.ϵ)
+		ret = x, (f, fprime) -> dual_val(f, fprime, x, der, derder)   
+	else
+		x, der, derder = preimwithder_derder(S.dynamic, k, S.basis.p[i-n], S.ϵ)
+		ret = x, (f, fprime) -> dual_der(f, fprime, x, der, derder)
+	end
+	if k == nbranches(S.dynamic)
+		return ((i, ret), (i+1, 1))
+	else
+		return ((i, ret), (i, k+1))
+	end
+end
+
 function DynamicDefinition.derivative(D::ApproxInducedLSV, x)
 	@error "Not implemented"
 end
@@ -236,7 +264,7 @@ function dfly(::Type{TotalVariation}, ::Type{L1}, D::InvariantMeasures.InducedLS
 	return lam.hi, dist.hi
 end
 
-using TaylorSeries
+import TaylorSeries: Taylor1 
 
 function derivatives_D(α, k, l; T = Float64)
 	w = zeros(Interval, (l, l))
@@ -263,7 +291,7 @@ function derivatives_D(α, k, l; T = Float64)
 	return w
 end
 
-using DualNumbers
+import DualNumbers
 function bound_b_ω(α, k; T = Float64)
 	right = Interval(1.0)
 	for i in 1:k
@@ -271,8 +299,8 @@ function bound_b_ω(α, k; T = Float64)
 		left = InducedLSVMapDefinition.ShootingLSV(i, 0.5, α; T = T)[1]
 		dom = hull(left, right)
 		f(α, x) = InducedLSVMapDefinition.iterate_LSV(x, i, α)
-		f_prime_α(x) = f(Dual(α, 1), x).epsilon
-		f_prime_x(x) = f(α, Dual(x, 1)).epsilon
+		f_prime_α(x) = f(DualNumbers.Dual(α, 1), x).epsilon
+		f_prime_x(x) = f(α, DualNumbers.Dual(x, 1)).epsilon
 		h(x) = -f_prime_α(x)/f_prime_x(x)
 		dom = Interval(left.lo, right.hi)
 		tol = diam(dom)*2^(-10)
