@@ -63,7 +63,7 @@ function GetDomains(branches, α; T = Float64)
     return domains
 end
 
-function DefineTnPlottable(branches, α)
+function DefineTnPlottable(branches, α; T = Float64)
     Tleft(x)=x*(1+(2*x)^α)
 
     Tnlist = Array{Function, 1}(undef, branches+1)
@@ -73,7 +73,7 @@ function DefineTnPlottable(branches, α)
         Tnlist[i] = x-> Tleft(Tnlist[i+1](x))
     end
 
-    right = mid(ShootingLSV(branches, 0.5, α)[1])
+    right = mid(ShootingLSV(branches, 0.5, α; T = T)[1])
 
     Tnlist[1] = x-> 0.5*1/(right-0.5)*(x-0.5)+0.5
     return Tnlist
@@ -264,6 +264,7 @@ function dfly(::Type{TotalVariation}, ::Type{L1}, D::InvariantMeasures.InducedLS
 	return lam.hi, dist.hi
 end
 
+import TaylorSeries
 import TaylorSeries: Taylor1 
 
 function derivatives_D(α, k, l; T = Float64)
