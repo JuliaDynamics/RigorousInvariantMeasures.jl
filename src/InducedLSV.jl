@@ -51,7 +51,7 @@ function GetDomains(branches, α; T = Float64)
     domains=Interval{T}[]
     left = Interval{T}(0.5)
     for i in branches:-1:2
-    	right = ShootingLSV(i, 0.5, α)[1]
+    	right = ShootingLSV(i, 0.5, α; T = T)[1]
 		push!(domains,union(left,right))
     	left = right
     #for i=2:branches
