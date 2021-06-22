@@ -35,24 +35,28 @@ function norms_of_powers_basis(B::C2Basis, m::Integer, Q::DiscretizedOperator, f
     #ϵ = zero(T)
     midf = mid.(f)
 
+    # TODO: correct here
     norm(v) = C2BasisDefinition.C1Norm(B, v)
 
     norms = zeros(m)
 
-    S = zeros((n, m))
-
+    #S = zeros((n, m))
+    k = length(B.p)
 
     for v in AverageZero(B)
         norm_0 = norm(v)
         v/= norm_0.lo
+        @info "new vector"
+        @info norm(v)
         for i in 1:m
             w = M*v 
             v = w - Q.e * (midf*w)[1]
-            S[:, i]+= abs.(v)        
+            norms[i] = max(norm(v).hi*3*k, norms[i])
         end
+        @info norms
     end
 
-    return [norm(S[:, i]) for i in 1:m]
+    return norms
     
 end
 
