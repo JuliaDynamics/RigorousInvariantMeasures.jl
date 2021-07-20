@@ -12,5 +12,5 @@ using Test
     include("TestEstimate.jl")
     include("TestNormOfPowers.jl")
     include("TestPreimages.jl")
-
+    include("TestChebyshev.jl")
 end

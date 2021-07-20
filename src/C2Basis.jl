@@ -252,6 +252,7 @@ function infnormofderivative(B::C2Basis, v)
 end
 
 C1Norm(B::C2Basis, v) = infnormoffunction(B,v)+infnormofderivative(B,v)
+rescaling_factor(B::C2Basis) = 3*length(B.p)
 
 Base.length(S::AverageZero{T}) where T<:C2Basis = length(S.basis)-1
 

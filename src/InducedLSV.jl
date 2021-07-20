@@ -5,7 +5,6 @@ import ..Hat
 import ..BasisDefinition: DualComposedWithDynamic
 import ..C2BasisDefinition: C2Basis, dual_val, dual_der
 
-
 export ApproxInducedLSV, preim, nbranches, plottable
 
 """
@@ -163,6 +162,33 @@ function preimwithder_derder(D::ApproxInducedLSV, k, y, ϵ) #::NTuple{Interval, 
 	end
 end
 
+#returns the preimage of a point in a branch with the der and the second derivative
+function preimwithder(D::ApproxInducedLSV, k, y, ϵ) #::NTuple{Interval, 3}
+	@assert 1 <= k <= D.nbranches
+
+	y = Interval(y) #hack, please check
+	_y = InvCoordinateChange(y)
+	
+	if k == 1 # the manufactured branch
+		right = ShootingLSV(D.nbranches-1, 0.5, D.α)[1]
+		_x = (2*_y-1)*(right-0.5)+0.5  
+		return CoordinateChange(_x), 0.5/(right-0.5), 0  
+
+	elseif k == D.nbranches # the linear branch
+		_x = (_y+1)/2
+		return CoordinateChange(_x), 2, 0
+	else		
+		orbit_x = ShootingLSV(D.nbranches-k+1, _y, D.α)
+		
+		der = 2
+		for i in 2:length(orbit_x)
+			dx = derleft(D, orbit_x[i])
+			der*=dx
+		end
+			
+		return CoordinateChange(orbit_x[1]), der
+	end
+end
 
 """
 Return (in an iterator) the pairs (i, (x, |T'(x)|)) where x is a preimage of p[i], which
@@ -233,6 +259,22 @@ using RecipesBase
 
 end
 
+function InvariantMeasures.Dual(B::Chebyshev, D::InducedLSVMapDefinition.ApproxInducedLSV, ϵ = 0.0; T = Float64)
+	labels = Int64[]
+	x = Interval{T}[]
+	x′ = Interval{T}[]
+	for k in 1:D.nbranches
+		@info "$k-th branch"
+		for i in 1:length(B.p)
+		x_i, x_i_prime = InducedLSVMapDefinition.preimwithder(D, k, B.p[i], ϵ)
+		append!(labels, i)
+		append!(x, x_i)
+		append!(x′, x_i_prime)
+		end
+	end
+	return x, labels, x′
+end
+
 
 
 # this function belongs to the InvariantMeasures namespace,
@@ -292,21 +334,21 @@ function derivatives_D(α, k, l; T = Float64)
 	return w
 end
 
-import DualNumbers
-function bound_b_ω(α, k; T = Float64)
-	right = Interval(1.0)
-	for i in 1:k
-		@info i
-		left = InducedLSVMapDefinition.ShootingLSV(i, 0.5, α; T = T)[1]
-		dom = hull(left, right)
-		f(α, x) = InducedLSVMapDefinition.iterate_LSV(x, i, α)
-		f_prime_α(x) = f(DualNumbers.Dual(α, 1), x).epsilon
-		f_prime_x(x) = f(α, DualNumbers.Dual(x, 1)).epsilon
-		h(x) = -f_prime_α(x)/f_prime_x(x)
-		dom = Interval(left.lo, right.hi)
-		tol = diam(dom)*2^(-10)
-		val = maximise(h, dom, tol = tol)[1]
-		@info val
-	end
-	return w
-end
+#import DualNumbers
+#function bound_b_ω(α, k; T = Float64)
+#	right = Interval(1.0)
+#	for i in 1:k
+#		@info i
+#		left = InducedLSVMapDefinition.ShootingLSV(i, 0.5, α; T = T)[1]
+#		dom = hull(left, right)
+#		f(α, x) = InducedLSVMapDefinition.iterate_LSV(x, i, α)
+#		f_prime_α(x) = f(DualNumbers.Dual(α, 1), x).epsilon
+#		f_prime_x(x) = f(α, DualNumbers.Dual(x, 1)).epsilon
+#		h(x) = -f_prime_α(x)/f_prime_x(x)
+#		dom = Interval(left.lo, right.hi)
+#		tol = diam(dom)*2^(-10)
+#		val = maximise(h, dom, tol = tol)[1]
+#		@info val
+#	end
+#	return w
+#end

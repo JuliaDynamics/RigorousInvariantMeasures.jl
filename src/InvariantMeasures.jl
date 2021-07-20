@@ -1,5 +1,6 @@
 module InvariantMeasures
 
+using IntervalArithmetic: range_atan
 abstract type NormKind end
 struct L1 <: NormKind end
 struct Linf <: NormKind end
@@ -52,14 +53,14 @@ using .C2BasisDefinition
 export C2Basis
 include("ContractionC1.jl")
 
-# a special example, the induced map for the LSV map
-include("InducedLSV.jl")
-using .InducedLSVMapDefinition
-export ApproxInducedLSV
 
 include("ConvergenceRatesOriginal.jl")
 include("HigherDFLY.jl")
 include("Chebyshev.jl")
 
+# a special example, the induced map for the LSV map
+include("InducedLSV.jl")
+using .InducedLSVMapDefinition
+export ApproxInducedLSV
 
 end

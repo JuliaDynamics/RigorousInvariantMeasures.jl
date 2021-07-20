@@ -79,7 +79,7 @@ function range_estimate(f, domain, recstep = 5)
 		a, b = bisect(domain)
 		Iₐ = range_estimate(f, a, recstep-1)
 		Iᵦ = range_estimate(f, b, recstep-1)
-		return union(Iₐ, Iᵦ)
+		return Iₐ ∪ Iᵦ
 	end
 end
 

@@ -16,7 +16,7 @@ function opnormbound(N::Type{<:C1}, M, B)
     return est.hi
 end
 
-function norms_of_powers_basis(B::C2Basis, m::Integer, Q::DiscretizedOperator, f::AbstractArray;
+function norms_of_powers_basis(B, m::Integer, Q::DiscretizedOperator, f::AbstractArray;
     normv0::Real=-1., #used as "missing" value
     normQ::Real=-1.,
     normE::Real=-1.,
@@ -36,24 +36,32 @@ function norms_of_powers_basis(B::C2Basis, m::Integer, Q::DiscretizedOperator, f
     midf = mid.(f)
 
     # TODO: correct here
-    norm(v) = C2BasisDefinition.C1Norm(B, v)
+    norm(v) = C1Norm(B, v)
 
     norms = zeros(m)
 
     #S = zeros((n, m))
-    k = length(B.p)
+    #k = length(B.p)
+    factor = rescaling_factor(B)
 
-    for v in AverageZero(B)
-        norm_0 = norm(v)
-        v/= norm_0.lo
-        @info "new vector"
-        @info norm(v)
+    for (v, norm_0) in AverageZero(B)
+        
+        #@info v
+        v/= norm_0
+        #@info v
+        #@info norm(v)
         for i in 1:m
+            
             w = M*v 
             v = w - Q.e * (midf*w)[1]
-            norms[i] = max(norm(v).hi*3*k, norms[i])
+            #@info v
+
+            #@info "norm_$i" norm(v)*factor
+           # @info infnormoffunction(B, v)
+           # @info infnormofderivative(B, v)
+            norms[i] = max(norm(v).hi*factor, norms[i])
         end
-        @info norms
+        #@info norms
     end
 
     return norms
