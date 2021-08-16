@@ -9,7 +9,12 @@ include("warmup.jl")
 
 function runExperiment()
 
+<<<<<<< HEAD
     time_assembling = @elapsed begin
+=======
+trivial_norms = norms_of_powers_trivial(weak_norm(B), Q, m)
+computed_norms = norms_of_powers(weak_norm(B), m, Q, integral_covector(B))
+>>>>>>> origin/noise_contract
 
 		D = PwMap([x->2.5*x, x->4*x-1, x->4*x-2, x-> 4*x-3],
 			[@interval(0), @interval(0.25), @interval(0.5), @interval(0.75), @interval(1)])

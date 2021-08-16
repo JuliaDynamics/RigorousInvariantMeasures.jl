@@ -47,7 +47,6 @@ end
 Following Viviane Ledoux, Guillaume Moroz 
 "Evaluation of Chebyshev polynomials on intervals andapplication to root finding"
 """
-# TODO: use ErrorFreeArithmetics or FastRounding???
 function eval_Clenshaw_BackwardFirst(coeff::Vector{Interval{S}}, x::Interval{T}) where {S,T}
 	coeff_a = mid.(coeff)
 	coeff_r = radius.(coeff)
@@ -92,7 +91,7 @@ function eval_Clenshaw_BackwardSecond(coeff::Vector{Interval{S}}, x::Interval{T}
 	e = zeros(Interval{T}, m+1)
 	e[m] = coeff_r[m]
 	for k in reverse(2:m-1)
-		e[k] = e[k+1]+2*r*abs(u[k+1])+ϵ[k]+coeff_r[k]
+		e[k] = e[k+1]+(k+1)*(2*r*abs(u[k+1])+ϵ[k]+coeff_r[k])
 	end
 	e[1] = e[2]+2*r*abs(u[1])+ϵ[1]+coeff_r[1]
 	γ = e[1].hi
