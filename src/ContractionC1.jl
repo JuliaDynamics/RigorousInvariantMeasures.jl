@@ -16,6 +16,7 @@ function opnormbound(N::Type{<:C1}, M, B)
     return est.hi
 end
 
+using ProgressMeter
 function norms_of_powers_basis(B, m::Integer, Q::DiscretizedOperator, f::AbstractArray;
     normv0::Real=-1., #used as "missing" value
     normQ::Real=-1.,
@@ -44,7 +45,7 @@ function norms_of_powers_basis(B, m::Integer, Q::DiscretizedOperator, f::Abstrac
     #k = length(B.p)
     factor = rescaling_factor(B)
 
-    for (v, norm_0) in AverageZero(B)
+    @showprogress for (v, norm_0) in AverageZero(B)
         
         #@info v
         v/= norm_0

@@ -92,7 +92,7 @@ function eval_Clenshaw_BackwardSecond(coeff::Vector{Interval{S}}, x::Interval{T}
 	e = zeros(Interval{T}, m+1)
 	e[m] = coeff_r[m]
 	for k in reverse(2:m-1)
-		e[k] = e[k+1]+2*r*abs(u[k+1])+ϵ[k]+coeff_r[k]
+		e[k] = e[k+1]+(k+1)*(2*r*abs(u[k+1])+ϵ[k]+coeff_r[k])
 	end
 	e[1] = e[2]+2*r*abs(u[1])+ϵ[1]+coeff_r[1]
 	γ = e[1].hi
@@ -172,7 +172,7 @@ end
 import .C2BasisDefinition: C1Norm
 
 C1Norm(B::Chebyshev, v) = infnormoffunction(B,v)+infnormofderivative(B,v)
-rescaling_factor(B::Chebyshev) = log(length(B))
+rescaling_factor(B::Chebyshev) = log(length(B)+1)
 
 Base.length(S::AverageZero{T}) where T<:Chebyshev = length(S.basis)-1
 
@@ -258,11 +258,12 @@ function chebtransform(w)
 	return Interval.(t)
 end
 
+using ProgressMeter
 function assemble(B::Chebyshev, D::Dynamic, ϵ=0.0; T = Float64)
 	n = length(B.p)
 	M = zeros(Interval{T}, (n, n))
 	x, labels, x′ = Dual(B, D, ϵ)
-	for i in 1:n
+	@showprogress for i in 1:n
 		ϕ = B[i]
 		w = zeros(Interval{Float64}, n)
 		for j in 1:length(x)

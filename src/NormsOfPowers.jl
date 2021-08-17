@@ -31,6 +31,7 @@ function gamma(T, n::Integer)
     return nu ⊘₊ (one(T) ⊖₋ nu)
 end
 
+using ProgressMeter
 """
 Estimates the norms ||Q||, ||Q^2||, ... ||Q^m|| on U^0.
 
@@ -105,7 +106,7 @@ function norms_of_powers(N::Type{<:NormKind}, m::Integer, Q::DiscretizedOperator
     # main loop
 
     v = zeros(T, n)
-    for j = 1:n-1
+    @showprogress for j = 1:n-1
         v .= zero(T) # TODO: check for type stability in cases with unusual types
         v[1] = one(T) # TODO: in full generality, this should contain entries of f rather than ±1
         v[j+1] = -one(T)
