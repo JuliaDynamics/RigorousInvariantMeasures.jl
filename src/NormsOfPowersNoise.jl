@@ -10,8 +10,6 @@ using FFTW
 
 export norms_of_powers_noise
 
-import  InvariantMeasures.NoiseKernelDefinition: DiscretizedNoiseKernel, Mfft
-
 """
 Estimates the norms ||Q||, ||Q^2||, ... ||Q^m|| on U^0.
 
@@ -33,7 +31,7 @@ function norms_of_powers_noise(N::Type{L1},
         m::Integer, 
         Q::DiscretizedOperator, 
         f::AbstractArray,
-        ρ::DiscretizedNoiseKernel;
+        MK::NoiseKernel;
         normv0::Real=-1., #used as "missing" value
         normQ::Real=-1.,
         normE::Real=-1.,
@@ -52,20 +50,25 @@ function norms_of_powers_noise(N::Type{L1},
     
     # this is the operator radius of the noise operator,
     # we use this function since the operator may be defined implictly
-    δₖ = opradius(NK)
     
     γz = gamma(T, max_nonzeros_per_row(Q.L))
     γn = gamma(T, n+3) # not n+2 like in the paper, because we wish to allow for f to be the result of rounding
     
-    γₖ = gamma(T, max_nonzero_per_row(NK))
     
     ϵ = zero(T)
 
     nrmM = opnormbound(N, M)
 
-    #this needs to be implemented
-    nrm_mid_MK = opnormbound(N, MK)
-    normMK = nrm_mid_MK ⊕₊ δₖ
+    # these need to be implemented for each kernel
+    δₖ = opradius(N, MK) #this is the opnorm of the radius matrix
+    
+    # essentially nonzero_per_row(MK) is
+    # the  number of mul_add needed to obtain one
+    # entry of MK*v
+    γₖ = gamma(T, nonzero_per_row(MK)) 
+    
+    nrm_MK = opnormbound(N, MK)
+    normMK = nrm_MK ⊕₊ δₖ
 
     # precompute norms
     if !is_integral_preserving(Q)
@@ -81,25 +84,6 @@ function norms_of_powers_noise(N::Type{L1},
         if normN == -1.
             normN = opnormbound(N, Matrix(UniformScaling{Float64}(1),n,n) - Q.e*f)
         end
-    
-    M = mid.(Q.L)
-    
-    R = radius.(Q.L)
-    
-    δ = opnormbound(N, R)
-    
-    γz = gamma(T, max_nonzeros_per_row(Q.L))
-    
-    γn = gamma(T, n+3) # not n+2 like in the paper, because we wish to allow for f to be the result of rounding
-    ϵ = zero(T)
-
-    Mρ =  Mfft(ρ)
-
-    nrmM = opnormbound(N, M)
-    
-    # precompute norms
-    if !is_integral_preserving(Q)
-        @error "Not implemented error"
     end
 
     if normQ == -1.
@@ -111,11 +95,6 @@ function norms_of_powers_noise(N::Type{L1},
         end
     end
 
-            @error "Not implemented error"
-        end
-    end
-
-
     # initialize normcachers
     normcachers = [NormCacher{N}(n) for j in 1:m]
 
@@ -124,8 +103,6 @@ function norms_of_powers_noise(N::Type{L1},
     # main loop
 
     v = zeros(T, n)
-    # initialize the FFT
-    P = plan_fft(v)
 
     for j = 1:n-1
         v .= zero(T) # TODO: check for type stability in cases with unusual types
@@ -149,27 +126,16 @@ function norms_of_powers_noise(N::Type{L1},
                 ϵ = γn ⊗₊ normIEF ⊗₊ (new_nrmw ⊕₊ normEF ⊗₊ nrmw) ⊕₊ normN ⊗₊ (γz ⊗₊ nrmM ⊕₊ δ) ⊗₊ nrmv ⊕₊ normQ ⊗₊ ϵ
                 nrmw = new_nrmw
             end
+            
+            # the noise step
             nrmv = opnormbound(N, v)
+            
             v = w
             w = MK * v
-            if is_integral_preserving(Q)
-                v = w
-                ϵ = (γₖ ⊗₊nrm_mid_MK ⊕₊δₖ) ⊗₊ nrmv ⊕₊ normMK ⊗₊ ϵ
-            else
-                v = w - Q.e * (midf*w)  # TODO: we are currently assuming that f is not too large, to estimate the error (the result of only one floating point operation)
-                new_nrmw = opnormbound(N, w)
-                ϵ = γn ⊗₊ normIEF ⊗₊ (new_nrmw ⊕₊ normEF ⊗₊ nrmw) ⊕₊ normN ⊗₊ (γz ⊗₊ nrmM ⊕₊ δ) ⊗₊ nrmv ⊕₊ normQ ⊗₊ ϵ
-                nrmw = new_nrmw
-            end
-            
-            
-            
-            
-            
-            w = (P\ (Mρ.* (P* (M * v))))/n
-            # we avoid the non integral-preserving case, for the moment
             v = w
-            ϵ = (γz ⊗₊ nrmM ⊕₊ δ) ⊗₊ nrmv ⊕₊ normQ ⊗₊ ϵ
+            
+            ϵ = (γₖ ⊗₊nrm_MK ⊕₊δₖ) ⊗₊ nrmv ⊕₊ normMK ⊗₊ ϵ
+            
             nrmv = opnormbound(N, v)
             add_column!(normcachers[k], v, ϵ) #TODO: Could pass and reuse nrmv in the case of norm-1
         end

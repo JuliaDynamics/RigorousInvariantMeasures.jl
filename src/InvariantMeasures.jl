@@ -64,4 +64,7 @@ include("InducedLSV.jl")
 using .InducedLSVMapDefinition
 export ApproxInducedLSV
 
+include("NoiseKernel.jl")
+include("NormsOfPowersNoise.jl")
+
 end
