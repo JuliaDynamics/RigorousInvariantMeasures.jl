@@ -49,18 +49,31 @@ end
 struct DiscretizedNoiseKernelUlam{S<:AbstractVector} <: NoiseKernel
 	v::S
 	rad
-	boundarycondition
+	boundarycondition::Symbol
+	w::Vector
+	z::Vector
 end
 
 function UniformNoiseUlam(ξ, k, boundarycondition = :periodic)
-	n = Int64(2*ceil(ξ*k))
+	n = 2*Int64(ceil(ξ*k))
 	v = zeros(Interval{Float64}, n)
-	l = Int64(2*floor(ξ*k))
-	a = 1/(2*Interval(ξ)*k)
-	v[2:n-1] = a*ones(Interval{Float64}, l)
-	v[1] = (1-sum(v))/2
+	a = 1/(2*Interval(ξ))
+	v[2:n-1] = a*ones(Interval{Float64}, n-2)
+	v[1] = (k-sum(v))/2
 	v[n] = v[1]
-	return DiscretizedNoiseKernelUlam(mid.(v), opnormbound(L1, v)-1, boundarycondition) 
+	if boundarycondition == :periodic
+		return DiscretizedNoiseKernelUlam(mid.(v), 
+										  opnormbound(L1, v)-k, 
+										  boundarycondition, 
+										  zeros(k+n), 
+										  zeros(k)) 
+	elseif boundarycondition == :reflecting
+		return DiscretizedNoiseKernelUlam(mid.(v), 
+										  opnormbound(L1, v)-k, 
+										  boundarycondition, 
+										  zeros(k+n+2), 
+										  zeros(k))
+	end
 end
 
 #TODO, but at the moment this is fine, it is a Markov operator
@@ -74,33 +87,57 @@ function Base.:*(M::DiscretizedNoiseKernelUlam, v)
 end
 
 function mult(M::DiscretizedNoiseKernelUlam, v, ::Val{:periodic})
-	k = length(M.v)
-	n = length(v)
-	w = zeros(n+2*k)
-	w[k+1:k+n] = v
-	w[1:k] = v[end-k+1:end]
-	w[n+k+1:end] = v[1:k]
-	z = zeros(n)
-	for i in 1:n
-		h = @view w[i:i+k-1]
-		z[i] = sum( M.v.* h)
+	n = length(M.v)
+	k = length(v)
+	l =n÷2
+
+	M.w .= 0
+	
+	M.w[l+1:l+k] = v
+	M.w[1:l] = v[end-l+1:end]
+	M.w[end-l+1:end] = v[1:l]
+		
+	for i in 1:k
+		h = @view M.w[i:i+n-1]
+		v[i] = sum( M.v.* h)/k
 	end
-	return z
+
+	return v
 end
 
 function mult(M::DiscretizedNoiseKernelUlam, v, ::Val{:reflecting})
-	k = length(M.v)
-	n = length(v)
-	w = zeros(n+2*k)
-	w[k+1:k+n] = v
-	w[1:k] = reverse(v[1:k])
-	w[n+k+1:end] = reverse(v[end-k+1:end])
-	z = zeros(n)
-	for i in 1:n
-		h = @view w[i:i+k-1]
-		z[i] = sum( M.v.* h)
+	n = length(M.v)
+	k = length(v)
+	l = n÷2+1
+
+	@info v
+	M.w .= 0
+	M.w[l+1:l+k] = v
+	v .= 0
+	
+	for i in 1:l
+		h = @view M.w[i:i+n-1]
+		@info h, i
+		val = sum( M.v.* h)/k 
+		v[l+1-i] += val 
 	end
-	return z
+	
+	for i in 1:k
+		h = @view M.w[i+l:i+l+n-1]
+		@info h, i+l
+		val = sum( M.v.* h)/k 
+		v[i]+=val 
+	end
+	@info "stop"
+	for i in 1:l
+		h = @view M.w[k+l+i:k+l+i+n-1]
+		@info h
+		val = sum( M.v.* h)/k 
+		v[end-i+1] +=val 
+	end
+
+
+	return v
 end
 
 
