@@ -3,6 +3,7 @@ module InvariantMeasures
 using IntervalArithmetic: range_atan
 abstract type NormKind end
 struct L1 <: NormKind end
+struct L2 <: NormKind end
 struct Linf <: NormKind end
 struct Lipschitz <: NormKind end
 struct TotalVariation <: NormKind end
@@ -62,5 +63,8 @@ include("Chebyshev.jl")
 include("InducedLSV.jl")
 using .InducedLSVMapDefinition
 export ApproxInducedLSV
+
+include("NoiseKernel.jl")
+include("NormsOfPowersNoise.jl")
 
 end
