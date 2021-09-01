@@ -1,7 +1,7 @@
 name = "InvariantMeasures"
 uuid = "07926553-d30c-41c2-8456-6c4d18765e90"
 authors = ["Isaia Nisoli <nisoli@im.ufrj.br>, Federico Poloni <federico.poloni@unipi.it> and contributors"]
-version = "0.1.0"
+version = "0.1.1"
 
 [deps]
 Arpack = "7d9fca2a-8960-54d3-9f78-7d1dccf2cb97"
@@ -41,7 +41,7 @@ IntervalOptimisation = "0.4.2"
 LaTeXStrings = "1.2.1"
 RecipesBase = "1.1.1"
 StatsPlots = "0.14.19"
-SymbolicUtils = "0.13, 0.15"
+SymbolicUtils = "0.13, 0.14, 0.15"
 Symbolics = "3"
 TaylorSeries = "0.10.11"
 ValidatedNumerics = "0.11, 0.12"
