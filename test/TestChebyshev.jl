@@ -1,0 +1,23 @@
+using InvariantMeasures
+
+@testset "Chebyshev assembler" begin
+
+N = 16
+B = InvariantMeasures.Chebyshev(N)
+
+D = mod1_dynamic(x->2*x)
+L(ϕ, x) = (ϕ(x/2)+ϕ(x/2+0.5))/2
+
+M = assemble(B, D)
+using LinearAlgebra
+
+all_true = true
+for i in 1:N
+   w = mid.(L.(B[i], B.p))
+   z = InvariantMeasures.chebtransform(w)
+   all_true = all_true && norm(z-M[:, i], Inf)< 10^-13
+end
+
+@test all_true
+
+end
