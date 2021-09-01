@@ -17,6 +17,12 @@ abs_or_mag(x::Number) = abs(x)
 abs_or_mag(x::Interval) = mag(x)
 
 """
+Computes a rigorous upper bound for z*z'
+"""
+z_times_conjz(z::Complex) = square_round(abs_or_mag(real(z)), RoundUp) ⊕₊ square_round(abs_or_mag(imag(z)), RoundUp)
+abs_or_mag(z::Complex) = sqrt_round(z_times_conjz(z), RoundUp)
+
+"""
 Certified upper bound to ||A|| (of specified NormKind)
 """
 function opnormbound(::Type{L1}, A::AbstractVecOrMat{T}) where {T}
@@ -51,6 +57,37 @@ function opnormbound(::Type{Linf}, A::AbstractVecOrMat{T}) where {T}
         end
     end
     return convert(Tnorm, nrm)
+end
+
+"""
+These functions compute a rigorous upper bound for the 2-norm of a vector;
+we have a specialized version for complex numbers to avoid taking
+the sqrt root and squaring again 
+"""
+function opnormbound(::Type{L2}, v::Vector{T}) where {T<:Real}
+    # partly taken from JuliaLang's LinearAlgebra/src/generic.jl
+    Tnorm = typeof(abs_or_mag(float(real(zero(T)))))
+    Tsum = promote_type(Float64, Tnorm)
+    nrm::Tsum = 0
+    @inbounds begin
+        for j = 1:length(v)
+            nrm = nrm ⊕₊ square_round(abs_or_mag(v[j]), RoundUp)
+        end
+    end
+    return convert(Tnorm, sqrt_round(nrm, RoundUp))
+end
+
+function opnormbound(::Type{L2}, v::Vector{T}) where {T<:Complex}
+    # partly taken from JuliaLang's LinearAlgebra/src/generic.jl
+    Tnorm = typeof(abs_or_mag(float(real(zero(T)))))
+    Tsum = promote_type(Float64, Tnorm)
+    nrm::Tsum = 0
+    @inbounds begin
+        for j = 1:length(v)
+            nrm = nrm ⊕₊ z_times_conjz(v[j])
+        end
+    end
+    return convert(Tnorm, sqrt_round(nrm, RoundUp))
 end
 
 function opnormbound(::Type{L1}, A::SparseMatrixCSC) where {T}
