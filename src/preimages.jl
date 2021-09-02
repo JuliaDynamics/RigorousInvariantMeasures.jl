@@ -177,7 +177,8 @@ function preimages(z, Ds::ComposedDynamic, zlabel = 1:length(z), ϵ = 0.0)
     end
     return z, zlabel
 end
-function preimages_and_derivatives(z, Ds::ComposedDynamic, zlabel = 1:length(z), ϵ = 0.0)    derivatives = fill(1, length(z))
+function preimages_and_derivatives(z, Ds::ComposedDynamic, zlabel = 1:length(z), ϵ = 0.0)   
+    derivatives = fill(1, length(z))
     for d in Ds.dyns
         z, zindex, z′ = preimages_and_derivatives(z, d, 1:length(z), ϵ)
         zlabel = zlabel[zindex]

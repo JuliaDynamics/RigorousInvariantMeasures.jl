@@ -104,7 +104,7 @@ function norms_of_powers_noise(N::Type{L1},
 
     v = zeros(T, n)
 
-    for j = 1:n-1
+    @showprogress for j = 1:n-1
         v .= zero(T) # TODO: check for type stability in cases with unusual types
         v[1] = one(T) # TODO: in full generality, this should contain entries of f rather than ±1
         v[j+1] = -one(T)
