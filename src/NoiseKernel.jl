@@ -47,6 +47,7 @@ function Base.:*(M::DiscretizedNoiseKernelFFT, v)
 end 
 
 struct DiscretizedNoiseKernelUlam{S<:AbstractVector} <: NoiseKernel
+	ξ
 	v::S
 	rad
 	boundarycondition::Symbol
@@ -54,7 +55,8 @@ struct DiscretizedNoiseKernelUlam{S<:AbstractVector} <: NoiseKernel
 	z::Vector
 end
 
-function UniformNoiseUlam(ξ, k, boundarycondition = :periodic)
+function UniformNoiseUlam(ξ, B::Ulam, boundarycondition = :periodic)
+	k = length(B)
 	n = 2*Int64(ceil(ξ*k))
 	v = zeros(Interval{Float64}, n)
 	a = 1/(2*Interval(ξ))
@@ -62,13 +64,15 @@ function UniformNoiseUlam(ξ, k, boundarycondition = :periodic)
 	v[1] = (k-sum(v))/2
 	v[n] = v[1]
 	if boundarycondition == :periodic
-		return DiscretizedNoiseKernelUlam(mid.(v), 
+		return DiscretizedNoiseKernelUlam(Interval(ξ),
+										  mid.(v), 
 										  opnormbound(L1, v)-k, 
 										  boundarycondition, 
 										  zeros(k+n), 
 										  zeros(k)) 
 	elseif boundarycondition == :reflecting
-		return DiscretizedNoiseKernelUlam(mid.(v), 
+		return DiscretizedNoiseKernelUlam(Interval(ξ),
+										  mid.(v), 
 										  opnormbound(L1, v)-k, 
 										  boundarycondition, 
 										  zeros(k+n+2), 
@@ -104,6 +108,8 @@ function mult(M::DiscretizedNoiseKernelUlam, v, ::Val{:periodic})
 
 	return v
 end
+
+dfly(::Type{TotalVariation}, ::Type{L1}, N::DiscretizedNoiseKernelUlam) = return 0.0, (1/(2*N.ξ)).hi
 
 function mult(M::DiscretizedNoiseKernelUlam, v, ::Val{:reflecting})
 	n = length(M.v)

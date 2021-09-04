@@ -65,7 +65,7 @@ function root(f, f′, x, ϵ; max_iter = 100)
 			return x
 		end
 	end
-	@info "Maximum iterates reached" max_iter
+	@info "Maximum iterates reached" max_iter, x, f(x)
 	return x
 end
 

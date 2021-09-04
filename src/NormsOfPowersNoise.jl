@@ -29,9 +29,9 @@ In case is_integral_preserving is true, they may be specified but they are then 
 """
 function norms_of_powers_noise(N::Type{L1}, 
         m::Integer, 
-        Q::DiscretizedOperator, 
-        f::AbstractArray,
-        MK::NoiseKernel;
+        Q::DiscretizedOperator,
+        MK::NoiseKernel, 
+        f::AbstractArray;
         normv0::Real=-1., #used as "missing" value
         normQ::Real=-1.,
         normE::Real=-1.,
@@ -143,6 +143,54 @@ function norms_of_powers_noise(N::Type{L1},
     return map(get_norm, normcachers)
 end
 
+"""
+Array of "trivial" bounds for the powers of a DiscretizedOperator (on the whole space)
+coming from from ||Q^k|| ≤ ||Q||^k
+"""
+function norms_of_powers_trivial_noise(N::Type{<:NormKind}, 
+                                       Q::DiscretizedOperator, 
+                                       MK::NoiseKernel,
+                                       m::Integer)
+    norms = fill(NaN, m)
+    δₖ = opradius(N, MK)
+    nrm_MK = opnormbound(N, MK)
+    norms[1] = opnormbound(N, Q)⊗₊ nrm_MK⊕₊δₖ
+    for i = 2:m
+        norms[i] = norms[i-1] ⊗₀ norms[1]
+    end
+    return norms
+end
+
+"""
+Arrays of bounds to ||Q^k||_{w → s} = sup_{||f||_w=1} ||Q^k f||_s
+and to ||Q^k||_{w}
+coming theoretically from iterated DFLY inequalities (the "small matrix method").
+
+Returns two arrays (strongs, norms) of length m:
+strongs[k] bounds ||Q^k f||_s, norms[k] bounds ||Q^k f||)
+"""
+function norms_of_powers_abstract_noise(Bas::Basis, N::NoiseKernel, m)
+    A, B = dfly(strong_norm(Bas), aux_norm(Bas), N)
+    Eh = BasisDefinition.aux_normalized_projection_error(Bas)
+    M₁n = BasisDefinition.strong_weak_bound(Bas)
+    M₂ = BasisDefinition.aux_weak_bound(Bas)
+    S₁, S₂ = BasisDefinition.weak_by_strong_and_aux_bound(Bas)
+
+    norms = fill(NaN, m)
+    strongs = fill(NaN, m)
+
+    v = Array{Float64}([M₁n; M₂])
+    # We evaluate [S₁ S₂] * ([1 0; Eh 1]*[A B; 0 1])^k * [M₁n; M₂] (with correct rounding)
+    for k = 1:m
+        # invariant: v[1] bounds ||Q^kf||_s for ||f||_w=1
+        # v[2] bounds |||Q^kf||| for ||f||_w=1
+        v[1] = A ⊗₊ v[1] ⊕₊ B ⊗₊ v[2]
+        v[2] = Eh ⊗₊ v[1] ⊕₊ v[2]
+        strongs[k] = v[1]
+        norms[k] = S₁ ⊗₊ v[1] ⊕₊ S₂ ⊗₊ v[2]
+    end
+    return strongs, norms
+end
 
 """
 Estimate norms of powers from those on a coarser grid (see paper for details)
@@ -169,4 +217,34 @@ function norms_of_powers_from_coarser_grid_noise(fine_basis::Basis, coarse_basis
     end
 
     return fine_norms
+end
+
+function powernormboundsnoise(B; Q=DiscretizedOperator(B, D), NK = NK::NoiseKernel)
+	m = 8
+	computed_norms = []
+	while true
+		computed_norms = norms_of_powers_noise(weak_norm(B), m, Q, NK, integral_covector(B))
+		if any(computed_norms .< 0.1)
+			break
+		end
+		m = 2*m
+	end
+	trivial_norms = norms_of_powers_trivial_noise(weak_norm(B), Q, NK, m)
+	(dfly_strongs, dfly_norms) = norms_of_powers_abstract_noise(B, NK, m)
+	# in the current version, dfly_norms seem to be always larger and could be omitted
+	# however they do not cost much to compute
+	norms = min.(trivial_norms, computed_norms, dfly_norms)
+
+	m_extend = 2*m
+	better_norms = []
+	while true
+		better_norms = refine_norms_of_powers(norms, m_extend)
+		if better_norms[end] < 1e-8
+			break
+		end
+		m_extend = 2*m_extend
+	end
+
+	return better_norms
+
 end
