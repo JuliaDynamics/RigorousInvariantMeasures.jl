@@ -154,7 +154,7 @@ function norms_of_powers_trivial_noise(N::Type{<:NormKind},
     norms = fill(NaN, m)
     δₖ = opradius(N, MK)
     nrm_MK = opnormbound(N, MK)
-    norms[1] = opnormbound(N, Q)⊗₊ nrm_MK⊕₊δₖ
+    norms[1] = opnormbound(N, Q) ⊗₊ nrm_MK⊕₊δₖ
     for i = 2:m
         norms[i] = norms[i-1] ⊗₀ norms[1]
     end
@@ -194,30 +194,101 @@ end
 
 """
 Estimate norms of powers from those on a coarser grid (see paper for details)
+TODO: Check if it works for other basis types
 """
-function norms_of_powers_from_coarser_grid_noise(fine_basis::Basis, coarse_basis::Basis, var_ρ::Real, coarse_norms::Vector, normQ::Real)
+function norms_of_powers_from_coarser_grid_noise(fine_basis::Ulam, 
+                                            coarse_basis::Ulam, 
+                                            Q::DiscretizedOperator,
+                                            NK::NoiseKernel, 
+                                            coarse_norms::Vector)
     if !BasisDefinition.is_refinement(fine_basis, coarse_basis)
         @error "The fine basis is not a refinement of the coarse basis"
     end
     m = length(coarse_norms)
     fine_norms = fill(NaN, m+1)
-    fine_norms[1] = 1.0
+    trivial_norms = norms_of_powers_trivial_noise(weak_norm(fine_basis), Q, NK, m+1)
+
+    A, B = dfly(strong_norm(fine_basis), aux_norm(fine_basis), NK)
+
+    # adds a 0th element to strongs
+    trivial_norms0(k::Integer) = k==0 ? 1. : trivial_norms[k]
+    coarse_norms0(k::Integer) = k==0 ? 1. : coarse_norms[k]
 
     Kh =  BasisDefinition.weak_projection_error(coarse_basis)
     
-    coarse_norms0(k::Integer) = k==0 ? 1. : coarse_norms[k]
+    fine_norms[1] = trivial_norms0(1)
 
     for k in 1:m
-        temp = 0.0
-        for j in 0:k-1
-            temp = temp ⊕₊ coarse_norms0(j) ⊗₊ var_ρ
-        end
-        temp = 2*(temp ⊕₊ 1.0)
-        fine_norms[k+1] = coarse_norms[k] ⊕₊ Kh ⊗₊ temp
-    end
-
+		temp = 0.
+		for i in 0:k-1
+			temp = temp ⊕₊ coarse_norms0(i) ⊗₊ (trivial_norms0(k-i) ⊕₊ trivial_norms0(k-i-1))
+		end
+        fine_norms[k+1] = coarse_norms0(k) ⊕₊ B ⊗₊ Kh ⊗₊ (temp ⊕₊ 1.0)  
+	end
     return fine_norms
 end
+
+function norms_of_powers_from_coarser_grid_noise(fine_basis::Ulam, 
+                                            coarse_basis::Ulam, 
+                                            Q::DiscretizedOperator,
+                                            NK::NoiseKernel, 
+                                            coarse_norms::Vector)
+    if !BasisDefinition.is_refinement(fine_basis, coarse_basis)
+        @error "The fine basis is not a refinement of the coarse basis"
+    end
+    m = length(coarse_norms)
+    fine_norms = fill(NaN, m+1)
+    trivial_norms = norms_of_powers_trivial_noise(weak_norm(fine_basis), Q, NK, m+1)
+
+    A, B = dfly(strong_norm(fine_basis), aux_norm(fine_basis), NK)
+
+    # adds a 0th element to strongs
+    trivial_norms0(k::Integer) = k==0 ? 1. : trivial_norms[k]
+    coarse_norms0(k::Integer) = k==0 ? 1. : coarse_norms[k]
+
+    Kh =  BasisDefinition.weak_projection_error(coarse_basis)
+    
+    fine_norms[1] = trivial_norms0(1)
+
+    for k in 1:m
+		temp = 0.
+		for i in 0:k-1
+			temp = temp ⊕₊ coarse_norms0(i) ⊗₊ (trivial_norms0(k-i) ⊕₊ trivial_norms0(k-i-1))
+		end
+        fine_norms[k+1] = coarse_norms0(k) ⊕₊ B ⊗₊ Kh ⊗₊ (temp ⊕₊ 1.0)  
+	end
+    return fine_norms
+end
+
+function norms_of_powers_from_coarser_grid_noise_abstract(coarse_basis::Ulam, 
+                                                        NK::NoiseKernel,
+                                                        coarse_norms::Vector)
+    
+    m = length(coarse_norms)
+    abstract_norms = fill(NaN, m+1)
+    trivial_norms = ones(m+1)
+
+    A, B = dfly(strong_norm(coarse_basis), aux_norm(coarse_basis), NK)
+
+    # adds a 0th element to strongs
+    trivial_norms0(k::Integer) = k==0 ? 1. : trivial_norms[k]
+    coarse_norms0(k::Integer) = k==0 ? 1. : coarse_norms[k]
+
+    Kh =  BasisDefinition.weak_projection_error(coarse_basis)
+
+    fine_norms = fill(NaN, m+1)
+    fine_norms[1] = trivial_norms0(1)
+
+    for k in 1:m
+        temp = 0.
+        for i in 0:k-1
+            temp = temp ⊕₊ coarse_norms0(i) ⊗₊ (trivial_norms0(k-i) ⊕₊ trivial_norms0(k-i-1))
+        end
+    fine_norms[k+1] = coarse_norms0(k) ⊕₊ B ⊗₊ Kh ⊗₊ (temp ⊕₊ 1.0)  
+    end
+    return fine_norms
+end
+
 
 function powernormboundsnoise(B; Q=DiscretizedOperator(B, D), NK = NK::NoiseKernel)
 	m = 8
@@ -230,10 +301,7 @@ function powernormboundsnoise(B; Q=DiscretizedOperator(B, D), NK = NK::NoiseKern
 		m = 2*m
 	end
 	trivial_norms = norms_of_powers_trivial_noise(weak_norm(B), Q, NK, m)
-	(dfly_strongs, dfly_norms) = norms_of_powers_abstract_noise(B, NK, m)
-	# in the current version, dfly_norms seem to be always larger and could be omitted
-	# however they do not cost much to compute
-	norms = min.(trivial_norms, computed_norms, dfly_norms)
+	norms = min.(trivial_norms, computed_norms)
 
 	m_extend = 2*m
 	better_norms = []
@@ -247,4 +315,85 @@ function powernormboundsnoise(B; Q=DiscretizedOperator(B, D), NK = NK::NoiseKern
 
 	return better_norms
 
+end
+
+"""
+Uses power norm bounds already computed for a coarse operator to estimate
+the same norms for a finer operator
+"""
+function finepowernormboundsnoise(B, 
+                                  Bfine,  
+                                  coarse_norms; 
+                                  Qfine::DiscretizedOperator,
+                                  NKfine::NoiseKernel)
+	                              m = length(coarse_norms)
+
+	trivial_norms_fine = norms_of_powers_trivial_noise(weak_norm(B), Qfine, NKfine, m+1)
+	twogrid_norms_fine = norms_of_powers_from_coarser_grid_noise(Bfine, 
+                                                                 B, 
+                                                                 Qfine,
+                                                                 NKfine, 
+                                                                 coarse_norms)
+    
+	norms_fine = min.(trivial_norms_fine, twogrid_norms_fine)
+
+	better_norms_fine = refine_norms_of_powers(norms_fine, m+1)
+	return better_norms_fine
+end
+
+function abstractpowernormboundsnoise(B, NK, coarse_norms; m = length(coarse_norms))
+    trivial_norms_fine = ones(m+1)
+    abstract_norms_from_coarse = norms_of_powers_from_coarser_grid_noise_abstract(B, NK, coarse_norms)
+
+    norms_fine = min.(trivial_norms_fine, abstract_norms_from_coarse)
+    better_norms_abstract = refine_norms_of_powers(norms_fine, m+1)
+    return better_norms_abstract
+end
+
+"""
+Return a numerical approximation to the (hopefully unique) invariant vector
+of the dynamic with discretized operator Q.
+
+The vector is normalized so that integral_covector(B)*w ≈ 1
+"""
+function invariant_vector_noise(B::Basis, Q::DiscretizedOperator, NK::NoiseKernel; tol = 0.0)
+	mQ = mid(Q)
+	v = one_vector(B)
+    for i in 1:30
+        v = NK*(mQ*v)
+    end
+    v = v ./ (mid.(integral_covector(B))*v)
+    return v
+end
+
+"""
+Return an upper bound to Q_h*w - w in the given norm
+"""
+function residualboundnoise(N::Type{<:NormKind}, Q::DiscretizedOperator, NK::NoiseKernel, w::AbstractVector)
+	v = Q*w
+    v = NK*v # actually, a priori estimate... TODO modify mult NK*v
+    return normbound(N, v - w)
+end
+
+"""
+Bounds rigorously the distance of w from the fixed point of Q (normalized with integral = 1),
+using a vector of bounds norms[k] ≥ ||Q_h^k|_{U_h^0}||.
+"""
+function distance_from_invariant_noise(B::Basis, 
+                                 Q::DiscretizedOperator, 
+                                 NK::NoiseKernel, 
+                                 w::AbstractVector, 
+                                 norms::Vector; 
+                                 ε₁::Float64 = residualboundnoise(weak_norm(B), Q, NK, w), 
+                                 ε₂::Float64 = mag(integral_covector(B) * w - 1), 
+                                 normQ::Float64 = opnormbound(weak_norm(B), Q))
+	if ε₂ > 1e-8
+		@error "w does not seem normalized correctly"
+	end
+    _ , us = dfly(strong_norm(B), aux_norm(B), NK)
+	Cs = infinite_sum_norms(norms)
+	Kh =  BasisDefinition.weak_projection_error(B)
+	normw = normbound(weak_norm(B), w)
+
+	return Cs ⊗₊ (2. ⊗₊ Kh ⊗₊ (1. ⊕₊ normQ) ⊗₊ us ⊕₊ ε₁ ⊘₊ (1. ⊖₋ ε₂)) ⊕₊ ε₂ ⊘₊ (1. ⊖₋ ε₂) ⊗₊ normw
 end

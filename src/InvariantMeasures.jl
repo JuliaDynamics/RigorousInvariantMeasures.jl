@@ -65,6 +65,8 @@ using .InducedLSVMapDefinition
 export ApproxInducedLSV
 
 include("NoiseKernel.jl")
+export UniformNoiseUlam
 include("NormsOfPowersNoise.jl")
+export powernormboundsnoise, finepowernormboundsnoise, abstractpowernormboundsnoise, invariant_vector_noise, distance_from_invariant_noise
 
 end

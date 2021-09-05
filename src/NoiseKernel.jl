@@ -84,6 +84,7 @@ end
 opnormbound(::Type{L1}, M::DiscretizedNoiseKernelUlam) = 1.0
 opradius(::Type{L1}, M::DiscretizedNoiseKernelUlam) = M.rad
 nonzero_per_row(M::DiscretizedNoiseKernelUlam) = length(M.v)
+dfly(::Type{TotalVariation}, ::Type{L1}, N::DiscretizedNoiseKernelUlam) = return 0.0, (1/(2*N.ξ)).hi
 
 
 function Base.:*(M::DiscretizedNoiseKernelUlam, v)
@@ -109,7 +110,37 @@ function mult(M::DiscretizedNoiseKernelUlam, v, ::Val{:periodic})
 	return v
 end
 
-dfly(::Type{TotalVariation}, ::Type{L1}, N::DiscretizedNoiseKernelUlam) = return 0.0, (1/(2*N.ξ)).hi
+function mult(M::DiscretizedNoiseKernelUlam, v::Vector{Interval{T}}, ::Val{:periodic}) where {T}
+	n = length(M.v)
+	k = length(v)
+	l =n÷2
+
+	nrmv = opnormbound(L1, v)
+	midv = mid.(v)
+	radv = radius.(v)
+	nrmrad = opnormbound(L1, radv)
+
+	M.w .= 0
+	
+	M.w[l+1:l+k] = midv
+	M.w[1:l] = midv[end-l+1:end]
+	M.w[end-l+1:end] = midv[1:l]
+		
+	for i in 1:k
+		h = @view M.w[i:i+n-1]
+		v[i] = sum( M.v.* h)/k
+	end
+	δₖ = opradius(L1, M)
+	γₖ = gamma(T, nonzero_per_row(M)) 
+    nrm_MK = opnormbound(L1, M)
+    normMK = nrm_MK ⊕₊ δₖ	
+	
+	ϵ = (γₖ ⊗₊ normMK) ⊗₊ nrmv ⊕₊ normMK ⊗₊ nrmrad 		
+
+	return v + fill(Interval(-ϵ ,ϵ), length(v)) 
+end
+
+
 
 function mult(M::DiscretizedNoiseKernelUlam, v, ::Val{:reflecting})
 	n = length(M.v)
