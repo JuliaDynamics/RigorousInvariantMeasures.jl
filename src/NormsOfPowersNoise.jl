@@ -228,38 +228,6 @@ function norms_of_powers_from_coarser_grid_noise(fine_basis::Ulam,
     return fine_norms
 end
 
-function norms_of_powers_from_coarser_grid_noise(fine_basis::Ulam, 
-                                            coarse_basis::Ulam, 
-                                            Q::DiscretizedOperator,
-                                            NK::NoiseKernel, 
-                                            coarse_norms::Vector)
-    if !BasisDefinition.is_refinement(fine_basis, coarse_basis)
-        @error "The fine basis is not a refinement of the coarse basis"
-    end
-    m = length(coarse_norms)
-    fine_norms = fill(NaN, m+1)
-    trivial_norms = norms_of_powers_trivial_noise(weak_norm(fine_basis), Q, NK, m+1)
-
-    A, B = dfly(strong_norm(fine_basis), aux_norm(fine_basis), NK)
-
-    # adds a 0th element to strongs
-    trivial_norms0(k::Integer) = k==0 ? 1. : trivial_norms[k]
-    coarse_norms0(k::Integer) = k==0 ? 1. : coarse_norms[k]
-
-    Kh =  BasisDefinition.weak_projection_error(coarse_basis)
-    
-    fine_norms[1] = trivial_norms0(1)
-
-    for k in 1:m
-		temp = 0.
-		for i in 0:k-1
-			temp = temp ⊕₊ coarse_norms0(i) ⊗₊ (trivial_norms0(k-i) ⊕₊ trivial_norms0(k-i-1))
-		end
-        fine_norms[k+1] = coarse_norms0(k) ⊕₊ B ⊗₊ Kh ⊗₊ (temp ⊕₊ 1.0)  
-	end
-    return fine_norms
-end
-
 function norms_of_powers_from_coarser_grid_noise_abstract(coarse_basis::Ulam, 
                                                         NK::NoiseKernel,
                                                         coarse_norms::Vector)
