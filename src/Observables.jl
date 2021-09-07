@@ -104,5 +104,6 @@ end
 
 function integrateobservable(B::Ulam, ϕ::Observable, f::Vector, error)
     val = (ϕ.v)'*f 
-    return (val+(ϕ.infbound.hi)*Interval(-error, error))/length(B)
+    @info (ϕ.infbound.hi)*Interval(-error, error)
+    return val/length(B)+(ϕ.infbound.hi)*Interval(-error, error)
 end
