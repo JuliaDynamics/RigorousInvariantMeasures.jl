@@ -143,7 +143,7 @@ function norms_of_powers_trivial(N::Type{<:NormKind}, Q::DiscretizedOperator, m:
     norms = fill(NaN, m)
     norms[1] = opnormbound(N, Q)
     for i = 2:m
-        norms[i] = norms[i-1] ⊗₀ norms[1]
+        norms[i] = norms[i-1] ⊗₊ norms[1]
     end
     return norms
 end
