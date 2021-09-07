@@ -70,5 +70,6 @@ include("NormsOfPowersNoise.jl")
 export powernormboundsnoise, finepowernormboundsnoise, abstractpowernormboundsnoise, invariant_vector_noise, distance_from_invariant_noise
 
 include("Observables.jl")
+export Observable, discretizationlogder, integrateobservable
 
 end

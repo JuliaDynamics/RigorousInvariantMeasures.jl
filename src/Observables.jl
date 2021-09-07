@@ -4,7 +4,7 @@ import TaylorModels
 function integrate(f, I; steps = 1024, degree = 6)
     lo = I.lo
     hi = I.hi
-    l = diam(I)
+    l = 2*radius(I)
     int_center = Interval(0.0)
     int_error = Interval(0.0)
     for i in 1:steps
@@ -26,7 +26,7 @@ end
 function adaptive_integration(f, I::Interval; tol = 2^-10, steps = 8, degree = 6) # tol 2^-10, steps = 8 are default values
     lo = I.lo
     hi = I.hi
-    l = diam(I)
+    l = 2*radius(I)
     int_value = Interval(0.0)
     for i in 1:steps
         left = lo+(i-1)*(l/steps)
@@ -48,6 +48,7 @@ end
 struct Observable
     B
     v::Vector
+    infbound
 end
 
 
@@ -59,13 +60,15 @@ function Observable(B::Ulam, ϕ::Function; tol = 2^-10)
         I = Interval(B.p[i], B.p[i+1])
         v[i] = adaptive_integration(ϕ, I; tol = tol, steps =1, degree = 2)*length(B)
     end
-    return Observable(B, v)
+    infbound = maximise(x->abs(ϕ(x)), Interval(0,1))[1]
+    return Observable(B, v, infbound)
 end
 
 import TaylorSeries
 
 function discretizationlogder(B, D::PwMap; degree = 7)
     v = zeros(Interval{Float64}, length(B))
+    infbound  = emptyinterval()
     endpoints = D.endpoints
     delicate_indexes = Int64.(floor.(length(B)*[x.lo for x in endpoints])).+1
     for i in 1:(length(delicate_indexes)-1)
@@ -76,6 +79,7 @@ function discretizationlogder(B, D::PwMap; degree = 7)
             Tint = TaylorSeries.Taylor1([I, Interval(1)], degree)
             Fmid = log(TaylorModels.derivative(D.Ts[i](Tmid)))
             Fint = log(TaylorModels.derivative(D.Ts[i](Tint)))   
+            infbound = infbound ∪ abs(Fint[0])
             ϵ = mag(Fint[degree]-Fmid[degree]) 
             
             for k in 0:Int64(floor(Float64(degree)/2))
@@ -95,5 +99,10 @@ function discretizationlogder(B, D::PwMap; degree = 7)
         v[delicate_indexes[i]]+=corr
     end
     v*=length(B)
-    return Observable(B, v)
+    return Observable(B, v, infbound)
+end
+
+function integrateobservable(B::Ulam, ϕ::Observable, f::Vector, error)
+    val = (ϕ.v)'*f 
+    return (val+(ϕ.infbound.hi)*Interval(-error, error))/length(B)
 end
