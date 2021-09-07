@@ -83,7 +83,7 @@ function discretizationlogder(B, D::PwMap; degree = 7)
             ϵ = mag(Fint[degree]-Fmid[degree]) 
             
             for k in 0:Int64(floor(Float64(degree)/2))
-                v[j]+=(Fmid[2*k]*r^(2*k+1))/(2*k+1)            
+                v[j]+=2*(Fmid[2*k]*r^(2*k+1))/(2*k+1)            
             end
             v[j]+=Interval(-ϵ, ϵ)*r^(degree+1)/(degree+1)
         end
