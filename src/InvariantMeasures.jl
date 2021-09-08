@@ -56,6 +56,8 @@ include("ContractionC1.jl")
 
 
 include("ConvergenceRatesOriginal.jl")
+export convergencerateabstract
+
 include("HigherDFLY.jl")
 include("Chebyshev.jl")
 
