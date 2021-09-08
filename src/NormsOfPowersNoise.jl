@@ -324,11 +324,12 @@ of the dynamic with discretized operator Q.
 
 The vector is normalized so that integral_covector(B)*w ≈ 1
 """
-function invariant_vector_noise(B::Basis, Q::DiscretizedOperator, NK::NoiseKernel; tol = 0.0)
+function invariant_vector_noise(B::Basis, Q::DiscretizedOperator, NK::NoiseKernel; tol = 0.0, iter =10)
 	mQ = mid(Q)
 	v = one_vector(B)
-    for i in 1:30
-        v = NK*(mQ*v)
+    for _ in 1:iter
+        v = mQ*v
+        v = NK*v
     end
     v = v ./ (mid.(integral_covector(B))*v)
     return v
