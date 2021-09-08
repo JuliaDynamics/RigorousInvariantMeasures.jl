@@ -49,7 +49,7 @@ end
 function convergencerateabstract(Bas::Ulam, D::Dynamic, norms)
     boundL = BasisDefinition.bound_weak_norm_abstract(Bas)
     A, B = dfly(strong_norm(Bas), aux_norm(Bas), D)
-    @info A, B
+    #@info A, B
     m = length(norms) 
     Kh =  BasisDefinition.weak_projection_error(Bas)
 
@@ -64,7 +64,7 @@ function convergencerateabstract(Bas::Ulam, D::Dynamic, norms)
     for i in 1:length(small_matrices)
         ρ, v = eig_costants_small_matrix(small_matrices[i])
         if ρ<1 && ρ != ∅
-            @info ρ
+            #@info ρ
             strong_norms_here = [strong_norms[1:i-1];[((1/v[1]+B/v[2])*ρ^floor(j÷i)).hi for j in i:length(norms)]]
             strong_norms = min.(strong_norms_here, strong_norms)
             weak_norms_here = [weak_norms[1: i-1]; [((B/v[2])*ρ^floor(j÷i)).hi for j in i:length(norms)]]
