@@ -74,4 +74,6 @@ export powernormboundsnoise, finepowernormboundsnoise, abstractpowernormboundsno
 include("Observables.jl")
 export Observable, discretizationlogder, integrateobservable
 
+include("FourierBasis.jl")
+
 end
