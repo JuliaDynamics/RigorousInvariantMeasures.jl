@@ -133,6 +133,8 @@ function Base.iterate(S::AverageZero{Ulam{T}}, state = 1) where{T}
 	return (v, state+1)
 end
 
+Base.length(S::AverageZero{Ulam{T}}) where {T} = length(S.basis)-1
+
 BasisDefinition.is_refinement(Bf::Ulam, Bc::Ulam) = Bc.p ⊆ Bf.p
 
 function integral_covector(B::Ulam{T}) where{T}
@@ -162,6 +164,9 @@ BasisDefinition.bound_weak_norm_from_linalg_norm(B::Ulam) = (1., 0.)
 BasisDefinition.bound_linalg_norm_L1_from_weak(B::Ulam) = 1.
 BasisDefinition.bound_linalg_norm_L∞_from_weak(B::Ulam) = Float64(length(B), RoundUp)
 BasisDefinition.bound_weak_norm_abstract(B::Ulam) = 1.
+
+BasisDefinition.opnormbound(B::Ulam, N::Type{L1}, A) = opnormbound(N, A)
+BasisDefinition.normbound(B::Ulam, N::Type{L1}, v) = normbound(N, v)
 
 function BasisDefinition.invariant_measure_strong_norm_bound(B::Ulam, D::Dynamic)
 	A, B = dfly(strong_norm(B), aux_norm(B), D)
@@ -209,3 +214,4 @@ for different bases
 		end
 	end
 end
+

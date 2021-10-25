@@ -153,4 +153,7 @@ invariant_measure_strong_norm_bound(B::Basis, D::Dynamic) = @error "Must be spec
 """
 bound_weak_norm_abstract(B::Basis) = @error "Must be specialized"
 
+opnormbound(B::Basis, N, M) = @error "Must be specialized"
+normbound(B::Basis, N, v) = @error "Must be specialized"
+
 end

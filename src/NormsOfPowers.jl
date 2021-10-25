@@ -53,7 +53,7 @@ Implementation note: currently we perform this computation one column at a time,
 to be able to scale (slowly) to cases with large size; for moderate sizes, it would
 indeed be better to do the computation all columns at the same time, in BLAS level 3.
 """
-function norms_of_powers(N::Type{<:NormKind}, m::Integer, Q::DiscretizedOperator, f::AbstractArray;
+function norms_of_powers(B::Basis, N::Type{<:NormKind}, m::Integer, Q::DiscretizedOperator, f::AbstractArray;
         normv0::Real=-1., #used as "missing" value
         normQ::Real=-1.,
         normE::Real=-1.,
@@ -66,26 +66,26 @@ function norms_of_powers(N::Type{<:NormKind}, m::Integer, Q::DiscretizedOperator
     n = size(Q.L, 1)
     M = mid.(Q.L)
     R = radius.(Q.L)
-    δ = opnormbound(N, R)
+    δ = opnormbound(B, N, R)
     γz = gamma(T, max_nonzeros_per_row(Q.L))
     γn = gamma(T, n+3) # not n+2 like in the paper, because we wish to allow for f to be the result of rounding
     ϵ = zero(T)
 
-    nrmM = opnormbound(N, M)
+    nrmM = opnormbound(B, N, M)
 
     # precompute norms
     if !is_integral_preserving(Q)
         if normE == -1.
-            normE = opnormbound(N, Q.e)
+            normE = opnormbound(B, N, Q.e)
         end
         if normEF == -1.
-            normEF = opnormbound(N, Q.e*f)
+            normEF = opnormbound(B, N, Q.e*f)
         end
         if normIEF == -1.
-            normIEF =  opnormbound(N, [Matrix(UniformScaling{Float64}(1),n,n) Q.e*f])
+            normIEF =  opnormbound(B, N, [Matrix(UniformScaling{Float64}(1),n,n) Q.e*f])
         end
         if normN == -1.
-            normN = opnormbound(N, Matrix(UniformScaling{Float64}(1),n,n) - Q.e*f)
+            normN = opnormbound(B, N, Matrix(UniformScaling{Float64}(1),n,n) - Q.e*f)
         end
     end
 
@@ -106,12 +106,9 @@ function norms_of_powers(N::Type{<:NormKind}, m::Integer, Q::DiscretizedOperator
     # main loop
 
     v = zeros(T, n)
-    @showprogress for j = 1:n-1
-        v .= zero(T) # TODO: check for type stability in cases with unusual types
-        v[1] = one(T) # TODO: in full generality, this should contain entries of f rather than ±1
-        v[j+1] = -one(T)
+    @showprogress for v in AverageZero(B) 
         if normv0 == -1.
-            nrmv = opnormbound(N, v)
+            nrmv = opnormbound(B, N, v)
         else
             nrmv = normv0
         end
@@ -124,11 +121,11 @@ function norms_of_powers(N::Type{<:NormKind}, m::Integer, Q::DiscretizedOperator
                 ϵ = (γz ⊗₊ nrmM ⊕₊ δ) ⊗₊ nrmv ⊕₊ normQ ⊗₊ ϵ
             else
                 v = w - Q.e * (midf*w)  # TODO: we are currently assuming that f is not too large, to estimate the error (the result of only one floating point operation)
-                new_nrmw = opnormbound(N, w)
+                new_nrmw = opnormbound(B, N, w)
                 ϵ = γn ⊗₊ normIEF ⊗₊ (new_nrmw ⊕₊ normEF ⊗₊ nrmw) ⊕₊ normN ⊗₊ (γz ⊗₊ nrmM ⊕₊ δ) ⊗₊ nrmv ⊕₊ normQ ⊗₊ ϵ
                 nrmw = new_nrmw
             end
-            nrmv = opnormbound(N, v)
+            nrmv = opnormbound(B, N, v)
             add_column!(normcachers[k], v, ϵ) #TODO: Could pass and reuse nrmv in the case of norm-1
         end
     end
@@ -139,9 +136,9 @@ end
 Array of "trivial" bounds for the powers of a DiscretizedOperator (on the whole space)
 coming from from ||Q^k|| ≤ ||Q||^k
 """
-function norms_of_powers_trivial(N::Type{<:NormKind}, Q::DiscretizedOperator, m::Integer)
+function norms_of_powers_trivial(B::Basis, N::Type{<:NormKind}, Q::DiscretizedOperator, m::Integer)
     norms = fill(NaN, m)
-    norms[1] = opnormbound(N, Q)
+    norms[1] = opnormbound(B, N, Q)
     for i = 2:m
         norms[i] = norms[i-1] ⊗₊ norms[1]
     end

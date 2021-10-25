@@ -26,8 +26,8 @@ end
 """
 Return an upper bound to Q_h*w - w in the given norm
 """
-function residualbound(N::Type{<:NormKind}, Q::DiscretizedOperator, w::AbstractVector)
-	return normbound(N, Q*w - w)
+function residualbound(B::Basis, N::Type{<:NormKind}, Q::DiscretizedOperator, w::AbstractVector)
+	return normbound(B, N, Q*w - w)
 end
 
 """
@@ -41,7 +41,7 @@ function distance_from_invariant(B::Basis, D::Dynamic, Q::DiscretizedOperator, w
 	us = BasisDefinition.invariant_measure_strong_norm_bound(B, D)
 	Cs = infinite_sum_norms(norms)
 	Kh =  BasisDefinition.weak_projection_error(B)
-	normw = normbound(weak_norm(B), w)
+	normw = normbound(B, weak_norm(B), w)
 
 	return Cs ⊗₊ (2. ⊗₊ Kh ⊗₊ (1. ⊕₊ normQ) ⊗₊ us ⊕₊ ε₁ ⊘₊ (1. ⊖₋ ε₂)) ⊕₊ ε₂ ⊘₊ (1. ⊖₋ ε₂) ⊗₊ normw
 end
@@ -120,13 +120,13 @@ function powernormbounds(B, D; Q=DiscretizedOperator(B, D))
 	m = 8
 	computed_norms = []
 	while true
-		computed_norms = norms_of_powers(weak_norm(B), m, Q, integral_covector(B))
+		computed_norms = norms_of_powers(B, weak_norm(B), m, Q, integral_covector(B))
 		if any(computed_norms .< 0.1)
 			break
 		end
 		m = 2*m
 	end
-	trivial_norms = norms_of_powers_trivial(weak_norm(B), Q, m)
+	trivial_norms = norms_of_powers_trivial(B, weak_norm(B), Q, m)
 	(dfly_strongs, dfly_norms) = norms_of_powers_dfly(B, D, m)
 	# in the current version, dfly_norms seem to be always larger and could be omitted
 	# however they do not cost much to compute
@@ -154,9 +154,9 @@ the same norms for a finer operator
 function finepowernormbounds(B, B_fine, D, coarse_norms; Q_fine=DiscretizedOperator(B_fine, D))
 	m = length(coarse_norms)
 
-	norm_Q_fine = opnormbound(weak_norm(B_fine), Q_fine)
+	norm_Q_fine = opnormbound(B_fine, weak_norm(B_fine), Q_fine)
 
-	trivial_norms_fine = norms_of_powers_trivial(weak_norm(B_fine), Q_fine, m)
+	trivial_norms_fine = norms_of_powers_trivial(B_fine, weak_norm(B_fine), Q_fine, m)
 	twogrid_norms_fine = norms_of_powers_from_coarser_grid(B_fine, B, D, coarse_norms, norm_Q_fine)
 
 	(dfly_strongs_fine, dfly_norms_fine) = norms_of_powers_dfly(B_fine, D, m)

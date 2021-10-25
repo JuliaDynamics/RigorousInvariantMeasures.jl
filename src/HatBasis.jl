@@ -233,7 +233,7 @@ BasisDefinition.aux_norm(B::Hat) = L1
 
 evaluate_integral(B::Hat, i, T) = T(i)/length(B)
 
-function Base.iterate(S::AverageZero{Hat}, state = 1)
+function Base.iterate(S::AverageZero{Hat{T}}, state = 1) where {T}
 	n = length(S.basis)
 	if state == n
 		return nothing
@@ -244,6 +244,8 @@ function Base.iterate(S::AverageZero{Hat}, state = 1)
 	return (v, state+1)
 end
 
+length(S::AverageZero{Hat{T}}) where {T}= length(S.basis)-1
+
 BasisDefinition.weak_projection_error(B::Hat) = 0.5 ⊘₊ Float64(length(B), RoundDown)
 BasisDefinition.aux_normalized_projection_error(B::Hat) = 0.5 ⊘₊ Float64(length(B), RoundDown)
 BasisDefinition.strong_weak_bound(B::Hat) = 2. ⊗₊ Float64(length(B), RoundDown)
@@ -252,6 +254,8 @@ BasisDefinition.weak_by_strong_and_aux_bound(B::Hat) = (1., 1.)
 BasisDefinition.bound_weak_norm_from_linalg_norm(B::Hat) = @error "TODO"
 BasisDefinition.bound_linalg_norm_L1_from_weak(B::Hat) = @error "TODO"
 BasisDefinition.bound_linalg_norm_L∞_from_weak(B::Hat) = @error "TODO"
+opnormbound(B::Hat, N::Type{Linf}, A) = opnormbound(N, A)
+normbound(B::Hat, N::Type{Linf}, v) = normbound(N, v)
 
 function BasisDefinition.invariant_measure_strong_norm_bound(B::Hat, D::Dynamic)
 	A, B = dfly(strong_norm(B), aux_norm(B), D)
@@ -300,3 +304,4 @@ Displays error on a function in the Hat basis
 		end
 	end
 end
+
