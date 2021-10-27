@@ -15,7 +15,7 @@ Hat(n::Integer) = Hat(LinRange(0., 1., n+1))
 """
 Return the size of the Hat basis
 """
-Base.length(B::Hat) = length(B.p) - 1
+Base.length(B::Hat{T}) where {T} = Base.length(B.p) - 1
 
 """
 Hat function (on the reals)
@@ -244,7 +244,7 @@ function Base.iterate(S::AverageZero{Hat{T}}, state = 1) where {T}
 	return (v, state+1)
 end
 
-length(S::AverageZero{Hat{T}}) where {T}= length(S.basis)-1
+Base.length(S::AverageZero{Hat{T}}) where {T}= length(S.basis)-1
 
 BasisDefinition.weak_projection_error(B::Hat) = 0.5 ⊘₊ Float64(length(B), RoundDown)
 BasisDefinition.aux_normalized_projection_error(B::Hat) = 0.5 ⊘₊ Float64(length(B), RoundDown)
@@ -254,8 +254,8 @@ BasisDefinition.weak_by_strong_and_aux_bound(B::Hat) = (1., 1.)
 BasisDefinition.bound_weak_norm_from_linalg_norm(B::Hat) = @error "TODO"
 BasisDefinition.bound_linalg_norm_L1_from_weak(B::Hat) = @error "TODO"
 BasisDefinition.bound_linalg_norm_L∞_from_weak(B::Hat) = @error "TODO"
-opnormbound(B::Hat, N::Type{Linf}, A) = opnormbound(N, A)
-normbound(B::Hat, N::Type{Linf}, v) = normbound(N, v)
+BasisDefinition.opnormbound(B::Hat, N::Type{Linf}, A) = opnormbound(N, A)
+BasisDefinition.normbound(B::Hat, N::Type{Linf}, v) = normbound(N, v)
 
 function BasisDefinition.invariant_measure_strong_norm_bound(B::Hat, D::Dynamic)
 	A, B = dfly(strong_norm(B), aux_norm(B), D)
@@ -305,3 +305,19 @@ Displays error on a function in the Hat basis
 	end
 end
 
+struct HatDual <: Dual
+    x::Vector{Interval} #TODO: a more generic type may be needed in future
+    xlabel::Vector{Int}
+    x′::Vector{Interval}
+end
+
+Dual(B::Hat, D, ϵ) = HatDual(preimages_and_derivatives(B.p, D, 1:length(B.p)-1, ϵ)...)
+Base.length(dual::HatDual) = length(dual.x)
+Base.eltype(dual::HatDual) = Tuple{eltype(dual.xlabel), Tuple{eltype(dual.x), eltype(dual.x′)}}
+function Base.iterate(dual::HatDual, state=1)
+    if state <= length(dual.x)
+        return ((dual.xlabel[state], (dual.x[state], abs(dual.x′[state]))), state+1)
+    else
+        return nothing
+    end
+end

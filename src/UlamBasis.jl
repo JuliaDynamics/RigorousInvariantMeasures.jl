@@ -1,7 +1,6 @@
 using ..BasisDefinition, ..DynamicDefinition, ..Contractors, ..Mod1DynamicDefinition, ..PwDynamicDefinition
 using ValidatedNumerics, LinearAlgebra
-import Base: iterate
-import ..BasisDefinition: one_vector, integral_covector, is_integral_preserving, strong_norm, weak_norm, aux_norm
+#import ..BasisDefinition: one_vector, integral_covector, is_integral_preserving, strong_norm, weak_norm, aux_norm
 
 """
 Equispaced Ulam basis on [0,1] of size n
@@ -137,14 +136,14 @@ Base.length(S::AverageZero{Ulam{T}}) where {T} = length(S.basis)-1
 
 BasisDefinition.is_refinement(Bf::Ulam, Bc::Ulam) = Bc.p ⊆ Bf.p
 
-function integral_covector(B::Ulam{T}) where{T}
+function BasisDefinition.integral_covector(B::Ulam{T}) where{T}
 	n = length(B)
 	return 1/n * ones(Interval{Float64}, n)'
 end
 
-is_integral_preserving(B::Ulam{T}) where {T} = true
+BasisDefinition.is_integral_preserving(B::Ulam{T}) where {T} = true
 
-function one_vector(B::Ulam)
+function BasisDefinition.one_vector(B::Ulam)
 	return ones(length(B))
 end
 
@@ -165,8 +164,9 @@ BasisDefinition.bound_linalg_norm_L1_from_weak(B::Ulam) = 1.
 BasisDefinition.bound_linalg_norm_L∞_from_weak(B::Ulam) = Float64(length(B), RoundUp)
 BasisDefinition.bound_weak_norm_abstract(B::Ulam) = 1.
 
-BasisDefinition.opnormbound(B::Ulam, N::Type{L1}, A) = opnormbound(N, A)
-BasisDefinition.normbound(B::Ulam, N::Type{L1}, v) = normbound(N, v)
+BasisDefinition.opnormbound(B::Ulam{T}, N::Type{L1}, A::AbstractVecOrMat{S}) where {T, S} = opnormbound(N, A)
+#BasisDefinition.opnormbound(B::Ulam{T}, N::Type{L1}, Q::IntegralPreservingDiscretizedOperator) where {T} = opnormbound(N, Q.L)
+BasisDefinition.normbound(B::Ulam{T}, N::Type{L1}, v) where {T} = normbound(N, v)
 
 function BasisDefinition.invariant_measure_strong_norm_bound(B::Ulam, D::Dynamic)
 	A, B = dfly(strong_norm(B), aux_norm(B), D)
@@ -215,3 +215,22 @@ for different bases
 	end
 end
 
+struct UlamDual <: Dual
+    x::Vector{Interval} #TODO: a more generic type may be needed in future
+    xlabel::Vector{Int}
+    lastpoint::Interval
+end
+Dual(B::Ulam, D, ϵ) = UlamDual(preimages(B.p, D, 1:length(B.p)-1, ϵ)..., domain(D)[end])
+
+Base.length(dual::UlamDual) = length(dual.x)
+Base.eltype(dual::UlamDual) = Tuple{eltype(dual.xlabel), Tuple{eltype(dual.x), eltype(dual.x)}}
+function Base.iterate(dual::UlamDual, state = 1)
+    n = length(dual.x)
+    if state < n
+        return (dual.xlabel[state], (dual.x[state], dual.x[state+1])), state+1
+    elseif state == n
+        return (dual.xlabel[n], (dual.x[n], dual.lastpoint)), state+1
+    else
+        return nothing
+    end
+end

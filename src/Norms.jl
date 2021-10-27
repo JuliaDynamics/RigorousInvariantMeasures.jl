@@ -22,6 +22,7 @@ Computes a rigorous upper bound for z*z'
 z_times_conjz(z::Complex) = square_round(abs_or_mag(real(z)), RoundUp) ⊕₊ square_round(abs_or_mag(imag(z)), RoundUp)
 abs_or_mag(z::Complex) = sqrt_round(z_times_conjz(z), RoundUp)
 
+import .BasisDefinition: opnormbound
 """
 Certified upper bound to ||A|| (of specified NormKind)
 """

@@ -5,26 +5,9 @@ Compute preimages of monotonic sequences
 using IntervalArithmetic
 using .Contractors
 
-"""
-Type used to represent a "branch" of a dynamic. The branch is represented by a monotonic map `f` with domain `X=(a,b)` with a≤b (where typically a,b are intervals). 
-`Y=(f(a),f(b))` and `increasing` may be provided (for instance if we know that `Y=(0,1)`), otherwise they are computed automatically.
-"""
-struct Branch{T,S}
-    f::T
-    X::Tuple{S, S}
-    Y::Tuple{S, S}
-    increasing::Bool
-end
-Branch(f, X, Y=(f(Interval(X[1])), f(Interval(X[2]))), increasing=unique_increasing(Y[1], Y[2])) = Branch{typeof(f), typeof(interval(X[1]))}(f, X, Y, increasing)
+## Moved the definition of Branch in PwDynamicDefinition, with the objective
+## of transforming PwMap into an Array of Branch
 
-"""
-Return Branches for a given PwMap, in an iterable.
-
-TODO: in future, maybe it is a better idea to replace the type PwMap directly with an array of branches, since that's all we need
-"""
-function branches(D::PwMap)
-    return [Branch(D.Ts[k], (D.endpoints[k], D.endpoints[k+1]), (D.y_endpoints[k,1], D.y_endpoints[k,2]), D.increasing[k]) for k in 1:length(D.Ts)]
-end
 
 """
 Smallest possible i such that a is in the semi-open interval [y[i], y[i+1]).
@@ -187,78 +170,11 @@ function preimages_and_derivatives(z, Ds::ComposedDynamic, zlabel = 1:length(z),
     return z, zlabel, derivatives
 end
 
-"""
-Replacement of DualComposedWithDynamic.
-"""
-abstract type Dual end
+## Moved the definition of the abstract type Dual to BasisDefinition.jl
 
-struct UlamDual <: Dual
-    x::Vector{Interval} #TODO: a more generic type may be needed in future
-    xlabel::Vector{Int}
-    lastpoint::Interval
-end
-Dual(B::Ulam, D, ϵ) = UlamDual(preimages(B.p, D, 1:length(B.p)-1, ϵ)..., domain(D)[end])
+## Moved UlamDual to UlamBasis.jl
 
-Base.length(dual::UlamDual) = length(dual.x)
-Base.eltype(dual::UlamDual) = Tuple{eltype(dual.xlabel), Tuple{eltype(dual.x), eltype(dual.x)}}
-function iterate(dual::UlamDual, state = 1)
-    n = length(dual.x)
-    if state < n
-        return (dual.xlabel[state], (dual.x[state], dual.x[state+1])), state+1
-    elseif state == n
-        return (dual.xlabel[n], (dual.x[n], dual.lastpoint)), state+1
-    else
-        return nothing
-    end
-end
+## Moved HatDual to HatBasis.jl
 
-struct HatDual <: Dual
-    x::Vector{Interval} #TODO: a more generic type may be needed in future
-    xlabel::Vector{Int}
-    x′::Vector{Interval}
-end
-
-Dual(B::Hat, D, ϵ) = HatDual(preimages_and_derivatives(B.p, D, 1:length(B.p)-1, ϵ)...)
-Base.length(dual::HatDual) = length(dual.x)
-Base.eltype(dual::HatDual) = Tuple{eltype(dual.xlabel), Tuple{eltype(dual.x), eltype(dual.x′)}}
-function iterate(dual::HatDual, state=1)
-    if state <= length(dual.x)
-        return ((dual.xlabel[state], (dual.x[state], abs(dual.x′[state]))), state+1)
-    else
-        return nothing
-    end
-end
-
-# Variants of assemble and DiscretizedOperator; the code is repeated here for easier comparison with the older algorithm
-function assemble2(B, D, ϵ=0.0; T = Float64)
-	I = Int64[]
-	J = Int64[]
-	nzvals = Interval{T}[]
-	n = length(B)
-
-	# TODO: reasonable size hint?
-
-	for (i, dual_element) in Dual(B, D, ϵ)
-		if !is_dual_element_empty(B, dual_element)
-			for (j, x) in ProjectDualElement(B, dual_element)
-				push!(I, i)
-				push!(J, mod(j,1:n))
-				push!(nzvals, x)
-			end
-		end
-	end
-
-	return sparse(I, J, nzvals, n, n)
-end
-
-function DiscretizedOperator2(B, D, ϵ=0.0; T = Float64)
-	L = assemble2(B, D, ϵ; T)
-	if is_integral_preserving(B)
-		return IntegralPreservingDiscretizedOperator(L)
-	else
-		f = integral_covector(B)
-		e = one_vector(B)
-		w = f - f*L #will use interval arithmetic when L is an interval matrix
-		return NonIntegralPreservingDiscretizedOperator(L, e, w)
-	end
-end
+## Moved the new assembler to GenericAssembler, renamed the old assembler and DiscretizedOperator
+## to _legacy

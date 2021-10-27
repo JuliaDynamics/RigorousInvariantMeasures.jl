@@ -1,3 +1,18 @@
+"""
+Type used to represent a "branch" of a dynamic. The branch is represented by a monotonic map `f` with domain `X=(a,b)` with a≤b (where typically a,b are intervals). 
+`Y=(f(a),f(b))` and `increasing` may be provided (for instance if we know that `Y=(0,1)`), otherwise they are computed automatically.
+"""
+struct Branch{T,S}
+    f::T
+    X::Tuple{S, S}
+    Y::Tuple{S, S}
+    increasing::Bool
+end
+Branch(f, X, Y=(f(Interval(X[1])), f(Interval(X[2]))), increasing=unique_increasing(Y[1], Y[2])) = Branch{typeof(f), typeof(interval(X[1]))}(f, X, Y, increasing)
+
+## the function branches is after the module
+
+
 module PwDynamicDefinition
 using ValidatedNumerics
 using ..DynamicDefinition
@@ -6,7 +21,7 @@ using TaylorSeries: Taylor1
 
 using ..DynamicDefinition: derivative, orientation
 
-export PwMap, preim, nbranches, plottable
+export PwMap, preim, nbranches, plottable, branches
 
 """
 Dynamic based on a piecewise monotonic map.
@@ -99,3 +114,13 @@ using RecipesBase
 @recipe f(::Type{PM}, D::PM) where {PM <: PwMap} = x -> plottable(D, x)
 
 end
+
+"""
+Return Branches for a given PwMap, in an iterable.
+
+TODO: in future, maybe it is a better idea to replace the type PwMap directly with an array of branches, since that's all we need
+"""
+function branches(D::PwDynamicDefinition.PwMap)
+    return [Branch(D.Ts[k], (D.endpoints[k], D.endpoints[k+1]), (D.y_endpoints[k,1], D.y_endpoints[k,2]), D.increasing[k]) for k in 1:length(D.Ts)]
+end
+
