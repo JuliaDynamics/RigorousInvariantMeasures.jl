@@ -17,52 +17,52 @@ function BasisDefinition.is_dual_element_empty(::Ulam, d)
 	return isempty(d[1])
 end
 
-Base.length(S::DualComposedWithDynamic{<:Ulam, <:Dynamic}) = length(S.basis) * nbranches(S.dynamic)
+#Base.length(S::DualComposedWithDynamic{<:Ulam, <:Dynamic}) = length(S.basis) * nbranches(S.dynamic)
 
-"""
-Returns dual elements which are pairs (i, (a,b))
-i is an interval index, and (a,b) are the endpoints of its preimage
-"""
-function Base.iterate(S::DualComposedWithDynamic{<:Ulam, <:Dynamic}, state = (1, 1, nothing))
-	# a = preim(S.dynamic, k, S.basis.p[i], S.ϵ) is cached in the state (when i \neq 1)
-	i, k, a = state
+# """
+# Returns dual elements which are pairs (i, (a,b))
+# i is an interval index, and (a,b) are the endpoints of its preimage
+# """
+# function Base.iterate(S::DualComposedWithDynamic{<:Ulam, <:Dynamic}, state = (1, 1, nothing))
+# 	# a = preim(S.dynamic, k, S.basis.p[i], S.ϵ) is cached in the state (when i \neq 1)
+# 	i, k, a = state
 
-	if k == nbranches(S.dynamic)+1
-		return nothing
-	end
+# 	if k == nbranches(S.dynamic)+1
+# 		return nothing
+# 	end
 
-	if a == nothing
-		@assert i==1
-		a = preim(S.dynamic, k, S.basis.p[i], S.ϵ)
-	end
+# 	if a == nothing
+# 		@assert i==1
+# 		a = preim(S.dynamic, k, S.basis.p[i], S.ϵ)
+# 	end
 
-	# a = preim(S.dynamic, k, S.basis.p[i], S.ϵ) # moved into state
-	b = preim(S.dynamic, k, S.basis.p[i+1], S.ϵ)
+# 	# a = preim(S.dynamic, k, S.basis.p[i], S.ϵ) # moved into state
+# 	b = preim(S.dynamic, k, S.basis.p[i+1], S.ϵ)
 
-	if isempty(a) && !isempty(b)
-		ep = endpoints(S.dynamic)
-		if orientation(S.dynamic, k) > 0
-			a = convert(typeof(b), ep[k])
-		else
-			a = convert(typeof(b), ep[k+1])
-		end
-	elseif isempty(b) && !isempty(a)
-		ep = endpoints(S.dynamic)
-		if orientation(S.dynamic, k) > 0
-			b = convert(typeof(a), ep[k+1])
-		else
-			b = convert(typeof(a), ep[k])
-		end
-	end
+# 	if isempty(a) && !isempty(b)
+# 		ep = endpoints(S.dynamic)
+# 		if orientation(S.dynamic, k) > 0
+# 			a = convert(typeof(b), ep[k])
+# 		else
+# 			a = convert(typeof(b), ep[k+1])
+# 		end
+# 	elseif isempty(b) && !isempty(a)
+# 		ep = endpoints(S.dynamic)
+# 		if orientation(S.dynamic, k) > 0
+# 			b = convert(typeof(a), ep[k+1])
+# 		else
+# 			b = convert(typeof(a), ep[k])
+# 		end
+# 	end
 
-	if i == length(S.basis)
-		return ((i, (a, b)), (1, k+1, nothing))
-	else
-		return ((i, (a, b)), (i+1, k, b))
-	end
-end
+# 	if i == length(S.basis)
+# 		return ((i, (a, b)), (1, k+1, nothing))
+# 	else
+# 		return ((i, (a, b)), (i+1, k, b))
+# 	end
+# end
 
-Base.eltype(f::DualComposedWithDynamic{<:Ulam, <:Dynamic}) = Tuple{Int64,Tuple{Interval{Float64},Interval{Float64}}}
+# Base.eltype(f::DualComposedWithDynamic{<:Ulam, <:Dynamic}) = Tuple{Int64,Tuple{Interval{Float64},Interval{Float64}}}
 
 """
 Returns the indices of the elements of the Ulam basis that intersect with the interval y

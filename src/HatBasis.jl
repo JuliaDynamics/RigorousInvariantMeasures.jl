@@ -142,28 +142,28 @@ function Base.getindex(B::Hat, i::Int)
 	return HatFunctionOnTorus(B.p[mod(i-1, 1:n)], B.p[mod(i, 1:n)], B.p[mod(i+1, 1:n)])
 end
 
-"""
-Return (in an iterator) the pairs (i, (x, |T'(x)|)) where x is a preimage of p[i], which
-describe the "dual" L* evaluation(p[i])
-"""
-function Base.iterate(S::DualComposedWithDynamic{T, D}, state = (1, 1)) where T<:Hat where D<:Dynamic
-	@assert is_full_branch(S.dynamic)
+# """
+# Return (in an iterator) the pairs (i, (x, |T'(x)|)) where x is a preimage of p[i], which
+# describe the "dual" L* evaluation(p[i])
+# """
+# function Base.iterate(S::DualComposedWithDynamic{T, D}, state = (1, 1)) where T<:Hat where D<:Dynamic
+# 	@assert is_full_branch(S.dynamic)
 
-	i, k = state
+# 	i, k = state
 
-	if i == length(S.basis)+1
-			return nothing
-	end
+# 	if i == length(S.basis)+1
+# 			return nothing
+# 	end
 
-	x = preim(S.dynamic, k, S.basis.p[i], S.ϵ)
-	absT′ = abs(derivative(S.dynamic, x))
+# 	x = preim(S.dynamic, k, S.basis.p[i], S.ϵ)
+# 	absT′ = abs(derivative(S.dynamic, x))
 
-	if k == nbranches(S.dynamic)
-		return ((i, (x, absT′)), (i+1, 1))
-	else
-		return ((i, (x, absT′)), (i, k+1))
-	end
-end
+# 	if k == nbranches(S.dynamic)
+# 		return ((i, (x, absT′)), (i+1, 1))
+# 	else
+# 		return ((i, (x, absT′)), (i, k+1))
+# 	end
+# end
 
 function BasisDefinition.is_dual_element_empty(::Hat, d)
 	# TODO: the preim() may indeed be empty, so there could be an additional check here
@@ -254,8 +254,8 @@ BasisDefinition.weak_by_strong_and_aux_bound(B::Hat) = (1., 1.)
 BasisDefinition.bound_weak_norm_from_linalg_norm(B::Hat) = @error "TODO"
 BasisDefinition.bound_linalg_norm_L1_from_weak(B::Hat) = @error "TODO"
 BasisDefinition.bound_linalg_norm_L∞_from_weak(B::Hat) = @error "TODO"
-BasisDefinition.opnormbound(B::Hat, N::Type{Linf}, A) = opnormbound(N, A)
-BasisDefinition.normbound(B::Hat, N::Type{Linf}, v) = normbound(N, v)
+BasisDefinition.opnormbound(B::Hat{T}, N::Type{Linf}, A::AbstractVecOrMat{S}) where {S,T} = opnormbound(N, A)
+BasisDefinition.normbound(B::Hat{T}, N::Type{Linf}, v) where {T} = normbound(N, v)
 
 function BasisDefinition.invariant_measure_strong_norm_bound(B::Hat, D::Dynamic)
 	A, B = dfly(strong_norm(B), aux_norm(B), D)

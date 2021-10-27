@@ -12,11 +12,14 @@ struct ℓinf <: NormKind end
 
 # the module Contractors does not depend on any submodule
 include("Contractors.jl")
+using .Contractors
 
 include("DynamicDefinition.jl")
+using .DynamicDefinition
 export Dynamic, derivative, distorsion, endpoints, nbranches, branch, expansivity, max_distorsion
 
 include("BasisDefinition.jl")
+using .BasisDefinition
 export opnormbound, weak_norm, strong_norm, aux_norm, integral_covector
 
 include("GenericAssembler.jl")
@@ -31,9 +34,10 @@ include("Mod1PwDynamic.jl")
 
 include("UlamBasis.jl")
 export Ulam
-#include("HatBasis.jl")
+include("HatBasis.jl")
+export Hat
 
-#using .DynamicDefinition, .BasisDefinition, .Mod1DynamicDefinition, .Contractors, .PwDynamicDefinition
+#using .Mod1DynamicDefinition, .Contractors, .PwDynamicDefinition
 
 include("Norms.jl")
 #include("pitrig.jl")
