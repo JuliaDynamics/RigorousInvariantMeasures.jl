@@ -57,6 +57,7 @@ Maximum of |1/T'|
 """
 function expansivity(D::Dynamic, tol=1e-3)
 	v = endpoints(D)
+	@info v
 	return maximum(maximise(x -> abs(1/derivative(branch(D,k), x)), hull(v[k], v[k+1]), tol=tol)[1] for k in 1:nbranches(D))
 end
 

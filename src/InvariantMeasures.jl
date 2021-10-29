@@ -45,6 +45,7 @@ include("NormsOfPowers.jl")
 
 include("preimages.jl")
 
+include("IntervalDynamic.jl")
 #include("precompile.jl")
 
 #export NormKind, L1, Linf, Lipschitz, TotalVariation

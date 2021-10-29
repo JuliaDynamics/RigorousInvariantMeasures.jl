@@ -70,5 +70,5 @@ function mod1_dynamic(f::Function, X = (0.,1.), ε = 0.0)
     #         y_endpoints = [(isinteger(T0) ? 1 : T0-floor(T0), 0); fill((1,0), length(Ts)-2); (1, isinteger(T1) ? 0 : T1-floor(T1))]
     #     end
     # end
-    return PwMap(Ts, ep, y_endpoints, fill(br.increasing, Base.length(Ts)))
+    return IntervalDynamic(Ts, ep, y_endpoints)
 end
