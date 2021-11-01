@@ -170,6 +170,23 @@ function preimages_and_derivatives(z, Ds::ComposedDynamic, zlabel = 1:length(z),
     return z, zlabel, derivatives
 end
 
+function (D::ComposedDynamic)(x::Taylor1)
+    for f in reverse(D.dyns)
+        x = f(x)
+    end
+    return x
+end
+
+function DynamicDefinition.endpoints(D::ComposedDynamic)
+    v = endpoints(D.dyns[1])
+    auxDyn = D.dyns[2]
+    x, xlabel = preimages(v, auxDyn)
+    x = [x; domain(auxDyn)[2]]
+    return sort!(x)
+end
+
+DynamicDefinition.nbranches(D::ComposedDynamic) = length(endpoints(D))-1
+
 ## Moved the definition of the abstract type Dual to BasisDefinition.jl
 
 ## Moved UlamDual to UlamBasis.jl

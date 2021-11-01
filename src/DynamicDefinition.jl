@@ -57,8 +57,9 @@ Maximum of |1/T'|
 """
 function expansivity(D::Dynamic, tol=1e-3)
 	v = endpoints(D)
-	@info v
-	return maximum(maximise(x -> abs(1/derivative(branch(D,k), x)), hull(v[k], v[k+1]), tol=tol)[1] for k in 1:nbranches(D))
+	# due to the fact that D(x::Taylor1 ) is defined, this calls all the right methods 
+	# the call to the branch method was superfluous
+	return maximum(maximise(x -> abs(1/derivative(D, x)), hull(v[k], v[k+1]), tol=tol)[1] for k in 1:nbranches(D))
 end
 
 """
@@ -66,7 +67,9 @@ Maximum of distorsion(D, x) = |T''| / (T')^2, over all branches
 """
 function max_distorsion(D::Dynamic, tol=1e-3)
 	v = endpoints(D)
-	return maximum(maximise(x -> distorsion(branch(D, k) , x), hull(v[k], v[k+1]), tol=tol)[1] for k in 1:nbranches(D))
+	# due to the fact that D(x::Taylor1 ) is defined, this calls all the right methods 
+	# the call to the branch method was superfluous
+	return maximum(maximise(x -> distorsion(D, x), hull(v[k], v[k+1]), tol=tol)[1] for k in 1:nbranches(D))
 end
 
 """
