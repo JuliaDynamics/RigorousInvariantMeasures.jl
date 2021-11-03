@@ -2,7 +2,7 @@
 Hat basis on the Torus [0,1]
 """
 
-using ..BasisDefinition, ..Mod1DynamicDefinition, ..DynamicDefinition
+using ..BasisDefinition, ..DynamicDefinition
 using ValidatedNumerics
 import ..BasisDefinition: one_vector, integral_covector, is_integral_preserving
 
@@ -172,12 +172,12 @@ end
 
 BasisDefinition.is_refinement(Bf::Hat, Bc::Hat) = Bc.p ⊆ Bf.p
 
-function integral_covector(B::Hat)
+function BasisDefinition.integral_covector(B::Hat)
 	n = length(B)
 	return 1/n * ones(Interval{Float64}, n)'
 end
 
-function one_vector(B::Hat)
+function BasisDefinition.one_vector(B::Hat)
 	return ones(length(B))
 end
 
@@ -231,7 +231,7 @@ BasisDefinition.strong_norm(B::Hat) = Lipschitz
 BasisDefinition.weak_norm(B::Hat) = Linf
 BasisDefinition.aux_norm(B::Hat) = L1
 
-evaluate_integral(B::Hat, i, T) = T(i)/length(B)
+BasisDefinition.evaluate_integral(B::Hat, i, T) = T(i)/length(B)
 
 function Base.iterate(S::AverageZero{Hat{T}}, state = 1) where {T}
 	n = length(S.basis)

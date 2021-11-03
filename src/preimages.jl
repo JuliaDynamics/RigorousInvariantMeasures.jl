@@ -151,8 +151,7 @@ Base.:∘(d::Dynamic...) = ComposedDynamic(d)
 """
 Utility function to return the domain of a dynamic
 """
-domain(D::PwMap) = (D.endpoints[begin], D.endpoints[end])
-domain(D::ComposedDynamic) = domain(D.dyns[end])
+DynamicDefinition.domain(D::ComposedDynamic) = DynamicDefinition.domain(D.dyns[end])
 
 function preimages(z, Ds::ComposedDynamic, zlabel = 1:length(z), ϵ = 0.0)
     for d in Ds.dyns
@@ -186,6 +185,11 @@ function DynamicDefinition.endpoints(D::ComposedDynamic)
 end
 
 DynamicDefinition.nbranches(D::ComposedDynamic) = length(endpoints(D))-1
+
+
+# We need a better way to explicit this, at the moment we suppose everything 
+# is full branch
+DynamicDefinition.is_full_branch(D::ComposedDynamic) = all([is_full_branch(D.dyns[1]);is_full_branch(D.dyns[2])])
 
 ## Moved the definition of the abstract type Dual to BasisDefinition.jl
 

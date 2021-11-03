@@ -1,7 +1,7 @@
 using LinearAlgebra, Arpack, FastRounding, ValidatedNumerics
 using ..DynamicDefinition, ..BasisDefinition
 
-export invariant_vector, finepowernormbounds, powernormbounds
+export invariant_vector, finepowernormbounds, powernormbounds, distance_from_invariant
 
 """
 Return a numerical approximation to the (hopefully unique) invariant vector
@@ -34,7 +34,7 @@ end
 Bounds rigorously the distance of w from the fixed point of Q (normalized with integral = 1),
 using a vector of bounds norms[k] ≥ ||Q_h^k|_{U_h^0}||.
 """
-function distance_from_invariant(B::Basis, D::Dynamic, Q::DiscretizedOperator, w::AbstractVector, norms::Vector; ε₁::Float64 = residualbound(weak_norm(B), Q, w), ε₂::Float64 = mag(integral_covector(B) * w - 1), normQ::Float64 = opnormbound(weak_norm(B), Q))
+function distance_from_invariant(B::Basis, D::Dynamic, Q::DiscretizedOperator, w::AbstractVector, norms::Vector; ε₁::Float64 = residualbound(B, weak_norm(B), Q, w), ε₂::Float64 = mag(integral_covector(B) * w - 1), normQ::Float64 = opnormbound(B, weak_norm(B), Q))
 	if ε₂ > 1e-8
 		@error "w does not seem normalized correctly"
 	end
@@ -106,10 +106,12 @@ function powernormbounds(B, D, m, m_extend; Q=DiscretizedOperator(B, D))
 	trivial_norms = norms_of_powers_trivial(weak_norm(B), Q, m)
 	computed_norms = norms_of_powers(weak_norm(B), m, Q, integral_covector(B))
 
-	(dfly_strongs, dfly_norms) = norms_of_powers_dfly(B, D, m)
+	# not interesting at the moment
+	#(dfly_strongs, dfly_norms) = norms_of_powers_dfly(B, D, m)
 	# in the current version, dfly_norms seem to be always larger and could be omitted
 	# however they do not cost much to compute
-	norms = min.(trivial_norms, computed_norms, dfly_norms)
+	#norms = min.(trivial_norms, computed_norms, dfly_norms)
+	norms = min.(trivial_norms, computed_norms)
 
 	better_norms = refine_norms_of_powers(norms, m_extend)
 
@@ -127,10 +129,10 @@ function powernormbounds(B, D; Q=DiscretizedOperator(B, D))
 		m = 2*m
 	end
 	trivial_norms = norms_of_powers_trivial(B, weak_norm(B), Q, m)
-	(dfly_strongs, dfly_norms) = norms_of_powers_dfly(B, D, m)
+	# (dfly_strongs, dfly_norms) = norms_of_powers_dfly(B, D, m)
 	# in the current version, dfly_norms seem to be always larger and could be omitted
 	# however they do not cost much to compute
-	norms = min.(trivial_norms, computed_norms, dfly_norms)
+	norms = min.(trivial_norms, computed_norms)
 
 	m_extend = 2*m
 	better_norms = []

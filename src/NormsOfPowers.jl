@@ -22,6 +22,13 @@ function max_nonzeros_per_row(A::SparseMatrixCSC)
     return maximum(nonzeros_in_each_row)
 end
 
+function max_nonzeros_per_row(A::Matrix)
+    m, n = size(A)
+    return n
+end
+
+
+
 """
 γₙ constants for floating point error estimation, as in [Higham, Accuracy and Stability of Numerical Algorithms]
 """
@@ -93,13 +100,13 @@ function norms_of_powers(B::Basis, N::Type{<:NormKind}, m::Integer, Q::Discretiz
         if is_integral_preserving(Q)
             normQ = nrmM ⊕₊ δ
         else
-            defect = opnormbound(N, Q.w)
+            defect = opnormbound(B, N, Q.w)
             normQ = nrmM ⊕₊ δ ⊕₊ normE ⊗₊ defect
         end
     end
 
     # initialize normcachers
-    normcachers = [NormCacher{N}(n) for j in 1:m]
+    normcachers = [NormCacher{N}(B, n) for j in 1:m]
 
     midf = map(mid, f)
 

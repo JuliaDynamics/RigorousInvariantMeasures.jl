@@ -2,7 +2,7 @@
 Chebyshev basis on the Interval [0,1]
 """
 
-using ..BasisDefinition, ..Mod1DynamicDefinition, ..DynamicDefinition
+using ..BasisDefinition, ..DynamicDefinition
 using ValidatedNumerics
 import ..BasisDefinition: one_vector, integral_covector, is_integral_preserving
 
@@ -24,121 +24,6 @@ Chebyshev(n::Integer; T = Float64) = Chebyshev(ChebPoints(n, T))
 Return the size of the Chebyshev basis
 """
 Base.length(B::Chebyshev) = length(B.p)
-
-"""
-Eval the Chebyshev polynomial up to degree n on an array of 
-points in [-1, 1].
-
-Not satisfactory, the intervals explode
-
-"""
-function _eval_T(n, x::Array{T}) where {T}
-	k = length(x)
-	M = zeros(T, k, n+1)
-	M[:, 1] = ones(k)
-	M[:, 2] = x
-	for i in 3:n+1
-		M[:, i] = (2*x).*M[:, i-1]-M[:, i-2]
-	end
-	return M
-end
-
-""" Eval a polynomial in Chebyshev basis, ClenshawBackward, using ball arithmetic
-Following Viviane Ledoux, Guillaume Moroz 
-"Evaluation of Chebyshev polynomials on intervals andapplication to root finding"
-"""
-function eval_Clenshaw_BackwardFirst(coeff::Vector{Interval{S}}, x::Interval{T}) where {S,T}
-	coeff_a = mid.(coeff)
-	coeff_r = radius.(coeff)
-	a, r = midpoint_radius(x)
-	m = length(coeff)
-	u = zeros(Interval{T}, m+1)
-	ϵ = zeros(Interval{T}, m+1)
-	u[m] = coeff_a[m]
-	for k in reverse(2:m-1)
-		u_temp = 2*a*u[k+1]-u[k+2]+Interval{T}(coeff_a[k])
-		u[k], ϵ[k] = midpoint_radius(u_temp)
-	end
-	u_temp = a*u[2]-u[3]+Interval{T}(coeff_a[1])
-	u[1], ϵ[1] = midpoint_radius(u_temp)
-	
-	e = zeros(Interval{T}, m+1)
-	e[m] = coeff_r[m]
-	for k in reverse(2:m-1)
-		e[k] = e[k+1]+2*r*abs(u[k+1])+ϵ[k]+coeff_r[k]
-	end
-	e[1] = e[2]+r*abs(u[1])+ϵ[1]+coeff_r[1]
-	γ = e[1].hi
-	return u[1]+Interval(-γ, γ)
-end
-eval_Clenshaw_BackwardFirst(coeff::Vector{Float64}, x::Interval) = eval_Clenshaw_BackwardFirst(Interval.(coeff), x) 
-
-function eval_Clenshaw_BackwardSecond(coeff::Vector{Interval{S}}, x::Interval{T}) where {S, T}
-	coeff_a = mid.(coeff)
-	coeff_r = radius.(coeff)
-	a, r = midpoint_radius(x)
-	m = length(coeff)
-	u = zeros(Interval{T}, m+1)
-	ϵ = zeros(Interval{T}, m+1)
-	u[m] = coeff_a[m]
-	for k in reverse(2:m-1)
-		u_temp = 2*a*u[k+1]-u[k+2]+Interval{T}(coeff_a[k])
-		u[k], ϵ[k] = midpoint_radius(u_temp)
-	end
-	u_temp = 2*a*u[2]-u[3]+Interval{T}(coeff_a[1])
-	u[1], ϵ[1] = midpoint_radius(u_temp)
-	
-	e = zeros(Interval{T}, m+1)
-	e[m] = coeff_r[m]
-	for k in reverse(2:m-1)
-		e[k] = e[k+1]+(k+1)*(2*r*abs(u[k+1])+ϵ[k]+coeff_r[k])
-	end
-	e[1] = e[2]+2*r*abs(u[1])+ϵ[1]+coeff_r[1]
-	γ = e[1].hi
-	return u[1]+Interval(-γ, γ)
-end
-
-
-function Clenshaw(coeff, x)
-	n = length(coeff)
-	u = zeros(typeof(x), n+1)
-	u[n] = coeff[n]
-	for k in reverse(2:n-1)
-		u[k] = coeff[k]+2*x*u[k+1]-u[k+2]
-	end
-	u[1] = coeff[1]+x*u[2]-u[3]
-	return u[1]
-end
-
-function ClenshawSecond(coeff, x::T) where {T<:Real}
-	n = length(coeff)
-	u = zeros(T, n+1)
-	u[n] = coeff[n]
-	for k in reverse(2:n-1)
-		u[k] = coeff[k]+2*x*u[k+1]-u[k+2]
-	end
-	u[1] = coeff[1]+2*x*u[2]-u[3]
-	return u[1]
-end
-
-
-Clenshaw(coeff, x::Interval{T}) where {T} = eval_Clenshaw_BackwardFirst(coeff, x)
-function ChebyshevDerivative(coeff, x::Interval{T}) where {T}
-	n = length(coeff)
-	coeff_der = [(i-1)*Interval{T}(coeff[i]) for i in 2:n]
-	#@info coeff
-	#@info coeff_der
-	return eval_Clenshaw_BackwardSecond(coeff_der, x)
-end
-
-evalChebyshev(coeff, x::Interval) = eval_Clenshaw_BackwardFirst(coeff, Interval(mid.(2*x-1)))
-evalChebyshevDerivative(coeff, x::Interval) = 2*ChebyshevDerivative(coeff, 2*x-1)
-function evalChebyschevCentered(coeff, x::Interval)
-	m = Interval(mid.(x))
-	return evalChebyshev(coeff, m)+evalChebyshevDerivative(coeff, x)*(x-m)
-end
-
-
 
 using IntervalOptimisation
 
@@ -247,10 +132,8 @@ end
 
 using FFTW
 function chebtransform(w)
-	#@info sum(w)
 	n = length(w)-1
 	z= fft([reverse(w); w[2: end-1]])/n
-	#@info z
 	t = real.(z[1:length(w)])
 	t[1]/=2
 	t[end]/=2
@@ -269,14 +152,21 @@ function assemble(B::Chebyshev, D::Dynamic, ϵ=0.0; T = Float64)
 			w[labels[j]]+=ϕ(x[j])/abs(x′[j])
 		end
 		#@info w
-		M[:, i] = chebtransform(mid.(w))
+		M[:, i] = chebtransform(w)
 	end
 	return M
 end
 
 is_integral_preserving(B::Chebyshev) = false
-integral_covector(B::Chebyshev; T= Float64) = [Interval{T}(1); 0; [0.5*Interval{T}((-1)^n+1)/(1-n^2) for n in 2:length(B)-1]]'
-one_vector(B::Chebyshev) = [1; zeros(length(B)-1)]
+
+
+function BasisDefinition.opnormbound(B::Hat{T}, N::Type{C1}, A::AbstractVecOrMat{S}) where {S,T}
+	return 0.5	
+end
+
+function BasisDefinition.normbound(B::Hat{T}, N::Type{Linf}, v) where {T}
+	return 0.5
+end
 
 # """
 # Return (in an iterator) the pairs (i, (x, |T'(x)|)) where x is a preimage of p[i], which

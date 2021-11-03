@@ -3,7 +3,7 @@ defines generic Dynamic type
 """
 
 module DynamicDefinition
-export Dynamic, MarkovDynamic, preim, nbranches, plottable, is_full_branch, domain, derivative, distorsion, endpoints, branch, expansivity, max_distorsion, orientation
+export Dynamic, MarkovDynamic, preim, branches, nbranches, plottable, is_full_branch, domain, derivative, distorsion, endpoints, branch, expansivity, max_distorsion, orientation
 
 abstract type Dynamic end
 abstract type MarkovDynamic <: Dynamic end
@@ -12,6 +12,7 @@ using IntervalArithmetic, IntervalOptimisation
 domain(S::Dynamic) = @error "Not implemented"
 nbranches(S::Dynamic) = @error "Not implemented"
 branch(S::Dynamic, k) = @error "Not implemented"
+branches(S::Dynamic, k) = @error "Not implemented"
 plottable(S::Dynamic) = @error "Not implemented"
 
 """

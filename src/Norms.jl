@@ -13,8 +13,8 @@ using .DynamicDefinition: derivative
 """
 'Absolute value' definition that returns mag(I) for an interval and abs(x) for a real
 """
-abs_or_mag(x::Number) = abs(x)
-abs_or_mag(x::Interval) = mag(x)
+abs_or_mag(x::Number) = Float64(abs(x), RoundUp)
+abs_or_mag(x::Interval) = Float64(mag(x), RoundUp)
 
 """
 Computes a rigorous upper bound for z*z'
@@ -22,11 +22,10 @@ Computes a rigorous upper bound for z*z'
 z_times_conjz(z::Complex) = square_round(abs_or_mag(real(z)), RoundUp) ⊕₊ square_round(abs_or_mag(imag(z)), RoundUp)
 abs_or_mag(z::Complex) = sqrt_round(z_times_conjz(z), RoundUp)
 
-import .BasisDefinition: opnormbound
 """
 Certified upper bound to ||A|| (of specified NormKind)
 """
-function opnormbound(::Type{L1}, A::AbstractVecOrMat{T}) where {T}
+function BasisDefinition.opnormbound(::Type{L1}, A::AbstractVecOrMat{T}) where {T}
     # partly taken from JuliaLang's LinearAlgebra/src/generic.jl
     Tnorm = typeof(abs_or_mag(float(real(zero(T)))))
     Tsum = promote_type(Float64, Tnorm)
@@ -43,7 +42,7 @@ function opnormbound(::Type{L1}, A::AbstractVecOrMat{T}) where {T}
     return convert(Tnorm, nrm)
 end
 
-function opnormbound(::Type{Linf}, A::AbstractVecOrMat{T}) where {T}
+function BasisDefinition.opnormbound(::Type{Linf}, A::AbstractVecOrMat{T}) where {T}
     # partly taken from JuliaLang's LinearAlgebra/src/generic.jl
     Tnorm = typeof(abs_or_mag(float(real(zero(T)))))
     Tsum = promote_type(Float64, Tnorm)
@@ -65,7 +64,7 @@ These functions compute a rigorous upper bound for the 2-norm of a vector;
 we have a specialized version for complex numbers to avoid taking
 the sqrt root and squaring again 
 """
-function opnormbound(::Type{L2}, v::Vector{T}) where {T<:Real}
+function BasisDefinition.opnormbound(::Type{L2}, v::Vector{T}) where {T<:Real}
     # partly taken from JuliaLang's LinearAlgebra/src/generic.jl
     Tnorm = typeof(abs_or_mag(float(real(zero(T)))))
     Tsum = promote_type(Float64, Tnorm)
@@ -78,7 +77,7 @@ function opnormbound(::Type{L2}, v::Vector{T}) where {T<:Real}
     return convert(Tnorm, sqrt_round(nrm, RoundUp))
 end
 
-function opnormbound(::Type{L2}, v::Vector{T}) where {T<:Complex}
+function BasisDefinition.opnormbound(::Type{L2}, v::Vector{T}) where {T<:Complex}
     # partly taken from JuliaLang's LinearAlgebra/src/generic.jl
     Tnorm = typeof(abs_or_mag(float(real(zero(T)))))
     Tsum = promote_type(Float64, Tnorm)
@@ -91,7 +90,7 @@ function opnormbound(::Type{L2}, v::Vector{T}) where {T<:Complex}
     return convert(Tnorm, sqrt_round(nrm, RoundUp))
 end
 
-function opnormbound(::Type{L1}, A::SparseMatrixCSC) where {T}
+function BasisDefinition.opnormbound(::Type{L1}, A::SparseMatrixCSC) where {T}
     # partly taken from JuliaLang's Sparsearray/src/linalg.jl
     m, n = size(A)
     Tnorm = typeof(abs_or_mag(float(real(zero(eltype(A))))))
@@ -109,7 +108,7 @@ function opnormbound(::Type{L1}, A::SparseMatrixCSC) where {T}
     return convert(Tnorm, nA)
 end
 
-function opnormbound(::Type{Linf}, A::SparseMatrixCSC) where {T}
+function BasisDefinition.opnormbound(::Type{Linf}, A::SparseMatrixCSC) where {T}
     # partly taken from JuliaLang's Sparsearray/src/linalg.jl
     m, n = size(A)
     Tnorm = typeof(abs_or_mag(float(real(zero(eltype(A))))))
@@ -126,8 +125,8 @@ end
 """
 Rigorous upper bound on a vector norm. Note that Linf, L1 are the "analyst's" norms
 """
-normbound(N::Type{L1}, v::AbstractVector) = opnormbound(L1, v) ⊘₊ Float64(length(v), RoundDown)
-normbound(N::Type{Linf}, v::AbstractVector) = opnormbound(Linf, v)
+BasisDefinition.normbound(N::Type{L1}, v::AbstractVector) = opnormbound(L1, v) ⊘₊ Float64(length(v), RoundDown)
+BasisDefinition.normbound(N::Type{Linf}, v::AbstractVector) = opnormbound(Linf, v)
 
 """
 Types to compute norms iteratively by "adding a column at a time".
@@ -135,30 +134,32 @@ Types to compute norms iteratively by "adding a column at a time".
 abstract type NormCacher{T} end
 
 mutable struct NormCacherL1 <: NormCacher{L1}
+    B::Basis
     C::Float64
-    function NormCacherL1(n)
-        new(0)
+    function NormCacherL1(B, n)
+        new(B, 0)
     end
 end
 """
 Create a new NormCacher to compute the normbound of the empty matrix with n rows
 """
-NormCacher{L1}(n) = NormCacherL1(n)
+NormCacher{L1}(B, n) = NormCacherL1(B, n)
 
 mutable struct NormCacherLinf <: NormCacher{Linf}
+    B::Basis
     C::Vector{Float64}
-    function NormCacherLinf(n)
-        new(zeros(n))
+    function NormCacherLinf(B, n)
+        new(B, zeros(n))
     end
 end
-NormCacher{Linf}(n) = NormCacherLinf(n)
+NormCacher{Linf}(B, n) = NormCacherLinf(B, n)
 
 """
 Update a NormCacher to add one column to the matrix it is computing a norm of.
 This column may be affected by an error ε (in the same norm).
 """
 function add_column!(Cacher::NormCacherL1, v::AbstractVector, ε::Float64)
-    Cacher.C = max(Cacher.C, opnormbound(L1, v) ⊕₊ ε)
+    Cacher.C = max(Cacher.C, opnormbound(Cacher.B, L1, v) ⊕₊ ε)
 end
 
 function add_column!(Cacher::NormCacherLinf, v::AbstractVector, ε::Float64)
@@ -198,8 +199,9 @@ function dfly(::Type{TotalVariation}, ::Type{L1}, D::Dynamic)
         if !(abs(lam) < 0.5)
             @error "Expansivity is insufficient to prove a DFLY. Try with an iterate."
         end
-        # We need a way to estimate the branch widths
-        @error "Not implemented"
+        endpts = endpoints(D)
+        min_width = minimum([endpts[i+1]-endpts[i] for i in 1:length(endpts)-1])
+        return lam.hi, dist.hi+(2/min_width).hi
     end
 end
 

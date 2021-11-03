@@ -4,6 +4,7 @@ authors = ["Isaia Nisoli <nisoli@im.ufrj.br>, Federico Poloni <federico.poloni@u
 version = "0.1.2"
 
 [deps]
+AbstractFFTs = "621f4979-c628-5d54-868e-fcf4e3e8185c"
 Arpack = "7d9fca2a-8960-54d3-9f78-7d1dccf2cb97"
 CRlibm = "96374032-68de-5a5b-8d9e-752f78720389"
 DualNumbers = "fa6b7ba4-c1ee-5f82-b5fc-ecf0adba8f74"

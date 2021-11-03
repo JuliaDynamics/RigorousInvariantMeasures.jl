@@ -26,11 +26,11 @@ include("GenericAssembler.jl")
 export DiscretizedOperator, IntegralPreservingDiscretizedOperator, NonIntegralPreservingDiscretizedOperator
 
 include("GenericEstimate.jl")
+export invariant_vector, finepowernormbounds, powernormbounds, distance_from_invariant
 
 include("PwDynamicDefinition.jl")
-include("Mod1Dynamic.jl")
-include("Mod1PwDynamic.jl")
-#include("IterateDynamic.jl")
+export PwMap, mod1_dynamic
+
 
 include("UlamBasis.jl")
 export Ulam
@@ -44,9 +44,12 @@ include("Norms.jl")
 include("NormsOfPowers.jl")
 
 include("preimages.jl")
+include("FFT.jl")
+include("NewChebyshev.jl")
+export Chebyshev
 
-include("IntervalDynamic.jl")
-#include("precompile.jl")
+
+include("precompile.jl")
 
 #export NormKind, L1, Linf, Lipschitz, TotalVariation
 
@@ -70,7 +73,7 @@ include("IntervalDynamic.jl")
 #export convergencerateabstract
 
 #include("HigherDFLY.jl")
-#include("Chebyshev.jl")
+
 
 # a special example, the induced map for the LSV map
 #include("InducedLSV.jl")
