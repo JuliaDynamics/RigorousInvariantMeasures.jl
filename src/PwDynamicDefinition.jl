@@ -35,20 +35,24 @@ but sometimes they are known to higher accuracy, for instance for `x -> mod(3x, 
 struct PwMap <: Dynamic
 	branches::Array{Branch, 1}
 	full_branch::Bool
+    infinite_derivative::Bool
+    function PwMap(branches::Array{Branch, 1}; full_branch = false, infinite_derivative = false)
+        new(branches, full_branch, infinite_derivative)
+    end
 end
 
-function PwMap(Ts, endpoints, y_endpoints_in; full_branch = false)
+function PwMap(Ts, endpoints, y_endpoints_in; full_branch = false, infinite_derivative = false)
     branches = Branch[]
     for k in 1:length(endpoints)-1
         y_endpoints = (y_endpoints_in[k,1], y_endpoints_in[k,2])
         increasing  = unique_increasing(y_endpoints_in[k,1], y_endpoints_in[k,2])
         push!(branches, Branch(Ts[k], (endpoints[k], endpoints[k+1]), y_endpoints, increasing))
     end
-    return PwMap(branches, full_branch)
+    return PwMap(branches; full_branch = full_branch, infinite_derivative = infinite_derivative)
 end
 
-function PwMap(Ts, endpoints::Vector{T}; full_branch = false) where {T<:Real}  
-	return PwMap(Ts, endpoints, hcat([Ts[k](Interval(endpoints[k])) for k in 1:length(Ts)], [Ts[k](Interval(endpoints[k+1])) for k in 1:length(Ts)]); full_branch = full_branch)
+function PwMap(Ts, endpoints::Vector{T}; full_branch = false, infinite_derivative = false) where {T<:Real}  
+	return PwMap(Ts, endpoints, hcat([Ts[k](Interval(endpoints[k])) for k in 1:length(Ts)], [Ts[k](Interval(endpoints[k+1])) for k in 1:length(Ts)]); full_branch = full_branch, infinite_derivative = infinite_derivative)
 end
 
 Base.show(io::IO, D::PwMap) = print(io, "Piecewise-defined dynamic with $(nbranches(D)) branches")
@@ -218,13 +222,18 @@ function composedPwMap(D1::PwDynamicDefinition.PwMap, D2::PwDynamicDefinition.Pw
             end
         end
     end
-    return PwMap(new_branches, false)
+    # these are conservative in order to be generic, i.e., due to composition
+    # we could have a different behaviour, but the statement belows are conservatively true
+    full_branch = D1.full_branch && D2.full_branch
+    infinite_derivative = D1.infinite_derivative || D2.infinite_derivative
+    return PwMap(new_branches; full_branch = full_branch, infinite_derivative = infinite_derivative)
 end
 
 function expansivity(D::PwDynamicDefinition.PwMap, tol=1e-3)
 	max_exp = Interval(0.0)
     for br in branches(D)
-        val = maximise(x -> abs(1/derivative(br.f, x)), hull(br.X[1], br.X[2]), tol=tol)[1]
+        val = minimise(x -> abs(derivative(br.f, x)), hull(br.X[1], br.X[2]), tol=tol)[1]
+        @info val
         max_exp = max(val, max_exp)
     end
     return max_exp
@@ -238,3 +247,25 @@ function max_distortion(D::PwDynamicDefinition.PwMap, tol=1e-3)
     end
     return max_dist
 end
+
+#function dfly_inf_der(D::PwDynamicDefinition.PwMap, tol=1e-3)
+#    max_exp  = 2*expansivity(D, tol)
+#    if max_exp > 1
+#        @error "More expansivity needed, take an iterate"
+#    end
+
+#    aux_der = (1-max_exp)/2
+#  @info "aux_der", aux_der
+    
+#    for br in branches(D)
+#        if br.increasing
+#            rr = preimage(aux_der, x -> 1/(2*derivative(br.f, x)), hull(br.X[1], br.X[2]), 10^-13)
+#            @info rr
+#        else
+#            rr = preimage(-aux_der, x -> -1/(2*derivative(br.f, x)), hull(br.X[1], br.X[2]), 10^-13)
+#            @info rr
+#        end
+#    end
+#end
+
+#dfly_inf_der(D::ComposedDynamic, tol=1e-3) = dfly_inf_der(D.E, tol)
