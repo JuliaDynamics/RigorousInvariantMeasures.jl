@@ -1,15 +1,14 @@
 module BasisDefinition
 using ..DynamicDefinition
 
-import Base
-
 export Basis, DualComposedWithDynamic, ProjectDualElement, AverageZero, assemble,
 		integral_covector, one_vector, is_integral_preserving, strong_norm,
-		weak_norm, aux_norm, is_dual_element_empty, nonzero_on, is_refinement
+		weak_norm, aux_norm, is_dual_element_empty, nonzero_on, is_refinement,
+		opnormbound, normbound
 
 abstract type Basis end
 
-length(B::Basis) = @error "Not Implemented"
+Base.length(B::Basis) = @error "Not Implemented"
 
 struct DualComposedWithDynamic{B<:Basis, D<:Dynamic}
 	basis::B
@@ -38,7 +37,14 @@ end
 
 # Base.iterate(S::ProjectDualElement, state) = @error "Not Implemented"
 
+"""
+	Evaluate the i-th basis element at x
+"""
 evaluate(B::Basis, i, x) = @error "Not Implemented"
+
+"""
+	Value of the integral on [0,1] of the i-th basis element
+"""
 evaluate_integral(B::Basis, i; T = Float64) = @error "Not Implemented"
 
 strong_norm(B::Basis) = @error "Must be specialized"
@@ -46,7 +52,7 @@ weak_norm(B::Basis) = @error "Must be specialized"
 aux_norm(B::Basis) = @error "Must be specialized"
 
 """
-Check if Bfine is a refinement of Bcoarse
+	Check if Bfine is a refinement of Bcoarse
 """
 is_refinement(Bfine::Basis, Bcoarse::Basis) = @error "Not implemented"
 
@@ -86,7 +92,7 @@ struct AverageZero{B<:Basis}
 end
 
 Base.iterate(S::AverageZero{B}, state) where {B} = @error "Not Implemented"
-Base.length(S::AverageZero) = length(S.basis)-1
+Base.length(S::AverageZero{T}) where {T} = length(S.basis)-1
 
 """
 	Return a constant Kh (typically scales as h ~ 1/n) such that `||P_h f-f||\\leq Kh ||f||_s`
@@ -153,4 +159,13 @@ invariant_measure_strong_norm_bound(B::Basis, D::Dynamic) = @error "Must be spec
 """
 bound_weak_norm_abstract(B::Basis) = @error "Must be specialized"
 
+using ..InvariantMeasures: NormKind
+opnormbound(B::Basis, N::NormKind, M::AbstractVecOrMat{S}) where {S} = @error "Must be specialized"
+normbound(B::Basis, N::NormKind, v) = @error "Must be specialized"
+
 end
+
+"""
+Replacement of DualComposedWithDynamic.
+"""
+abstract type Dual end
