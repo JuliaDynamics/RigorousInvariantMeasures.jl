@@ -232,7 +232,7 @@ end
 function expansivity(D::PwDynamicDefinition.PwMap, tol=1e-3)
 	max_exp = Interval(0.0)
     for br in branches(D)
-        val = minimise(x -> abs(derivative(br.f, x)), hull(br.X[1], br.X[2]), tol=tol)[1]
+        val = minimise(x -> abs(1/derivative(br.f, x)), hull(br.X[1], br.X[2]), tol=tol)[1]
         @info val
         max_exp = max(val, max_exp)
     end
