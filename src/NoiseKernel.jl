@@ -84,7 +84,7 @@ end
 opnormbound(::Type{L1}, M::DiscretizedNoiseKernelUlam) = 1.0
 opradius(::Type{L1}, M::DiscretizedNoiseKernelUlam) = M.rad
 nonzero_per_row(M::DiscretizedNoiseKernelUlam) = length(M.v)
-dfly(::Type{TotalVariation}, ::Type{L1}, N::DiscretizedNoiseKernelUlam) = return 0.0, (1/(2*N.ξ)).hi
+dfly(::Type{TotalVariation}, ::Type{L1}, N::DiscretizedNoiseKernelUlam) = (0.0, (1/(2*N.ξ)).hi)
 
 
 function Base.:*(M::DiscretizedNoiseKernelUlam, v)
