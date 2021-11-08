@@ -1,7 +1,7 @@
 using LinearAlgebra, Arpack, FastRounding, ValidatedNumerics
 using ..DynamicDefinition, ..BasisDefinition
 
-export invariant_vector, finepowernormbounds, powernormbounds
+export invariant_vector, finepowernormbounds, powernormbounds, distance_from_invariant
 
 """
 Return a numerical approximation to the (hopefully unique) invariant vector
@@ -26,22 +26,22 @@ end
 """
 Return an upper bound to Q_h*w - w in the given norm
 """
-function residualbound(N::Type{<:NormKind}, Q::DiscretizedOperator, w::AbstractVector)
-	return normbound(N, Q*w - w)
+function residualbound(B::Basis, N::Type{<:NormKind}, Q::DiscretizedOperator, w::AbstractVector)
+	return normbound(B, N, Q*w - w)
 end
 
 """
 Bounds rigorously the distance of w from the fixed point of Q (normalized with integral = 1),
 using a vector of bounds norms[k] ≥ ||Q_h^k|_{U_h^0}||.
 """
-function distance_from_invariant(B::Basis, D::Dynamic, Q::DiscretizedOperator, w::AbstractVector, norms::Vector; ε₁::Float64 = residualbound(weak_norm(B), Q, w), ε₂::Float64 = mag(integral_covector(B) * w - 1), normQ::Float64 = opnormbound(weak_norm(B), Q))
+function distance_from_invariant(B::Basis, D::Dynamic, Q::DiscretizedOperator, w::AbstractVector, norms::Vector; ε₁::Float64 = residualbound(B, weak_norm(B), Q, w), ε₂::Float64 = mag(integral_covector(B) * w - 1), normQ::Float64 = opnormbound(B, weak_norm(B), Q))
 	if ε₂ > 1e-8
 		@error "w does not seem normalized correctly"
 	end
 	us = BasisDefinition.invariant_measure_strong_norm_bound(B, D)
 	Cs = infinite_sum_norms(norms)
 	Kh =  BasisDefinition.weak_projection_error(B)
-	normw = normbound(weak_norm(B), w)
+	normw = normbound(B, weak_norm(B), w)
 
 	return Cs ⊗₊ (2. ⊗₊ Kh ⊗₊ (1. ⊕₊ normQ) ⊗₊ us ⊕₊ ε₁ ⊘₊ (1. ⊖₋ ε₂)) ⊕₊ ε₂ ⊘₊ (1. ⊖₋ ε₂) ⊗₊ normw
 end
@@ -106,10 +106,12 @@ function powernormbounds(B, D, m, m_extend; Q=DiscretizedOperator(B, D))
 	trivial_norms = norms_of_powers_trivial(weak_norm(B), Q, m)
 	computed_norms = norms_of_powers(weak_norm(B), m, Q, integral_covector(B))
 
-	(dfly_strongs, dfly_norms) = norms_of_powers_dfly(B, D, m)
+	# not interesting at the moment
+	#(dfly_strongs, dfly_norms) = norms_of_powers_dfly(B, D, m)
 	# in the current version, dfly_norms seem to be always larger and could be omitted
 	# however they do not cost much to compute
-	norms = min.(trivial_norms, computed_norms, dfly_norms)
+	#norms = min.(trivial_norms, computed_norms, dfly_norms)
+	norms = min.(trivial_norms, computed_norms)
 
 	better_norms = refine_norms_of_powers(norms, m_extend)
 
@@ -120,17 +122,17 @@ function powernormbounds(B, D; Q=DiscretizedOperator(B, D))
 	m = 8
 	computed_norms = []
 	while true
-		computed_norms = norms_of_powers(weak_norm(B), m, Q, integral_covector(B))
+		computed_norms = norms_of_powers(B, weak_norm(B), m, Q, integral_covector(B))
 		if any(computed_norms .< 0.1)
 			break
 		end
 		m = 2*m
 	end
-	trivial_norms = norms_of_powers_trivial(weak_norm(B), Q, m)
-	(dfly_strongs, dfly_norms) = norms_of_powers_dfly(B, D, m)
+	trivial_norms = norms_of_powers_trivial(B, weak_norm(B), Q, m)
+	# (dfly_strongs, dfly_norms) = norms_of_powers_dfly(B, D, m)
 	# in the current version, dfly_norms seem to be always larger and could be omitted
 	# however they do not cost much to compute
-	norms = min.(trivial_norms, computed_norms, dfly_norms)
+	norms = min.(trivial_norms, computed_norms)
 
 	m_extend = 2*m
 	better_norms = []
@@ -154,9 +156,9 @@ the same norms for a finer operator
 function finepowernormbounds(B, B_fine, D, coarse_norms; Q_fine=DiscretizedOperator(B_fine, D))
 	m = length(coarse_norms)
 
-	norm_Q_fine = opnormbound(weak_norm(B_fine), Q_fine)
+	norm_Q_fine = opnormbound(B_fine, weak_norm(B_fine), Q_fine)
 
-	trivial_norms_fine = norms_of_powers_trivial(weak_norm(B_fine), Q_fine, m)
+	trivial_norms_fine = norms_of_powers_trivial(B_fine, weak_norm(B_fine), Q_fine, m)
 	twogrid_norms_fine = norms_of_powers_from_coarser_grid(B_fine, B, D, coarse_norms, norm_Q_fine)
 
 	(dfly_strongs_fine, dfly_norms_fine) = norms_of_powers_dfly(B_fine, D, m)

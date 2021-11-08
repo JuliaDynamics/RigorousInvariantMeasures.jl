@@ -40,11 +40,11 @@ function unique_increasing(a, b) # Fallback for Float64
 end
 
 # this seems slower
-#using TaylorSeries
-#derivative(f) = x-> f(Taylor1([x,1.],1))[1]
+using TaylorSeries
+derivative(f) = x-> f(Taylor1([x,1.],1))[1]
 
-using DualNumbers
-derivative(f) = x->f(Dual(x, 1..1)).epsilon
+#using DualNumbers
+#derivative(f) = x->f(Dual(x, 1..1)).epsilon
 
 """
 Compute a single root with (possibly multivariate) interval Newton

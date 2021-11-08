@@ -12,66 +12,82 @@ struct ℓinf <: NormKind end
 
 # the module Contractors does not depend on any submodule
 include("Contractors.jl")
+using .Contractors
 
 include("DynamicDefinition.jl")
+using .DynamicDefinition
+export Dynamic, derivative, distorsion, endpoints, nbranches, branch, expansivity, max_distorsion
+
 include("BasisDefinition.jl")
+using .BasisDefinition
+export opnormbound, weak_norm, strong_norm, aux_norm, integral_covector
+
 include("GenericAssembler.jl")
+export DiscretizedOperator, IntegralPreservingDiscretizedOperator, NonIntegralPreservingDiscretizedOperator
+
 include("GenericEstimate.jl")
+export invariant_vector, finepowernormbounds, powernormbounds, distance_from_invariant
 
 include("PwDynamicDefinition.jl")
-include("Mod1Dynamic.jl")
-include("Mod1PwDynamic.jl")
-include("IterateDynamic.jl")
+export PwMap, mod1_dynamic
+
 
 include("UlamBasis.jl")
+export Ulam
 include("HatBasis.jl")
+export Hat
 
-using .DynamicDefinition, .BasisDefinition, .Mod1DynamicDefinition, .Contractors, .PwDynamicDefinition
+#using .Mod1DynamicDefinition, .Contractors, .PwDynamicDefinition
 
 include("Norms.jl")
-include("pitrig.jl")
+#include("pitrig.jl")
 include("NormsOfPowers.jl")
 
 include("preimages.jl")
+include("FFT.jl")
+include("NewChebyshev.jl")
+export Chebyshev
+
 
 include("precompile.jl")
 
-export NormKind, L1, Linf, Lipschitz, TotalVariation
+#export NormKind, L1, Linf, Lipschitz, TotalVariation
 
-export Ulam, PwMap, Mod1Dynamic, Basis, Dynamic, assemble, preim, Hat,
-	EquispacedPartition, norms_of_powers, sinpi, cospi, dfly,
-	DiscretizedOperator, IntegralPreservingDiscretizedOperator, NonIntegralPreservingDiscretizedOperator,
-	opnormbound, weak_norm, strong_norm, aux_norm, integral_covector, distance_from_invariant,
-	mod1_dynamic, Iterate, derivative, distorsion, endpoints, nbranches, branch,
-	expansivity, max_distorsion, is_refinement,
-	skip_beginning, last_end, preimages
+#export PwMap, Mod1Dynamic, Basis, , assemble, preim, Hat,
+#	EquispacedPartition, norms_of_powers, sinpi, cospi, dfly,
+#	,
+#	, distance_from_invariant,
+#	mod1_dynamic, Iterate, , is_refinement,
+#	skip_beginning, last_end, preimages
 
-import ValidatedNumerics: Interval
-export Interval
+#import ValidatedNumerics: Interval
+#export Interval
 
-include("C2Basis.jl")
-using .C2BasisDefinition
-export C2Basis
-include("ContractionC1.jl")
+#include("C2Basis.jl")
+#using .C2BasisDefinition
+#export C2Basis
+#include("ContractionC1.jl")
 
 
-include("ConvergenceRatesOriginal.jl")
-export convergencerateabstract
+#include("ConvergenceRatesOriginal.jl")
+#export convergencerateabstract
 
-include("HigherDFLY.jl")
-include("Chebyshev.jl")
+#include("HigherDFLY.jl")
+
 
 # a special example, the induced map for the LSV map
-include("InducedLSV.jl")
-using .InducedLSVMapDefinition
-export ApproxInducedLSV
+#include("InducedLSV.jl")
+#using .InducedLSVMapDefinition
+#export ApproxInducedLSV
 
-include("NoiseKernel.jl")
-export UniformNoiseUlam
-include("NormsOfPowersNoise.jl")
-export powernormboundsnoise, finepowernormboundsnoise, abstractpowernormboundsnoise, invariant_vector_noise, distance_from_invariant_noise
+#include("NoiseKernel.jl")
+#export UniformNoiseUlam
+#include("NormsOfPowersNoise.jl")
+#export powernormboundsnoise, finepowernormboundsnoise, abstractpowernormboundsnoise, invariant_vector_noise, distance_from_invariant_noise
 
-include("Observables.jl")
-export Observable, discretizationlogder, integrateobservable
+#include("Observables.jl")
+#export Observable, discretizationlogder, integrateobservable
+
+#include("FourierBasis.jl")
 
 end
