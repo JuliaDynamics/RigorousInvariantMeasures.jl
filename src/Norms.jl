@@ -209,7 +209,7 @@ function dfly(::Type{TotalVariation}, ::Type{L1}, D::PwMap)
     dist = max_distorsion(D)
     lam = expansivity(D)
     vec = endpoints(D)
-    disc = maximum(2/abs(vec[i]-vec[i+1]) for i in nbranches(D))
+    disc = maximum(2/abs(vec[i]-vec[i+1]) for i in 1:nbranches(D))
 
     if is_full_branch(D)
         if !(abs(lam) < 1) # these are intervals, so this is *not* equal to abs(lam) >= 1.

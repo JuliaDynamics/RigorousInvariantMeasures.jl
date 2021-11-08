@@ -138,15 +138,24 @@ function preimages_and_derivatives(y, D::Dynamic, ylabel = 1:length(y), ϵ = 0.0
     return x, xlabel, x′
 end
 
+ 
+#PwOrComposed = Union{PwMap, ComposedDynamic}
 """
 Composed map D1 ∘ D2 ∘ D3. We store with [D1, D2, D3] in this order.
 
 We overwrite ∘ in base, so one can simply write D1 ∘ D2 or ∘(D1, D2, D3) to construct them.
 """
 struct ComposedDynamic <: Dynamic
-    dyns::Tuple{Vararg{Dynamic}}
+    dyns::Tuple{S, T} where {S, T <: Dynamic}
+    E::PwMap
 end
-Base.:∘(d::Dynamic...) = ComposedDynamic(d)
+Base.:∘(D1::PwMap, D2::PwMap) = ComposedDynamic((D1, D2), composedPwMap(D1, D2))
+Base.:∘(D1::PwMap, D2::ComposedDynamic) = ComposedDynamic((D1, D2), composedPwMap(D1, D2.E))
+Base.:∘(D1::ComposedDynamic, D2::PwMap) = ComposedDynamic((D1, D2), composedPwMap(D1.E, D2))
+Base.:∘(D1::ComposedDynamic, D2::ComposedDynamic) = ComposedDynamic((D1, D2), composedPwMap(D1.E, D2.E))
+dfly(N1::Type{<:NormKind}, N2::Type{<:NormKind}, D::ComposedDynamic) = dfly(N1, N2, D.E)
+dfly(N1::Type{InvariantMeasures.TotalVariation}, N2::Type{InvariantMeasures.L1}, D::ComposedDynamic) = dfly(N1, N2, D.E)
+
 
 """
 Utility function to return the domain of a dynamic

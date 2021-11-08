@@ -167,3 +167,74 @@ function mod1_dynamic(f::Function, X = (0.,1.), ε = 0.0; full_branch = false)
     return PwMap(Ts, ep, y_endpoints; full_branch = full_branch)
 end
 
+
+conv_orientation(x::Bool) = x ? 1 : -1
+inv_conv_orientarion(x::Int64) = x > 0
+
+function composedPwMap(D1::PwDynamicDefinition.PwMap, D2::PwDynamicDefinition.PwMap)
+    new_branches =  Branch[]
+    for br2 in branches(D2)
+        if br2.increasing
+            for br1 in branches(D1)
+                y_range = hull(br1.Y[1], br1.Y[2])
+                left  = preimage(br1.X[1], br2.f, hull(br2.X[1], br2.X[2]), 10^-13)
+                right  = preimage(br1.X[2], br2.f, hull(br2.X[1], br2.X[2]), 10^-13)
+                @info left
+                @info right
+                F = br1.f∘br2.f
+                F_increasing = conv_orientation(br1.increasing)*conv_orientation(br2.increasing)
+                if left!=∅ && right!=∅
+                    y_endpoints = (F(left) ∩ y_range, F(right) ∩ y_range)
+                    push!(new_branches, Branch(F, (left, right), y_endpoints, inv_conv_orientarion(F_increasing)))
+                elseif left == ∅ && right != ∅
+                    left = br2.X[1]
+                    y_endpoints = (F(left) ∩ y_range, F(right) ∩ y_range)
+                    push!(new_branches, Branch(F, (left, right), y_endpoints, inv_conv_orientarion(F_increasing)))
+                elseif left !=∅ && right == ∅
+                    right = br2.X[2]
+                    y_endpoints = (F(left) ∩ y_range, F(right) ∩ y_range)
+                    push!(new_branches, Branch(F, (left, right), y_endpoints, inv_conv_orientarion(F_increasing)))
+                end
+            end
+        else
+            for br1 in Iterators.reverse(branches(D1))
+                y_range = hull(br1.Y[1], br1.Y[2])
+                left  = preimage(br1.X[2], br2.f, hull(br2.X[1], br2.X[2]), 10^-13)
+                right  = preimage(br1.X[1], br2.f, hull(br2.X[1], br2.X[2]), 10^-13)
+                F = br1.f∘br2.f
+                F_increasing = conv_orientation(br1.increasing)*conv_orientation(br2.increasing)
+                if left!=∅ && right!=∅
+                    y_endpoints = (F(left) ∩ y_range, F(right) ∩ y_range)
+                    push!(new_branches, Branch(F, (left, right), y_endpoints, inv_conv_orientarion(F_increasing)))
+                elseif left == ∅ && right != ∅
+                    left = br2.X[1]
+                    y_endpoints = (F(left) ∩ y_range, F(right) ∩ y_range)
+                    push!(new_branches, Branch(F, (left, right), y_endpoints, inv_conv_orientarion(F_increasing)))
+                elseif left !=∅ && right == ∅
+                    right = br2.X[2]
+                    y_endpoints = (F(left) ∩ y_range, F(right) ∩ y_range)
+                    push!(new_branches, Branch(F, (left, right), y_endpoints, inv_conv_orientarion(F_increasing)))
+                end
+            end
+        end
+    end
+    return PwMap(new_branches, false)
+end
+
+function expansivity(D::PwDynamicDefinition.PwMap, tol=1e-3)
+	max_exp = Interval(0.0)
+    for br in branches(D)
+        val = maximise(x -> abs(1/derivative(br.f, x)), hull(br.X[1], br.X[2]), tol=tol)[1]
+        max_exp = max(val, max_exp)
+    end
+    return max_exp
+end
+
+function max_distortion(D::PwDynamicDefinition.PwMap, tol=1e-3)
+	max_dist = Interval(0.0)
+    for br in branches(D)
+        val = maximise(x -> abs(distorsion(br.f, x)), hull(br.X[1], br.X[2]), tol=tol)[1]
+        max_dist = max(val, max_dist)
+    end
+    return max_dist
+end
