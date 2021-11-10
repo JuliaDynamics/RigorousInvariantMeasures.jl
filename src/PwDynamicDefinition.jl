@@ -232,7 +232,7 @@ end
 function expansivity(D::PwDynamicDefinition.PwMap, tol=1e-3)
 	max_exp = Interval(0.0)
     for br in branches(D)
-        val = minimise(x -> abs(1/derivative(br.f, x)), hull(br.X[1], br.X[2]), tol=tol)[1]
+        val = maximise(x -> abs(1/derivative(br.f, x)), hull(br.X[1], br.X[2]), tol=tol)[1]
         @info val
         max_exp = max(val, max_exp)
     end
@@ -248,12 +248,82 @@ function max_distortion(D::PwDynamicDefinition.PwMap, tol=1e-3)
     return max_dist
 end
 
-#function dfly_inf_der(D::PwDynamicDefinition.PwMap, tol=1e-3)
-#    max_exp  = 2*expansivity(D, tol)
-#    if max_exp > 1
-#        @error "More expansivity needed, take an iterate"
-#    end
 
+function dfly_inf_der(D::PwDynamicDefinition.PwMap, tol=1e-3)
+    max_exp = Interval(0.0)
+    leftrightsingularity = Tuple{Bool, Bool}[]
+    A = +∞
+    B = +∞
+    
+    # for each branch we detect if the singularity is on the left or on the right (or both)
+    for br in branches(D)
+        
+        rad = radius(hull(br.X[1], br.X[2]))
+        f = x->abs(1/derivative(br.f, x))
+        I = Interval((br.X[1]+rad/4).hi, (br.X[2]-rad/4).lo)
+        val, listofboxes = maximise(f, I, tol=tol)
+        
+        # we try to identify if the singularity of the derivative is on the left or the right
+        left, right = false, false
+        if all((listofboxes.-br.X[1]).>rad/4)
+            # the maximum of the inverse of the derivative is far from the left
+            left = true
+        end
+        if all((br.X[2].-listofboxes).>rad/4)
+            # the maximum of the inverse of the derivative is far from the right
+            right = true
+        end
+        push!(leftrightsingularity, (left, right))
+    end             
+    est = +∞
+    @showprogress for i in 3:15
+        val = 0.0
+        val_summand = Interval(0.0)
+        l = 0.0
+
+        for (j, br) in enumerate(branches(D))
+            rad = radius(hull(br.X[1], br.X[2]))
+            tol = rad/2^(i+1)
+            left, right = leftrightsingularity[j]
+            f = x->-1/derivative(br.f, x)
+            g = x-> distorsion(br.f, x)
+            left_endpoint = br.X[1]
+            right_endpoint = br.X[2]
+            if left
+                left_endpoint += rad/2^i
+            end
+            if right
+                right_endpoint-= rad/2^i
+            end
+            I = hull(left_endpoint, right_endpoint)
+            val_br = 2*maximise(x->abs(f(x)), I, tol=tol)[1]
+            val = max(val, val_br.hi)
+            
+            if left
+                l_left = abs(g(left_endpoint))
+                # we use the fact that the primitive of the distortion is 1/T'
+                val_summand+= abs(f(left_endpoint)/2)
+                l = max(l, abs(l_left).hi )
+            end
+            if right
+                l_right = abs(g(right_endpoint)) 
+                val_summand+= abs(f(right_endpoint)/2)
+                l = max(l, abs(l_right).hi )
+            end
+        end
+        val = val ⊕₊ val_summand.hi 
+
+        if val<1.0 && l⊘₊(1.0 ⊖₋val) < est
+            est = l⊘₊(1.0 ⊖₋val)
+            A = val
+            B = l
+        end
+    end
+    endpts = endpoints(D)
+    min_width = minimum([endpts[i+1]-endpts[i] for i in 1:length(endpts)-1])
+        
+    return A, B⊕₊(2/min_width).hi 
+end
 #    aux_der = (1-max_exp)/2
 #  @info "aux_der", aux_der
     
@@ -266,6 +336,5 @@ end
 #            @info rr
 #        end
 #    end
-#end
 
 #dfly_inf_der(D::ComposedDynamic, tol=1e-3) = dfly_inf_der(D.E, tol)

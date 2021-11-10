@@ -11,7 +11,7 @@ struct LorenzMap
     D::PwMap
 end
 
-LorenzMap(θ, α) = PwMap([x->θ*abs(x-0.5)^α, x->1-θ*abs(x-0.5)^α],
+LorenzMap(θ, α) = PwMap([x->θ*(0.5-x)^α, x->1-θ*(x-0.5)^α],
                     [@interval(0), @interval(0.5), @interval(1)])
 
 import TaylorSeries
