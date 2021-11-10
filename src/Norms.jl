@@ -185,7 +185,7 @@ Constants (A, B) such that ||Lf||_s ≦ A||f||_s + B||f||_aux
 dfly(::Type{<:NormKind}, ::Type{<:NormKind}, ::Dynamic) = @error "Not implemented"
 
 # I don't think this is used in production anymore
-function dfly(::Type{TotalVariation}, ::Type{L1}, D::Dynamic)
+function dfly(N1::Type{TotalVariation}, N2::Type{L1}, D::Dynamic)
     dist = max_distorsion(D)
     lam = expansivity(D)
 
@@ -201,11 +201,15 @@ function dfly(::Type{TotalVariation}, ::Type{L1}, D::Dynamic)
         end
         endpts = endpoints(D)
         min_width = minimum([endpts[i+1]-endpts[i] for i in 1:length(endpts)-1])
-        return lam.hi, dist.hi+(2/min_width).hi
+        return lam.hi, dist.hi⊕₊(2/min_width).hi
     end
 end
 
-function dfly(::Type{TotalVariation}, ::Type{L1}, D::PwMap)
+function dfly(N1::Type{TotalVariation}, N2::Type{L1}, D::PwMap)
+    if D.infinite_derivative
+        return dfly_inf_der(N1, N2, D, 10^-3)
+    end
+    
     dist = max_distorsion(D)
     lam = expansivity(D)
     vec = endpoints(D)
