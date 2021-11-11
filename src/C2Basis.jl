@@ -11,8 +11,8 @@ import ...InvariantMeasures: NormKind, Linf
 
 export C2Basis, dual_val, dual_der, C1, C2
 
-struct C1 <: NormKind end
-struct C2 <: NormKind end
+#struct C1 <: NormKind end
+#struct C2 <: NormKind end
 
 """
 Equispaced partition of size n of [0,1]

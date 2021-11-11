@@ -60,33 +60,33 @@ include("precompile.jl")
 #	mod1_dynamic, Iterate, , is_refinement,
 #	skip_beginning, last_end, preimages
 
-#import ValidatedNumerics: Interval
-#export Interval
+import ValidatedNumerics: Interval
+export Interval
 
-#include("C2Basis.jl")
-#using .C2BasisDefinition
-#export C2Basis
-#include("ContractionC1.jl")
+include("C2Basis.jl")
+using .C2BasisDefinition
+export C2Basis
+include("ContractionC1.jl")
 
 
-#include("ConvergenceRatesOriginal.jl")
-#export convergencerateabstract
+include("ConvergenceRatesOriginal.jl")
+export convergencerateabstract
 
-#include("HigherDFLY.jl")
+include("HigherDFLY.jl")
 
 
 # a special example, the induced map for the LSV map
-#include("InducedLSV.jl")
-#using .InducedLSVMapDefinition
-#export ApproxInducedLSV
+include("InducedLSV.jl")
+using .InducedLSVMapDefinition
+export ApproxInducedLSV
 
-#include("NoiseKernel.jl")
-#export UniformNoiseUlam
-#include("NormsOfPowersNoise.jl")
-#export powernormboundsnoise, finepowernormboundsnoise, abstractpowernormboundsnoise, invariant_vector_noise, distance_from_invariant_noise
+include("NoiseKernel.jl")
+export UniformNoiseUlam
+include("NormsOfPowersNoise.jl")
+export powernormboundsnoise, finepowernormboundsnoise, abstractpowernormboundsnoise, invariant_vector_noise, distance_from_invariant_noise
 
-#include("Observables.jl")
-#export Observable, discretizationlogder, integrateobservable
+include("Observables.jl")
+export Observable, discretizationlogder, integrateobservable
 
 #include("FourierBasis.jl")
 
