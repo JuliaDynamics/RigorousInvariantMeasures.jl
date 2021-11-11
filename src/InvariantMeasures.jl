@@ -66,7 +66,7 @@ export Interval
 include("C2Basis.jl")
 using .C2BasisDefinition
 export C2Basis
-include("ContractionC1.jl")
+
 
 
 include("ConvergenceRatesOriginal.jl")

@@ -31,8 +31,8 @@ function interval_fft(P, v::Vector{Complex{Interval{T}}}) where {T}
     
     norm_FFT_normalized_2 = 1.0 ⊘₊(sqrt(n, RoundUp))
     vector_mid, vector_radius = midpoint_radius(v)
-    norm_obs = opnormbound(L2, vector_mid)
-    norm_rad = opnormbound(L2, vector_radius)
+    norm_obs = BasisDefinition.opnormbound(L2, vector_mid)
+    norm_rad = BasisDefinition.opnormbound(L2, vector_radius)
     err_fft = norm_FFT_normalized_2⊗₊(rel_err_fft ⊗₊ norm_obs)⊕₊ norm_FFT_normalized_2⊗₊norm_rad
     mid_fft = P*vector_mid
     w = [Interval(real(z))+im*Interval(imag(z)) for z in mid_fft]
