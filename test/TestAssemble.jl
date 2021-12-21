@@ -1,9 +1,10 @@
 using InvariantMeasures
 using ValidatedNumerics
+using InvariantMeasures: assemble, L1, Linf
 
 @testset "Ulam assembler" begin
 
-D = Mod1Dynamic(x->2*x)
+D = mod1_dynamic(x->2*x)
 B = Ulam(8)
 P = assemble(B, D)
 
@@ -39,7 +40,8 @@ Ptrue = [
 
 @test all(contains_zero.(P-Ptrue))
 
-@test opnormbound(L1, DiscretizedOperator(B, D)) == 1
-@test opnormbound(Linf, DiscretizedOperator(B, D)) == 1
+@test opnormbound(B, L1, DiscretizedOperator(B, D)) == 1
+# not defined anymore now that we include the basis
+# @test opnormbound(B, Linf, DiscretizedOperator(B, D)) == 1 
 
 end

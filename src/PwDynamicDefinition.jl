@@ -183,8 +183,8 @@ function composedPwMap(D1::PwDynamicDefinition.PwMap, D2::PwDynamicDefinition.Pw
                 y_range = hull(br1.Y[1], br1.Y[2])
                 left  = preimage(br1.X[1], br2.f, hull(br2.X[1], br2.X[2]), 10^-13)
                 right  = preimage(br1.X[2], br2.f, hull(br2.X[1], br2.X[2]), 10^-13)
-                @info left
-                @info right
+#                @info left
+#                @info right
                 F = br1.f∘br2.f
                 F_increasing = conv_orientation(br1.increasing)*conv_orientation(br2.increasing)
                 if left!=∅ && right!=∅
@@ -233,7 +233,7 @@ function expansivity(D::PwDynamicDefinition.PwMap, tol=1e-3)
 	max_exp = Interval(0.0)
     for br in branches(D)
         val = maximise(x -> abs(1/derivative(br.f, x)), hull(br.X[1], br.X[2]), tol=tol)[1]
-        @info val
+#        @info val
         max_exp = max(val, max_exp)
     end
     return max_exp

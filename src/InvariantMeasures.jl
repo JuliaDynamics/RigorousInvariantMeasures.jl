@@ -40,7 +40,7 @@ export Hat
 #using .Mod1DynamicDefinition, .Contractors, .PwDynamicDefinition
 
 include("Norms.jl")
-#include("pitrig.jl")
+include("pitrig.jl")
 include("NormsOfPowers.jl")
 
 include("preimages.jl")
