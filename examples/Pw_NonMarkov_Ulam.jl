@@ -8,14 +8,19 @@ D = PwMap([x->17*x/5,
 	x->(34*((17*x-5)/17)/25+3)*((17*x-5)/17), 
 	x->(34*((17*x-10)/17)/25+3)*((17*x-10)/17), 
 	x->17*((17*x-15)/17)/5], 
-	[Interval(0), Interval(5)/17, Interval(10)/17, Interval(15)/17, Interval(1)])
+	[Interval(0), Interval(5)/17, Interval(10)/17, Interval(15)/17, Interval(1)],
+	[Interval(0) Interval(1);
+	 Interval(0) Interval(1);
+	 Interval(0) Interval(1);
+	 Interval(0) @interval(0.4)]
+	)
 B = Ulam(1024)
 Q = DiscretizedOperator(B, D)
 
-normQ = opnormbound(weak_norm(B), Q)
+normQ = opnormbound(B, weak_norm(B), Q)
 
 trivial_norms = norms_of_powers_trivial(normQ, m)
-computed_norms = norms_of_powers(weak_norm(B), m, Q, integral_covector(B))
+computed_norms = norms_of_powers(B, weak_norm(B), m, Q, integral_covector(B))
 
 (dfly_strongs, dfly_norms) = norms_of_powers_dfly(B, D, m)
 

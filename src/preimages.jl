@@ -42,6 +42,8 @@ The sequence y subdivides the y-axis into semi-open intervals [y[l], y[l+1]); ea
 x that splits X (in the x-axis) into semi-open intervals, each of them with f([x[k], x[k+1]) ⊂ [y[l], y[l+1]) for a certain l. 
 We set xlabel[k] = ylabel[l], and return the pair (x, xlabel).
 
+It is assumed that it cannot happen that f(x) < y[1].
+
 In the simplest case where D is full-branch, the points in x are preimages of the points in y, but in the general case they can also include D.endpoints:
 in general, there may be a certain number of points in y that have no preimage at the beginning and the end of the sequence, because 
 they fall out of the range R = [f(a), f(b)]. In the worst case, no point has a preimage, because y[i] < R < y[i+1] for some 

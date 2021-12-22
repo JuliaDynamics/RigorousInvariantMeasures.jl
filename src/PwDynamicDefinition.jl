@@ -47,6 +47,7 @@ The map is defined as T(x) = Ts[k](x) if x ∈ [endpoints[k], endpoints[k+1]).
 
 `y_endpoints` (kx2 matrix) contains the result of applying Ts to the endpoints of each interval. These can be filled in automatically from `endpoints`,
 but sometimes they are known to higher accuracy, for instance for `x -> mod(3x, 1)` we know that it is full-branch exactly.
+It is assumed that the map will send its domain hull(endpoints[begin],endpoints[end]) into itself.
 
 the array `branches` is guaranteed to satisfy branches[i].X[end]==branches[i+1].X[begin]
 """
@@ -72,7 +73,7 @@ function PwMap(Ts, endpoints, y_endpoints_in; full_branch = false, infinite_deri
 end
 
 function PwMap(Ts, endpoints::Vector{T}; full_branch = false, infinite_derivative = false) where {T<:Real}  
-	return PwMap(Ts, endpoints, hcat([Ts[k](Interval(endpoints[k])) for k in 1:length(Ts)], [Ts[k](Interval(endpoints[k+1])) for k in 1:length(Ts)]); full_branch = full_branch, infinite_derivative = infinite_derivative)
+	return PwMap(Ts, endpoints, hcat([Ts[k](Interval(endpoints[k]))  for k in 1:length(Ts)], [Ts[k](Interval(endpoints[k+1])) for k in 1:length(Ts)]); full_branch = full_branch, infinite_derivative = infinite_derivative)
 end
 
 Base.show(io::IO, D::PwMap) = print(io, "Piecewise-defined dynamic with $(nbranches(D)) branches")
