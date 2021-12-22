@@ -143,9 +143,9 @@ end
 Array of "trivial" bounds for the powers of a DiscretizedOperator (on the whole space)
 coming from from ||Q^k|| ≤ ||Q||^k
 """
-function norms_of_powers_trivial(B::Basis, N::Type{<:NormKind}, Q::DiscretizedOperator, m::Integer)
+function norms_of_powers_trivial(normQ::Real, m::Integer)
     norms = fill(NaN, m)
-    norms[1] = opnormbound(B, N, Q)
+    norms[1] = normQ
     for i = 2:m
         norms[i] = norms[i-1] ⊗₊ norms[1]
     end

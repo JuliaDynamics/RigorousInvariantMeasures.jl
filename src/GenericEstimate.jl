@@ -103,7 +103,8 @@ these numbers are selected automatically.
 A vector of length m_extend is returned, such that norms[k] ≥ ||Q_h^k|_{U_h^0}||
 """
 function powernormbounds(B, D, m, m_extend; Q=DiscretizedOperator(B, D))
-	trivial_norms = norms_of_powers_trivial(weak_norm(B), Q, m)
+	normQ = opnormbound(B, weak_norm(B), Q)
+	trivial_norms = norms_of_powers_trivial(normQ, m)
 	computed_norms = norms_of_powers(weak_norm(B), m, Q, integral_covector(B))
 
 	# not interesting at the moment
@@ -128,7 +129,8 @@ function powernormbounds(B, D; Q=DiscretizedOperator(B, D))
 		end
 		m = 2*m
 	end
-	trivial_norms = norms_of_powers_trivial(B, weak_norm(B), Q, m)
+	normQ = opnormbound(B, weak_norm(B), Q)
+	trivial_norms = norms_of_powers_trivial(normQ, m)
 	# (dfly_strongs, dfly_norms) = norms_of_powers_dfly(B, D, m)
 	# in the current version, dfly_norms seem to be always larger and could be omitted
 	# however they do not cost much to compute
@@ -157,8 +159,8 @@ function finepowernormbounds(B, B_fine, D, coarse_norms; Q_fine=DiscretizedOpera
 	m = length(coarse_norms)
 
 	norm_Q_fine = opnormbound(B_fine, weak_norm(B_fine), Q_fine)
-
-	trivial_norms_fine = norms_of_powers_trivial(B_fine, weak_norm(B_fine), Q_fine, m)
+	
+	trivial_norms_fine = norms_of_powers_trivial(norm_Q_fine, m)
 	twogrid_norms_fine = norms_of_powers_from_coarser_grid(B_fine, B, D, coarse_norms, norm_Q_fine)
 
 	(dfly_strongs_fine, dfly_norms_fine) = norms_of_powers_dfly(B_fine, D, m)
