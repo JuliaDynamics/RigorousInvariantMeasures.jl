@@ -1,9 +1,10 @@
-using InvariantMeasures
+using InvariantMeasures: is_full_branch
 using ValidatedNumerics
+
 
 @testset "Dynamics" begin
 
-D = mod1_dynamic(x->2*x; full_branch=true)
+D = mod1_dynamic(x->2*x)
 
 @test D.branches[1].f(0.1) == 0.2
 
@@ -39,6 +40,8 @@ D = mod1_dynamic(x -> 3.5x, (0,1))
 
 @test [D.branches[i].increasing for i in 1:4] == [1, 1, 1, 1]
 
+@test is_full_branch(D) == false
+
 D = mod1_dynamic(x -> 3.5x + 0.5)
 @test [D.branches[i].X[1] for i in 1:4] ≈ [0, 1/7, 3/7, 5/7]
 @test [D.branches[i].X[2] for i in 1:4] ≈ [1/7, 3/7, 5/7, 1]
@@ -46,6 +49,8 @@ D = mod1_dynamic(x -> 3.5x + 0.5)
 @test [D.branches[i].Y[1] for i in 1:4] == [0.5, 0, 0, 0]
 @test [D.branches[i].Y[2] for i in 1:4] == [1, 1, 1, 1]
 @test [D.branches[i].increasing for i in 1:4] == [1, 1, 1, 1]
+
+@test is_full_branch(D) == false
 
 D = mod1_dynamic(x -> -3.5x + 0.5)
 @test [D.branches[i].X[1] for i in 1:4] ≈ [0, 1/7, 3/7, 5/7]
@@ -55,8 +60,11 @@ D = mod1_dynamic(x -> -3.5x + 0.5)
 @test [D.branches[i].Y[2] for i in 1:4] == [0, 0, 0, 0]
 @test [D.branches[i].increasing for i in 1:4] == [0, 0, 0, 0]
 
-D0 = mod1_dynamic(x->2*x, full_branch=true)
+D0 = mod1_dynamic(x->2*x)
 D = D0 ∘ D0
+
+@test is_full_branch(D0) == true
+@test is_full_branch(D) == true
 
 A, B, C = InvariantMeasures.preimages_and_derivatives([0.,0.1], D)
 @test A ≈ [0, 0.025, 0.25, 0.275, 0.5, 0.525, 0.75, 0.775]
@@ -66,7 +74,7 @@ A, B, C = InvariantMeasures.preimages_and_derivatives([0.,0.1], D)
 
 # Lanford map, so that we test also something that is not linear
 f = x->2*x+0.5*x*(1-x)
-D0 = mod1_dynamic(f, full_branch=true)
+D0 = mod1_dynamic(f)
 D = D0 ∘ D0 ∘ D0
 A, B = InvariantMeasures.preimages([0., 0.5],D)
 g(x) = f(x) - floor(f(x))

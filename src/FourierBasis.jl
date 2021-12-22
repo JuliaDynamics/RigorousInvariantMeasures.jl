@@ -33,7 +33,7 @@ evaluate(B::Fourier1D, i, x) = ϕ(i, x)
 strong_norm(B::Fourier1D) = L2
 weak_norm(B::Fourier1D) = L1
 aux_norm(B::Fourier1D) = L1
-is_refinement(Bfine::Fourier1D, Bcoarse::Fourier1D) = Bfine.N > Bcoarse.N ? true : false
+BasisDefinition.is_refinement(Bfine::Fourier1D, Bcoarse::Fourier1D) = Bfine.N > Bcoarse.N ? true : false
 
 is_integral_preserving(B::Fourier1D) = false
 function integral_covector(B::Fourier1D; T= Float64) 

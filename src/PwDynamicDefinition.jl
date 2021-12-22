@@ -8,9 +8,9 @@ using ..DynamicDefinition
 using ..Contractors
 using TaylorSeries: Taylor1
 
-using ..DynamicDefinition: derivative, orientation
+import ..DynamicDefinition: derivative, orientation
 
-export PwMap, preim, nbranches, plottable, branches, Branch
+export PwMap, preim, nbranches, plottable, branches, Branch, mod1_dynamic, dfly_inf_der, composedPwMap, equal_up_to_orientation
 
 """
 Type used to represent a "branch" of a dynamic. The branch is represented by a monotonic map `f` with domain `X=(a,b)` with a≤b (where typically a,b are intervals). 
@@ -24,6 +24,22 @@ struct Branch{T,S}
 end
 Branch(f, X, Y=(f(Interval(X[1])), f(Interval(X[2]))), increasing=unique_increasing(Y[1], Y[2])) = Branch{typeof(f), typeof(interval(X[1]))}(f, X, Y, increasing)
 
+function equal_up_to_orientation(X, Y)
+    @assert length(X)==2 && length(Y)==2
+    if eltype(X) <: Interval && !all(isthin.(X))
+        return false
+    end
+    if X[1]==Y[1] && X[2]==Y[2]
+        return true
+    end
+    if X[1]==Y[2] && X[2]==Y[1]
+        return true
+    end
+    return false
+end
+
+DynamicDefinition.is_full_branch(b::Branch{T,S}, X) where {T,S} = equal_up_to_orientation(b.Y, X)
+
 """
 Dynamic based on a piecewise monotonic map.
 
@@ -31,6 +47,8 @@ The map is defined as T(x) = Ts[k](x) if x ∈ [endpoints[k], endpoints[k+1]).
 
 `y_endpoints` (kx2 matrix) contains the result of applying Ts to the endpoints of each interval. These can be filled in automatically from `endpoints`,
 but sometimes they are known to higher accuracy, for instance for `x -> mod(3x, 1)` we know that it is full-branch exactly.
+
+the array `branches` is guaranteed to satisfy branches[i].X[end]==branches[i+1].X[begin]
 """
 struct PwMap <: Dynamic
 	branches::Array{Branch, 1}
@@ -48,7 +66,9 @@ function PwMap(Ts, endpoints, y_endpoints_in; full_branch = false, infinite_deri
         increasing  = unique_increasing(y_endpoints_in[k,1], y_endpoints_in[k,2])
         push!(branches, Branch(Ts[k], (endpoints[k], endpoints[k+1]), y_endpoints, increasing))
     end
-    return PwMap(branches; full_branch = full_branch, infinite_derivative = infinite_derivative)
+    X = (endpoints[begin], endpoints[end])
+    full_branch_detected = full_branch || all(is_full_branch(b, X) for b in branches)
+    return PwMap(branches; full_branch = full_branch_detected, infinite_derivative = infinite_derivative)
 end
 
 function PwMap(Ts, endpoints::Vector{T}; full_branch = false, infinite_derivative = false) where {T<:Real}  
@@ -131,13 +151,14 @@ end
 using RecipesBase
 @recipe f(::Type{PM}, D::PM) where {PM <: PwMap} = x -> plottable(D, x)
 
-end
+end #module
 
 """
-Utility constructor for dynamics Mod 1.
+Utility constructor for dynamics Mod 1 on the torus [0,1].
 We assume that f is monotonic and differentiable, for now (this is not restrictive, for our purposes)
 """
-function mod1_dynamic(f::Function, X = (0.,1.), ε = 0.0; full_branch = false)
+function mod1_dynamic(f::Function, ε = 0.0; full_branch = false)
+    X = (0..0, 1..1)
     br = Branch(f, X)
 
     # check monotonicity
@@ -166,7 +187,8 @@ function mod1_dynamic(f::Function, X = (0.,1.), ε = 0.0; full_branch = false)
     if y_endpoints[end, end] == 0.
         y_endpoints[end, end] = 0. # hack to get rid of -0..0 intervals
     end
-
+    # not needed, since the check is moved into the PwMap() constructor
+    # full_branch_detected = full_branch || all(equal_up_to_orientation(X, y_endpoints[i,:]) for i in 1:n)
 
     return PwMap(Ts, ep, y_endpoints; full_branch = full_branch)
 end
@@ -338,3 +360,4 @@ end
 #    end
 
 #dfly_inf_der(D::ComposedDynamic, tol=1e-3) = dfly_inf_der(D.E, tol)
+

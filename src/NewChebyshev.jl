@@ -253,7 +253,7 @@ end
 
 Base.length(dual::ChebyshevDual) = length(dual.x)
 Base.eltype(dual::ChebyshevDual) = Tuple{eltype(dual.xlabel), Tuple{eltype(dual.x), eltype(dual.x′)}}
-function iterate(dual::ChebyshevDual, state=1)
+function Base.iterate(dual::ChebyshevDual, state=1)
     if state <= length(dual.x)
         return ((dual.xlabel[state], (dual.x[state], abs(dual.x′[state]))), state+1)
     else

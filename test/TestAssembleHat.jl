@@ -6,7 +6,7 @@ using LinearAlgebra
 
 using InvariantMeasures: L1, Linf
 
-D = mod1_dynamic(x->2*x, full_branch=true)
+D = mod1_dynamic(x->2*x)
 B = Hat(8)
 P = InvariantMeasures.assemble(B, D)
 

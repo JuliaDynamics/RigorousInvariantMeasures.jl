@@ -2,7 +2,7 @@
 
 using ValidatedNumerics
 using InvariantMeasures
-using InvariantMeasures: HatFunction, HatFunctionOnTorus, IntervalOnTorus, nonzero_on
+using InvariantMeasures: HatFunction, HatFunctionOnTorus, IntervalOnTorus, nonzero_on, is_refinement
 
 f = HatFunction(1., 2, 3)
 @test f(1.5) == 0.5

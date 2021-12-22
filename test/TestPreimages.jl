@@ -71,8 +71,8 @@ x, xlabel = preimages(y, D1 ∘ D2)
 @test f.(g.(x)) ≈ 0:0.2:1.8
 @test xlabel ≈ repeat(1:5, 2)
 
-D1 = PwMap([x->2x, x->6x-3, x->3x-2], [0, 0.5, @interval(2/3), 1], [0 1; 0 1; 0 1]; full_branch=true)
-D2 = PwMap([x->2x, x->4x-2, x->4x-3], [0, 0.5, 0.75, 1], [0 1; 0 1; 0 1]; full_branch=true)
+D1 = PwMap([x->2x, x->6x-3, x->3x-2], [0, 0.5, @interval(2/3), 1], [0 1; 0 1; 0 1])
+D2 = PwMap([x->2x, x->4x-2, x->4x-3], [0, 0.5, 0.75, 1], [0 1; 0 1; 0 1])
 
 z = 0:0.3:1
 y, ylabel, y′ = InvariantMeasures.preimages_and_derivatives(z, D1)
