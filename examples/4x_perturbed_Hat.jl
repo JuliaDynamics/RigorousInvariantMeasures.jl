@@ -11,7 +11,7 @@ function runExperiment()
 
     time_assembling = @elapsed begin
 
-        D = Mod1Dynamic(x -> 4*x + 0.01*InvariantMeasures.sinpi(8*x))
+        D = mod1_dynamic(x -> 4*x + 0.01*InvariantMeasures.sinpi(8*x))
         # different backend, a tad slower
         # D = mod1_dynamic(x -> 4*x + 0.01*InvariantMeasures.sinpi(8*x))
         B = Hat(1024)
@@ -26,8 +26,8 @@ function runExperiment()
         B_fine = Hat(2^16)
         Q_fine = DiscretizedOperator(B_fine, D)
     end
-
-    time_norms_fine = @elapsed norms_fine = finepowernormbounds(B, B_fine, D, norms; Q_fine=Q_fine)
+    normQ_fine = opnormbound(B_fine, weak_norm(B_fine), Q_fine)
+    time_norms_fine = @elapsed norms_fine = finepowernormbounds(B, B_fine, D, norms; normQ_fine=normQ_fine)
     time_eigen_fine = @elapsed w_fine = invariant_vector(B_fine, Q_fine)
     time_error_fine = @elapsed error_fine = distance_from_invariant(B_fine, D, Q_fine, w_fine, norms_fine)
 

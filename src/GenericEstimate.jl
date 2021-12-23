@@ -155,13 +155,11 @@ end
 Uses power norm bounds already computed for a coarse operator to estimate
 the same norms for a finer operator
 """
-function finepowernormbounds(B, B_fine, D, coarse_norms; Q_fine=DiscretizedOperator(B_fine, D))
+function finepowernormbounds(B, B_fine, D, coarse_norms; normQ_fine=opnormbound(B_fine, weak_norm(B_fine)DiscretizedOperator(B_fine, D)))
 	m = length(coarse_norms)
-
-	norm_Q_fine = opnormbound(B_fine, weak_norm(B_fine), Q_fine)
 	
-	trivial_norms_fine = norms_of_powers_trivial(norm_Q_fine, m)
-	twogrid_norms_fine = norms_of_powers_from_coarser_grid(B_fine, B, D, coarse_norms, norm_Q_fine)
+	trivial_norms_fine = norms_of_powers_trivial(normQ_fine, m)
+	twogrid_norms_fine = norms_of_powers_from_coarser_grid(B_fine, B, D, coarse_norms, normQ_fine)
 
 	(dfly_strongs_fine, dfly_norms_fine) = norms_of_powers_dfly(B_fine, D, m)
 

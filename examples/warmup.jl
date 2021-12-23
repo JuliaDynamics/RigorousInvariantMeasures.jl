@@ -18,8 +18,9 @@ norms = powernormbounds(B, D; Q=Q)
 
 B_fine = Ulam(128)
 Q_fine = DiscretizedOperator(B_fine, D)
+normQ_fine = opnormbound(B_fine, weak_norm(B_fine), Q_fine)
 
-norms_fine = finepowernormbounds(B, B_fine, D, norms; Q_fine=Q_fine)
+norms_fine = finepowernormbounds(B, B_fine, D, norms; normQ_fine=normQ_fine)
 w_fine = invariant_vector(B_fine, Q_fine)
 error_fine = distance_from_invariant(B_fine, D, Q_fine, w_fine, norms_fine)
 
@@ -31,7 +32,8 @@ norms = powernormbounds(B, D; Q=Q)
 
 B_fine = Hat(128)
 Q_fine = DiscretizedOperator(B_fine, D)
+normQ_fine = opnormbound(B_fine, weak_norm(B_fine), Q_fine)
 
-norms_fine = finepowernormbounds(B, B_fine, D, norms; Q_fine=Q_fine)
+norms_fine = finepowernormbounds(B, B_fine, D, norms; normQ_fine=normQ_fine)
 w_fine = invariant_vector(B_fine, Q_fine)
 error_fine = distance_from_invariant(B_fine, D, Q_fine, w_fine, norms_fine)

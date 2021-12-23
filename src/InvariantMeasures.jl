@@ -51,14 +51,12 @@ export Chebyshev
 
 include("precompile.jl")
 
-#export NormKind, L1, Linf, Lipschitz, TotalVariation
+export NormKind, L1, Linf, Lipschitz, TotalVariation
 
-#export PwMap, Mod1Dynamic, Basis, , assemble, preim, Hat,
-#	EquispacedPartition, norms_of_powers, sinpi, cospi, dfly,
-#	,
-#	, distance_from_invariant,
-#	mod1_dynamic, Iterate, , is_refinement,
-#	skip_beginning, last_end, preimages
+export PwMap, Basis, assemble, preim, Hat, Ulam,
+	EquispacedPartition, norms_of_powers, sinpi, cospi, dfly,
+	distance_from_invariant,
+	mod1_dynamic, is_refinement
 
 import ValidatedNumerics: Interval
 export Interval
