@@ -257,8 +257,8 @@ BasisDefinition.bound_linalg_norm_L∞_from_weak(B::Hat) = @error "TODO"
 BasisDefinition.opnormbound(B::Hat{T}, N::Type{Linf}, A::AbstractVecOrMat{S}) where {S,T} = opnormbound(N, A)
 BasisDefinition.normbound(B::Hat{T}, N::Type{Linf}, v) where {T} = normbound(N, v)
 
-function BasisDefinition.invariant_measure_strong_norm_bound(B::Hat, D::Dynamic)
-	A, B = dfly(strong_norm(B), aux_norm(B), D)
+function BasisDefinition.invariant_measure_strong_norm_bound(B::Hat, D::Dynamic; dfly_coefficients=dfly(strong_norm(B), aux_norm(B), D))
+	A, B = dfly_coefficients
 	@assert A < 1.
 	return B ⊘₊ (1. ⊖₋ A)
 end

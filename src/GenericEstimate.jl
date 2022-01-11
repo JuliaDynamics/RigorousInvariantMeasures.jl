@@ -34,11 +34,11 @@ end
 Bounds rigorously the distance of w from the fixed point of Q (normalized with integral = 1),
 using a vector of bounds norms[k] ≥ ||Q_h^k|_{U_h^0}||.
 """
-function distance_from_invariant(B::Basis, D::Dynamic, Q::DiscretizedOperator, w::AbstractVector, norms::Vector; ε₁::Float64 = residualbound(B, weak_norm(B), Q, w), ε₂::Float64 = mag(integral_covector(B) * w - 1), normQ::Float64 = opnormbound(B, weak_norm(B), Q))
+function distance_from_invariant(B::Basis, D::Dynamic, Q::DiscretizedOperator, w::AbstractVector, norms::Vector; ε₁::Float64 = residualbound(B, weak_norm(B), Q, w), ε₂::Float64 = mag(integral_covector(B) * w - 1), normQ::Float64 = opnormbound(B, weak_norm(B), Q), dfly_coefficients=dfly(strong_norm(B), aux_norm(B), D))
 	if ε₂ > 1e-8
 		@error "w does not seem normalized correctly"
 	end
-	us = BasisDefinition.invariant_measure_strong_norm_bound(B, D)
+	us = BasisDefinition.invariant_measure_strong_norm_bound(B, D; dfly_coefficients=dfly_coefficients)
 	Cs = infinite_sum_norms(norms)
 	Kh =  BasisDefinition.weak_projection_error(B)
 	normw = normbound(B, weak_norm(B), w)
@@ -155,13 +155,13 @@ end
 Uses power norm bounds already computed for a coarse operator to estimate
 the same norms for a finer operator
 """
-function finepowernormbounds(B, B_fine, D, coarse_norms; normQ_fine=opnormbound(B_fine, weak_norm(B_fine)DiscretizedOperator(B_fine, D)))
+function finepowernormbounds(B, B_fine, D, coarse_norms; normQ_fine=opnormbound(B_fine, weak_norm(B_fine)DiscretizedOperator(B_fine, D)), dfly_coefficients=dfly(strong_norm(B_fine), aux_norm(B_fine), D))
 	m = length(coarse_norms)
 	
 	trivial_norms_fine = norms_of_powers_trivial(normQ_fine, m)
-	twogrid_norms_fine = norms_of_powers_from_coarser_grid(B_fine, B, D, coarse_norms, normQ_fine)
+	twogrid_norms_fine = norms_of_powers_from_coarser_grid(B_fine, B, D, coarse_norms, normQ_fine; dfly_coefficients=dfly_coefficients)
 
-	(dfly_strongs_fine, dfly_norms_fine) = norms_of_powers_dfly(B_fine, D, m)
+	(dfly_strongs_fine, dfly_norms_fine) = norms_of_powers_dfly(B_fine, D, m; dfly_coefficients=dfly_coefficients)
 
 	norms_fine = min.(trivial_norms_fine, twogrid_norms_fine, dfly_norms_fine)
 

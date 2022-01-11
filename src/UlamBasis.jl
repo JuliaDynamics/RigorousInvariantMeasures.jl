@@ -168,8 +168,8 @@ BasisDefinition.opnormbound(B::Ulam{T}, N::Type{L1}, A::AbstractVecOrMat{S}) whe
 #BasisDefinition.opnormbound(B::Ulam{T}, N::Type{L1}, Q::IntegralPreservingDiscretizedOperator) where {T} = opnormbound(N, Q.L)
 BasisDefinition.normbound(B::Ulam{T}, N::Type{L1}, v) where {T} = normbound(N, v)
 
-function BasisDefinition.invariant_measure_strong_norm_bound(B::Ulam, D::Dynamic)
-	A, B = dfly(strong_norm(B), aux_norm(B), D)
+function BasisDefinition.invariant_measure_strong_norm_bound(B::Ulam, D::Dynamic; dfly_coefficients=dfly(strong_norm(B), aux_norm(B), D))
+	A, B = dfly_coefficients
 	@assert A < 1.
 	return B ⊘₊ (1. ⊖₋ A)
 end
