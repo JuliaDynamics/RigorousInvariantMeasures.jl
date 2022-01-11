@@ -273,7 +273,6 @@ end
 
 using ProgressMeter
 function dfly_inf_der(::Type{TotalVariation}, ::Type{L1}, D::PwDynamicDefinition.PwMap, tol=1e-3)
-    max_exp = Interval(0.0)
     leftrightsingularity = Tuple{Bool, Bool}[]
     A = +∞
     B = +∞
@@ -297,7 +296,7 @@ function dfly_inf_der(::Type{TotalVariation}, ::Type{L1}, D::PwDynamicDefinition
             right = true
         end
         push!(leftrightsingularity, (left, right))
-    end             
+    end
     est = +∞
     @showprogress for i in 3:15
         val = 0.0
