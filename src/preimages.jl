@@ -109,7 +109,7 @@ function preimages(y, br::Branch, ylabel = 1:length(y), ϵ = 0.0)
 end
 
 function preimages(y, D::Dynamic, ylabel = 1:length(y), ϵ = 0.0)
-    results = collect(preimages(y, b, ylabel, ϵ) for b in branches(D))
+    results = @showprogress 1 "Computing preimages..." [preimages(y, b, ylabel, ϵ) for b in branches(D)]
     x = vcat((result[1] for result in results)...)
     xlabel = vcat((result[2] for result in results)...)
     return x, xlabel
@@ -133,7 +133,7 @@ function preimages_and_derivatives(y, br::Branch, ylabel = 1:length(y), ϵ = 0.0
 end
 function preimages_and_derivatives(y, D::Dynamic, ylabel = 1:length(y), ϵ = 0.0)
     @assert is_full_branch(D)
-    results = collect(preimages_and_derivatives(y, b, ylabel, ϵ) for b in branches(D))
+    results = @showprogress 1 "Computing preimages and derivatives..." [preimages_and_derivatives(y, b, ylabel, ϵ) for b in branches(D)]
     x = vcat((result[1] for result in results)...)
     xlabel = vcat((result[2] for result in results)...)
     x′ = vcat((result[3] for result in results)...)
