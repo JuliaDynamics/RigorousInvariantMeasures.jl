@@ -211,21 +211,21 @@ function norms_of_powers_from_coarser_grid(fine_basis::Basis, coarse_basis::Basi
     if !BasisDefinition.is_refinement(fine_basis, coarse_basis)
         @error "The fine basis is not a refinement of the coarse basis"
     end
-    m = length(coarse_norms)
-    fine_norms = fill(NaN, m)
-    (strongs, norms) = norms_of_powers_dfly(fine_basis, D, m; dfly_coefficients=dfly_coefficients)
+    mmax = length(coarse_norms)
+    fine_norms = fill(NaN, mmax)
+    (strongs, norms) = norms_of_powers_dfly(fine_basis, D, mmax; dfly_coefficients=dfly_coefficients)
 
     # adds a 0th element to strongs
     strongs0(k::Integer) = k==0 ? BasisDefinition.strong_weak_bound(fine_basis) : strongs[k]
     coarse_norms0(k::Integer) = k==0 ? 1. : coarse_norms[k]
 
     Kh =  BasisDefinition.weak_projection_error(coarse_basis)
-    for k in 1:m
+    for m in 1:mmax
 		temp = 0.
 		for k in 0:m-1
 			temp = temp ⊕₊ coarse_norms0(m-1-k) ⊗₊ (normQ ⊗₊ strongs0(k) ⊕₊ strongs0(k+1))
 		end
-		fine_norms[k] = coarse_norms[k] ⊕₊ 2. ⊗₊ Kh ⊗₊ temp
+		fine_norms[m] = coarse_norms[m] ⊕₊ 2. ⊗₊ Kh ⊗₊ temp
 	end
     return fine_norms
 end
