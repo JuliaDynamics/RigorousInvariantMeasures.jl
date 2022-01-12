@@ -119,8 +119,10 @@ function powernormbounds(B, D, m, m_extend; Q=DiscretizedOperator(B, D))
 	return better_norms
 end
 
-function powernormbounds(B, D; Q=DiscretizedOperator(B, D))
-	m = 8
+"""
+Computes bounds for norms of powers, taking (optionally) minimum values for the number of norms to compute
+"""
+function powernormbounds(B, D; Q=DiscretizedOperator(B, D), m=8)
 	computed_norms = []
 	while true
 		computed_norms = norms_of_powers(B, weak_norm(B), m, Q, integral_covector(B))
