@@ -1,7 +1,8 @@
 using LinearAlgebra, Arpack, FastRounding, ValidatedNumerics
 using ..DynamicDefinition, ..BasisDefinition
 
-export invariant_vector, finepowernormbounds, powernormbounds, distance_from_invariant
+export invariant_vector, finepowernormbounds, powernormbounds, distance_from_invariant, 
+	compute_coarse_grid_quantities, compute_fine_grid_quantities, one_grid_estimate, two_grid_estimate
 
 """
 Return a numerical approximation to the (hopefully unique) invariant vector
@@ -33,8 +34,10 @@ end
 """
 Bounds rigorously the distance of w from the fixed point of Q (normalized with integral = 1),
 using a vector of bounds norms[k] ≥ ||Q_h^k|_{U_h^0}||.
+If ε₁ and normQ are given, then Q can be omitted
 """
-function distance_from_invariant(B::Basis, D::Dynamic, Q::DiscretizedOperator, w::AbstractVector, norms::Vector; ε₁::Float64 = residualbound(B, weak_norm(B), Q, w), ε₂::Float64 = mag(integral_covector(B) * w - 1), normQ::Float64 = opnormbound(B, weak_norm(B), Q), dfly_coefficients=dfly(strong_norm(B), aux_norm(B), D))
+function distance_from_invariant(B::Basis, D::Dynamic, Q::Union{DiscretizedOperator,Nothing}, w::AbstractVector, norms::Vector;
+	ε₁::Float64 = residualbound(B, weak_norm(B), Q, w), ε₂::Float64 = mag(integral_covector(B) * w - 1), normQ::Float64 = opnormbound(B, weak_norm(B), Q), dfly_coefficients=dfly(strong_norm(B), aux_norm(B), D))
 	if ε₂ > 1e-8
 		@error "w does not seem normalized correctly"
 	end
@@ -169,4 +172,86 @@ function finepowernormbounds(B, B_fine, D, coarse_norms; normQ_fine=opnormbound(
 
 	better_norms_fine = refine_norms_of_powers(norms_fine, m)
 	return better_norms_fine
+end
+
+"""
+Struct that encapsulates all the quantities computed from the fine basis that are needed in the two-grid estimate.
+It is meant as an intermediate quantity that can be saved on the disk to avoid recomputing Q all the times
+"""
+struct FineGridQuantities
+	B::Basis
+	D::Dynamic
+	normQ
+	w
+	ε₁
+	ε₂
+	time_assembling # time to compute B, D, Q, normQ
+	time_eigen      # time to compute w, ε₁, ε₂
+end
+"""
+Struct that encapsulates the additional quantities needed on the coarse basis for a two-grid estimate,
+or on the (only) basis for a one-grid estimate. 
+It is meant as an intermediate quantity that can be saved on the disk to avoid recomputing Q all the times.
+"""
+struct CoarseGridQuantities
+	B::Basis
+	D::Dynamic
+	norms
+	dfly_coefficients
+	time_assembling # time to compute B, D, Q (without normQ, needed in the two-grid estimate)
+	time_norms      # time to compute norms
+	time_dfly       # time to compute dfly_coefficients
+end
+
+"""
+Compute FineGridQuantities, given a function f(n) that computes B, D, Q = f(n)
+"""
+function compute_fine_grid_quantities(f, n)
+	time_assembling1 = @elapsed B, D, Q = f(n)
+	time_assembling2 = @elapsed normQ = opnormbound(B, weak_norm(B), Q)
+	time_eigen1 = @elapsed w = invariant_vector(B, Q)
+	time_eigen2 = @elapsed ε₁, ε₂ = residualbound(B, weak_norm(B), Q, w), mag(integral_covector(B) * w - 1)
+	return FineGridQuantities(B, D, normQ, w, ε₁, ε₂, time_assembling1 + time_assembling2, time_eigen1 + time_eigen2)
+end
+
+"""
+Compute FineGridQuantities _and_ CoarseGridQuantities, given a function f(n) that computes B, D, Q = f(n)
+"""
+function compute_coarse_grid_quantities(f, n; m = 8)
+	time_assembling1 = @elapsed B, D, Q = f(n)
+	time_assembling2 = @elapsed normQ = opnormbound(B, weak_norm(B), Q)
+	time_eigen1 = @elapsed w = invariant_vector(B, Q)
+	time_eigen2 = @elapsed ε₁, ε₂ = residualbound(B, weak_norm(B), Q, w), mag(integral_covector(B) * w - 1)
+	time_norms = @elapsed norms = powernormbounds(B, D, Q=Q, m=m)
+    time_dfly = @elapsed dfly_coefficients = dfly(strong_norm(B), aux_norm(B), D)
+	return FineGridQuantities(B, D, normQ, w, ε₁, ε₂, time_assembling1 + time_assembling2, time_eigen1 + time_eigen2),
+		CoarseGridQuantities(B, D, norms, dfly_coefficients, time_assembling1, time_norms, time_dfly)
+end
+
+"""
+Compute a one-grid error estimate.
+
+The first return argument is the error, the second is the time breakdown according to ["dfly", "assembling", "eigen", "norms", "error"]. 
+(The sum of that vector is the total time taken)
+"""
+function one_grid_estimate(C::CoarseGridQuantities, F::FineGridQuantities)
+	@assert(C.B==F.B)
+	# Dynamics don't compare unfortunately
+	time_error = @elapsed error = distance_from_invariant(F.B, F.D, nothing, F.w, C.norms; normQ=F.normQ, dfly_coefficients=C.dfly_coefficients, ε₁=F.ε₁, ε₂=F.ε₂)
+	return error, [C.time_dfly, F.time_assembling, F.time_eigen, C.time_norms, time_error]
+end
+
+"""
+Compute a two-grid error estimate.
+
+The first return argument is the error, the second is the time breakdown according to ["dfly", "coarse", "assembling", "eigen", "norms", "error"]. 
+(The sum of that vector is the total time taken)
+"""
+function two_grid_estimate(C::CoarseGridQuantities, F::FineGridQuantities; m_extend=400)
+	@assert(is_refinement(F.B, C.B))
+	# Dynamics don't compare unfortunately
+	time_error_fine = @elapsed error_fine = distance_from_invariant(F.B, F.D, nothing, F.w, 
+		finepowernormbounds(C.B, F.B, F.D, refine_norms_of_powers(C.norms, m_extend); normQ_fine=F.normQ, dfly_coefficients=C.dfly_coefficients);
+		normQ=F.normQ, dfly_coefficients=C.dfly_coefficients, ε₁=F.ε₁, ε₂=F.ε₂)
+	return error_fine, [C.time_dfly, C.time_assembling+C.time_norms, F.time_assembling, F.time_eigen, time_error_fine]
 end

@@ -31,7 +31,7 @@ function runExperiment()
 
     time_norms_fine = @elapsed begin
         normQ_fine = opnormbound(B_fine, weak_norm(B_fine), Q_fine)
-        norms2 = refine_norms_of_powers(norms,400)    
+        norms2 = refine_norms_of_powers(norms,400)
         norms_fine = finepowernormbounds(B, B_fine, D, norms2; normQ_fine=normQ_fine, dfly_coefficients=dfly_coefficients)
     end
     time_eigen_fine = @elapsed w_fine = invariant_vector(B_fine, Q_fine)
