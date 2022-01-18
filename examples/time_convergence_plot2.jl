@@ -55,32 +55,33 @@ function plot_data()
 
     onegrid_errors = Float64[]
     onegrid_times = Float64[]
-    onegrid_n = Int64[]
+    onegrid_n = Plots.PlotText[]
     for (n, C) in sort(Cdict)
         error, time_breakdown = one_grid_estimate(C, Fdict[n])
         push!(onegrid_errors, error)
         push!(onegrid_times, sum(time_breakdown))
-        push!(onegrid_n, n)
+        push!(onegrid_n, Plots.PlotText(" $n", font(8)))
     end
 
     p = plot(
         onegrid_times, onegrid_errors,
-        title = "Errors vs. times",
+        title = "Errors vs. times, experiment $prefix",
         yscale = :log10,
         xscale = :log10,
         color = :red,
         label = "One-grid strategy",
-        legend = :bottomleft,
-        texts = onegrid_n,
+        legend = :outerbottom,
         markershape=:circle,
         xlabel = "Time/s",
-        ylabel = "Error"
+        ylabel = "Error",
+        size = (700, 700)
     )
+    annotate!(onegrid_times/1.08, onegrid_errors, onegrid_n, :right)
 
     for (n, C) in sort(Cdict)
         twogrid_errors = Float64[]
         twogrid_times = Float64[]
-        twogrid_n = Int64[]
+        twogrid_n = Plots.PlotText[]
         for (n_fine, F) in sort(Fdict)
             if n_fine <= n
                 continue
@@ -88,7 +89,7 @@ function plot_data()
             error, time_breakdown = two_grid_estimate(C, F)
             push!(twogrid_errors, error)
             push!(twogrid_times, sum(time_breakdown))
-            push!(twogrid_n, n_fine)
+            push!(twogrid_n, Plots.PlotText(" $n_fine", font(8)))
         end
         if all(isinf.(twogrid_errors))
             continue
@@ -96,9 +97,9 @@ function plot_data()
         p = plot(p,
             twogrid_times, twogrid_errors,
             label = "Two-grid strategy (n_c=$n)",
-            texts= twogrid_n,
             markershape=:circle
         )
+        annotate!(twogrid_times/1.08, twogrid_errors, twogrid_n, :right)
     end
-    savefig("$prefix-time-experiment.png")
+    savefig("$prefix-time-experiment.pdf")
 end
