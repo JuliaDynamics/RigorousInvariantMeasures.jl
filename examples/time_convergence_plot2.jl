@@ -72,11 +72,11 @@ function plot_data()
         label = "One-grid strategy",
         legend = :outerbottom,
         markershape=:circle,
-        xlabel = "Time/s",
-        ylabel = "Error",
+        xlabel = "Total CPU Time/s",
+        ylabel = "Error bound proved",
         size = (700, 700)
     )
-    annotate!(onegrid_times/1.08, onegrid_errors, onegrid_n, :right)
+    annotate!(onegrid_times[[1,end]], onegrid_errors[[1,end]]*1.16, onegrid_n[[1,end]], :bottom)
 
     for (n, C) in sort(Cdict)
         twogrid_errors = Float64[]
@@ -99,7 +99,7 @@ function plot_data()
             label = "Two-grid strategy (n_c=$n)",
             markershape=:circle
         )
-        annotate!(twogrid_times/1.08, twogrid_errors, twogrid_n, :right)
+        annotate!(twogrid_times[[1,end]], twogrid_errors[[1,end]]*1.16, twogrid_n[[1,end]], :bottom)
     end
     savefig("$prefix-time-experiment.pdf")
 end
