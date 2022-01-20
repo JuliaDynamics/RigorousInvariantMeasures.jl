@@ -2,6 +2,7 @@ using InvariantMeasures
 using ValidatedNumerics
 using Glob
 using Plots
+using LaTeXStrings
 
 using Serialization
 
@@ -10,17 +11,44 @@ ENV["GKSwstype"]="nul" # for headless displays
 LorenzMap(θ, α) = PwMap([x->θ*(0.5-x)^α, x->1-θ*(x-0.5)^α],
                     [@interval(0), @interval(0.5), @interval(1)]; infinite_derivative=true)
 
-function f(n)
-    D0 = LorenzMap(109/64, 51/64)
-    D = D0 ∘ D0 ∘ D0
-    B = Ulam(n)
-    Q = DiscretizedOperator(B, D)
-    return B, D, Q
+function get_experiment(prefix)
+    if prefix=="Lorenz3"
+        f = n-> begin
+            D0 = LorenzMap(109/64, 51/64)
+            D = D0 ∘ D0 ∘ D0
+            B = Ulam(n)
+            Q = DiscretizedOperator(B, D)
+            return B, D, Q    
+        end
+    elseif prefix=="Lorenz2"
+        f = n-> begin
+            D0 = LorenzMap(109/64, 51/64)
+            D = D0 ∘ D0
+            B = Ulam(n)
+            Q = DiscretizedOperator(B, D)
+            return B, D, Q    
+        end
+    elseif prefix=="4x_perturbed_Ulam"
+        f = n-> begin
+            D = mod1_dynamic(x -> 4*x + 0.01*InvariantMeasures.sinpi(8*x))
+            B = Ulam(n)
+            Q = DiscretizedOperator(B, D)
+            return B, D, Q
+        end
+    elseif prefix=="4x_perturbed_Hat"
+        f = n-> begin
+            D = mod1_dynamic(x -> 4*x + 0.01*InvariantMeasures.sinpi(8*x))
+            B = Hat(n)
+            Q = DiscretizedOperator(B, D)
+            return B, D, Q
+        end
+    else
+        @error "Unknown experiment"
+    end
 end
 
-prefix = "Lorenz3"
-
-function save_coarse_data(K)
+function save_coarse_data(prefix, K)
+    f = get_experiment(prefix)
     compute_coarse_grid_quantities(f, 4; m=24)  # warm-up for precompilation
     for n = 2 .^ K
         print("Coarse+fine $n...")
@@ -31,7 +59,8 @@ function save_coarse_data(K)
     end
 end
 
-function save_fine_data(K)
+function save_fine_data(prefix, K)
+    f = get_experiment(prefix)
     compute_fine_grid_quantities(f, 4)  # warm-up for precompilation
     for n = 2 .^ K
         print("Fine only $n...")
@@ -41,7 +70,7 @@ function save_fine_data(K)
     end
 end
 
-function plot_data()
+function plot_error_time(prefix)
     Cdict = Dict{Int64, InvariantMeasures.CoarseGridQuantities}()
     Fdict = Dict{Int64, InvariantMeasures.FineGridQuantities}()
     for filename in glob("$prefix-*-coarse.juliaserialize")
@@ -102,4 +131,43 @@ function plot_data()
         annotate!(twogrid_times[[1,end]], twogrid_errors[[1,end]]*1.16, twogrid_n[[1,end]], :bottom)
     end
     savefig("$prefix-time-experiment.pdf")
+end
+
+function plot_norm_bounds_kinds(prefix, n; num_norms=30, num_norms_computed=10)
+    C = deserialize("$prefix-$n-coarse.juliaserialize")
+    F = deserialize("$prefix-$n-fine.juliaserialize")
+    computed_norms = fill(NaN, num_norms)
+    # TODO: need to refactor stuff so that norms_of_powers are saved
+    actual_computed_norms = norms_of_powers(C.B, weak_norm(C.B), num_norms_computed, Q, integral_covector(C.B))
+    computed_norms[1:min(num_norms,num_norms_computed)] = actual_computed_norms[1:min(num_norms,num_norms_computed)]
+
+    trivial_norms = norms_of_powers_trivial(F.normQ, num_norms)
+    (dfly_strongs, dfly_norms) = norms_of_powers_dfly(C.B, C.D, num_norms; dfly_coefficients=C.dfly_coefficients)
+    norms = min.(trivial_norms, computed_norms, dfly_norms)
+    better_norms = refine_norms_of_powers(norms, num_norms)
+    p = plot(trivial_norms,
+        label = L"$\|Q\|^k$",
+        yscale = :log10,
+        legend = :bottomleft,
+        title = "Available norm bounds, $prefix",
+        xlabel = L"$k$",
+        ylabel = L"bound to $\|Q\^k|_U\|$",
+        markershape=:circle
+        )
+    plot!(p, computed_norms,
+        label = "computational bounds",
+        markershape=:x
+        )
+
+    plot!(p, dfly_norms,
+        label = L"DFLY $2\times 2$ matrix bounds",
+        markershape=:diamond,
+        )
+
+    plot!(p, better_norms,
+        label = "min(previous) + refinement",
+        markershape=:+
+        )
+
+    savefig(p, "norm-bounds-$prefix-$n.pdf")
 end
