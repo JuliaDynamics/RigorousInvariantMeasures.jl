@@ -36,6 +36,9 @@ include("UlamBasis.jl")
 export Ulam
 include("HatBasis.jl")
 export Hat
+include("NonPeriodicHatBasis.jl")
+export HatNP
+
 
 #using .Mod1DynamicDefinition, .Contractors, .PwDynamicDefinition
 
@@ -87,5 +90,6 @@ include("Observables.jl")
 export Observable, discretizationlogder, integrateobservable
 
 include("FourierBasis.jl")
+export L2, Fourier1D, GaussianNoise
 
 end

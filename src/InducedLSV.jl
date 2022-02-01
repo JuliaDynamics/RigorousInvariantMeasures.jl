@@ -2,6 +2,7 @@ module InducedLSVMapDefinition
 using ValidatedNumerics
 using ..DynamicDefinition, ..Contractors
 import ..Hat
+import ..HatNP
 import ..BasisDefinition: DualComposedWithDynamic
 import ..C2BasisDefinition: C2Basis, dual_val, dual_der
 
@@ -259,7 +260,10 @@ using RecipesBase
 
 end
 
-function InvariantMeasures.Dual(B::Chebyshev, D::InducedLSVMapDefinition.ApproxInducedLSV, ϵ = 0.0; T = Float64)
+ChebOrHatNP = Union{Chebyshev, HatNP}
+
+InvariantMeasures.Dual(B::HatNP, D::InducedLSVMapDefinition.ApproxInducedLSV, ϵ = 0.0) = HatNPDual(InvariantMeasures.Dual(B, D, ϵ ; T = Float64)...)
+function InvariantMeasures.Dual(B::ChebOrHatNP, D::InducedLSVMapDefinition.ApproxInducedLSV, ϵ = 0.0; T = Float64)
 	labels = Int64[]
 	x = Interval{T}[]
 	x′ = Interval{T}[]
