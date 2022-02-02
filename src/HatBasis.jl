@@ -254,6 +254,8 @@ BasisDefinition.weak_by_strong_and_aux_bound(B::Hat) = (1., 1.)
 BasisDefinition.bound_weak_norm_from_linalg_norm(B::Hat) = @error "TODO"
 BasisDefinition.bound_linalg_norm_L1_from_weak(B::Hat) = @error "TODO"
 BasisDefinition.bound_linalg_norm_L∞_from_weak(B::Hat) = @error "TODO"
+BasisDefinition.bound_weak_norm_abstract(B::Hat, D=nothing; dfly_coefficients=dfly(strong_norm(B), aux_norm(B), D)) = dfly_coefficients[2] ⊕₊ 1.
+
 BasisDefinition.opnormbound(B::Hat{T}, N::Type{Linf}, A::AbstractVecOrMat{S}) where {S,T} = opnormbound(N, A)
 BasisDefinition.normbound(B::Hat{T}, N::Type{Linf}, v) where {T} = normbound(N, v)
 
