@@ -2,7 +2,7 @@ using InvariantMeasures
 using ValidatedNumerics
 using Glob
 using Plots
-using LaTeXStrings
+using FastRounding
 
 using Serialization
 
@@ -133,41 +133,101 @@ function plot_error_time(prefix)
     savefig("$prefix-time-experiment.pdf")
 end
 
+"""
+Variant of refine_norms_of_powers that returns the refined norms even if they are worse
+than the best choice
+"""
+function get_refined_norms(norms::Vector, m)
+    refined_norms = fill(NaN, m)
+    better_norms = fill(NaN, m)
+    refined_norms[1] = norms[1]
+    better_norms[1] = norms[1]
+    for k in 2:m
+        refined_norms[k] = minimum(better_norms[i] ⊗₊ better_norms[k-i] for i in 1:k-1)
+        if k <= length(norms)
+            better_norms[k] = min(refined_norms[k], norms[k])
+        else
+            better_norms[k] = refined_norms[k]
+        end
+    end
+    return refined_norms
+end
+
 function plot_norm_bounds_kinds(prefix, n; num_norms=30, num_norms_computed=10)
-    C = deserialize("$prefix-$n-coarse.juliaserialize")
-    F = deserialize("$prefix-$n-fine.juliaserialize")
-    computed_norms = fill(NaN, num_norms)
-    # TODO: need to refactor stuff so that norms_of_powers are saved
-    actual_computed_norms = norms_of_powers(C.B, weak_norm(C.B), num_norms_computed, Q, integral_covector(C.B))
+    # TODO: these are recomputed, not loaded atm
+    f = get_experiment(prefix)
+    B, D, Q = f(n)
+    normQ = opnormbound(B, weak_norm(B), Q)
+    computed_norms = fill(Inf, num_norms)
+    actual_computed_norms = norms_of_powers(B, weak_norm(B), num_norms_computed, Q, integral_covector(B))
     computed_norms[1:min(num_norms,num_norms_computed)] = actual_computed_norms[1:min(num_norms,num_norms_computed)]
 
-    trivial_norms = norms_of_powers_trivial(F.normQ, num_norms)
-    (dfly_strongs, dfly_norms) = norms_of_powers_dfly(C.B, C.D, num_norms; dfly_coefficients=C.dfly_coefficients)
+    trivial_norms = norms_of_powers_trivial(normQ, num_norms)
+    (dfly_strongs, dfly_norms) = norms_of_powers_dfly(B, D, num_norms)
     norms = min.(trivial_norms, computed_norms, dfly_norms)
-    better_norms = refine_norms_of_powers(norms, num_norms)
+    refined_norms = get_refined_norms(norms, num_norms)
     p = plot(trivial_norms,
-        label = L"$\|Q\|^k$",
+        label = "||Q||^k",
         yscale = :log10,
         legend = :bottomleft,
         title = "Available norm bounds, $prefix",
-        xlabel = L"$k$",
-        ylabel = L"bound to $\|Q\^k|_U\|$",
+        xlabel = "k",
+        ylabel = "bound to ||Q^k_U||",
         markershape=:circle
         )
-    plot!(p, computed_norms,
-        label = "computational bounds",
-        markershape=:x
-        )
-
     plot!(p, dfly_norms,
-        label = L"DFLY $2\times 2$ matrix bounds",
+        label = "DFLY-based",
         markershape=:diamond,
         )
 
-    plot!(p, better_norms,
-        label = "min(previous) + refinement",
+    plot!(p, refined_norms,
+        label = "submultiplicativity",
         markershape=:+
+        )
+        plot!(p, computed_norms,
+        label = "computational bounds",
+        markershape=:star4,
         )
 
     savefig(p, "norm-bounds-$prefix-$n.pdf")
+end
+
+function plot_norm_bounds_kinds_twogrid(prefix, n, n_fine; num_norms=30, num_norms_computed=10)
+    # TODO: these are recomputed, not loaded atm
+    f = get_experiment(prefix)
+    B, D, Q = f(n)
+    normQ = opnormbound(B, weak_norm(B), Q)
+    B_fine, D_fine, Q_fine = f(n_fine)
+    normQ_fine = opnormbound(B_fine, weak_norm(B_fine), Q_fine)
+    coarse_norms = powernormbounds(B, D, Q=Q, m=num_norms_computed)
+    fine_norms = norms_of_powers_from_coarser_grid(B_fine, B, D, refine_norms_of_powers(coarse_norms, num_norms), normQ_fine)
+    trivial_norms = norms_of_powers_trivial(normQ_fine, num_norms)
+    (dfly_strongs, dfly_norms) = norms_of_powers_dfly(B_fine, D_fine, num_norms)
+    norms = min.(trivial_norms, fine_norms, dfly_norms)
+    refined_norms = get_refined_norms(norms, num_norms)
+    p = plot(trivial_norms,
+        label = "||Q||^k",
+        yscale = :log10,
+        legend = :bottomleft,
+        title = "Available norm bounds\n$prefix, n_f=$n_fine, n=$n",
+        xlabel = "k",
+        ylabel = "bound to ||Q^k_U||",
+        markershape=:circle
+        )
+    plot!(p, dfly_norms,
+        label = "DFLY-based",
+        markershape=:diamond,
+        )
+
+    plot!(p, refined_norms,
+        label = "submultiplicativity",
+        markershape=:+
+        )
+        plot!(p, fine_norms,
+        label = "two-grid bounds",
+        markershape=:star4,
+        color="blue",
+        )
+
+    savefig(p, "norm-bounds-$prefix-$n-$n_fine.pdf")
 end
