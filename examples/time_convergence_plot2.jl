@@ -43,6 +43,68 @@ function get_experiment(prefix)
             Q = DiscretizedOperator(B, D)
             return B, D, Q
         end
+    elseif prefix=="Lanford_Ulam"
+        f = n-> begin
+            D = mod1_dynamic(x -> 2*x+0.5*x*(1-x))
+            B = Ulam(n)
+            Q = DiscretizedOperator(B, D)
+            return B, D, Q
+        end
+    elseif prefix=="Lanford3_Hat"
+        f = n-> begin
+            D0 = mod1_dynamic(x->2*x+0.5*x*(1-x))
+            # Taking an iterate is necessary here to get a DFLY inequality with A < 1
+            D = D0∘D0∘D0
+            B = Ulam(n)
+            Q = DiscretizedOperator(B, D)
+            return B, D, Q
+        end    
+    elseif prefix=="PiecewiseLinear2"
+        f = n-> begin
+            D = PwMap([x->17*x/5, 
+                x->(34*((17*x-5)/17)/25+3)*((17*x-5)/17), 
+                x->(34*((17*x-10)/17)/25+3)*((17*x-10)/17), 
+                x->17*((17*x-15)/17)/5], 
+                [Interval(0), Interval(5)/17, Interval(10)/17, Interval(15)/17, Interval(1)],
+                [Interval(0) Interval(1);
+                Interval(0) Interval(1);
+                Interval(0) Interval(1);
+                Interval(0) @interval(0.4)]
+                )
+            B = Ulam(n)
+            Q = DiscretizedOperator(B, D)
+            return B, D, Q
+        end
+    elseif prefix=="PiecewiseLinear"
+        f = n-> begin
+            D = PwMap([x->2.5*x, x->4*x-1, x->4*x-2, x-> 4*x-3],
+                [@interval(0), @interval(0.25), @interval(0.5), @interval(0.75), @interval(1)])
+            B = Ulam(n)
+            Q = DiscretizedOperator(B, D)
+            return B, D, Q
+        end
+    elseif prefix=="175"
+        f = n-> begin
+            D = mod1_dynamic(x -> 17//5 * x)
+            B = Ulam(n)
+            Q = DiscretizedOperator(B, D)
+            return B, D, Q
+        end
+    elseif prefix=="175_nonlinear"
+        f = n-> begin
+        D = PwMap(
+            [x -> 17x/5,
+             x -> 34(x-5//17)^2/25 + 3(x-5//17),
+             x -> 34(x-10//17)^2/25 + 3(x-10//17),
+             x -> 17(x-15//17)/5
+            ],
+            [0, @interval(5/17), @interval(10/17), @interval(15/17), 1],
+            [0 1; 0 1; 0 1; 0 @interval(0.4)]
+            )
+            B = Ulam(n)
+            Q = DiscretizedOperator(B, D)
+            return B, D, Q
+        end
     else
         @error "Unknown experiment"
     end
