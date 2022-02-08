@@ -4,6 +4,7 @@ using Glob
 using Plots
 using StatsPlots
 using FastRounding
+using LaTeXStrings
 
 using Serialization
 
@@ -313,19 +314,19 @@ function time_breakdown_plot(prefix, twogrid_nC)
     onegrid_errors = Float64[]
     onegrid_times = zeros(5, 0)
     onegrid_n = Int[]
-    onegrid_labels = String[]
+    onegrid_labels = LaTeXString[]
     for (n, C) in sort(Cdict)
         error, time_breakdown = one_grid_estimate(C, Fdict[n])
         push!(onegrid_errors, error)
         onegrid_times = [onegrid_times time_breakdown]
         push!(onegrid_n, n)
-        push!(onegrid_labels, "2^$(Int(log2(n)))")
+        push!(onegrid_labels, LaTeXString("\$2^{$(Int(log2(n)))}\$"))
     end
 
     twogrid_errors = Float64[]
     twogrid_times = zeros(5, 0)
     twogrid_n = Int[]
-    twogrid_labels = String[]
+    twogrid_labels = LaTeXString[]
     C = Cdict[twogrid_nC]
     for (n_fine, F) in sort(Fdict)
         if n_fine <= twogrid_nC
@@ -335,7 +336,7 @@ function time_breakdown_plot(prefix, twogrid_nC)
         push!(twogrid_errors, error)
         twogrid_times = [twogrid_times time_breakdown]
         push!(twogrid_n, n_fine)
-        push!(twogrid_labels, "2^$(Int(log2(n_fine)))")
+        push!(twogrid_labels, LaTeXString("\$2^{$(Int(log2(n_fine)))}\$"))
     end
 
 
@@ -345,7 +346,7 @@ function time_breakdown_plot(prefix, twogrid_nC)
         bar_position = :stack,
         legend_position = :topleft,
         label = ["dfly coefficients" "matrix assembly" "eigenvalue computation" "norms of powers" "error estimation"][:, end:-1:1],
-        title = "One-grid strategy",
+        title = "One-grid",
         ylabel = "CPU Time/s",
         xticks = (1:length(onegrid_n), onegrid_labels),
         link = :y,
@@ -357,7 +358,7 @@ function time_breakdown_plot(prefix, twogrid_nC)
         bar_position = :stack,
         legend = :topleft,
         label = ["dfly coefficients" "coarse matrix+norms" "matrix assembly" "eigenvalue computation" "error estimation"][:, end:-1:1],
-        title = "Two-grid strategy",
+        title = "Two-grid, n_c=$(twogrid_nC)",
         xticks = (1:length(twogrid_n), twogrid_labels),
         link = :y,
         size = (700, 700),
@@ -370,8 +371,9 @@ function time_breakdown_plot(prefix, twogrid_nC)
         mark = :dot,
         yscale = :log10,
         xscale = :log10,
-        xticks = (1:length(onegrid_n), onegrid_labels),
-        label = "One-grid strategy",
+        xticks = (onegrid_n, onegrid_labels),
+#        xticks = nothing,
+        label = "One-grid",
         legend = false,
         link = :y,
         size = (700, 700),
@@ -385,8 +387,9 @@ function time_breakdown_plot(prefix, twogrid_nC)
         yscale = :log10,
         xscale = :log10,
         color = :red,
-        xticks = (1:length(twogrid_n), twogrid_labels),
-        label = "Two-grid strategy",
+        xticks = (twogrid_n, twogrid_labels),
+#        xticks = nothing,
+        label = "Two-grid, n_c=$(twogrid_nC)",
         legend = false,
         link = :y,
         size = (700, 700),
