@@ -356,7 +356,7 @@ function time_breakdown_plot(prefix, twogrid_nC)
         twogrid_times'[:, end:-1:1],
         bar_position = :stack,
         legend = :topleft,
-        label = ["dfly coefficients" "coarse matrix+norms" "matrix assembly" "eigenvalue computation" "error estimation"],
+        label = ["dfly coefficients" "coarse matrix+norms" "matrix assembly" "eigenvalue computation" "error estimation"][:, end:-1:1],
         title = "Two-grid strategy",
         xticks = (1:length(twogrid_n), twogrid_labels),
         link = :y,
