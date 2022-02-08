@@ -2,6 +2,7 @@ using InvariantMeasures
 using ValidatedNumerics
 using Glob
 using Plots
+using StatsPlots
 using FastRounding
 
 using Serialization
@@ -70,6 +71,9 @@ function save_fine_data(prefix, K)
     end
 end
 
+"""
+Plot error vs. time in a double-log scale
+"""
 function plot_error_time(prefix)
     Cdict = Dict{Int64, InvariantMeasures.CoarseGridQuantities}()
     Fdict = Dict{Int64, InvariantMeasures.FineGridQuantities}()
@@ -230,4 +234,98 @@ function plot_norm_bounds_kinds_twogrid(prefix, n, n_fine; num_norms=30, num_nor
         )
 
     savefig(p, "norm-bounds-$prefix-$n-$n_fine.pdf")
+end
+
+function time_breakdown_plot(prefix, twogrid_nC)
+    Cdict = Dict{Int64, InvariantMeasures.CoarseGridQuantities}()
+    Fdict = Dict{Int64, InvariantMeasures.FineGridQuantities}()
+    for filename in glob("$prefix-*-coarse.juliaserialize")
+        C = deserialize(filename)
+        Cdict[length(C.B)] = C
+    end
+    for filename in glob("$prefix-*-fine.juliaserialize")
+        F = deserialize(filename)
+        Fdict[length(F.B)] = F
+    end
+
+    onegrid_errors = Float64[]
+    onegrid_times = zeros(5, 0)
+    onegrid_n = Int[]
+    onegrid_labels = String[]
+    for (n, C) in sort(Cdict)
+        error, time_breakdown = one_grid_estimate(C, Fdict[n])
+        push!(onegrid_errors, error)
+        onegrid_times = [onegrid_times time_breakdown]
+        push!(onegrid_n, n)
+        push!(onegrid_labels, "2^$(Int(log2(n)))")
+    end
+
+    twogrid_errors = Float64[]
+    twogrid_times = zeros(5, 0)
+    twogrid_n = Int[]
+    twogrid_labels = String[]
+    C = Cdict[twogrid_nC]
+    for (n_fine, F) in sort(Fdict)
+        if n_fine <= twogrid_nC
+            continue
+        end
+        error, time_breakdown = two_grid_estimate(C, F)
+        push!(twogrid_errors, error)
+        twogrid_times = [twogrid_times time_breakdown]
+        push!(twogrid_n, n_fine)
+        push!(twogrid_labels, "2^$(Int(log2(n_fine)))")
+    end
+
+
+
+    p1 = groupedbar(
+        onegrid_times'[:, end:-1:1],
+        bar_position = :stack,
+        legend_position = :topleft,
+        label = ["dfly coefficients" "matrix assembly" "eigenvalue computation" "norms of powers" "error estimation"][:, end:-1:1],
+        title = "Time breakdown, 1-grid",
+        ylabel = "CPU Time/s",
+        xticks = (1:length(onegrid_n), onegrid_labels),
+        link = :y,
+    )
+
+    p2 = groupedbar(
+        twogrid_times'[:, end:-1:1],
+        bar_position = :stack,
+        legend = :topleft,
+        label = ["dfly coefficients" "coarse matrix+norms" "matrix assembly" "eigenvalue computation" "error estimation"],
+        title = "Time breakdown, 2-grid",
+        xticks = (1:length(twogrid_n), twogrid_labels),
+        link = :y,
+    )
+
+    p3 = plot(
+        onegrid_n,
+        onegrid_errors,
+        title = "Error",
+        mark = :dot,
+        yscale = :log10,
+        xscale = :log10,
+        xticks = (1:length(onegrid_n), onegrid_labels),
+        label = "One-grid strategy",
+        legend = :bottomleft,
+        link = :y,
+    )
+
+    p4 = plot(
+        twogrid_n,
+        twogrid_errors,
+        title = "Error",
+        mark = :dot,
+        yscale = :log10,
+        xscale = :log10,
+        color = :red,
+        xticks = (1:length(twogrid_n), twogrid_labels),
+        label = "Two-grid strategy",
+        legend = :bottomleft,
+        link = :y,
+    )
+
+    p = plot(p1, p2, p3, p4)
+    savefig("$prefix-breakdown.pdf")
 end
