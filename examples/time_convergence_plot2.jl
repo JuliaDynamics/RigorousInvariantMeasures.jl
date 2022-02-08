@@ -345,7 +345,7 @@ function time_breakdown_plot(prefix, twogrid_nC)
         bar_position = :stack,
         legend_position = :topleft,
         label = ["dfly coefficients" "matrix assembly" "eigenvalue computation" "norms of powers" "error estimation"][:, end:-1:1],
-        title = "Time breakdown, 1-grid",
+        title = "One-grid strategy",
         ylabel = "CPU Time/s",
         xticks = (1:length(onegrid_n), onegrid_labels),
         link = :y,
@@ -357,7 +357,7 @@ function time_breakdown_plot(prefix, twogrid_nC)
         bar_position = :stack,
         legend = :topleft,
         label = ["dfly coefficients" "coarse matrix+norms" "matrix assembly" "eigenvalue computation" "error estimation"],
-        title = "Time breakdown, 2-grid",
+        title = "Two-grid strategy",
         xticks = (1:length(twogrid_n), twogrid_labels),
         link = :y,
         size = (700, 700),
@@ -366,13 +366,13 @@ function time_breakdown_plot(prefix, twogrid_nC)
     p3 = plot(
         onegrid_n,
         onegrid_errors,
-        title = "Error",
+        ylabel = "Error bound",
         mark = :dot,
         yscale = :log10,
         xscale = :log10,
         xticks = (1:length(onegrid_n), onegrid_labels),
         label = "One-grid strategy",
-        legend = :bottomleft,
+        legend = false,
         link = :y,
         size = (700, 700),
     )
@@ -380,18 +380,20 @@ function time_breakdown_plot(prefix, twogrid_nC)
     p4 = plot(
         twogrid_n,
         twogrid_errors,
-        title = "Error",
+        # ylabel = "Error bound",
         mark = :dot,
         yscale = :log10,
         xscale = :log10,
         color = :red,
         xticks = (1:length(twogrid_n), twogrid_labels),
         label = "Two-grid strategy",
-        legend = :bottomleft,
+        legend = false,
         link = :y,
         size = (700, 700),
     )
 
-    p = plot(p1, p2, p3, p4)
+    p = plot(p1, p2, p3, p4, 
+        plot_title = "Time breakdown, experiment $prefix"
+    )
     savefig("$prefix-breakdown.pdf")
 end
