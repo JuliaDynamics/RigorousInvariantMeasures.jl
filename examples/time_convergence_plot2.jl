@@ -171,7 +171,7 @@ function plot_error_time(prefix)
         ylabel = "Error bound proved",
         size = (700, 700)
     )
-    annotate!(onegrid_times[[1,end]], onegrid_errors[[1,end]]*1.16, onegrid_n[[1,end]], :bottom)
+    annotate!(onegrid_times[[1,end]], onegrid_errors[[1,end]]*1.24, onegrid_n[[1,end]], :bottom)
 
     for (n, C) in sort(Cdict)
         twogrid_errors = Float64[]
@@ -194,7 +194,7 @@ function plot_error_time(prefix)
             label = "Two-grid strategy (n_c=$n)",
             markershape=:circle
         )
-        annotate!(twogrid_times[[1,end]], twogrid_errors[[1,end]]*1.16, twogrid_n[[1,end]], :bottom)
+        annotate!(twogrid_times[[1,end]], twogrid_errors[[1,end]]*1.24, twogrid_n[[1,end]], :bottom)
     end
     savefig("$prefix-time-experiment.pdf")
 end
@@ -349,6 +349,7 @@ function time_breakdown_plot(prefix, twogrid_nC)
         ylabel = "CPU Time/s",
         xticks = (1:length(onegrid_n), onegrid_labels),
         link = :y,
+        size = (700, 700),
     )
 
     p2 = groupedbar(
@@ -359,6 +360,7 @@ function time_breakdown_plot(prefix, twogrid_nC)
         title = "Time breakdown, 2-grid",
         xticks = (1:length(twogrid_n), twogrid_labels),
         link = :y,
+        size = (700, 700),
     )
 
     p3 = plot(
@@ -372,6 +374,7 @@ function time_breakdown_plot(prefix, twogrid_nC)
         label = "One-grid strategy",
         legend = :bottomleft,
         link = :y,
+        size = (700, 700),
     )
 
     p4 = plot(
@@ -386,6 +389,7 @@ function time_breakdown_plot(prefix, twogrid_nC)
         label = "Two-grid strategy",
         legend = :bottomleft,
         link = :y,
+        size = (700, 700),
     )
 
     p = plot(p1, p2, p3, p4)
