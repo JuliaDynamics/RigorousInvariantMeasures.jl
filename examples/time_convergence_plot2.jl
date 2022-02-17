@@ -323,7 +323,7 @@ function plot_norm_bounds_kinds_twogrid(prefix, n, n_fine; num_norms=30, num_nor
     savefig(p, "norm-bounds-$prefix-$n-$n_fine.pdf")
 end
 
-function time_breakdown_plot(prefix, twogrid_nC)
+function time_breakdown_plot(prefix, twogrid_nC; filter_coarse=nC->true, filter_fine=nF->true)
     Cdict = Dict{Int64, InvariantMeasures.CoarseGridQuantities}()
     Fdict = Dict{Int64, InvariantMeasures.FineGridQuantities}()
     for filename in glob("$prefix-*-coarse.juliaserialize")
@@ -340,6 +340,9 @@ function time_breakdown_plot(prefix, twogrid_nC)
     onegrid_n = Int[]
     onegrid_labels = LaTeXString[]
     for (n, C) in sort(Cdict)
+        if !filter_coarse(n)
+            continue
+        end
         error, time_breakdown = one_grid_estimate(C, Fdict[n])
         push!(onegrid_errors, error)
         onegrid_times = [onegrid_times time_breakdown]
@@ -354,6 +357,9 @@ function time_breakdown_plot(prefix, twogrid_nC)
     C = Cdict[twogrid_nC]
     for (n_fine, F) in sort(Fdict)
         if n_fine <= twogrid_nC
+            continue
+        end
+        if !filter_fine(n_fine)
             continue
         end
         error, time_breakdown = two_grid_estimate(C, F)
@@ -423,4 +429,5 @@ function time_breakdown_plot(prefix, twogrid_nC)
         plot_title = "Time breakdown, experiment $prefix"
     )
     savefig("$prefix-breakdown.pdf")
+    p
 end
