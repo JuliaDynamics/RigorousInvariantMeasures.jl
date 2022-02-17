@@ -138,6 +138,8 @@ end
 Plot error vs. time in a double-log scale
 """
 function plot_error_time(prefix)
+    pyplot()
+    
     Cdict = Dict{Int64, InvariantMeasures.CoarseGridQuantities}()
     Fdict = Dict{Int64, InvariantMeasures.FineGridQuantities}()
     for filename in glob("$prefix-*-coarse.juliaserialize")
@@ -148,16 +150,19 @@ function plot_error_time(prefix)
         F = deserialize(filename)
         Fdict[length(F.B)] = F
     end
+    ks = collect(keys(Cdict) ∪ keys(Fdict))
+    logks = Int.(log2.(ks))
 
     onegrid_errors = Float64[]
     onegrid_times = Float64[]
-    onegrid_n = Plots.PlotText[]
+    onegrid_n = Int[]
     for (n, C) in sort(Cdict)
         error, time_breakdown = one_grid_estimate(C, Fdict[n])
         push!(onegrid_errors, error)
         push!(onegrid_times, sum(time_breakdown))
-        push!(onegrid_n, Plots.PlotText(" $n", font(8)))
+        push!(onegrid_n, n)
     end
+    onegrid_k = Int.(log2.(onegrid_n))
 
     p = plot(
         onegrid_times, onegrid_errors,
@@ -165,19 +170,20 @@ function plot_error_time(prefix)
         yscale = :log10,
         xscale = :log10,
         color = :red,
+        zcolor = onegrid_k,
+        colorbar_ticks = (logks, map(x->"2^$x", logks)),
         label = "One-grid strategy",
         legend = :outerbottom,
-        markershape=:circle,
+        markershape=:square,
         xlabel = "Total CPU Time/s",
         ylabel = "Error bound proved",
         size = (700, 700)
     )
-    annotate!(onegrid_times[[1,end]], onegrid_errors[[1,end]]*1.24, onegrid_n[[1,end]], :bottom)
 
     for (n, C) in sort(Cdict)
         twogrid_errors = Float64[]
         twogrid_times = Float64[]
-        twogrid_n = Plots.PlotText[]
+        twogrid_n = Int[]
         for (n_fine, F) in sort(Fdict)
             if n_fine <= n
                 continue
@@ -185,19 +191,37 @@ function plot_error_time(prefix)
             error, time_breakdown = two_grid_estimate(C, F)
             push!(twogrid_errors, error)
             push!(twogrid_times, sum(time_breakdown))
-            push!(twogrid_n, Plots.PlotText(" $n_fine", font(8)))
+            push!(twogrid_n, n_fine)
         end
         if all(isinf.(twogrid_errors))
             continue
         end
+        twogrid_k = Int.(log2.(twogrid_n))
+        k = Int(log2(n))
         p = plot(p,
             twogrid_times, twogrid_errors,
-            label = "Two-grid strategy (n_c=$n)",
-            markershape=:circle
+            label = "Two-grid strategy (n_c=2^$k)",
+            markershape=:circle,
+            zcolor = twogrid_k,
         )
-        annotate!(twogrid_times[[1,end]], twogrid_errors[[1,end]]*1.24, twogrid_n[[1,end]], :bottom)
     end
+    # t0 = 1e-2
+    # t1 = 4e-2
+    # e0 = 1e-2
+    # exp = 1
+    # C = e0/t0^(-exp)
+    # e1 = C*t1^(-exp)
+    # p = plot(p, [t0,t1], [e0,e1], legend=nothing, color=:black)
+    # annotate!(t1, e1, ("err ∼ t^(-1)", :left, 10))
+    # exp = 1/2
+    # e0 = e0 * 1.2
+    # C = e0/t0^(-exp)
+    # e1 = C*t1^(-exp)
+    # p = plot(p, [t0,t1], [e0,e1], legend=nothing, color=:black)
+    # annotate!(t1, e1, ("err ∼ t^(-1/2)", :left, 10))
+
     savefig("$prefix-time-experiment.pdf")
+    p
 end
 
 """
