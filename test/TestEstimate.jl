@@ -1,9 +1,9 @@
 @testset "Estimator" begin
 
 
-D = Mod1Dynamic(x->2*x)
+D = mod1_dynamic(x->2*x)
 B = Ulam(32)
-P = assemble(B, D)
+P = InvariantMeasures.assemble(B, D)
 
 # C = InvariantMeasures.boundnorm(B, P, 10)
 

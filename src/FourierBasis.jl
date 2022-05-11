@@ -33,7 +33,7 @@ evaluate(B::Fourier1D, i, x) = ϕ(i, x)
 strong_norm(B::Fourier1D) = L2
 weak_norm(B::Fourier1D) = L1
 aux_norm(B::Fourier1D) = L1
-is_refinement(Bfine::Fourier1D, Bcoarse::Fourier1D) = Bfine.N > Bcoarse.N ? true : false
+BasisDefinition.is_refinement(Bfine::Fourier1D, Bcoarse::Fourier1D) = Bfine.N > Bcoarse.N ? true : false
 
 is_integral_preserving(B::Fourier1D) = false
 function integral_covector(B::Fourier1D; T= Float64) 
@@ -186,11 +186,12 @@ and variance σ in the Fourier basis, truncated at frequence B.N
 """
 
 struct GaussianNoise <: NoiseKernel
+    B::Basis
     σ
-    MK::Matrix
+    NK::Matrix
 end
 
-GaussianNoise(B::Fourier1D, σ) = GaussianNoise(σ, Diagonal([[exp(-(k*σ)^2/2) for k in 0:B.N]; [exp(-(k*σ)^2/2) for k in -B.N:-1]]))
+GaussianNoise(B::Fourier1D, σ) = GaussianNoise(B, σ, Diagonal([[exp(-(k*σ)^2/2) for k in 0:B.N]; [exp(-(k*σ)^2/2) for k in -B.N:-1]]))
 
 
 """
@@ -283,7 +284,7 @@ function norms_of_powers_noise_interval( B::Fourier1D,
     N::Type{L2}, 
     m::Integer, 
     Q::DiscretizedOperator,
-    MK::GaussianNoise, 
+    NK::GaussianNoise, 
     f::AbstractArray;
     normv0::Real=-1., #used as "missing" value
     normQ::Real=-1.,
@@ -294,7 +295,7 @@ function norms_of_powers_noise_interval( B::Fourier1D,
     normρ::Real=-1.)
 
 
-    P = MK.MK*Q.L
+    P = NK.NK*Q.L
 
     M = P[2:end, 2:end]
     norms = zeros(m)
@@ -313,7 +314,7 @@ function norms_of_powers_noise( B::Fourier1D,
                                 N::Type{L2}, 
                                 m::Integer, 
                                 Q::DiscretizedOperator,
-                                MK::GaussianNoise, 
+                                NK::GaussianNoise, 
                                 f::AbstractArray;
                                 normv0::Real=-1., #used as "missing" value
                                 normQ::Real=-1.,
@@ -326,7 +327,7 @@ function norms_of_powers_noise( B::Fourier1D,
 
 
     
-    P = MK.MK*Q.L
+    P = NK.NK*Q.L
     
     Prestricted = P[2:end, 2:end]
 

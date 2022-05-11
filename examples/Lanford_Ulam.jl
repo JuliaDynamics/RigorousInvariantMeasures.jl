@@ -11,11 +11,9 @@ function runExperiment()
 
     time_assembling = @elapsed begin
         # Note that (unlike the experiment in [Galatolo, Nisoli] paper) we do not need
-        # to take Iterate(D, 2) here
+        # to take D∘D here
 
-        D = Mod1Dynamic(x->2*x+0.5*x*(1-x))
-        # different backend, a tad slower
-        # D = mod1_dynamic(x -> 2*x+0.5*x*(1-x))
+        D = mod1_dynamic(x -> 2*x+0.5*x*(1-x))
         B = Ulam(1024)
         Q = DiscretizedOperator(B, D)
     end
@@ -29,7 +27,8 @@ function runExperiment()
         Q_fine = DiscretizedOperator(B_fine, D)
     end
 
-    time_norms_fine = @elapsed norms_fine = finepowernormbounds(B, B_fine, D, norms; Q_fine=Q_fine)
+    normQ_fine = opnormbound(B_fine, weak_norm(B_fine), Q_fine)
+    time_norms_fine = @elapsed norms_fine = finepowernormbounds(B, B_fine, D, norms; normQ_fine=normQ_fine)
     time_eigen_fine = @elapsed w_fine = invariant_vector(B_fine, Q_fine)
     time_error_fine = @elapsed error_fine = distance_from_invariant(B_fine, D, Q_fine, w_fine, norms_fine)
 

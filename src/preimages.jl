@@ -42,6 +42,8 @@ The sequence y subdivides the y-axis into semi-open intervals [y[l], y[l+1]); ea
 x that splits X (in the x-axis) into semi-open intervals, each of them with f([x[k], x[k+1]) ⊂ [y[l], y[l+1]) for a certain l. 
 We set xlabel[k] = ylabel[l], and return the pair (x, xlabel).
 
+It is assumed that it cannot happen that f(x) < y[1].
+
 In the simplest case where D is full-branch, the points in x are preimages of the points in y, but in the general case they can also include D.endpoints:
 in general, there may be a certain number of points in y that have no preimage at the beginning and the end of the sequence, because 
 they fall out of the range R = [f(a), f(b)]. In the worst case, no point has a preimage, because y[i] < R < y[i+1] for some 
@@ -107,7 +109,7 @@ function preimages(y, br::Branch, ylabel = 1:length(y), ϵ = 0.0)
 end
 
 function preimages(y, D::Dynamic, ylabel = 1:length(y), ϵ = 0.0)
-    results = collect(preimages(y, b, ylabel, ϵ) for b in branches(D))
+    results = @showprogress 1 "Computing preimages..." [preimages(y, b, ylabel, ϵ) for b in branches(D)]
     x = vcat((result[1] for result in results)...)
     xlabel = vcat((result[2] for result in results)...)
     return x, xlabel
@@ -131,7 +133,7 @@ function preimages_and_derivatives(y, br::Branch, ylabel = 1:length(y), ϵ = 0.0
 end
 function preimages_and_derivatives(y, D::Dynamic, ylabel = 1:length(y), ϵ = 0.0)
     @assert is_full_branch(D)
-    results = collect(preimages_and_derivatives(y, b, ylabel, ϵ) for b in branches(D))
+    results = @showprogress 1 "Computing preimages and derivatives..." [preimages_and_derivatives(y, b, ylabel, ϵ) for b in branches(D)]
     x = vcat((result[1] for result in results)...)
     xlabel = vcat((result[2] for result in results)...)
     x′ = vcat((result[3] for result in results)...)

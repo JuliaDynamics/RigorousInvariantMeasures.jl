@@ -24,8 +24,8 @@ function runExperiment()
         B_fine = Ulam(2^16)
         Q_fine = DiscretizedOperator(B_fine, D)
     end
-
-    time_norms_fine = @elapsed norms_fine = finepowernormbounds(B, B_fine, D, norms; Q_fine=Q_fine)
+    normQ_fine = opnormbound(B_fine, weak_norm(B_fine), Q_fine)
+    time_norms_fine = @elapsed norms_fine = finepowernormbounds(B, B_fine, D, norms; normQ_fine=normQ_fine)
     time_eigen_fine = @elapsed w_fine = invariant_vector(B_fine, Q_fine)
     time_error_fine = @elapsed error_fine = distance_from_invariant(B_fine, D, Q_fine, w_fine, norms_fine)
 

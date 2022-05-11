@@ -113,7 +113,7 @@ function norms_of_powers(B::Basis, N::Type{<:NormKind}, m::Integer, Q::Discretiz
     # main loop
 
     v = zeros(T, n)
-    @showprogress for v in AverageZero(B) 
+    @showprogress 1 "Computing norms of powers..." for v in AverageZero(B) 
         if normv0 == -1.
             nrmv = opnormbound(B, N, v)
         else
@@ -143,9 +143,9 @@ end
 Array of "trivial" bounds for the powers of a DiscretizedOperator (on the whole space)
 coming from from ||Q^k|| ≤ ||Q||^k
 """
-function norms_of_powers_trivial(B::Basis, N::Type{<:NormKind}, Q::DiscretizedOperator, m::Integer)
+function norms_of_powers_trivial(normQ::Real, m::Integer)
     norms = fill(NaN, m)
-    norms[1] = opnormbound(B, N, Q)
+    norms[1] = normQ
     for i = 2:m
         norms[i] = norms[i-1] ⊗₊ norms[1]
     end
@@ -160,8 +160,8 @@ coming theoretically from iterated DFLY inequalities (the "small matrix method")
 Returns two arrays (strongs, norms) of length m:
 strongs[k] bounds ||Q^k f||_s, norms[k] bounds ||Q^k f||)
 """
-function norms_of_powers_dfly(Bas::Basis, D::Dynamic, m)
-    A, B = dfly(strong_norm(Bas), aux_norm(Bas), D)
+function norms_of_powers_dfly(Bas::Basis, D::Dynamic, m; dfly_coefficients=dfly(strong_norm(Bas), aux_norm(Bas), D))
+    A, B = dfly_coefficients
     Eh = BasisDefinition.aux_normalized_projection_error(Bas)
     M₁n = BasisDefinition.strong_weak_bound(Bas)
     M₂ = BasisDefinition.aux_weak_bound(Bas)
@@ -207,25 +207,25 @@ refine_norms_of_powers(norms::Vector) = refine_norms_of_powers(norms, length(nor
 """
 Estimate norms of powers from those on a coarser grid (see paper for details)
 """
-function norms_of_powers_from_coarser_grid(fine_basis::Basis, coarse_basis::Basis, D::Dynamic, coarse_norms::Vector, normQ::Real)
+function norms_of_powers_from_coarser_grid(fine_basis::Basis, coarse_basis::Basis, D::Dynamic, coarse_norms::Vector, normQ::Real; dfly_coefficients=dfly(strong_norm(fine_basis), aux_norm(fine_basis), D))
     if !BasisDefinition.is_refinement(fine_basis, coarse_basis)
         @error "The fine basis is not a refinement of the coarse basis"
     end
-    m = length(coarse_norms)
-    fine_norms = fill(NaN, m)
-    (strongs, norms) = norms_of_powers_dfly(fine_basis, D, m)
+    mmax = length(coarse_norms)
+    fine_norms = fill(NaN, mmax)
+    (strongs, norms) = norms_of_powers_dfly(fine_basis, D, mmax; dfly_coefficients=dfly_coefficients)
 
     # adds a 0th element to strongs
     strongs0(k::Integer) = k==0 ? BasisDefinition.strong_weak_bound(fine_basis) : strongs[k]
     coarse_norms0(k::Integer) = k==0 ? 1. : coarse_norms[k]
 
     Kh =  BasisDefinition.weak_projection_error(coarse_basis)
-    for k in 1:m
+    for m in 1:mmax
 		temp = 0.
 		for k in 0:m-1
 			temp = temp ⊕₊ coarse_norms0(m-1-k) ⊗₊ (normQ ⊗₊ strongs0(k) ⊕₊ strongs0(k+1))
 		end
-		fine_norms[k] = coarse_norms[k] ⊕₊ 2. ⊗₊ Kh ⊗₊ temp
+		fine_norms[m] = coarse_norms[m] ⊕₊ 2. ⊗₊ Kh ⊗₊ temp
 	end
     return fine_norms
 end

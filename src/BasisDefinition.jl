@@ -4,7 +4,7 @@ using ..DynamicDefinition
 export Basis, DualComposedWithDynamic, ProjectDualElement, AverageZero, assemble,
 		integral_covector, one_vector, is_integral_preserving, strong_norm,
 		weak_norm, aux_norm, is_dual_element_empty, nonzero_on, is_refinement,
-		opnormbound, normbound
+		opnormbound, normbound, bound_weak_norm_abstract
 
 abstract type Basis end
 
@@ -157,7 +157,7 @@ invariant_measure_strong_norm_bound(B::Basis, D::Dynamic) = @error "Must be spec
 """
 	Returns an a priori bound on the weak norm of the abstract operator L
 """
-bound_weak_norm_abstract(B::Basis) = @error "Must be specialized"
+bound_weak_norm_abstract(B::Basis, D=nothing; dfly_coefficients=nothing) = @error "Must be specialized"
 
 using ..InvariantMeasures: NormKind
 opnormbound(B::Basis, N::NormKind, M::AbstractVecOrMat{S}) where {S} = @error "Must be specialized"
