@@ -11,9 +11,9 @@ function runExperiment()
 
     time_assembling = @elapsed begin
 
-        DD = mod1_dynamic(x->2*x+0.5*x*(1-x))
+        D0 = mod1_dynamic(x->2*x+0.5*x*(1-x))
         # Taking an iterate is necessary here to get a DFLY inequality with A < 1
-        D = Iterate(DD, 3)
+        D = D0∘D0∘D0
         B = Ulam(1024)
         Q = DiscretizedOperator(B, D)
     end
@@ -26,8 +26,8 @@ function runExperiment()
         B_fine = Ulam(2^16)
         Q_fine = DiscretizedOperator(B_fine, D)
     end
-
-    time_norms_fine = @elapsed norms_fine = finepowernormbounds(B, B_fine, D, norms; Q_fine=Q_fine)
+    normQ_fine = opnormbound(B_fine, weak_norm(B_fine), Q_fine)
+    time_norms_fine = @elapsed norms_fine = finepowernormbounds(B, B_fine, D, norms; normQ_fine=normQ_fine)
     time_eigen_fine = @elapsed w_fine = invariant_vector(B_fine, Q_fine)
     time_error_fine = @elapsed error_fine = distance_from_invariant(B_fine, D, Q_fine, w_fine, norms_fine)
 

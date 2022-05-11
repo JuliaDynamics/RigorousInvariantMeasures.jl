@@ -2,7 +2,7 @@
 Hat basis on the Torus [0,1]
 """
 
-using ..BasisDefinition, ..Mod1DynamicDefinition, ..DynamicDefinition
+using ..BasisDefinition, ..DynamicDefinition
 using ValidatedNumerics
 import ..BasisDefinition: one_vector, integral_covector, is_integral_preserving
 
@@ -15,43 +15,7 @@ Hat(n::Integer) = Hat(LinRange(0., 1., n+1))
 """
 Return the size of the Hat basis
 """
-Base.length(B::Hat) = length(B.p) - 1
-
-"""
-Hat function (on the reals)
-
-This is a piecewise linear function such that:
-	f(x) = 0 if x <= lo
-	f(mi) = 1
-	f(hi)
-"""
-struct HatFunction{T<: Number}
-	lo::T
-	mi::T
-	hi::T
-	function HatFunction{T}(lo, mi, hi) where T <: Number
-		@assert lo <= mi <= hi
-		new{T}(lo, mi, hi)
-	end
-end
-HatFunction(lo::T, mi::T, hi::T) where {T<: Number} = HatFunction{T}(lo,mi,hi);
-HatFunction(lo::Number, mi::Number, hi::Number) = HatFunction(promote(lo,mi,hi)...)
-
-"""
-Evaluate a HatFunction (on the real line).
-
-Must work correctly when S is an interval.
-"""
-function (f::HatFunction{T})(x::S) where T where S <: Number
-	lo = convert(S, f.lo)
-	mi = convert(S, f.mi)
-	hi = convert(S, f.hi)
-
-	left_branch = (x-lo)/(mi-lo)
-	right_branch = (hi-x)/(hi-mi)
-	# 1 is not necessary in practice, but it avoids spurious results from rounding
-	return max(min(left_branch, right_branch, 1), 0)
-end
+Base.length(B::Hat{T}) where {T} = Base.length(B.p) - 1
 
 """
 A separate type for intervals on the torus (mod 1) to "remind" us of the quotient
@@ -142,28 +106,28 @@ function Base.getindex(B::Hat, i::Int)
 	return HatFunctionOnTorus(B.p[mod(i-1, 1:n)], B.p[mod(i, 1:n)], B.p[mod(i+1, 1:n)])
 end
 
-"""
-Return (in an iterator) the pairs (i, (x, |T'(x)|)) where x is a preimage of p[i], which
-describe the "dual" L* evaluation(p[i])
-"""
-function Base.iterate(S::DualComposedWithDynamic{T, D}, state = (1, 1)) where T<:Hat where D<:Dynamic
-	@assert is_full_branch(S.dynamic)
+# """
+# Return (in an iterator) the pairs (i, (x, |T'(x)|)) where x is a preimage of p[i], which
+# describe the "dual" L* evaluation(p[i])
+# """
+# function Base.iterate(S::DualComposedWithDynamic{T, D}, state = (1, 1)) where T<:Hat where D<:Dynamic
+# 	@assert is_full_branch(S.dynamic)
 
-	i, k = state
+# 	i, k = state
 
-	if i == length(S.basis)+1
-			return nothing
-	end
+# 	if i == length(S.basis)+1
+# 			return nothing
+# 	end
 
-	x = preim(S.dynamic, k, S.basis.p[i], S.ϵ)
-	absT′ = abs(derivative(S.dynamic, x))
+# 	x = preim(S.dynamic, k, S.basis.p[i], S.ϵ)
+# 	absT′ = abs(derivative(S.dynamic, x))
 
-	if k == nbranches(S.dynamic)
-		return ((i, (x, absT′)), (i+1, 1))
-	else
-		return ((i, (x, absT′)), (i, k+1))
-	end
-end
+# 	if k == nbranches(S.dynamic)
+# 		return ((i, (x, absT′)), (i+1, 1))
+# 	else
+# 		return ((i, (x, absT′)), (i, k+1))
+# 	end
+# end
 
 function BasisDefinition.is_dual_element_empty(::Hat, d)
 	# TODO: the preim() may indeed be empty, so there could be an additional check here
@@ -172,12 +136,12 @@ end
 
 BasisDefinition.is_refinement(Bf::Hat, Bc::Hat) = Bc.p ⊆ Bf.p
 
-function integral_covector(B::Hat)
+function BasisDefinition.integral_covector(B::Hat)
 	n = length(B)
 	return 1/n * ones(Interval{Float64}, n)'
 end
 
-function one_vector(B::Hat)
+function BasisDefinition.one_vector(B::Hat)
 	return ones(length(B))
 end
 
@@ -231,9 +195,9 @@ BasisDefinition.strong_norm(B::Hat) = Lipschitz
 BasisDefinition.weak_norm(B::Hat) = Linf
 BasisDefinition.aux_norm(B::Hat) = L1
 
-evaluate_integral(B::Hat, i, T) = T(i)/length(B)
+BasisDefinition.evaluate_integral(B::Hat, i, T) = T(i)/length(B)
 
-function Base.iterate(S::AverageZero{Hat}, state = 1)
+function Base.iterate(S::AverageZero{Hat{T}}, state = 1) where {T}
 	n = length(S.basis)
 	if state == n
 		return nothing
@@ -244,6 +208,8 @@ function Base.iterate(S::AverageZero{Hat}, state = 1)
 	return (v, state+1)
 end
 
+Base.length(S::AverageZero{Hat{T}}) where {T}= length(S.basis)-1
+
 BasisDefinition.weak_projection_error(B::Hat) = 0.5 ⊘₊ Float64(length(B), RoundDown)
 BasisDefinition.aux_normalized_projection_error(B::Hat) = 0.5 ⊘₊ Float64(length(B), RoundDown)
 BasisDefinition.strong_weak_bound(B::Hat) = 2. ⊗₊ Float64(length(B), RoundDown)
@@ -252,9 +218,13 @@ BasisDefinition.weak_by_strong_and_aux_bound(B::Hat) = (1., 1.)
 BasisDefinition.bound_weak_norm_from_linalg_norm(B::Hat) = @error "TODO"
 BasisDefinition.bound_linalg_norm_L1_from_weak(B::Hat) = @error "TODO"
 BasisDefinition.bound_linalg_norm_L∞_from_weak(B::Hat) = @error "TODO"
+BasisDefinition.bound_weak_norm_abstract(B::Hat, D=nothing; dfly_coefficients=dfly(strong_norm(B), aux_norm(B), D)) = dfly_coefficients[2] ⊕₊ 1.
 
-function BasisDefinition.invariant_measure_strong_norm_bound(B::Hat, D::Dynamic)
-	A, B = dfly(strong_norm(B), aux_norm(B), D)
+BasisDefinition.opnormbound(B::Hat{T}, N::Type{Linf}, A::AbstractVecOrMat{S}) where {S,T} = opnormbound(N, A)
+BasisDefinition.normbound(B::Hat{T}, N::Type{Linf}, v) where {T} = normbound(N, v)
+
+function BasisDefinition.invariant_measure_strong_norm_bound(B::Hat, D::Dynamic; dfly_coefficients=dfly(strong_norm(B), aux_norm(B), D))
+	A, B = dfly_coefficients
 	@assert A < 1.
 	return B ⊘₊ (1. ⊖₋ A)
 end
@@ -299,4 +269,21 @@ Displays error on a function in the Hat basis
 			B.p, vcat(w, w[end]) .+ error
 		end
 	end
+end
+
+struct HatDual <: Dual
+    x::Vector{Interval} #TODO: a more generic type may be needed in future
+    xlabel::Vector{Int}
+    x′::Vector{Interval}
+end
+
+Dual(B::Hat, D, ϵ) = HatDual(preimages_and_derivatives(B.p, D, 1:length(B.p)-1, ϵ)...)
+Base.length(dual::HatDual) = length(dual.x)
+Base.eltype(dual::HatDual) = Tuple{eltype(dual.xlabel), Tuple{eltype(dual.x), eltype(dual.x′)}}
+function Base.iterate(dual::HatDual, state=1)
+    if state <= length(dual.x)
+        return ((dual.xlabel[state], (dual.x[state], abs(dual.x′[state]))), state+1)
+    else
+        return nothing
+    end
 end

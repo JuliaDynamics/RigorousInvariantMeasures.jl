@@ -5,26 +5,9 @@ Compute preimages of monotonic sequences
 using IntervalArithmetic
 using .Contractors
 
-"""
-Type used to represent a "branch" of a dynamic. The branch is represented by a monotonic map `f` with domain `X=(a,b)` with a≤b (where typically a,b are intervals). 
-`Y=(f(a),f(b))` and `increasing` may be provided (for instance if we know that `Y=(0,1)`), otherwise they are computed automatically.
-"""
-struct Branch{T,S}
-    f::T
-    X::Tuple{S, S}
-    Y::Tuple{S, S}
-    increasing::Bool
-end
-Branch(f, X, Y=(f(Interval(X[1])), f(Interval(X[2]))), increasing=unique_increasing(Y[1], Y[2])) = Branch{typeof(f), typeof(interval(X[1]))}(f, X, Y, increasing)
+## Moved the definition of Branch in PwDynamicDefinition, with the objective
+## of transforming PwMap into an Array of Branch
 
-"""
-Return Branches for a given PwMap, in an iterable.
-
-TODO: in future, maybe it is a better idea to replace the type PwMap directly with an array of branches, since that's all we need
-"""
-function branches(D::PwMap)
-    return [Branch(D.Ts[k], (D.endpoints[k], D.endpoints[k+1]), (D.y_endpoints[k,1], D.y_endpoints[k,2]), D.increasing[k]) for k in 1:length(D.Ts)]
-end
 
 """
 Smallest possible i such that a is in the semi-open interval [y[i], y[i+1]).
@@ -58,6 +41,8 @@ Construct preimages of an increasing array y under a monotonic branch defined on
 The sequence y subdivides the y-axis into semi-open intervals [y[l], y[l+1]); each of them is identified by the label `ylabel[l]`. We construct an increasing sequence 
 x that splits X (in the x-axis) into semi-open intervals, each of them with f([x[k], x[k+1]) ⊂ [y[l], y[l+1]) for a certain l. 
 We set xlabel[k] = ylabel[l], and return the pair (x, xlabel).
+
+It is assumed that it cannot happen that f(x) < y[1].
 
 In the simplest case where D is full-branch, the points in x are preimages of the points in y, but in the general case they can also include D.endpoints:
 in general, there may be a certain number of points in y that have no preimage at the beginning and the end of the sequence, because 
@@ -124,7 +109,7 @@ function preimages(y, br::Branch, ylabel = 1:length(y), ϵ = 0.0)
 end
 
 function preimages(y, D::Dynamic, ylabel = 1:length(y), ϵ = 0.0)
-    results = collect(preimages(y, b, ylabel, ϵ) for b in branches(D))
+    results = @showprogress 1 "Computing preimages..." [preimages(y, b, ylabel, ϵ) for b in branches(D)]
     x = vcat((result[1] for result in results)...)
     xlabel = vcat((result[2] for result in results)...)
     return x, xlabel
@@ -148,28 +133,36 @@ function preimages_and_derivatives(y, br::Branch, ylabel = 1:length(y), ϵ = 0.0
 end
 function preimages_and_derivatives(y, D::Dynamic, ylabel = 1:length(y), ϵ = 0.0)
     @assert is_full_branch(D)
-    results = collect(preimages_and_derivatives(y, b, ylabel, ϵ) for b in branches(D))
+    results = @showprogress 1 "Computing preimages and derivatives..." [preimages_and_derivatives(y, b, ylabel, ϵ) for b in branches(D)]
     x = vcat((result[1] for result in results)...)
     xlabel = vcat((result[2] for result in results)...)
     x′ = vcat((result[3] for result in results)...)
     return x, xlabel, x′
 end
 
+ 
+#PwOrComposed = Union{PwMap, ComposedDynamic}
 """
 Composed map D1 ∘ D2 ∘ D3. We store with [D1, D2, D3] in this order.
 
 We overwrite ∘ in base, so one can simply write D1 ∘ D2 or ∘(D1, D2, D3) to construct them.
 """
 struct ComposedDynamic <: Dynamic
-    dyns::Tuple{Vararg{Dynamic}}
+    dyns::Tuple{S, T} where {S, T <: Dynamic}
+    E::PwMap
 end
-Base.:∘(d::Dynamic...) = ComposedDynamic(d)
+Base.:∘(D1::PwMap, D2::PwMap) = ComposedDynamic((D1, D2), composedPwMap(D1, D2))
+Base.:∘(D1::PwMap, D2::ComposedDynamic) = ComposedDynamic((D1, D2), composedPwMap(D1, D2.E))
+Base.:∘(D1::ComposedDynamic, D2::PwMap) = ComposedDynamic((D1, D2), composedPwMap(D1.E, D2))
+Base.:∘(D1::ComposedDynamic, D2::ComposedDynamic) = ComposedDynamic((D1, D2), composedPwMap(D1.E, D2.E))
+dfly(N1::Type{<:NormKind}, N2::Type{<:NormKind}, D::ComposedDynamic) = dfly(N1, N2, D.E)
+dfly(N1::Type{InvariantMeasures.TotalVariation}, N2::Type{InvariantMeasures.L1}, D::ComposedDynamic) = dfly(N1, N2, D.E)
+
 
 """
 Utility function to return the domain of a dynamic
 """
-domain(D::PwMap) = (D.endpoints[begin], D.endpoints[end])
-domain(D::ComposedDynamic) = domain(D.dyns[end])
+DynamicDefinition.domain(D::ComposedDynamic) = DynamicDefinition.domain(D.dyns[end])
 
 function preimages(z, Ds::ComposedDynamic, zlabel = 1:length(z), ϵ = 0.0)
     for d in Ds.dyns
@@ -177,8 +170,8 @@ function preimages(z, Ds::ComposedDynamic, zlabel = 1:length(z), ϵ = 0.0)
     end
     return z, zlabel
 end
-function preimages_and_derivatives(z, Ds::ComposedDynamic, zlabel = 1:length(z), ϵ = 0.0)
-    derivatives = fill(1, 1:length(z))
+function preimages_and_derivatives(z, Ds::ComposedDynamic, zlabel = 1:length(z), ϵ = 0.0)   
+    derivatives = fill(1, length(z))
     for d in Ds.dyns
         z, zindex, z′ = preimages_and_derivatives(z, d, 1:length(z), ϵ)
         zlabel = zlabel[zindex]
@@ -187,78 +180,33 @@ function preimages_and_derivatives(z, Ds::ComposedDynamic, zlabel = 1:length(z),
     return z, zlabel, derivatives
 end
 
-"""
-Replacement of DualComposedWithDynamic.
-"""
-abstract type Dual end
-
-struct UlamDual <: Dual
-    x::Vector{Interval} #TODO: a more generic type may be needed in future
-    xlabel::Vector{Int}
-    lastpoint::Interval
-end
-Dual(B::Ulam, D, ϵ) = UlamDual(preimages(B.p, D, 1:length(B.p)-1, ϵ)..., domain(D)[end])
-
-Base.length(dual::UlamDual) = length(dual.x)
-Base.eltype(dual::UlamDual) = Tuple{eltype(dual.xlabel), Tuple{eltype(dual.x), eltype(dual.x)}}
-function iterate(dual::UlamDual, state = 1)
-    n = length(dual.x)
-    if state < n
-        return (dual.xlabel[state], (dual.x[state], dual.x[state+1])), state+1
-    elseif state == n
-        return (dual.xlabel[n], (dual.x[n], dual.lastpoint)), state+1
-    else
-        return nothing
+function (D::ComposedDynamic)(x::Taylor1)
+    for f in reverse(D.dyns)
+        x = f(x)
     end
+    return x
 end
 
-struct HatDual <: Dual
-    x::Vector{Interval} #TODO: a more generic type may be needed in future
-    xlabel::Vector{Int}
-    x′::Vector{Interval}
+function DynamicDefinition.endpoints(D::ComposedDynamic)
+    v = endpoints(D.dyns[1])
+    auxDyn = D.dyns[2]
+    x, xlabel = preimages(v, auxDyn)
+    x = [x; domain(auxDyn)[2]]
+    return sort!(x)
 end
 
-Dual(B::Hat, D, ϵ) = HatDual(preimages_and_derivatives(B.p, D, 1:length(B.p)-1, ϵ)...)
-Base.length(dual::HatDual) = length(dual.x)
-Base.eltype(dual::HatDual) = Tuple{eltype(dual.xlabel), Tuple{eltype(dual.x), eltype(dual.x′)}}
-function iterate(dual::HatDual, state=1)
-    if state <= length(dual.x)
-        return ((dual.xlabel[state], (dual.x[state], abs(dual.x′[state]))), state+1)
-    else
-        return nothing
-    end
-end
+DynamicDefinition.nbranches(D::ComposedDynamic) = length(endpoints(D))-1
 
-# Variants of assemble and DiscretizedOperator; the code is repeated here for easier comparison with the older algorithm
-function assemble2(B, D, ϵ=0.0; T = Float64)
-	I = Int64[]
-	J = Int64[]
-	nzvals = Interval{T}[]
-	n = length(B)
 
-	# TODO: reasonable size hint?
+# We need a better way to explicit this, at the moment we suppose everything 
+# is full branch
+DynamicDefinition.is_full_branch(D::ComposedDynamic) = all([is_full_branch(D.dyns[1]);is_full_branch(D.dyns[2])])
 
-	for (i, dual_element) in Dual(B, D, ϵ)
-		if !is_dual_element_empty(B, dual_element)
-			for (j, x) in ProjectDualElement(B, dual_element)
-				push!(I, i)
-				push!(J, mod(j,1:n))
-				push!(nzvals, x)
-			end
-		end
-	end
+## Moved the definition of the abstract type Dual to BasisDefinition.jl
 
-	return sparse(I, J, nzvals, n, n)
-end
+## Moved UlamDual to UlamBasis.jl
 
-function DiscretizedOperator2(B, D, ϵ=0.0; T = Float64)
-	L = assemble2(B, D, ϵ; T)
-	if is_integral_preserving(B)
-		return IntegralPreservingDiscretizedOperator(L)
-	else
-		f = integral_covector(B)
-		e = one_vector(B)
-		w = f - f*L #will use interval arithmetic when L is an interval matrix
-		return NonIntegralPreservingDiscretizedOperator(L, e, w)
-	end
-end
+## Moved HatDual to HatBasis.jl
+
+## Moved the new assembler to GenericAssembler, renamed the old assembler and DiscretizedOperator
+## to _legacy

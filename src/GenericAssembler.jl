@@ -7,30 +7,6 @@ import ValidatedNumerics.IntervalArithmetic: mid
 import Base: size, eltype
 import LinearAlgebra: mul!
 
-"""
-Very generic assembler function
-"""
-function assemble(B::Basis, D::Dynamic, ϵ=0.0; T = Float64)
-	I = Int64[]
-	J = Int64[]
-	nzvals = Interval{T}[]
-	n = length(B)
-
-	# TODO: reasonable size hint?
-
-	for (i, dual_element) in DualComposedWithDynamic(B, D, ϵ)
-		if !is_dual_element_empty(B, dual_element)
-			for (j, x) in ProjectDualElement(B, dual_element)
-				push!(I, i)
-				push!(J, mod(j,1:n))
-				push!(nzvals, x)
-			end
-		end
-	end
-
-	return sparse(I, J, nzvals, n, n)
-end
-
 abstract type DiscretizedOperator end
 
 struct IntegralPreservingDiscretizedOperator{T<:AbstractMatrix} <: DiscretizedOperator
@@ -54,24 +30,14 @@ Base.eltype(Q::DiscretizedOperator) = eltype(Q.L)
 LinearAlgebra.issymmetric(Q::IntegralPreservingDiscretizedOperator) = issymmetric(Q.L)
 LinearAlgebra.issymmetric(Q::NonIntegralPreservingDiscretizedOperator) = issymmetric(Q.L) && Q.e' == Q.w
 
-opnormbound(N::Type{<:NormKind}, Q::IntegralPreservingDiscretizedOperator) = opnormbound(N, Q.L)
+# name clash 
+# be careful !!!
+BasisDefinition.opnormbound(B::Basis, N::Type{<:NormKind}, Q::IntegralPreservingDiscretizedOperator) = opnormbound(B, N, Q.L)
 
-function DiscretizedOperator(B, D, ϵ=0.0; T = Float64)
-	L = assemble(B, D, ϵ; T)
-	if is_integral_preserving(B)
-		return IntegralPreservingDiscretizedOperator(L)
-	else
-		f = integral_covector(B)
-		e = one_vector(B)
-		w = f - f*L #will use interval arithmetic when L is an interval matrix
-		return NonIntegralPreservingDiscretizedOperator(L, e, w)
-	end
-end
-
-function opnormbound(N::Type{<:NormKind}, Q::NonIntegralPreservingDiscretizedOperator)
-	normL = opnormbound(N, Q.L)
-	norme = opnormbound(N, Q.e)
-	normw = opnormbound(N, Q.w)
+function BasisDefinition.opnormbound(B::Basis, N::Type{<:NormKind}, Q::NonIntegralPreservingDiscretizedOperator)
+	normL = opnormbound(B, N, Q.L)
+	norme = opnormbound(B, N, Q.e)
+	normw = opnormbound(B, N, Q.w)
 	return normL ⊕₊ norme ⊗₊ normw
 end
 
@@ -106,3 +72,38 @@ end
 
 BasisDefinition.is_integral_preserving(Q::NonIntegralPreservingDiscretizedOperator) = false
 BasisDefinition.is_integral_preserving(Q::IntegralPreservingDiscretizedOperator) = true
+
+# Variants of assemble and DiscretizedOperator; the code is repeated here for easier comparison with the older algorithm
+function assemble(B, D, ϵ=0.0; T = Float64)
+	I = Int64[]
+	J = Int64[]
+	nzvals = Interval{T}[]
+	n = length(B)
+
+	# TODO: reasonable size hint?
+
+	for (i, dual_element) in Dual(B, D, ϵ)
+		@info dual_element
+		if !is_dual_element_empty(B, dual_element)
+			for (j, x) in ProjectDualElement(B, dual_element)
+				push!(I, i)
+				push!(J, mod(j,1:n))
+				push!(nzvals, x)
+			end
+		end
+	end
+
+	return sparse(I, J, nzvals, n, n)
+end
+
+function DiscretizedOperator(B, D, ϵ=0.0; T = Float64)
+	L = assemble(B, D, ϵ; T)
+	if is_integral_preserving(B)
+		return IntegralPreservingDiscretizedOperator(L)
+	else
+		f = integral_covector(B)
+		e = one_vector(B)
+		w = f - f*L #will use interval arithmetic when L is an interval matrix
+		return NonIntegralPreservingDiscretizedOperator(L, e, w)
+	end
+end

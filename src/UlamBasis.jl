@@ -1,7 +1,6 @@
-using ..BasisDefinition, ..DynamicDefinition, ..Contractors, ..Mod1DynamicDefinition, ..PwDynamicDefinition
+using ..BasisDefinition, ..DynamicDefinition, ..Contractors, ..PwDynamicDefinition
 using ValidatedNumerics, LinearAlgebra
-import Base: iterate
-import ..BasisDefinition: one_vector, integral_covector, is_integral_preserving, strong_norm, weak_norm, aux_norm
+#import ..BasisDefinition: one_vector, integral_covector, is_integral_preserving, strong_norm, weak_norm, aux_norm
 
 """
 Equispaced Ulam basis on [0,1] of size n
@@ -13,57 +12,60 @@ end
 
 Ulam(n::Integer) = Ulam(LinRange(0., 1., n+1))
 Base.length(B::Ulam) = length(B.p) - 1
+function Base.getindex(B::Ulam, i::Int)
+	return x-> (B.p[i]< x < B.p[i+1] ? 1 : 0)
+end
 
 function BasisDefinition.is_dual_element_empty(::Ulam, d)
 	return isempty(d[1])
 end
 
-Base.length(S::DualComposedWithDynamic{<:Ulam, <:Dynamic}) = length(S.basis) * nbranches(S.dynamic)
+#Base.length(S::DualComposedWithDynamic{<:Ulam, <:Dynamic}) = length(S.basis) * nbranches(S.dynamic)
 
-"""
-Returns dual elements which are pairs (i, (a,b))
-i is an interval index, and (a,b) are the endpoints of its preimage
-"""
-function Base.iterate(S::DualComposedWithDynamic{<:Ulam, <:Dynamic}, state = (1, 1, nothing))
-	# a = preim(S.dynamic, k, S.basis.p[i], S.ϵ) is cached in the state (when i \neq 1)
-	i, k, a = state
+# """
+# Returns dual elements which are pairs (i, (a,b))
+# i is an interval index, and (a,b) are the endpoints of its preimage
+# """
+# function Base.iterate(S::DualComposedWithDynamic{<:Ulam, <:Dynamic}, state = (1, 1, nothing))
+# 	# a = preim(S.dynamic, k, S.basis.p[i], S.ϵ) is cached in the state (when i \neq 1)
+# 	i, k, a = state
 
-	if k == nbranches(S.dynamic)+1
-		return nothing
-	end
+# 	if k == nbranches(S.dynamic)+1
+# 		return nothing
+# 	end
 
-	if a == nothing
-		@assert i==1
-		a = preim(S.dynamic, k, S.basis.p[i], S.ϵ)
-	end
+# 	if a == nothing
+# 		@assert i==1
+# 		a = preim(S.dynamic, k, S.basis.p[i], S.ϵ)
+# 	end
 
-	# a = preim(S.dynamic, k, S.basis.p[i], S.ϵ) # moved into state
-	b = preim(S.dynamic, k, S.basis.p[i+1], S.ϵ)
+# 	# a = preim(S.dynamic, k, S.basis.p[i], S.ϵ) # moved into state
+# 	b = preim(S.dynamic, k, S.basis.p[i+1], S.ϵ)
 
-	if isempty(a) && !isempty(b)
-		ep = endpoints(S.dynamic)
-		if orientation(S.dynamic, k) > 0
-			a = convert(typeof(b), ep[k])
-		else
-			a = convert(typeof(b), ep[k+1])
-		end
-	elseif isempty(b) && !isempty(a)
-		ep = endpoints(S.dynamic)
-		if orientation(S.dynamic, k) > 0
-			b = convert(typeof(a), ep[k+1])
-		else
-			b = convert(typeof(a), ep[k])
-		end
-	end
+# 	if isempty(a) && !isempty(b)
+# 		ep = endpoints(S.dynamic)
+# 		if orientation(S.dynamic, k) > 0
+# 			a = convert(typeof(b), ep[k])
+# 		else
+# 			a = convert(typeof(b), ep[k+1])
+# 		end
+# 	elseif isempty(b) && !isempty(a)
+# 		ep = endpoints(S.dynamic)
+# 		if orientation(S.dynamic, k) > 0
+# 			b = convert(typeof(a), ep[k+1])
+# 		else
+# 			b = convert(typeof(a), ep[k])
+# 		end
+# 	end
 
-	if i == length(S.basis)
-		return ((i, (a, b)), (1, k+1, nothing))
-	else
-		return ((i, (a, b)), (i+1, k, b))
-	end
-end
+# 	if i == length(S.basis)
+# 		return ((i, (a, b)), (1, k+1, nothing))
+# 	else
+# 		return ((i, (a, b)), (i+1, k, b))
+# 	end
+# end
 
-Base.eltype(f::DualComposedWithDynamic{<:Ulam, <:Dynamic}) = Tuple{Int64,Tuple{Interval{Float64},Interval{Float64}}}
+# Base.eltype(f::DualComposedWithDynamic{<:Ulam, <:Dynamic}) = Tuple{Int64,Tuple{Interval{Float64},Interval{Float64}}}
 
 """
 Returns the indices of the elements of the Ulam basis that intersect with the interval y
@@ -133,16 +135,18 @@ function Base.iterate(S::AverageZero{Ulam{T}}, state = 1) where{T}
 	return (v, state+1)
 end
 
+Base.length(S::AverageZero{Ulam{T}}) where {T} = length(S.basis)-1
+
 BasisDefinition.is_refinement(Bf::Ulam, Bc::Ulam) = Bc.p ⊆ Bf.p
 
-function integral_covector(B::Ulam{T}) where{T}
+function BasisDefinition.integral_covector(B::Ulam{T}) where{T}
 	n = length(B)
 	return 1/n * ones(Interval{Float64}, n)'
 end
 
-is_integral_preserving(B::Ulam{T}) where {T} = true
+BasisDefinition.is_integral_preserving(B::Ulam{T}) where {T} = true
 
-function one_vector(B::Ulam)
+function BasisDefinition.one_vector(B::Ulam)
 	return ones(length(B))
 end
 
@@ -161,10 +165,14 @@ BasisDefinition.weak_by_strong_and_aux_bound(B::Ulam) = (0., 1.)
 BasisDefinition.bound_weak_norm_from_linalg_norm(B::Ulam) = (1., 0.)
 BasisDefinition.bound_linalg_norm_L1_from_weak(B::Ulam) = 1.
 BasisDefinition.bound_linalg_norm_L∞_from_weak(B::Ulam) = Float64(length(B), RoundUp)
-BasisDefinition.bound_weak_norm_abstract(B::Ulam) = 1.
+BasisDefinition.bound_weak_norm_abstract(B::Ulam, D=nothing; dfly_coefficients=nothing) = 1.
 
-function BasisDefinition.invariant_measure_strong_norm_bound(B::Ulam, D::Dynamic)
-	A, B = dfly(strong_norm(B), aux_norm(B), D)
+BasisDefinition.opnormbound(B::Ulam{T}, N::Type{L1}, A::AbstractVecOrMat{S}) where {T, S} = opnormbound(N, A)
+#BasisDefinition.opnormbound(B::Ulam{T}, N::Type{L1}, Q::IntegralPreservingDiscretizedOperator) where {T} = opnormbound(N, Q.L)
+BasisDefinition.normbound(B::Ulam{T}, N::Type{L1}, v) where {T} = normbound(N, v)
+
+function BasisDefinition.invariant_measure_strong_norm_bound(B::Ulam, D::Dynamic; dfly_coefficients=dfly(strong_norm(B), aux_norm(B), D))
+	A, B = dfly_coefficients
 	@assert A < 1.
 	return B ⊘₊ (1. ⊖₋ A)
 end
@@ -208,4 +216,24 @@ for different bases
 			[0; sqrt(error)], [sqrt(error); sqrt(error)]
 		end
 	end
+end
+
+struct UlamDual <: Dual
+    x::Vector{Interval} #TODO: a more generic type may be needed in future
+    xlabel::Vector{Int}
+    lastpoint::Interval
+end
+Dual(B::Ulam, D, ϵ) = UlamDual(preimages(B.p, D, 1:length(B.p)-1, ϵ)..., domain(D)[end])
+
+Base.length(dual::UlamDual) = length(dual.x)
+Base.eltype(dual::UlamDual) = Tuple{eltype(dual.xlabel), Tuple{eltype(dual.x), eltype(dual.x)}}
+function Base.iterate(dual::UlamDual, state = 1)
+    n = length(dual.x)
+    if state < n
+        return (dual.xlabel[state], (dual.x[state], dual.x[state+1])), state+1
+    elseif state == n
+        return (dual.xlabel[n], (dual.x[n], dual.lastpoint)), state+1
+    else
+        return nothing
+    end
 end

@@ -4,9 +4,11 @@ using LinearAlgebra
 
 @testset "Hat assembler" begin
 
-D = Mod1Dynamic(x->2*x)
+using InvariantMeasures: L1, Linf
+
+D = mod1_dynamic(x->2*x)
 B = Hat(8)
-P = assemble(B, D)
+P = InvariantMeasures.assemble(B, D)
 
 Ptrue = [
         0.5 0.25 0    0    0    0    0   0.25;
@@ -22,8 +24,8 @@ Ptrue = Ptrue'
 
 @test all(contains_zero.(P-Ptrue))
 
-@test opnormbound(L1, DiscretizedOperator(B, D)) == 1
-@test opnormbound(Linf, DiscretizedOperator(B, D)) == 1
+# @test opnormbound(B,L1, DiscretizedOperator(B, D)) == 1 # not defined anymore now that we include B in the signature
+@test opnormbound(B,Linf, DiscretizedOperator(B, D)) == 1
 
 Q = DiscretizedOperator(B, D)
 @test size(Q) == (8,8)

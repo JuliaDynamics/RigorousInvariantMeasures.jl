@@ -14,5 +14,6 @@ B = Ulam(4)
 @test is_refinement(Ulam(8), Ulam(4))
 @test is_refinement(Ulam(8), Ulam(8))
 @test !is_refinement(Ulam(4), Ulam(8))
+@test length(Ulam(4)) == 4
 
 end
