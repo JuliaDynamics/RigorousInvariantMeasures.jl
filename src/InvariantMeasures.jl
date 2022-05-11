@@ -58,7 +58,7 @@ export PwMap, Basis, assemble, preim, Hat, Ulam,
 	distance_from_invariant,
 	mod1_dynamic, is_refinement
 
-import ValidatedNumerics: Interval
+import IntervalArithmetic: Interval
 export Interval
 
 include("C2Basis.jl")
