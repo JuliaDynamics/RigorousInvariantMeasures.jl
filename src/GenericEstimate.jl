@@ -37,7 +37,7 @@ using a vector of bounds norms[k] ≥ ||Q_h^k|_{U_h^0}||.
 If ε₁ and normQ are given, then Q can be omitted
 """
 function distance_from_invariant(B::Basis, D::Dynamic, Q::Union{DiscretizedOperator,Nothing}, w::AbstractVector, norms::Vector;
-	ε₁::Float64 = residualbound(B, weak_norm(B), Q, w), ε₂::Float64 = mag(integral_covector(B) * w - 1), normQ::Float64 = opnormbound(B, weak_norm(B), Q), dfly_coefficients=dfly(strong_norm(B), aux_norm(B), D))
+	ε₁::Float64 = residualbound(B, weak_norm(B), Q, w), ε₂::Float64 = mag(integral_covector(B) * w - 1), dfly_coefficients=dfly(strong_norm(B), aux_norm(B), D))
 	if ε₂ > 1e-8
 		@error "w does not seem normalized correctly"
 	end
@@ -45,8 +45,9 @@ function distance_from_invariant(B::Basis, D::Dynamic, Q::Union{DiscretizedOpera
 	Cs = infinite_sum_norms(norms)
 	Kh =  BasisDefinition.weak_projection_error(B)
 	normw = normbound(B, weak_norm(B), w)
+	normL = BasisDefinition.bound_weak_norm_abstract(B, D; dfly_coefficients=dfly_coefficients)
 
-	return Cs ⊗₊ (2. ⊗₊ Kh ⊗₊ (1. ⊕₊ normQ) ⊗₊ us ⊕₊ ε₁ ⊘₊ (1. ⊖₋ ε₂)) ⊕₊ ε₂ ⊘₊ (1. ⊖₋ ε₂) ⊗₊ normw
+	return Cs ⊗₊ (2. ⊗₊ Kh ⊗₊ (1. ⊕₊ normL) ⊗₊ us ⊕₊ ε₁ ⊘₊ (1. ⊖₋ ε₂)) ⊕₊ ε₂ ⊘₊ (1. ⊖₋ ε₂) ⊗₊ normw
 end
 
 # """
@@ -237,7 +238,7 @@ The first return argument is the error, the second is the time breakdown accordi
 function one_grid_estimate(C::CoarseGridQuantities, F::FineGridQuantities)
 	@assert(C.B==F.B)
 	# Dynamics don't compare unfortunately
-	time_error = @elapsed error = distance_from_invariant(F.B, F.D, nothing, F.w, C.norms; normQ=F.normQ, dfly_coefficients=C.dfly_coefficients, ε₁=F.ε₁, ε₂=F.ε₂)
+	time_error = @elapsed error = distance_from_invariant(F.B, F.D, nothing, F.w, C.norms; dfly_coefficients=C.dfly_coefficients, ε₁=F.ε₁, ε₂=F.ε₂)
 	return error, [C.time_dfly, F.time_assembling, F.time_eigen, C.time_norms, time_error]
 end
 
@@ -252,6 +253,6 @@ function two_grid_estimate(C::CoarseGridQuantities, F::FineGridQuantities; m_ext
 	# Dynamics don't compare unfortunately
 	time_error_fine = @elapsed error_fine = distance_from_invariant(F.B, F.D, nothing, F.w, 
 		finepowernormbounds(C.B, F.B, F.D, refine_norms_of_powers(C.norms, m_extend); normQ_fine=F.normQ, dfly_coefficients=C.dfly_coefficients);
-		normQ=F.normQ, dfly_coefficients=C.dfly_coefficients, ε₁=F.ε₁, ε₂=F.ε₂)
+		dfly_coefficients=C.dfly_coefficients, ε₁=F.ε₁, ε₂=F.ε₂)
 	return error_fine, [C.time_dfly, C.time_assembling+C.time_norms, F.time_assembling, F.time_eigen, time_error_fine]
 end

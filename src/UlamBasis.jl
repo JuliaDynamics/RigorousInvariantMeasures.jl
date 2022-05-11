@@ -12,6 +12,9 @@ end
 
 Ulam(n::Integer) = Ulam(LinRange(0., 1., n+1))
 Base.length(B::Ulam) = length(B.p) - 1
+function Base.getindex(B::Ulam, i::Int)
+	return x-> (B.p[i]< x < B.p[i+1] ? 1 : 0)
+end
 
 function BasisDefinition.is_dual_element_empty(::Ulam, d)
 	return isempty(d[1])
@@ -162,7 +165,7 @@ BasisDefinition.weak_by_strong_and_aux_bound(B::Ulam) = (0., 1.)
 BasisDefinition.bound_weak_norm_from_linalg_norm(B::Ulam) = (1., 0.)
 BasisDefinition.bound_linalg_norm_L1_from_weak(B::Ulam) = 1.
 BasisDefinition.bound_linalg_norm_L∞_from_weak(B::Ulam) = Float64(length(B), RoundUp)
-BasisDefinition.bound_weak_norm_abstract(B::Ulam) = 1.
+BasisDefinition.bound_weak_norm_abstract(B::Ulam, D=nothing; dfly_coefficients=nothing) = 1.
 
 BasisDefinition.opnormbound(B::Ulam{T}, N::Type{L1}, A::AbstractVecOrMat{S}) where {T, S} = opnormbound(N, A)
 #BasisDefinition.opnormbound(B::Ulam{T}, N::Type{L1}, Q::IntegralPreservingDiscretizedOperator) where {T} = opnormbound(N, Q.L)
