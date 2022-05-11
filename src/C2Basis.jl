@@ -36,7 +36,8 @@ struct C2Basis{T<:AbstractVector} <:Basis
 	p::T
 	# TODO: check in constructor that p is sorted and starts with 0
 end
-C2Basis(n::Integer) = C2Basis(EquispacedPartitionInterval{Float64}(n))
+C2Basis(n::Integer
+) = C2Basis(EquispacedPartitionInterval{Float64}(n))
 
 """
 Return the size of the C2 basisBase.length(S::AverageZero) = length(S.basis)-1

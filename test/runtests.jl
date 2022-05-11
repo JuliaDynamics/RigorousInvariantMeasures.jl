@@ -6,6 +6,7 @@ using Test
     include("TestContractors.jl")
     include("TestDynamic.jl")
     include("TestHat.jl")
+    include("TestHatNP.jl")
     include("TestUlam.jl")
     include("TestAssemble.jl")
     include("TestAssembleHat.jl")
