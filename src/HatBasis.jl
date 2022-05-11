@@ -18,42 +18,6 @@ Return the size of the Hat basis
 Base.length(B::Hat{T}) where {T} = Base.length(B.p) - 1
 
 """
-Hat function (on the reals)
-
-This is a piecewise linear function such that:
-	f(x) = 0 if x <= lo
-	f(mi) = 1
-	f(hi)
-"""
-struct HatFunction{T<: Number}
-	lo::T
-	mi::T
-	hi::T
-	function HatFunction{T}(lo, mi, hi) where T <: Number
-		@assert lo <= mi <= hi
-		new{T}(lo, mi, hi)
-	end
-end
-HatFunction(lo::T, mi::T, hi::T) where {T<: Number} = HatFunction{T}(lo,mi,hi);
-HatFunction(lo::Number, mi::Number, hi::Number) = HatFunction(promote(lo,mi,hi)...)
-
-"""
-Evaluate a HatFunction (on the real line).
-
-Must work correctly when S is an interval.
-"""
-function (f::HatFunction{T})(x::S) where T where S <: Number
-	lo = convert(S, f.lo)
-	mi = convert(S, f.mi)
-	hi = convert(S, f.hi)
-
-	left_branch = (x-lo)/(mi-lo)
-	right_branch = (hi-x)/(hi-mi)
-	# 1 is not necessary in practice, but it avoids spurious results from rounding
-	return max(min(left_branch, right_branch, 1), 0)
-end
-
-"""
 A separate type for intervals on the torus (mod 1) to "remind" us of the quotient
 
 The interval is normalized in the constructor: the caller may assume that
@@ -254,11 +218,13 @@ BasisDefinition.weak_by_strong_and_aux_bound(B::Hat) = (1., 1.)
 BasisDefinition.bound_weak_norm_from_linalg_norm(B::Hat) = @error "TODO"
 BasisDefinition.bound_linalg_norm_L1_from_weak(B::Hat) = @error "TODO"
 BasisDefinition.bound_linalg_norm_L∞_from_weak(B::Hat) = @error "TODO"
+BasisDefinition.bound_weak_norm_abstract(B::Hat, D=nothing; dfly_coefficients=dfly(strong_norm(B), aux_norm(B), D)) = dfly_coefficients[2] ⊕₊ 1.
+
 BasisDefinition.opnormbound(B::Hat{T}, N::Type{Linf}, A::AbstractVecOrMat{S}) where {S,T} = opnormbound(N, A)
 BasisDefinition.normbound(B::Hat{T}, N::Type{Linf}, v) where {T} = normbound(N, v)
 
-function BasisDefinition.invariant_measure_strong_norm_bound(B::Hat, D::Dynamic)
-	A, B = dfly(strong_norm(B), aux_norm(B), D)
+function BasisDefinition.invariant_measure_strong_norm_bound(B::Hat, D::Dynamic; dfly_coefficients=dfly(strong_norm(B), aux_norm(B), D))
+	A, B = dfly_coefficients
 	@assert A < 1.
 	return B ⊘₊ (1. ⊖₋ A)
 end

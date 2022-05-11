@@ -4,7 +4,7 @@ using ValidatedNumerics
 using Plots
 using LaTeXStrings
 
-D = Mod1Dynamic(x -> 4*x + 0.01*InvariantMeasures.sinpi(8*x))
+D = mod1_dynamic(x -> 4*x + 0.01*InvariantMeasures.sinpi(8*x))
 #D = Mod1Dynamic(x -> 16*x + 0.01*InvariantMeasures.sinpi(32*x))
 #D = Mod1Dynamic(x->2*x+0.5*x*(1-x))
 # D = PwMap(
@@ -21,8 +21,9 @@ num_norms = 30
 B = Hat(1024)
 Q = DiscretizedOperator(B, D)
 
-trivial_norms = norms_of_powers_trivial(weak_norm(B), Q, num_norms)
-computed_norms = norms_of_powers(weak_norm(B), num_norms, Q, integral_covector(B))
+normQ = opnormbound(B, weak_norm(B), Q)
+trivial_norms = norms_of_powers_trivial(normQ, num_norms)
+computed_norms = norms_of_powers(B, weak_norm(B), num_norms, Q, integral_covector(B))
 
 (dfly_strongs, dfly_norms) = norms_of_powers_dfly(B, D, num_norms)
 

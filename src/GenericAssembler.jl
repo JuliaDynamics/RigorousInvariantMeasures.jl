@@ -83,6 +83,7 @@ function assemble(B, D, ϵ=0.0; T = Float64)
 	# TODO: reasonable size hint?
 
 	for (i, dual_element) in Dual(B, D, ϵ)
+		@info dual_element
 		if !is_dual_element_empty(B, dual_element)
 			for (j, x) in ProjectDualElement(B, dual_element)
 				push!(I, i)

@@ -71,8 +71,8 @@ x, xlabel = preimages(y, D1 ∘ D2)
 @test f.(g.(x)) ≈ 0:0.2:1.8
 @test xlabel ≈ repeat(1:5, 2)
 
-D1 = PwMap([x->2x, x->6x-3, x->3x-2], [0, 0.5, @interval(2/3), 1], [0 1; 0 1; 0 1]; full_branch=true)
-D2 = PwMap([x->2x, x->4x-2, x->4x-3], [0, 0.5, 0.75, 1], [0 1; 0 1; 0 1]; full_branch=true)
+D1 = PwMap([x->2x, x->6x-3, x->3x-2], [0, 0.5, @interval(2/3), 1], [0 1; 0 1; 0 1])
+D2 = PwMap([x->2x, x->4x-2, x->4x-3], [0, 0.5, 0.75, 1], [0 1; 0 1; 0 1])
 
 z = 0:0.3:1
 y, ylabel, y′ = InvariantMeasures.preimages_and_derivatives(z, D1)
@@ -84,5 +84,19 @@ y, ylabel, y′ = InvariantMeasures.preimages_and_derivatives(z, D1)
 x, xlabel, x′ = InvariantMeasures.preimages_and_derivatives(z, D1∘D2)
 @test all(x .≈ vcat(y/2, 0.5 .+ y/4, 0.75 .+ y/4))
 @test x′ == kron([4,12,6,8,24,12,8,24,12], [1,1,1,1])
+
+D = PwMap([x->17*x/5, 
+	x->(34*((17*x-5)/17)/25+3)*((17*x-5)/17), 
+	x->(34*((17*x-10)/17)/25+3)*((17*x-10)/17), 
+	x->17*((17*x-15)/17)/5], 
+	[Interval(0), Interval(5)/17, Interval(10)/17, Interval(15)/17, Interval(1)],
+	[Interval(0) Interval(1);
+	 Interval(0) Interval(1);
+	 Interval(0) Interval(1);
+	 Interval(0) @interval(0.4)]
+	)
+
+# we just check that this doesn't throw, for now
+InvariantMeasures.preimages(0:0.25:1, D)
 
 end #testset
