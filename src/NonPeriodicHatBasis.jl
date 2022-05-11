@@ -254,3 +254,14 @@ function Base.iterate(dual::HatNPDual, state=1)
         return nothing
     end
 end
+
+function change_of_basis(Bu::Ulam, Bh::HatNP, v::Vector{T}) where {T}
+	@assert length(Bh) == length(Bu)+1
+	w = zeros(T, length(Bh))
+	w[1] = v[1]
+	for i in 2:length(Bu)
+		w[i] = (v[i-1]+v[i])/2
+	end
+	w[end] = v[end]
+	return w
+end
