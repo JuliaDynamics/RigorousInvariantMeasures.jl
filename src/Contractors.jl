@@ -70,6 +70,7 @@ function root(f, f′, x, ϵ; max_iter = 100)
 end
 
 preimage(y, f, X, ϵ; max_iter=100) = root(x -> f(x)-y, X, ϵ; max_iter)
+preimage(y, f, fprime, X, ϵ; max_iter=100) = root(x -> f(x)-y, fprime, X, ϵ; max_iter)
 
 # superseded by IntervalOptimisation.jl
 function range_estimate(f, domain, recstep = 5)
