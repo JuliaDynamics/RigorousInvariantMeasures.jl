@@ -16,13 +16,20 @@ export PwMap, preim, nbranches, plottable, branches, Branch, mod1_dynamic, dfly_
 Type used to represent a "branch" of a dynamic. The branch is represented by a monotonic map `f` with domain `X=(a,b)` with a≤b (where typically a,b are intervals). 
 `Y=(f(a),f(b))` and `increasing` may be provided (for instance if we know that `Y=(0,1)`), otherwise they are computed automatically.
 """
-struct Branch{T,S}
+
+import TaylorSeries
+der(f) = x-> f(TaylorSeries.Taylor1([x,1.],1))[1]
+
+struct Branch{T<:Function, U<:Function, S}
     f::T
+    fprime::U
     X::Tuple{S, S}
     Y::Tuple{S, S}
     increasing::Bool
 end
-Branch(f, X, Y=(f(Interval(X[1])), f(Interval(X[2]))), increasing=unique_increasing(Y[1], Y[2])) = Branch{typeof(f), typeof(interval(X[1]))}(f, X, Y, increasing)
+Branch(f::Function, X, Y=(f(Interval(X[1])), f(Interval(X[2]))), increasing=unique_increasing(Y[1], Y[2])) = Branch{typeof(f), typeof(der(f)), typeof(interval(X[1]))}(f, der(f), X, Y, increasing)
+
+Branch(f::Function, fprime::Function, X, Y=(f(Interval(X[1])), f(Interval(X[2]))), increasing=unique_increasing(Y[1], Y[2])) = Branch{typeof(f), typeof(fprime), typeof(interval(X[1]))}(f, fprime, X, Y, increasing)
 
 function equal_up_to_orientation(X, Y)
     @assert length(X)==2 && length(Y)==2
@@ -61,11 +68,30 @@ struct PwMap <: Dynamic
 end
 
 function PwMap(Ts, endpoints, y_endpoints_in; full_branch = false, infinite_derivative = false)
+#    branches = Branch[]
+#    for k in 1:length(endpoints)-1
+#        y_endpoints = (y_endpoints_in[k,1], y_endpoints_in[k,2])
+#        increasing  = unique_increasing(y_endpoints_in[k,1], y_endpoints_in[k,2])
+#        push!(branches, Branch(Ts[k],x->derivative(Ts[k],x),(endpoints[k], endpoints[k+1]), y_endpoints, increasing))
+#    end
+#    X = (endpoints[begin], endpoints[end])
+#    full_branch_detected = full_branch || all(is_full_branch(b, X) for b in branches)
+#    return PwMap(branches; full_branch = full_branch_detected, infinite_derivative = infinite_derivative)
+    return PwMap(
+        Ts, 
+        [x->derivative(Ts[k],x) for k in 1:length(Ts)], 
+        endpoints, y_endpoints_in; 
+        full_branch = full_branch, 
+        infinite_derivative = infinite_derivative
+        ) 
+end
+
+function PwMap(Ts, Tsprime, endpoints, y_endpoints_in; full_branch = false, infinite_derivative = false)
     branches = Branch[]
     for k in 1:length(endpoints)-1
         y_endpoints = (y_endpoints_in[k,1], y_endpoints_in[k,2])
         increasing  = unique_increasing(y_endpoints_in[k,1], y_endpoints_in[k,2])
-        push!(branches, Branch(Ts[k], (endpoints[k], endpoints[k+1]), y_endpoints, increasing))
+        push!(branches, Branch(Ts[k],Tsprime[k], (endpoints[k], endpoints[k+1]), y_endpoints, increasing))
     end
     X = (endpoints[begin], endpoints[end])
     full_branch_detected = full_branch || all(is_full_branch(b, X) for b in branches)
@@ -93,7 +119,7 @@ DynamicDefinition.is_full_branch(D::PwMap) = D.full_branch
 function DynamicDefinition.preim(D::PwMap, k, y, ϵ = 1e-15)
 	@assert 1 <= k <= nbranches(D)
 	domain = hull(D[k].X[1], D[k].X[2])
-	return preimage(y, D[k].f, domain, ϵ)
+	return preimage(y, D[k].f, D[k].fprime, domain, ϵ)
 end
 
 """
@@ -158,16 +184,34 @@ end #module
 Utility constructor for dynamics Mod 1 on the torus [0,1].
 We assume that f is monotonic and differentiable, for now (this is not restrictive, for our purposes)
 """
-function mod1_dynamic(f::Function, ε = 0.0; full_branch = false)
-    X = (0..0, 1..1)
-    br = Branch(f, X)
 
+mod1_dynamic(f::Function, ε = 0.0; full_branch = false) = mod1_dynamic(f, 
+                                                                        x->derivative(f, x),
+                                                                        ε,
+                                                                        full_branch = full_branch)
+
+function mod1_dynamic(f::Function, fprime::Function, ε = 0.0; full_branch = false)
+    X = (0..0, 1..1)
+    br = Branch(f, fprime, X)
+    @debug "Auxiliary branch" br
+    
     # check monotonicity
-    fprime = x -> derivative(f, x)
-    @assert minimise(x -> fprime(x) * (br.increasing ? 1 : -1), hull(Interval.(X)...))[1] > 0
+    
+    @debug "Defined fprime at 0" fprime(0.0)
+    try 
+        @assert minimise(x -> fprime(x) * (br.increasing ? 1 : -1), hull(Interval.(X)...))[1] > 0
+    catch exc
+        if isa(exc, MethodError)
+            @warn "It probably is complaining that the result of fprime is not an interval"
+            rethrow(exc)
+        else
+            rethrow(exc)
+        end
+    end
 
     Yhull = hull(Interval.(br.Y)...)
     possible_integer_parts = floor(Int, Yhull.lo):ceil(Int, Yhull.hi)
+    @debug "Possible integer parts" possible_integer_parts
 
     x, integer_parts = preimages(possible_integer_parts, br, possible_integer_parts)
 
@@ -191,9 +235,8 @@ function mod1_dynamic(f::Function, ε = 0.0; full_branch = false)
     # not needed, since the check is moved into the PwMap() constructor
     # full_branch_detected = full_branch || all(equal_up_to_orientation(X, y_endpoints[i,:]) for i in 1:n)
 
-    return PwMap(Ts, ep, y_endpoints; full_branch = full_branch)
+    return PwMap(Ts, [fprime for k in integer_parts], ep, y_endpoints; full_branch = full_branch)
 end
-
 
 conv_orientation(x::Bool) = x ? 1 : -1
 inv_conv_orientarion(x::Int64) = x > 0
@@ -204,8 +247,8 @@ function composedPwMap(D1::PwDynamicDefinition.PwMap, D2::PwDynamicDefinition.Pw
         if br2.increasing
             for br1 in branches(D1)
                 y_range = hull(br1.Y[1], br1.Y[2])
-                left  = preimage(br1.X[1], br2.f, hull(br2.X[1], br2.X[2]), 10^-13)
-                right  = preimage(br1.X[2], br2.f, hull(br2.X[1], br2.X[2]), 10^-13)
+                left  = preimage(br1.X[1], br2.f, br2.fprime, hull(br2.X[1], br2.X[2]), 10^-13)
+                right  = preimage(br1.X[2], br2.f, br2.fprime, hull(br2.X[1], br2.X[2]), 10^-13)
 #                @info left
 #                @info right
                 F = br1.f∘br2.f
@@ -226,8 +269,8 @@ function composedPwMap(D1::PwDynamicDefinition.PwMap, D2::PwDynamicDefinition.Pw
         else
             for br1 in Iterators.reverse(branches(D1))
                 y_range = hull(br1.Y[1], br1.Y[2])
-                left  = preimage(br1.X[2], br2.f, hull(br2.X[1], br2.X[2]), 10^-13)
-                right  = preimage(br1.X[1], br2.f, hull(br2.X[1], br2.X[2]), 10^-13)
+                left  = preimage(br1.X[2], br2.f, br2.fprime, hull(br2.X[1], br2.X[2]), 10^-13)
+                right  = preimage(br1.X[1], br2.f, br2.fprime, hull(br2.X[1], br2.X[2]), 10^-13)
                 F = br1.f∘br2.f
                 F_increasing = conv_orientation(br1.increasing)*conv_orientation(br2.increasing)
                 if left!=∅ && right!=∅

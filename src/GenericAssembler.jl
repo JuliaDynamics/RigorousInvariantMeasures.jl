@@ -75,6 +75,7 @@ BasisDefinition.is_integral_preserving(Q::IntegralPreservingDiscretizedOperator)
 
 # Variants of assemble and DiscretizedOperator; the code is repeated here for easier comparison with the older algorithm
 function assemble(B, D, ϵ=0.0; T = Float64)
+	@debug "Assembling the matrix"
 	I = Int64[]
 	J = Int64[]
 	nzvals = Interval{T}[]
@@ -83,7 +84,7 @@ function assemble(B, D, ϵ=0.0; T = Float64)
 	# TODO: reasonable size hint?
 
 	for (i, dual_element) in Dual(B, D, ϵ)
-		@info dual_element
+		@debug "dual element" index = i dual_element
 		if !is_dual_element_empty(B, dual_element)
 			for (j, x) in ProjectDualElement(B, dual_element)
 				push!(I, i)
@@ -99,8 +100,10 @@ end
 function DiscretizedOperator(B, D, ϵ=0.0; T = Float64)
 	L = assemble(B, D, ϵ; T)
 	if is_integral_preserving(B)
+		@debug "The discretized operator preserves the integral"
 		return IntegralPreservingDiscretizedOperator(L)
 	else
+		@debug "The discretized operator does not preserves the integral, computing auxiliary vectors"
 		f = integral_covector(B)
 		e = one_vector(B)
 		w = f - f*L #will use interval arithmetic when L is an interval matrix
