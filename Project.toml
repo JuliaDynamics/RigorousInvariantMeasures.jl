@@ -33,6 +33,7 @@ ValidatedNumerics = "d621b6e3-7715-5857-9c6f-c67000ef6083"
 [compat]
 AbstractFFTs = "0.8.0, 1"
 Arpack = "0.4.0, 0.5"
+CRlibm = "1"
 DualNumbers = "0.6.4"
 FFTW = "1"
 FastRounding = "0.2.0, 0.3"
