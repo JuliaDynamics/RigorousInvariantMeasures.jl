@@ -1,14 +1,14 @@
-using InvariantMeasures
+using RigorousInvariantMeasures
 using ValidatedNumerics
 using LinearAlgebra
 
 @testset "Hat assembler" begin
 
-using InvariantMeasures: L1, Linf
+using RigorousInvariantMeasures: L1, Linf
 
 D = mod1_dynamic(x->2*x)
 B = Hat(8)
-P = InvariantMeasures.assemble(B, D)
+P = RigorousInvariantMeasures.assemble(B, D)
 
 Ptrue = [
         0.5 0.25 0    0    0    0    0   0.25;

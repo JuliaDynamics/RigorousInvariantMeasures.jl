@@ -1,8 +1,8 @@
-@testset "Hat basis" begin
+@testset "Non Periodic Hat basis" begin
 
 using ValidatedNumerics
-using InvariantMeasures
-using InvariantMeasures: HatFunction, HatFunctionOnTorus, IntervalOnTorus, nonzero_on, is_refinement
+using RigorousInvariantMeasures
+using RigorousInvariantMeasures: HatFunction, HatFunctionOnTorus, IntervalOnTorus, nonzero_on, is_refinement
 
 f = HatFunction(1., 2, 3)
 @test f(1.5) == 0.5
@@ -22,9 +22,9 @@ B = HatNP(4)
 @test nonzero_on(B, (0.3..0.31, NaN)) == (2,3)
 @test nonzero_on(B, (0.9..0.91, NaN)) == (4,5)
 
-@test is_refinement(Hat(8), Hat(4))
-@test is_refinement(Hat(8), Hat(8))
-@test !is_refinement(Hat(4), Hat(8))
+@test is_refinement(HatNP(8), HatNP(4))
+@test is_refinement(HatNP(8), HatNP(8))
+@test !is_refinement(HatNP(4), HatNP(8))
 
 
 end

@@ -159,7 +159,7 @@ invariant_measure_strong_norm_bound(B::Basis, D::Dynamic) = @error "Must be spec
 """
 bound_weak_norm_abstract(B::Basis, D=nothing; dfly_coefficients=nothing) = @error "Must be specialized"
 
-using ..InvariantMeasures: NormKind
+using ..RigorousInvariantMeasures: NormKind
 opnormbound(B::Basis, N::NormKind, M::AbstractVecOrMat{S}) where {S} = @error "Must be specialized"
 normbound(B::Basis, N::NormKind, v) = @error "Must be specialized"
 

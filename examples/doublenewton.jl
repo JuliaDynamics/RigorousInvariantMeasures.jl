@@ -1,9 +1,9 @@
-using InvariantMeasures
+using RigorousInvariantMeasures
 using ValidatedNumerics
 
 # Testing whether the "shooting method" beats taking successive preimages
 
-# f = x -> 2*x + 0.1*InvariantMeasures.sinpi(2*x)
+# f = x -> 2*x + 0.1*RigorousInvariantMeasures.sinpi(2*x)
 # preim1 = root(x ->f(x)-1., 0..4, 0)
 
 f = x-> 2.5x*(1-x) + 0.01*x*x + 0.3*x*x*x + 0.003*x*x*x*x

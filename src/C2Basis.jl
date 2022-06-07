@@ -7,7 +7,7 @@ C2 basis on [0,1]
 using ..BasisDefinition, ..DynamicDefinition, ValidatedNumerics
 import Base: iterate, length
 import ..BasisDefinition: one_vector, integral_covector, is_integral_preserving
-import ...InvariantMeasures: NormKind, Linf
+import ...RigorousInvariantMeasures: NormKind, Linf
 
 export C2Basis, dual_val, dual_der, C1, C2
 

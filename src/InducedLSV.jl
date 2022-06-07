@@ -262,8 +262,8 @@ end
 
 ChebOrHatNP = Union{Chebyshev, HatNP}
 
-InvariantMeasures.Dual(B::HatNP, D::InducedLSVMapDefinition.ApproxInducedLSV, ϵ = 0.0) = HatNPDual(InvariantMeasures.Dual(B, D, ϵ ; T = Float64)...)
-function InvariantMeasures.Dual(B::ChebOrHatNP, D::InducedLSVMapDefinition.ApproxInducedLSV, ϵ = 0.0; T = Float64)
+RigorousInvariantMeasures.Dual(B::HatNP, D::InducedLSVMapDefinition.ApproxInducedLSV, ϵ = 0.0) = HatNPDual(RigorousInvariantMeasures.Dual(B, D, ϵ ; T = Float64)...)
+function RigorousInvariantMeasures.Dual(B::ChebOrHatNP, D::InducedLSVMapDefinition.ApproxInducedLSV, ϵ = 0.0; T = Float64)
 	labels = Int64[]
 	x = Interval{T}[]
 	x′ = Interval{T}[]
@@ -281,12 +281,12 @@ end
 
 
 
-# this function belongs to the InvariantMeasures namespace,
+# this function belongs to the RigorousInvariantMeasures namespace,
 # this is the reason why we define it outside
 using TaylorSeries: Taylor1
 
 
-function dfly(::Type{TotalVariation}, ::Type{L1}, D::InvariantMeasures.InducedLSVMapDefinition.ApproxInducedLSV)
+function dfly(::Type{TotalVariation}, ::Type{L1}, D::RigorousInvariantMeasures.InducedLSVMapDefinition.ApproxInducedLSV)
 	dist = @interval(0.)
 	lam = @interval(0.)
 	for i in 1:D.nbranches

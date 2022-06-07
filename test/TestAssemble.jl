@@ -1,6 +1,6 @@
-using InvariantMeasures
+using RigorousInvariantMeasures
 using ValidatedNumerics
-using InvariantMeasures: assemble, L1, Linf
+using RigorousInvariantMeasures: assemble, L1, Linf
 
 @testset "Ulam assembler" begin
 

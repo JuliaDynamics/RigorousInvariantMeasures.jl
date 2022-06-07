@@ -1,11 +1,11 @@
-using InvariantMeasures
+using RigorousInvariantMeasures
 using ValidatedNumerics
 
 using Plots
 using LaTeXStrings
 
-D = mod1_dynamic(x -> 4*x + 0.01*InvariantMeasures.sinpi(8*x))
-#D = Mod1Dynamic(x -> 16*x + 0.01*InvariantMeasures.sinpi(32*x))
+D = mod1_dynamic(x -> 4*x + 0.01*RigorousInvariantMeasures.sinpi(8*x))
+#D = Mod1Dynamic(x -> 16*x + 0.01*RigorousInvariantMeasures.sinpi(32*x))
 #D = Mod1Dynamic(x->2*x+0.5*x*(1-x))
 # D = PwMap(
 # [x -> 17x/5,

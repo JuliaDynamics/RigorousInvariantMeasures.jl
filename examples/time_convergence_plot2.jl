@@ -1,4 +1,4 @@
-using InvariantMeasures
+using RigorousInvariantMeasures
 using ValidatedNumerics
 using Glob
 using Plots
@@ -32,14 +32,14 @@ function get_experiment(prefix)
         end
     elseif prefix=="4x_perturbed_Ulam"
         f = n-> begin
-            D = mod1_dynamic(x -> 4*x + InvariantMeasures.sinpi(8*x)/100)
+            D = mod1_dynamic(x -> 4*x + RigorousInvariantMeasures.sinpi(8*x)/100)
             B = Ulam(n)
             Q = DiscretizedOperator(B, D)
             return B, D, Q
         end
     elseif prefix=="4x_perturbed_Hat"
         f = n-> begin
-            D = mod1_dynamic(x -> 4*x + InvariantMeasures.sinpi(8*x)/100)
+            D = mod1_dynamic(x -> 4*x + RigorousInvariantMeasures.sinpi(8*x)/100)
             B = Hat(n)
             Q = DiscretizedOperator(B, D)
             return B, D, Q
@@ -140,8 +140,8 @@ Plot error vs. time in a double-log scale
 function plot_error_time(prefix)
     pyplot()
     
-    Cdict = Dict{Int64, InvariantMeasures.CoarseGridQuantities}()
-    Fdict = Dict{Int64, InvariantMeasures.FineGridQuantities}()
+    Cdict = Dict{Int64, RigorousInvariantMeasures.CoarseGridQuantities}()
+    Fdict = Dict{Int64, RigorousInvariantMeasures.FineGridQuantities}()
     for filename in glob("$prefix-*-coarse.juliaserialize")
         C = deserialize(filename)
         Cdict[length(C.B)] = C
@@ -324,8 +324,8 @@ function plot_norm_bounds_kinds_twogrid(prefix, n, n_fine; num_norms=30, num_nor
 end
 
 function time_breakdown_plot(prefix, twogrid_nC; filter_coarse=nC->true, filter_fine=nF->true)
-    Cdict = Dict{Int64, InvariantMeasures.CoarseGridQuantities}()
-    Fdict = Dict{Int64, InvariantMeasures.FineGridQuantities}()
+    Cdict = Dict{Int64, RigorousInvariantMeasures.CoarseGridQuantities}()
+    Fdict = Dict{Int64, RigorousInvariantMeasures.FineGridQuantities}()
     for filename in glob("$prefix-*-coarse.juliaserialize")
         C = deserialize(filename)
         Cdict[length(C.B)] = C

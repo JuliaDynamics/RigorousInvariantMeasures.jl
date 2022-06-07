@@ -1,7 +1,7 @@
-using InvariantMeasures
+using RigorousInvariantMeasures
 using Test
 
-@testset "InvariantMeasures.jl" begin
+@testset "RigorousInvariantMeasures.jl" begin
 
     include("TestContractors.jl")
     include("TestDynamic.jl")

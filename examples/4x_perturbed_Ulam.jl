@@ -1,4 +1,4 @@
-using InvariantMeasures
+using RigorousInvariantMeasures
 using ValidatedNumerics
 
 using Plots
@@ -11,9 +11,9 @@ function runExperiment()
 
     time_assembling = @elapsed begin
 
-        D = mod1_dynamic(x -> 4*x + 0.01*InvariantMeasures.sinpi(8*x))
+        D = mod1_dynamic(x -> 4*x + 0.01*RigorousInvariantMeasures.sinpi(8*x))
         # different backend, a tad slower
-        # D = mod1_dynamic(x -> 4*x + 0.01*InvariantMeasures.sinpi(8*x))
+        # D = mod1_dynamic(x -> 4*x + 0.01*RigorousInvariantMeasures.sinpi(8*x))
         B = Ulam(1024)
         Q = DiscretizedOperator(B, D)
     end

@@ -1,8 +1,8 @@
 @testset "Ulam basis" begin
 
 using ValidatedNumerics
-using InvariantMeasures
-using InvariantMeasures.BasisDefinition
+using RigorousInvariantMeasures
+using RigorousInvariantMeasures.BasisDefinition
 
 
 B = Ulam(4)

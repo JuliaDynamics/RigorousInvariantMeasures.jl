@@ -1,4 +1,4 @@
-using InvariantMeasures
+using RigorousInvariantMeasures
 using ValidatedNumerics
 
 using Plots
@@ -24,7 +24,7 @@ norms_fine = finepowernormbounds(B, B_fine, D, norms; normQ_fine=normQ_fine)
 w_fine = invariant_vector(B_fine, Q_fine)
 error_fine = distance_from_invariant(B_fine, D, Q_fine, w_fine, norms_fine)
 
-D = mod1_dynamic(x -> 4*x + 0.01*InvariantMeasures.sinpi(8*x))
+D = mod1_dynamic(x -> 4*x + 0.01*RigorousInvariantMeasures.sinpi(8*x))
 B = Hat(64)
 Q = DiscretizedOperator(B, D)
 

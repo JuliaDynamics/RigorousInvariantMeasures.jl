@@ -1,4 +1,4 @@
-using InvariantMeasures: root, nthpreimage!
+using RigorousInvariantMeasures: root, nthpreimage!
 using StaticArrays
 using ValidatedNumerics
 
