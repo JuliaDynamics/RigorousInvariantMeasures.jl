@@ -6,10 +6,17 @@ using ..BasisDefinition, ..DynamicDefinition
 using ValidatedNumerics
 import ..BasisDefinition: one_vector, integral_covector, is_integral_preserving
 
+@doc """
+This type represents a Hat basis on ``S^1``. It contains a vector with the midpoints of the hats.
+""" 
 struct Hat{T<:AbstractVector} <:Basis
 	p::T
 	# TODO: check in constructor that p is sorted, starts with 0 and ends with 1
 end
+
+@doc """
+This constructs a Hat basis on ``S^1`` on equispaced points
+"""
 Hat(n::Integer) = Hat(LinRange(0., 1., n+1))
 
 """
@@ -38,7 +45,7 @@ struct IntervalOnTorus{T <: Real}
 end
 IntervalOnTorus(I::Interval{T}) where {T} = IntervalOnTorus{T}(I)
 
-"""
+@doc raw"""
 Hat function (on the torus)
 
 This is a piecewise linear function such that:
