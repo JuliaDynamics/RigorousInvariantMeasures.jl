@@ -7,3 +7,6 @@ makedocs(sitename="RigorousInvariantMeasures.jl",
     modules = [RigorousInvariantMeasures]
 )
 
+deploydocs(
+    repo = "github.com/USER_NAME/PACKAGE_NAME.jl.git",
+)
