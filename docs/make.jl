@@ -21,5 +21,5 @@ makedocs(;
 
 deploydocs(;
     repo="github.com/JuliaDynamics/RigorousInvariantMeasures.jl",
-    devbranch="main",
+    devbranch="master",
 )
