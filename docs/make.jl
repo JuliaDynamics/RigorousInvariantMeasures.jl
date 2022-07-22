@@ -1,12 +1,25 @@
-using Documenter, RigorousInvariantMeasures
+using RigorousInvariantMeasures
+using Documenter
 
-makedocs(sitename="RigorousInvariantMeasures.jl",
-    format = Documenter.HTML(
-        prettyurls = get(ENV, "CI", nothing) == "true"
+DocMeta.setdocmeta!(RigorousInvariantMeasures, :DocTestSetup, :(using RigorousInvariantMeasures); recursive=true)
+
+makedocs(;
+    modules=[RigorousInvariantMeasures],
+    authors="Isaia Nisoli nisoli@im.ufrj.br and contributors",
+    repo="https://github.com/JuliaDynamics/RigorousInvariantMeasures.jl/blob/{commit}{path}#{line}",
+    sitename="RigorousInvariantMeasures.jl",
+    format=Documenter.HTML(;
+        prettyurls=get(ENV, "CI", "false") == "true",
+        canonical="https://github.com/JuliaDynamics/RigorousInvariantMeasures.jl",
+        edit_link="main",
+        assets=String[],
     ),
-    modules = [RigorousInvariantMeasures]
+    pages=[
+        "Home" => "index.md",
+    ],
 )
 
-deploydocs(
-    repo = "github.com/JuliaDynamics/RigorousInvariantMeasures.jl.git",
+deploydocs(;
+    repo="github.com/JuliaDynamics/RigorousInvariantMeasures.jl",
+    devbranch="main",
 )
