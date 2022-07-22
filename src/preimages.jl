@@ -36,8 +36,13 @@ function last_overlapping(y, a)
 end
 
 """
-Construct preimages of an increasing array y under a monotonic branch defined on X = (a, b), propagating additional labels `ylabel`
+    preimages(y, br::Branch, ylabel = 1:length(y), ϵ = 0.0)
 
+Construct preimages of an increasing array `y` under a monotonic branch `br` defined on X = (a, b), propagating additional labels `ylabel`
+
+It is assumed that it cannot happen that ``f(x) < y[1]``.
+
+# Extended help
 The sequence y subdivides the y-axis into semi-open intervals [y[l], y[l+1]); each of them is identified by the label `ylabel[l]`. We construct an increasing sequence 
 x that splits X (in the x-axis) into semi-open intervals, each of them with f([x[k], x[k+1]) ⊂ [y[l], y[l+1]) for a certain l. 
 We set xlabel[k] = ylabel[l], and return the pair (x, xlabel).
@@ -57,12 +62,24 @@ So we can fill v by filling in first entries `v[k+1]` with higher dyadic valuati
 
 For a dynamic with multiple branches, preimages(y, D) is simply the concatenation of x, xlabel for b in all branches. These values still form an increasing sequence that
 splits X into intervals, each of which is mapped into a different semi-open interval [y[k], y[k+1]).
+
+# Example 
+```jldoctest
+julia> using RigorousInvariantMeasures
+
+julia> D = mod1_dynamic(x->2x)
+Piecewise-defined dynamic with 2 branches
+
+julia> RigorousInvariantMeasures.preimages(0:0.1:1, D.branches[1])
+(Interval{Float64}[[0, 0], [0.05, 0.0500001], [0.1, 0.100001], [0.149999, 0.15], [0.2, 0.200001], [0.25, 0.25], [0.299999, 0.3], [0.349999, 0.35], [0.4, 0.400001], [0.45, 0.450001]], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+```
+
 """
 function preimages(y, br::Branch, ylabel = 1:length(y), ϵ = 0.0)
 
     if br.increasing
-        i = first_overlapping(y, br.Y[1])  # smallest possible i such that a is in the semi-open interval [y[i], y[i+1]).
-        j = last_overlapping(y, br.Y[2]) # largest possible j such that b-ε is in the semi-open interval [y[j], y[j+1]).
+        i = first_overlapping(y, br.Y[1])  # smallest possible i such that a = br.Y[1] is in the semi-open interval [y[i], y[i+1]).
+        j = last_overlapping(y, br.Y[2]) # largest possible j such that b-ε, where b = br.Y[2] is in the semi-open interval [y[j], y[j+1]).
         n = j - i + 1
         x = fill((-∞..∞)::typeof(Interval(br.X[1])), n)
         xlabel = collect(ylabel[i:j]) # we collect to avoid potential type instability, since this may be an UnitRange while in the other branch we could have a StepRange
@@ -86,8 +103,8 @@ function preimages(y, br::Branch, ylabel = 1:length(y), ϵ = 0.0)
             stride = stride ÷ 2
         end
     else # branch decreasing
-        i = last_overlapping(y, br.Y[1]) # largest possible j such that b-ε is in the semi-open interval [y[j], y[j+1]).
-        j = first_overlapping(y, br.Y[2]) # smallest possible i such that a is in the semi-open interval [y[i], y[i+1]).
+        i = last_overlapping(y, br.Y[1]) # largest possible j such that b-ε, where b = br.Y[1]  is in the semi-open interval [y[j], y[j+1]).
+        j = first_overlapping(y, br.Y[2]) # smallest possible i such that a = br.Y[2] is in the semi-open interval [y[i], y[i+1]).
         n = i - j + 1
         x = fill((-∞..∞)::typeof(Interval(br.X[1])), n)
         xlabel = collect(ylabel[i:-1:j])
