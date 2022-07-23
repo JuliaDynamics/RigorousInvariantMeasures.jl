@@ -1,3 +1,4 @@
 Manifest.toml
 *.juliaserialize
 docs/build/*
+.vscode/
