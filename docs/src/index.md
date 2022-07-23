@@ -1,18 +1,3 @@
-<<<<<<< HEAD
-```@meta
-CurrentModule = RigorousInvariantMeasures
-```
-
-# RigorousInvariantMeasures
-
-Documentation for [RigorousInvariantMeasures](https://github.com/JuliaDynamics/RigorousInvariantMeasures.jl).
-
-```@index
-```
-
-```@autodocs
-Modules = [RigorousInvariantMeasures]
-=======
 # RigorousInvariantMeasures.jl
 
 A [Julia](http://julialang.org) package which implements a implements a flexible scheme to approximate rigorously invariant measures of dynamical systems.
@@ -42,5 +27,4 @@ simply installed by running
 
 ```julia
 pkg> add("RigorousInvariantMeasures")
->>>>>>> docs
 ```
