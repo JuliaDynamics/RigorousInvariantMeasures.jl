@@ -29,11 +29,28 @@ comparetrinormweak(Bas::Ulam) = WeakStrongerTrinorm
 #    for i in 1:m
 
 using LinearAlgebra
+
+"""
+    eig_costants_small_matrix(A)
+
+Return the dominant eigenvalue and associated left eigenvector of the small matrix
+"""
 function eig_costants_small_matrix(A)
     Aint = Interval.(A)
     #@info "1, 1 entry" A[1,1]
     #@info "2, 2 entry" A[1,2]
-    ρ = Aint[1, 1]+Aint[2, 2]+sqrt((Aint[1,1]-Aint[2,2])^2- 4*Aint[2,1]*Aint[1, 2])
+
+    # we rewrite this using the trace and the determinant
+    # the characteristic polinomial is x^2 - T x +D =0
+    # if the matrix is positive, the biggest root of 
+    # this polynomial is ρ
+
+    T = Aint[1, 1]+Aint[2, 2]
+    D = Aint[1, 1]*Aint[2, 2]-Aint[1, 2]*Aint[2, 1]
+    
+    ρ = T/2 + sqrt(T^2/4-D)
+
+    #ρ = Aint[1, 1]+Aint[2, 2]+sqrt((Aint[1,1]-Aint[2,2])^2- 4*Aint[2,1]*Aint[1, 2])
     
     B = Aint'-ρ*I
 
@@ -44,7 +61,16 @@ function eig_costants_small_matrix(A)
     return ρ, v 
 end
 
+"""
+    convergencerateabstract(Bas::Ulam, D::Dynamic, norms)
 
+Estimate the strong norm of ```||L^n|_{U_0}||_s``` from `norms`,
+the bounds on the weak norm of the discretized operator
+```||L_{h}^n|_{U_0}||_w```
+
+This method was developed in 
+Stefano Galatolo, Isaia Nisoli, Benoît Saussol. An elementary way to rigorously estimate convergence to equilibrium and escape rates. Journal of Computational Dynamics, 2015, 2 (1) : 51-64. doi: 10.3934/jcd.2015.2.51
+"""
 
 function convergencerateabstract(Bas::Ulam, D::Dynamic, norms)
     boundL = BasisDefinition.bound_weak_norm_abstract(Bas)

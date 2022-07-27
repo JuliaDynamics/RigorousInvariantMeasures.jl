@@ -233,7 +233,9 @@ function dfly(::Type{Lipschitz}, ::Type{L1}, D::Dynamic)
     @assert is_full_branch(D)
 
     dist = max_distorsion(D)
+    #@info dist
     lam = expansivity(D)
+    #@info lam
 
     return ((lam*(2*dist+1)).hi, (dist*(dist+1)).hi)
 end

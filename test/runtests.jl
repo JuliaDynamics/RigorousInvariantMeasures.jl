@@ -12,6 +12,7 @@ using Test
     include("TestAssembleHat.jl")
     include("TestEstimate.jl")
     include("TestNormOfPowers.jl")
+    include("TestAbstractConvergence.jl")
     include("TestPreimages.jl")
     include("TestChebyshev.jl")
 end
