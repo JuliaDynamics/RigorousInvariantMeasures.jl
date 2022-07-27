@@ -1,5 +1,6 @@
 using RigorousInvariantMeasures
-using Test
+using Test, Documenter
+
 
 @testset "RigorousInvariantMeasures.jl" begin
 
@@ -15,4 +16,7 @@ using Test
     include("TestAbstractConvergence.jl")
     include("TestPreimages.jl")
     include("TestChebyshev.jl")
+    doctest(RigorousInvariantMeasures)
 end
+
+
