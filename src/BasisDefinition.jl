@@ -47,45 +47,106 @@ evaluate(B::Basis, i, x) = @error "Not Implemented"
 """
 evaluate_integral(B::Basis, i; T = Float64) = @error "Not Implemented"
 
+"""
+	strong_norm(B::Basis)
+
+Return the type of the strong norm of the basis
+
+# Example
+
+```jldoctest
+julia> using RigorousInvariantMeasures
+
+julia> B = Ulam(1024)
+Ulam{LinRange{Float64, Int64}}(range(0.0, stop=1.0, length=1025))
+
+julia> strong_norm(B)
+TotalVariation
+```
+"""
 strong_norm(B::Basis) = @error "Must be specialized"
+"""
+	weak_norm(B::Basis)
+
+Return the type of the weak norm of the basis
+
+# Example
+
+```jldoctest
+julia> using RigorousInvariantMeasures
+
+julia> B = Ulam(1024)
+Ulam{LinRange{Float64, Int64}}(range(0.0, stop=1.0, length=1025))
+
+julia> weak_norm(B)
+L1
+```
+"""
 weak_norm(B::Basis) = @error "Must be specialized"
 aux_norm(B::Basis) = @error "Must be specialized"
 
 """
-	Check if Bfine is a refinement of Bcoarse
+	is_refinement(Bfine::Basis, Bcoarse::Basis)
+Check if Bfine is a refinement of Bcoarse
+
+# Example
+
+```jldoctest
+julia> using RigorousInvariantMeasures
+
+julia> B = Ulam(1024)
+Ulam{LinRange{Float64, Int64}}(range(0.0, stop=1.0, length=1025))
+
+julia> Bfine = Ulam(2048)
+Ulam{LinRange{Float64, Int64}}(range(0.0, stop=1.0, length=2049))
+
+julia> is_refinement(Bfine, B)
+true
+
+julia> Bfine = Ulam(2049)
+Ulam{LinRange{Float64, Int64}}(range(0.0, stop=1.0, length=2050))
+
+julia> is_refinement(Bfine, B)
+false
+```
+
 """
 is_refinement(Bfine::Basis, Bcoarse::Basis) = @error "Not implemented"
 
 """
-	Covector that represents the integral
+	integral_covector(B::Basis)
+
+Return a covector that represents the integral in the basis B
 """
 integral_covector(B::Basis) = @error "Must be specialized"
 
 """
-	Vector that represents the function 1
+	one_vector(B::Basis)
+
+Vector that represents the function 1 in the basis B
 """
 one_vector(B::Basis) = @error "Must be specialized"
 
 """
-	Integral-preserving discretizations may specialize this to "true"
+	is_integral_preserving(B::Basis)
+
+Integral-preserving discretizations may specialize this to "true"
 """
 is_integral_preserving(B::Basis) = false
 
 """
-Integral of a function in U_h
+	integral(B::Basis, v; T = Float64)
 
-Args:
-	v (any type of vector):
-
-Returns:
-	the integral, computed with the arithmetic of v.
+Return the integral of the function with coefficients v in the basis B 
 """
 function integral(B::Basis, v; T = Float64)
 	return sum([T(v[i])*evaluate_integral(B, i, T) for i in 1:length(B)])
 end
 
 """
-	Yields a basis of the space of average zero vectors
+	AverageZero{B<:Basis}
+
+Yield a basis of the space of average zero vectors
 """
 struct AverageZero{B<:Basis}
 	basis::B
@@ -169,3 +230,4 @@ end
 Replacement of DualComposedWithDynamic.
 """
 abstract type Dual end
+
