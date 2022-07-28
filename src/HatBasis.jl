@@ -105,7 +105,9 @@ function (f::HatFunctionOnTorus{T})(x::IntervalOnTorus) where {T}
 end
 
 """
-makes so that B[j] returns a HatFunctionOnTorus with the j-th basis element
+	Base.getindex(B::Hat, i::Int)
+
+Make so that B[j] returns a HatFunctionOnTorus with the j-th basis element
 """
 function Base.getindex(B::Hat, i::Int)
 	n = length(B)
@@ -154,6 +156,8 @@ end
 
 
 """
+	BasisDefinition.nonzero_on(B::Hat, dual_element)
+
 Return the range of indices of the elements of the basis whose support intersects
 with the given dual element (i.e., a pair (y, absT')).
 The range may end with length(B)+1; this must be interpreted "mod length(B)":

@@ -18,12 +18,12 @@ Hat{LinRange{Float64, Int64}}(range(0.0, stop=1.0, length=1025))
 ```
 
 ## Building the discretized operator
-Once a basis is chosen we call [RigorousInvariantMeasures.DiscretizedOperator](@ref)
+Once a basis is chosen we call [`DiscretizedOperator`](@ref)
 to compute the discretized operator.
 
 Remark that a discretized operator can be of two types:
-- [RigorousInvariantMeasures.IntegralPreservingDiscretizedOperator](@ref)
-- [RigorousInvariantMeasures.NonIntegralPreservingDiscretizedOperator](@ref)
+- [`IntegralPreservingDiscretizedOperator`](@ref)
+- [`NonIntegralPreservingDiscretizedOperator`](@ref)
 
 The type of the discretized operator is prescribed by the basis;
 while an integral preserving operator is stored simply as a matrix,
@@ -46,7 +46,7 @@ To compute our rigorous error bound we need to compute rigorously
 upper bounds for the norms of the discretized operator restricted 
 ``||Q^k|_{U_0}||`` to the space of average ``0`` functions.
 
-This is done through the use of [powernormbounds](@ref)
+This is done through the use of [`powernormbounds`](@ref)
 
 ```jldoctest userguide; filter = r".*"s
 julia> norms = powernormbounds(B, D; Q=Q);
@@ -57,7 +57,7 @@ and a posteriori information to estimate these norms.
 
 ## Computing the invariant vector and the rigorous error
 To compute the approximation and the error we use the functions 
-[invariant_vector](@ref) and [distance_from_invariant](@ref).
+[`invariant_vector`](@ref) and [`distance_from_invariant`](@ref).
 
 Distance from invariant returns us an upper bound between 
 ``w`` and the density of the invariant a.c.i.m. with respect to the 
@@ -79,7 +79,7 @@ Linf
 We can use now the coarse fine bounds to bound the norm of the powers
 of a finer discretization.
 
-The function [finepowernormbounds](@ref) uses the computed norms 
+The function [`finepowernormbounds`](@ref) uses the computed norms 
 from the coarse discretization, the coefficients of the Doeblin-Fortet-Lasota-Yorke
 inequality and a computed error bound on the norm of ``Q_f``. 
 
