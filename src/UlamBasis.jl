@@ -3,13 +3,19 @@ using ValidatedNumerics, LinearAlgebra
 #import ..BasisDefinition: one_vector, integral_covector, is_integral_preserving, strong_norm, weak_norm, aux_norm
 
 """
-Equispaced Ulam basis on [0,1] of size n
+	Ulam
+Ulam basis on [0,1] associated to the partition
+``p = {x_0 = 0, x_1, \\ldots, x_n}``
 """
 struct Ulam{T<:AbstractVector} <:Basis
 	p::T
 	# TODO: check in constructor that p is sorted, starts with 0 and ends with 1
 end
 
+"""
+	Ulam(n::Integer)
+Equispaced Ulam basis on [0,1] of size n
+"""
 Ulam(n::Integer) = Ulam(LinRange(0., 1., n+1))
 Base.length(B::Ulam) = length(B.p) - 1
 function Base.getindex(B::Ulam, i::Int)
@@ -68,6 +74,8 @@ end
 # Base.eltype(f::DualComposedWithDynamic{<:Ulam, <:Dynamic}) = Tuple{Int64,Tuple{Interval{Float64},Interval{Float64}}}
 
 """
+	nonzero_on(B::Ulam, (a, b))
+
 Returns the indices of the elements of the Ulam basis that intersect with the interval y
 We do not assume an order of a and b; this should not matter unless
 the preimages are computed with very low accuracy
@@ -89,6 +97,8 @@ function BasisDefinition.nonzero_on(B::Ulam, (a, b))
 end
 
 """
+	relative_measure((a,b)::Tuple{<:Interval,<:Interval}, (c,d)::Tuple{<:Interval,<:Interval})
+
 Relative measure of the intersection of (a,b) wrt the whole interval (c,d)
 Assumes that a,b and c,d are sorted correctly
 """
@@ -124,6 +134,12 @@ BasisDefinition.evaluate(B::Ulam{T}, i, x) where {T} = (x>(i-1)/n) && (x<i/n) ? 
 
 BasisDefinition.evaluate_integral(B::Ulam{S}, i, T::Type) where{S} = T(i)/length(B)
 
+"""
+	iterate(S::AverageZero{Ulam{T}}, state = 1) where{T}
+
+Return the elements of the basis of average ``0`` functions in the Ulam 
+Basis
+"""
 function Base.iterate(S::AverageZero{Ulam{T}}, state = 1) where{T}
 	n = length(S.basis)
 	if state == n

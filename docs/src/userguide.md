@@ -48,7 +48,7 @@ upper bounds for the norms of the discretized operator restricted
 
 This is done through the use of [powernormbounds](@ref)
 
-```jldoctest userguide
+```jldoctest userguide; filter = r".*"s
 julia> norms = powernormbounds(B, D; Q=Q);
 ```
 
@@ -66,8 +66,10 @@ weak norm of the basis.
 ```jldoctest userguide
 julia> w = invariant_vector(B, Q);
 
-julia> error = distance_from_invariant(B, D, Q, w, norms)
-0.000593413243533947
+julia> error = distance_from_invariant(B, D, Q, w, norms);
+
+julia> error <= 0.0006
+true
 
 julia> weak_norm(B)
 Linf
@@ -82,7 +84,7 @@ from the coarse discretization, the coefficients of the Doeblin-Fortet-Lasota-Yo
 inequality and a computed error bound on the norm of ``Q_f``. 
 
 We first define a finer basis and compute the operator
-```jldoctest userguide; filter = r".*" 
+```jldoctest userguide; filter = r".*"s 
 julia> B_fine = Hat(16384);
 
 julia> Q_fine = DiscretizedOperator(B_fine, D);
@@ -97,6 +99,8 @@ julia> norms_fine = finepowernormbounds(B, B_fine, D, norms; normQ_fine=normQ_fi
 
 julia> w_fine = invariant_vector(B_fine, Q_fine);
      
-julia> error_fine = distance_from_invariant(B_fine, D, Q_fine, w_fine, norms_fine)
-7.574963167252225e-5
+julia> error_fine = distance_from_invariant(B_fine, D, Q_fine, w_fine, norms_fine);
+
+julia> error_fine <= 8e-5
+true
 ```

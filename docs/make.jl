@@ -18,6 +18,7 @@ makedocs(;
         "Home" => "index.md",
         "Background" => "background.md",
         "User guide" => "userguide.md",
+        "Basis" => "basis.md",
         "Examples" => "examples.md",
         "API" => "api.md"
     ],

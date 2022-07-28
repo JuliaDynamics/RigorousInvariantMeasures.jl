@@ -16,6 +16,7 @@ using Test, Documenter
     include("TestAbstractConvergence.jl")
     include("TestPreimages.jl")
     include("TestChebyshev.jl")
+    include("TestObservables.jl")
     doctest(RigorousInvariantMeasures)
 end
 

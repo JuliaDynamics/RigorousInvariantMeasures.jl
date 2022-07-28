@@ -279,8 +279,6 @@ function RigorousInvariantMeasures.Dual(B::ChebOrHatNP, D::InducedLSVMapDefiniti
 	return x, labels, x′
 end
 
-
-
 # this function belongs to the RigorousInvariantMeasures namespace,
 # this is the reason why we define it outside
 using TaylorSeries: Taylor1

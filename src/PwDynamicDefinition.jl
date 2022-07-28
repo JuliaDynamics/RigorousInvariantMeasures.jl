@@ -209,6 +209,18 @@ end
     max_distortion(D::PwMap; tol=1e-3)
 
 Compute a rigorous bound for the distortion of a PwMap
+
+# Example
+
+```jldoctest
+julia> using RigorousInvariantMeasures;
+
+julia> D0 = mod1_dynamic(x->2*x+0.5*x*(1-x), full_branch = true)
+Piecewise-defined dynamic with 2 branches
+
+julia> max_distortion(D0)
+[0.444268, 0.444445]
+```
 """
 function DynamicDefinition.max_distortion(D::PwDynamicDefinition.PwMap, tol=1e-3)
 	# max_dist = Interval(0.0)
@@ -236,8 +248,19 @@ using RecipesBase
 end #module
 
 """
+    mod1_dynamic(f::Function, ε = 0.0; full_branch = false)
+
 Utility constructor for dynamics Mod 1 on the torus [0,1].
 We assume that f is monotonic and differentiable, for now (this is not restrictive, for our purposes)
+
+# Example
+
+```jldoctest
+julia> using RigorousInvariantMeasures;
+
+julia> D0 = mod1_dynamic(x->2*x+0.5*x*(1-x), full_branch = true)
+Piecewise-defined dynamic with 2 branches
+```
 """
 
 mod1_dynamic(f::Function, ε = 0.0; full_branch = false) = mod1_dynamic(f, 

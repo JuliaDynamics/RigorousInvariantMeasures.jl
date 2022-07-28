@@ -113,12 +113,8 @@ end
 
 Computes the prei
 """
-function preimages(y, D::Dynamic, ylabel = 1:length(y), ϵ = 0.0; progress = false)
-    if progress
-        results = @showprogress 1 "Computing preimages..." [preimages(y, b, ylabel, ϵ) for b in branches(D)]
-    else
-        results = [preimages(y, b, ylabel, ϵ) for b in branches(D)]
-    end
+function preimages(y, D::Dynamic, ylabel = 1:length(y), ϵ = 0.0)
+    results = @showprogress 1 "Computing preimages..." [preimages(y, b, ylabel, ϵ) for b in branches(D)]
     x = vcat((result[1] for result in results)...)
     xlabel = vcat((result[2] for result in results)...)
     return x, xlabel
