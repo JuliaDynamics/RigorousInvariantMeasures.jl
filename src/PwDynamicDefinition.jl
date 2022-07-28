@@ -10,7 +10,7 @@ using TaylorSeries: Taylor1
 
 import ..DynamicDefinition: derivative, orientation
 
-export PwMap, preim, nbranches, plottable, branches, Branch, mod1_dynamic, dfly_inf_der, composedPwMap, equal_up_to_orientation
+export PwMap, preim, nbranches, plottable, branches, Branch, mod1_dynamic, dfly_inf_der, composedPwMap, equal_up_to_orientation, distortion, expansivity
 
 """
 Type used to represent a "branch" of a dynamic. The branch is represented by a monotonic map `f` with domain `X=(a,b)` with a≤b (where typically a,b are intervals). 
@@ -28,7 +28,6 @@ struct Branch{T<:Function, U<:Function, S}
     increasing::Bool
 end
 Branch(f::Function, X, Y=(f(Interval(X[1])), f(Interval(X[2]))), increasing=unique_increasing(Y[1], Y[2])) = Branch{typeof(f), typeof(der(f)), typeof(interval(X[1]))}(f, der(f), X, Y, increasing)
-
 Branch(f::Function, fprime::Function, X, Y=(f(Interval(X[1])), f(Interval(X[2]))), increasing=unique_increasing(Y[1], Y[2])) = Branch{typeof(f), typeof(fprime), typeof(interval(X[1]))}(f, fprime, X, Y, increasing)
 
 function equal_up_to_orientation(X, Y)
@@ -151,7 +150,7 @@ Note that this ignores discontinuities; users are free to shoot themselves
 in the foot and call this on a non-smooth piecewise map. No better solutions for now.
 """
 function (D::PwMap)(x::Taylor1)
-	fx = fill(∅, x.order+1)
+    fx = fill(∅, x.order+1)
 	x_restricted = deepcopy(x)
 	for i = 1:length(D.branches)
 		x_restricted[0] = x[0] ∩ hull(D[i].X[1],D[i].X[2])
@@ -164,6 +163,62 @@ function (D::PwMap)(x::Taylor1)
 	return Taylor1(fx, x.order)
 end
 
+"""
+    branch_expansivity(br::Branch; tol = 0.01)
+
+Compute a rigorous bound for the expansivity of a branch
+"""
+function branch_expansivity(br::Branch, tol = 0.01)
+    g(x) = abs(1/br.fprime(x))
+    I = hull(br.X[1], br.X[2])
+    val, listofboxes = maximise(g, I, tol=tol)
+    @debug val, listofboxes
+    return val
+end
+
+"""
+    expansivity(D::PwMap; tol=1e-3)
+
+Compute a rigorous bound for the expansivity of a PwMap
+"""
+function DynamicDefinition.expansivity(D::PwDynamicDefinition.PwMap, tol=1e-3)
+    #for br in branches(D)
+    #    val = maximise(x -> abs(1/derivative(br.f, x)), hull(br.X[1], br.X[2]), tol=tol)[1]
+#        @info val
+    #    max_exp = max(val, max_exp)
+    #end
+    return maximum([branch_expansivity(br, tol) for br in D.branches])
+end
+
+
+"""
+    branch_distortion(br::Branch; tol = 0.01)
+
+Compute a rigorous bound for the distortion of a branch
+"""
+function branch_distortion(br::Branch; tol = 0.01)
+    g(x) = 1/br.fprime(x)
+    h(x) = abs(der(g)(x))
+    I = hull(br.X[1], br.X[2])
+    val, listofboxes = maximise(h, I, tol=tol)
+    @debug val, listofboxes
+    return val
+end
+
+"""
+    max_distortion(D::PwMap; tol=1e-3)
+
+Compute a rigorous bound for the distortion of a PwMap
+"""
+function DynamicDefinition.max_distortion(D::PwDynamicDefinition.PwMap, tol=1e-3)
+	# max_dist = Interval(0.0)
+    # for br in branches(D)
+    #     val = maximise(x -> abs(distortion(br.f, x)), hull(br.X[1], br.X[2]), tol=tol)[1]
+    #     max_dist = max(val, max_dist)
+    # end
+    # return max_dist
+    return maximum([branch_distortion(br; tol = tol) for br in D.branches])
+end
 
 function DynamicDefinition.plottable(D::PwMap, x)
 	@assert 0 <= x <= 1
@@ -295,24 +350,7 @@ function composedPwMap(D1::PwDynamicDefinition.PwMap, D2::PwDynamicDefinition.Pw
     return PwMap(new_branches; full_branch = full_branch, infinite_derivative = infinite_derivative)
 end
 
-function expansivity(D::PwDynamicDefinition.PwMap, tol=1e-3)
-	max_exp = Interval(0.0)
-    for br in branches(D)
-        val = maximise(x -> abs(1/derivative(br.f, x)), hull(br.X[1], br.X[2]), tol=tol)[1]
-#        @info val
-        max_exp = max(val, max_exp)
-    end
-    return max_exp
-end
 
-function max_distortion(D::PwDynamicDefinition.PwMap, tol=1e-3)
-	max_dist = Interval(0.0)
-    for br in branches(D)
-        val = maximise(x -> abs(distorsion(br.f, x)), hull(br.X[1], br.X[2]), tol=tol)[1]
-        max_dist = max(val, max_dist)
-    end
-    return max_dist
-end
 
 using ProgressMeter
 function dfly_inf_der(::Type{TotalVariation}, ::Type{L1}, D::PwDynamicDefinition.PwMap, tol=1e-3)
@@ -351,7 +389,7 @@ function dfly_inf_der(::Type{TotalVariation}, ::Type{L1}, D::PwDynamicDefinition
             tol = rad/2^(i+1)
             left, right = leftrightsingularity[j]
             f = x->-1/derivative(br.f, x)
-            g = x-> distorsion(br.f, x)
+            g = x-> distortion(br.f, x)
             left_endpoint = br.X[1]
             right_endpoint = br.X[2]
             if left

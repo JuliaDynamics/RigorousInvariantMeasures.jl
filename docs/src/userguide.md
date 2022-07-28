@@ -86,7 +86,6 @@ We first define a finer basis and compute the operator
 julia> B_fine = Hat(16384);
 
 julia> Q_fine = DiscretizedOperator(B_fine, D);
-Computing preimages and derivatives... 100%|████████████████████████████████████| Time: 0:00:03
 ```
 
 Then, we call the coarse fine routines
