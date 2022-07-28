@@ -1,7 +1,7 @@
 We present some of the basis already implemented in the package
 
 # The Ulam basis
-```docs
+```@docs
 Ulam
 nonzero_on(B::Ulam, (a, b))
 relative_measure
