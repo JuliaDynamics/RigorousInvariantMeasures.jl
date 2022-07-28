@@ -67,7 +67,7 @@ weak norm of the basis.
 julia> w = invariant_vector(B, Q);
 
 julia> error = distance_from_invariant(B, D, Q, w, norms)
-0.0010164506833733997
+0.000593413243533947
 
 julia> weak_norm(B)
 Linf
@@ -98,5 +98,5 @@ julia> norms_fine = finepowernormbounds(B, B_fine, D, norms; normQ_fine=normQ_fi
 julia> w_fine = invariant_vector(B_fine, Q_fine);
      
 julia> error_fine = distance_from_invariant(B_fine, D, Q_fine, w_fine, norms_fine)
-0.0001305956645536314
+7.574963167252225e-5
 ```
