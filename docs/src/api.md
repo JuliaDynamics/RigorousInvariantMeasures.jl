@@ -6,17 +6,10 @@
 CurrentModule = RigorousInvariantMeasures
 ```
 
-## Module
-```@autodocs
-Modules = [RigorousInvariantMeasures]
-Order = [:type, :function]
-```
-
-
 ## Index
 
 ```@index
-Pages = ["api.md"]
+Pages = ["basis.md", "api.md"]
 Modules = [RigorousInvariantMeasures]
 Order = [:type, :function]
 ```
