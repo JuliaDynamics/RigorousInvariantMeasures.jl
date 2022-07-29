@@ -2,13 +2,17 @@ We present some of the basis already implemented in the package
 
 # Abstract basis
 ```@autodocs
-Modules = [Base, RigorousInvariantMeasures]
+Modules = [Base, 
+        RigorousInvariantMeasures, 
+        RigorousInvariantMeasures.BasisDefinition]
 Pages = ["BasisDefinition.jl"]
 ```
 
 # The Ulam basis
 ```@autodocs
-Modules = [Base, RigorousInvariantMeasures]
+Modules = [Base, 
+            RigorousInvariantMeasures, 
+            RigorousInvariantMeasures.BasisDefinition]
 Pages = ["UlamBasis.jl"]
 ```
 

@@ -151,6 +151,11 @@ function Base.iterate(S::AverageZero{Ulam{T}}, state = 1) where{T}
 	return (v, state+1)
 end
 
+"""
+	Base.length(S::AverageZero{Ulam})
+
+Return the size of the Average Zero space
+"""
 Base.length(S::AverageZero{Ulam{T}}) where {T} = length(S.basis)-1
 
 BasisDefinition.is_refinement(Bf::Ulam, Bc::Ulam) = Bc.p ⊆ Bf.p

@@ -13,6 +13,8 @@ end
 HatNP(n::Integer) = HatNP(LinRange(0., 1., n+1))
 
 """
+	Base.length(B::HatNP)
+
 Return the size of the Hat basis
 """
 Base.length(B::HatNP{T}) where {T} = Base.length(B.p)
@@ -55,6 +57,8 @@ function (f::HatFunction{T})(x::S) where T where S <: Number
 end
 
 """
+	Base.getindex(B::HatNP, i::Int)
+
 makes so that B[j] returns a
  HatFunction with the j-th basis element
 """
