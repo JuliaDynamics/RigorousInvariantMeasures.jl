@@ -3,10 +3,11 @@
 
 
 module PwDynamicDefinition
-using ValidatedNumerics
+
 using ..DynamicDefinition
 using ..Contractors
 using TaylorSeries: Taylor1
+using IntervalArithmetic, IntervalOptimisation
 
 import ..DynamicDefinition: derivative, orientation
 

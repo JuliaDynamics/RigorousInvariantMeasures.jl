@@ -1,5 +1,5 @@
 using ..BasisDefinition, ..DynamicDefinition
-using ValidatedNumerics
+
 
 struct C1 <: NormKind end
 struct W{k, l} <:NormKind end

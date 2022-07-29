@@ -5,7 +5,7 @@ Functions to estimate Q|_{U^0}. See our paper for details.
 using LinearAlgebra
 using SparseArrays
 using FastRounding
-using ValidatedNumerics
+
 using FFTW
 
 export norms_of_powers_noise

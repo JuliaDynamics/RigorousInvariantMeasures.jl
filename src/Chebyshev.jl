@@ -3,7 +3,7 @@ Chebyshev basis on the Interval [0,1]
 """
 
 using ..BasisDefinition, ..DynamicDefinition
-using ValidatedNumerics
+
 import ..BasisDefinition: one_vector, integral_covector, is_integral_preserving
 
 struct Chebyshev{T<:AbstractVector} <:Basis
@@ -11,7 +11,7 @@ struct Chebyshev{T<:AbstractVector} <:Basis
 	# TODO: check in constructor that p is sorted, starts with 0 and ends with 1
 end
 
-#we suppose ValidatedNumerics computes the Chebyshev points with adequate precision
+#we suppose IntervalArithmetic computes the Chebyshev points with adequate precision
 ChebCouples(n, T) = hcat(
 	[Interval{T}(pi); (reverse([Interval{T}(0.0); [j*Interval{T}(pi)/n for j in 1:n-1] ]))],
 	[Interval{T}(0.0) ; (reverse([Interval{T}(1.0); [cos(j*Interval{T}(pi)/n) for j in 1:n-1]]).+1)/2])

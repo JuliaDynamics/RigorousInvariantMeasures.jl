@@ -1,8 +1,7 @@
 using RigorousInvariantMeasures: is_full_branch
-using ValidatedNumerics
-
 
 @testset "Dynamics" begin
+using IntervalArithmetic
 
 D = mod1_dynamic(x->2*x)
 

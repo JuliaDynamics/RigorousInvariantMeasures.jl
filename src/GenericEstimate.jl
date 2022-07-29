@@ -1,4 +1,4 @@
-using LinearAlgebra, Arpack, FastRounding, ValidatedNumerics
+using LinearAlgebra, Arpack, FastRounding, IntervalArithmetic
 using ..DynamicDefinition, ..BasisDefinition
 
 export invariant_vector, finepowernormbounds, powernormbounds, distance_from_invariant, 

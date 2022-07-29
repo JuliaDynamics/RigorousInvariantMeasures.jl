@@ -1,7 +1,7 @@
 module LorenzMapDefinition
 
 using ..PwDynamicDefinition: PwMap
-using ValidatedNumerics
+
 
 
 

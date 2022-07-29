@@ -1,5 +1,6 @@
 module Contractors
-using ValidatedNumerics
+using IntervalArithmetic
+
 
 export root, range_estimate, ShootingMethod, nthpreimage!, preimage, unique_sign, unique_increasing
 

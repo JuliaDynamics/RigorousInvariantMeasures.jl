@@ -1,5 +1,6 @@
 using Test
 using RigorousInvariantMeasures: preimages
+using IntervalArithmetic
 
 @testset "preimages" begin
 

@@ -1,5 +1,5 @@
 module InducedLSVMapDefinition
-using ValidatedNumerics
+
 using ..DynamicDefinition, ..Contractors
 import ..Hat
 import ..HatNP
@@ -7,6 +7,7 @@ import ..BasisDefinition: DualComposedWithDynamic
 import ..C2BasisDefinition: C2Basis, dual_val, dual_der
 
 export ApproxInducedLSV, preim, nbranches, plottable
+using IntervalArithmetic
 
 """
 This class introduces an ApproximatedLSV

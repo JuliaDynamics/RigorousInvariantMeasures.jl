@@ -1,6 +1,6 @@
 @testset "Non Periodic Hat basis" begin
+using IntervalArithmetic
 
-using ValidatedNumerics
 using RigorousInvariantMeasures
 using RigorousInvariantMeasures: HatFunction, HatFunctionOnTorus, IntervalOnTorus, nonzero_on, is_refinement
 

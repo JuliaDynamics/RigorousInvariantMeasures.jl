@@ -3,7 +3,7 @@ Hat basis on the Torus [0,1]
 """
 
 using ..BasisDefinition, ..DynamicDefinition
-using ValidatedNumerics
+
 import ..BasisDefinition: one_vector, integral_covector, is_integral_preserving
 
 @doc """

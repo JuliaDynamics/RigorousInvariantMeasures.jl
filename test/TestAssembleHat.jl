@@ -1,6 +1,7 @@
 using RigorousInvariantMeasures
-using ValidatedNumerics
+
 using LinearAlgebra
+using IntervalArithmetic
 
 @testset "Hat assembler" begin
 

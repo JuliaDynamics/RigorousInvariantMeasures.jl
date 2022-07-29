@@ -1,9 +1,9 @@
 @testset "Ulam basis" begin
 
-using ValidatedNumerics
+
 using RigorousInvariantMeasures
 using RigorousInvariantMeasures.BasisDefinition
-
+using IntervalArithmetic
 
 B = Ulam(4)
 @test B.p == LinRange(0., 1., 5)

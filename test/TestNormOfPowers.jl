@@ -1,9 +1,9 @@
 using RigorousInvariantMeasures
-using ValidatedNumerics
+
 using LinearAlgebra: I, opnorm
 using SparseArrays: sparse
 using Test
-
+using IntervalArithmetic
 @testset "Norms of powers" begin
 
 import Random

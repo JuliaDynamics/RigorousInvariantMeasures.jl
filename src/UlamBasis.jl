@@ -1,5 +1,5 @@
 using ..BasisDefinition, ..DynamicDefinition, ..Contractors, ..PwDynamicDefinition
-using ValidatedNumerics, LinearAlgebra
+IntervalArithmetic, LinearAlgebra
 #import ..BasisDefinition: one_vector, integral_covector, is_integral_preserving, strong_norm, weak_norm, aux_norm
 
 """

@@ -1,5 +1,7 @@
 
 @testset "Observables" begin
+using IntervalArithmetic
+
 B = Ulam(4)
 
 Obs = Observable(B, x->x)

@@ -1,5 +1,6 @@
 using RigorousInvariantMeasures
-using ValidatedNumerics
+using IntervalArithmetic
+
 using Glob
 using Plots
 using StatsPlots

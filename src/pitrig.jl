@@ -3,9 +3,9 @@ Modifies the implementation of sinpi() and cospi() from IntervalArithmetic
 to improve it so that sinpi(1) == 0
 """
 
-using ValidatedNumerics
 
-using ValidatedNumerics.IntervalArithmetic: atomic, SVector, @round
+
+using IntervalArithmetic: atomic, SVector, @round
 
 function find_quadrantspi(x::T) where {T}
     temp = IntervalArithmetic.atomic(Interval{T}, x) * 2

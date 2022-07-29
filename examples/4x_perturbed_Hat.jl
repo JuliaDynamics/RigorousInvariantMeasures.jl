@@ -1,5 +1,5 @@
 using RigorousInvariantMeasures
-using ValidatedNumerics
+using IntervalArithmetic
 
 using Plots
 using LaTeXStrings
