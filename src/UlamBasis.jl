@@ -20,7 +20,7 @@ Equispaced Ulam basis on [0,1] of size n
 Ulam(n::Integer) = Ulam(LinRange(0., 1., n+1))
 Base.length(B::Ulam) = length(B.p) - 1
 function Base.getindex(B::Ulam, i::Int)
-	return x-> (B.p[i]< x < B.p[i+1] ? 1 : 0)
+	return x-> (B.p[i]<= x < B.p[i+1] ? 1 : 0)
 end
 
 function BasisDefinition.is_dual_element_empty(::Ulam, d)

@@ -9,7 +9,7 @@ Modules = [Base,
 Pages = ["DynamicDefinition.jl"]
 ```
 
-# Piecewise-Map defined
+# Piecewise-Map Definition
 
 ```@autodocs
 Modules = [Base, 
