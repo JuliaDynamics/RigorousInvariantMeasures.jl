@@ -19,6 +19,7 @@ makedocs(;
         "Background" => "background.md",
         "User guide" => "userguide.md",
         "Basis" => "basis.md",
+        "Dynamic" => "dynamic.md",
         "Examples" => "examples.md",
         "API" => "api.md"
     ],
