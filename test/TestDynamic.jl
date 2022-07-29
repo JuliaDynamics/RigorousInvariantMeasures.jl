@@ -84,4 +84,10 @@ g(x) = f(x) - floor(f(x))
 
 @test [branch(D.E, k)(Interval(0.2)) for k in 1:nbranches(D)] ≈ [∅, ∅, g(g(g(Interval(0.2)))), ∅, ∅, ∅, ∅, ∅]
 
+D = mod1_dynamic(x->2*x)
+
+@test 0.5 ∈ expansivity(D)
+@test 0 <= max_distortion(D)
+
+
 end

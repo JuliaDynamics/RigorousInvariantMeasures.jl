@@ -7,6 +7,8 @@ using ValidatedNumerics
 import ..BasisDefinition: one_vector, integral_covector, is_integral_preserving
 
 @doc """
+	Hat
+
 This type represents a Hat basis on ``S^1``. It contains a vector with the midpoints of the hats.
 """ 
 struct Hat{T<:AbstractVector} <:Basis
@@ -15,16 +17,22 @@ struct Hat{T<:AbstractVector} <:Basis
 end
 
 @doc """
+	Hat(n::Integer)
+
 This constructs a Hat basis on ``S^1`` on equispaced points
 """
 Hat(n::Integer) = Hat(LinRange(0., 1., n+1))
 
 """
+	Base.length(B::Hat{T})
+
 Return the size of the Hat basis
 """
 Base.length(B::Hat{T}) where {T} = Base.length(B.p) - 1
 
 """
+	IntervalOnTorus
+
 A separate type for intervals on the torus (mod 1) to "remind" us of the quotient
 
 The interval is normalized in the constructor: the caller may assume that
@@ -46,6 +54,8 @@ end
 IntervalOnTorus(I::Interval{T}) where {T} = IntervalOnTorus{T}(I)
 
 @doc raw"""
+	HatFunctionOnTorus
+
 Hat function (on the torus)
 
 This is a piecewise linear function such that:
@@ -105,7 +115,9 @@ function (f::HatFunctionOnTorus{T})(x::IntervalOnTorus) where {T}
 end
 
 """
-makes so that B[j] returns a HatFunctionOnTorus with the j-th basis element
+	Base.getindex(B::Hat, i::Int)
+
+Make so that B[j] returns a HatFunctionOnTorus with the j-th basis element
 """
 function Base.getindex(B::Hat, i::Int)
 	n = length(B)
@@ -154,6 +166,8 @@ end
 
 
 """
+	BasisDefinition.nonzero_on(B::Hat, dual_element)
+
 Return the range of indices of the elements of the basis whose support intersects
 with the given dual element (i.e., a pair (y, absT')).
 The range may end with length(B)+1; this must be interpreted "mod length(B)":

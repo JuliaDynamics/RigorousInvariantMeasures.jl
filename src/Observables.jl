@@ -54,6 +54,25 @@ end
 
 ### TODO: Actually some assumptions are made, as the fact that
 # the Ulam base is equispaced 
+
+"""
+    Observable(B::Ulam, ϕ::Function; tol = 2^-10)
+
+Compute the Ulam discretization of an observable ``ϕ``,
+and ``||ϕ||_{∞}``, returns as an Observable object
+
+Example
+
+```jldoctest
+julia> using RigorousInvariantMeasures;
+
+julia> B = Ulam(4)
+Ulam{LinRange{Float64, Int64}}(range(0.0, stop=1.0, length=5))
+
+julia> Observable(B, x->x)
+Observable(Ulam{LinRange{Float64, Int64}}(range(0.0, stop=1.0, length=5)), Interval{Float64}[[0.125, 0.125], [0.375, 0.375], [0.625, 0.625], [0.875, 0.875]], [0.999734, 1])
+```
+"""
 function Observable(B::Ulam, ϕ::Function; tol = 2^-10)
     v = zeros(Interval{Float64}, length(B))
     for i in 1:length(B)

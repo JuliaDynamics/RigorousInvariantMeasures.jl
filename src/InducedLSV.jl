@@ -279,8 +279,6 @@ function RigorousInvariantMeasures.Dual(B::ChebOrHatNP, D::InducedLSVMapDefiniti
 	return x, labels, x′
 end
 
-
-
 # this function belongs to the RigorousInvariantMeasures namespace,
 # this is the reason why we define it outside
 using TaylorSeries: Taylor1
@@ -301,9 +299,9 @@ function dfly(::Type{TotalVariation}, ::Type{L1}, D::RigorousInvariantMeasures.I
 			f(x) = InducedLSVMapDefinition.iterate_LSV(x, D.nbranches-i+1, D.α)
 			fprime(x) = f(Taylor1([x, 1], 1))[1]
 			fsecond(x) = f(Taylor1([x, 1], 2))[2]/2
-			distorsion(x)=abs(fsecond(x)/(fprime(x)^2))
+			distortion(x)=abs(fsecond(x)/(fprime(x)^2))
 			lambda(x) = abs(1/fprime(x))
-    		dist = max(dist, maximise(distorsion, D.domains[i])[1].hi)
+    		dist = max(dist, maximise(distortion, D.domains[i])[1].hi)
     		lam = max(lam, maximise(lambda, D.domains[i])[1].hi)
 		end
 	end
