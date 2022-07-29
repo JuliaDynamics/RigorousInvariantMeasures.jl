@@ -23,8 +23,8 @@ end
 
 function compute_dfly_k_fi_DDi(k::Int)
     @variables x 
-    @variables (f(x))[0:k] 
-    @variables (DD(x))[0:k]
+    @variables f[0:k](x) #(f(x))[0:k] 
+    @variables DD[0:k](x)
     ∂ = Differential(x)
 
     der_dict = Dict([[D => DD[1] ]; [∂(f[i]) => f[i+1] for i in 1:k]; [∂(DD[i]) => DD[i+1] for i in 1:k]])
@@ -50,10 +50,10 @@ function _optimize_mult(k, n, h::SymbolicUtils.Mul, vals)
     
     @variables x 
     
-    @variables (f(x))[0:k] 
+    @variables f[0:k](x) 
     boolf = [(symb in keys(h.dict)) for symb in f]
     
-    @variables (DD(x))[0:k]
+    @variables DD[0:k](x)
     boolDD = [(symb in keys(h.dict)) for symb in DD]
     
     # I start with a simple version, where I use the n on 
