@@ -10,6 +10,8 @@ using .Contractors
 
 
 """
+    first_overlapping(y, a)
+
 Smallest possible i such that a is in the semi-open interval [y[i], y[i+1]).
 
 This should work properly even if `a, y` are intervals; in this case it returns the *smallest* possible value of i over all possible "assignments" of a, y inside those intervals.
@@ -23,6 +25,8 @@ function first_overlapping(y, a)
 end
 
 """
+    last_overlapping(y, a)
+
 Largest possible j such that a-ε is in the semi-open interval [y[j], y[j+1]).
 
 This should work properly even if `a, y` are intervals; in this case it returns the *largest* possible value of i over all possible "assignments" of a, y inside those intervals.
@@ -36,6 +40,8 @@ function last_overlapping(y, a)
 end
 
 """
+    preimages(y, br::Branch, ylabel = 1:length(y), ϵ = 0.0)
+
 Construct preimages of an increasing array y under a monotonic branch defined on X = (a, b), propagating additional labels `ylabel`
 
 The sequence y subdivides the y-axis into semi-open intervals [y[l], y[l+1]); each of them is identified by the label `ylabel[l]`. We construct an increasing sequence 
@@ -111,7 +117,7 @@ end
 """
     preimages(y, D::Dynamic, ylabel = 1:length(y), ϵ = 0.0; progress = true)
 
-Computes the prei
+    Construct preimages of an increasing array y under a dynamic, propagating additional labels `ylabel`
 """
 function preimages(y, D::Dynamic, ylabel = 1:length(y), ϵ = 0.0)
     results = @showprogress 1 "Computing preimages..." [preimages(y, b, ylabel, ϵ) for b in branches(D)]
@@ -121,6 +127,8 @@ function preimages(y, D::Dynamic, ylabel = 1:length(y), ϵ = 0.0)
 end
 
 """
+    preimages_and_derivatives(y, br::Branch, ylabel = 1:length(y), ϵ = 0.0)
+
 Compute preimages of D *and* the derivatives f'(x) in each point.
 
 Returns: x, xlabel, x′

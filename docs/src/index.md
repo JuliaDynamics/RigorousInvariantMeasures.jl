@@ -2,13 +2,15 @@
 
 A [Julia](http://julialang.org) package which implements a implements a flexible scheme to approximate rigorously invariant measures of dynamical systems.
 
+```@contents
+```
+
 ---
 
 ### Citing
 
 If you find useful this package, please cite the paper:
 
-<a id="2">[2]</a>
 Galatolo S., Nisoli I., An elementary approach to rigorous approximation of invariant
 measures SIAM J. Appl Dyn Sys.13 pp. 958-985 (2014)
 
