@@ -35,7 +35,7 @@ preserves the integral.
 This is fundamental in our theory, since the rigorous estimate depends on the fact that the 
 discretized operator preserves the space of average ``0`` functions.
 
-```jldoctest userguide
+```jldoctest userguide; filter = r".*"s
 julia> Q = DiscretizedOperator(B, D);
 ```
 
