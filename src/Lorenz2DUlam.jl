@@ -50,7 +50,7 @@ Ginverse(; x, r, c) = x > 0 ?
 
 
 """
-function PreimageRectangleLorenz(;  preim_x_left::Interval, 
+function PreimageRectangleLorenz2(;  preim_x_left::Interval, 
                                     preim_x_right::Interval,
                                     y_lower, 
                                     y_upper, 
@@ -72,11 +72,11 @@ function PreimageRectangleLorenz(;  preim_x_left::Interval,
     end
     n = length(preim_x)
     A = Matrix{Float64}(undef, 2*n, 2)
-    for (i, x) in enumerate(preim_x[1][2:end])
+    for (i, x) in enumerate(preim_x)
         A[i, :] = [mid(x) mid(y_s[i][1])]
     end
     
-    for (i, x) in enumerate(reverse(preim_x[1][2:end]))
+    for (i, x) in enumerate(reverse(preim_x))
         A[n+i, :] = [mid(x) mid(y_s[end-i+1][2])]
     end
     

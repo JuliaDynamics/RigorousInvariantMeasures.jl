@@ -1,10 +1,3 @@
-<<<<<<< HEAD
-# RigorousInvariantMeasures.jl Documentation
-
-This package implements a flexible scheme to approximate rigorously invariant measures of dynamical systems.
-
-
-=======
 # RigorousInvariantMeasures.jl
 
 A [Julia](http://julialang.org) package which implements a implements a flexible scheme to approximate rigorously invariant measures of dynamical systems.
@@ -37,4 +30,3 @@ simply installed by running
 ```julia
 pkg> add("RigorousInvariantMeasures")
 ```
->>>>>>> origin/master

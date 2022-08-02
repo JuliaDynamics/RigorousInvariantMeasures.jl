@@ -7,10 +7,7 @@ version = "0.2.0"
 AbstractFFTs = "621f4979-c628-5d54-868e-fcf4e3e8185c"
 Arpack = "7d9fca2a-8960-54d3-9f78-7d1dccf2cb97"
 CRlibm = "96374032-68de-5a5b-8d9e-752f78720389"
-<<<<<<< HEAD
 CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
-=======
->>>>>>> origin/master
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 DualNumbers = "fa6b7ba4-c1ee-5f82-b5fc-ecf0adba8f74"
 FFTW = "7a1cc6ca-52ef-59f5-83cd-3a7055c09341"
