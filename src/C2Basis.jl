@@ -4,7 +4,7 @@ module C2BasisDefinition
 C2 basis on [0,1]
 """
 
-using ..BasisDefinition, ..DynamicDefinition, ValidatedNumerics
+using ..BasisDefinition, ..DynamicDefinition, IntervalArithmetic
 import Base: iterate, length
 import ..BasisDefinition: one_vector, integral_covector, is_integral_preserving
 import ...RigorousInvariantMeasures: NormKind, Linf

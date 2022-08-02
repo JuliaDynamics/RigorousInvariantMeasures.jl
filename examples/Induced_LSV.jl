@@ -1,5 +1,5 @@
 using RigorousInvariantMeasures
-using ValidatedNumerics
+using IntervalArithmetic
 
 m = 30
 m_extend = 100

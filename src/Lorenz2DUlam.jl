@@ -42,6 +42,50 @@ Ginverse(; x, r, c) = x > 0 ?
                 v -> ((v-c)*2^r)/(x^r) :
                 v -> ((v+c)*2^r)/((-x)^r)
 
+
+
+
+"""
+    PreimageRectangleLorenz(; branch, preim_x_left, preim_x_right, y_lower, y_upper, k)
+
+
+"""
+function PreimageRectangleLorenz(;  preim_x_left::Interval, 
+                                    preim_x_right::Interval,
+                                    y_lower, 
+                                    y_upper, 
+                                    k)
+
+    preim_x = [preim_x_left+(preim_x_right-preim_x_left)/k*i for i in 0:k]
+
+    err_x = maximum(IntervalArithmetic.radius.(preim_x))
+    err_y = 0.0
+
+    y_s = NTuple{2, Interval}[]
+
+    for x in preim_x
+        G_inv = Ginverse(x = x, r = 5.0, c = 0.5)
+        preim_y_low = min(max(G_inv(y_lower), -1), 1)
+        preim_y_up = max(min(G_inv(y_upper), 1), -1)
+        err_y = maximum([err_y, IntervalArithmetic.radius(preim_y_low), IntervalArithmetic.radius(preim_y_up)])
+        push!(y_s, (preim_y_low, preim_y_up))
+    end
+    n = length(preim_x)
+    A = Matrix{Float64}(undef, 2*n, 2)
+    for (i, x) in enumerate(preim_x[1][2:end])
+        A[i, :] = [mid(x) mid(y_s[i][1])]
+    end
+    
+    for (i, x) in enumerate(reverse(preim_x[1][2:end]))
+        A[n+i, :] = [mid(x) mid(y_s[end-i+1][2])]
+    end
+    
+    P = PH.polyhedron(PH.vrep(A), lib)
+    return P, max(err_x, err_y)
+end
+
+
+
 """
     PreimageRectangleLorenz(; T, x_left, x_right, y_lower, y_upper, k)
 

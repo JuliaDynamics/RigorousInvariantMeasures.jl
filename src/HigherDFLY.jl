@@ -23,7 +23,7 @@ end
 
 function compute_dfly_k_fi_DDi(k::Int)
     @variables x 
-    @variables f[0:k](x) 
+    @variables f[0:k](x) #(f(x))[0:k] 
     @variables DD[0:k](x)
     ∂ = Differential(x)
 

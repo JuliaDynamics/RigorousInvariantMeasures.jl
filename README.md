@@ -1,6 +1,10 @@
-# InvariantMeasures
+# RigorousInvariantMeasures
 
-[![Build Status](https://travis-ci.com/orkolorko/InvariantMeasures.jl.svg?branch=master)](https://travis-ci.com/orkolorko/InvariantMeasures.jl)
+
+[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://juliadynamics.github.io/RigorousInvariantMeasures.jl/stable/)
+[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://juliadynamics.github.io/RigorousInvariantMeasures.jl/dev/)
+[![Build Status](https://github.com/JuliaDynamics/RigorousInvariantMeasures.jl/actions/workflows/CI.yml/badge.svg?branch=master)](https://github.com/JuliaDynamics/RigorousInvariantMeasures.jl/actions/workflows/CI.yml?query=branch%3Amain)
+[![Coverage](https://codecov.io/gh/JuliaDynamics/RigorousInvariantMeasures.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/JuliaDynamics/RigorousInvariantMeasures.jl)
 
 This Package provides methods for the rigorous approximation of Absolutely Continuous Invariant Measures for one dimensional dynamical systems,
 using the results in [[2]](#2) and subsequent works.

@@ -1,4 +1,5 @@
 using RigorousInvariantMeasures
+using IntervalArithmetic
 
 @testset "Chebyshev assembler" begin
 

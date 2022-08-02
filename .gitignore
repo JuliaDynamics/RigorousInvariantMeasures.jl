@@ -1,5 +1,10 @@
 Manifest.toml
 *.juliaserialize
+<<<<<<< HEAD
 *.png
 docs/build/*
 .vscode
+=======
+docs/build/*
+.vscode/
+>>>>>>> origin/master

@@ -1,9 +1,10 @@
-using ValidatedNumerics, SparseArrays
+using SparseArrays
 using ..DynamicDefinition, ..BasisDefinition
 
 using LinearAlgebra
 
-import ValidatedNumerics.IntervalArithmetic: mid
+import IntervalArithmetic
+#import IntervalArithmetic: mid
 import Base: size, eltype
 import LinearAlgebra: mul!
 

@@ -1,6 +1,7 @@
 using RigorousInvariantMeasures
-using ValidatedNumerics
+
 using RigorousInvariantMeasures: assemble, L1, Linf
+using IntervalArithmetic
 
 @testset "Ulam assembler" begin
 

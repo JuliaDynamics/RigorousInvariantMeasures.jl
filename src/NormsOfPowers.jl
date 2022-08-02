@@ -5,7 +5,7 @@ Functions to estimate Q|_{U^0}. See our paper for details.
 using LinearAlgebra
 using SparseArrays
 using FastRounding
-using ValidatedNumerics
+
 
 export norms_of_powers, refine_norms_of_powers, norms_of_powers_dfly, norms_of_powers_trivial, norms_of_powers_from_coarser_grid
 

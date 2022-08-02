@@ -16,10 +16,16 @@ makedocs(;
     ),
     pages=[
         "Home" => "index.md",
+        "Background" => "background.md",
+        "User guide" => "userguide.md",
+        "Basis" => "basis.md",
+        "Dynamic" => "dynamic.md",
+        "Examples" => "examples.md",
+        "API" => "api.md"
     ],
 )
 
 deploydocs(;
     repo="github.com/JuliaDynamics/RigorousInvariantMeasures.jl",
-    devbranch="main",
+    devbranch="master",
 )

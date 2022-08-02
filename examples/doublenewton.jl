@@ -1,5 +1,5 @@
 using RigorousInvariantMeasures
-using ValidatedNumerics
+using IntervalArithmetic
 
 # Testing whether the "shooting method" beats taking successive preimages
 

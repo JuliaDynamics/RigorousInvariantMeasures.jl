@@ -16,7 +16,7 @@ using .Contractors
 
 include("DynamicDefinition.jl")
 using .DynamicDefinition
-export Dynamic, derivative, distorsion, endpoints, nbranches, branch, expansivity, max_distorsion
+export Dynamic, derivative, distortion, endpoints, nbranches, branch, expansivity, max_distortion
 
 include("BasisDefinition.jl")
 using .BasisDefinition
@@ -61,7 +61,8 @@ export PwMap, Basis, assemble, preim, Hat, Ulam,
 	distance_from_invariant,
 	mod1_dynamic, is_refinement
 
-import ValidatedNumerics: Interval
+import IntervalArithmetic: Interval
+using IntervalArithmetic
 export Interval
 
 include("C2Basis.jl")

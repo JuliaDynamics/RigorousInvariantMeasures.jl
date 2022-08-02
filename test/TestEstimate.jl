@@ -1,5 +1,5 @@
 @testset "Estimator" begin
-
+using IntervalArithmetic
 
 D = mod1_dynamic(x->2*x)
 B = Ulam(32)

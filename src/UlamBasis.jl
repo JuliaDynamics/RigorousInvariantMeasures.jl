@@ -1,21 +1,21 @@
 using ..BasisDefinition, ..DynamicDefinition, ..Contractors, ..PwDynamicDefinition
-using ValidatedNumerics, LinearAlgebra
+IntervalArithmetic, LinearAlgebra
 #import ..BasisDefinition: one_vector, integral_covector, is_integral_preserving, strong_norm, weak_norm, aux_norm
 
 """
-	Ulam{T<:AbstractVector} <:Basis
-
-
-Type representing a Ulam basis on a partition whose endpoints are contained in a vector
+	Ulam
+Ulam basis on [0,1] associated to the partition
+``p = \\{x_0 = 0, x_1, \\ldots, x_n=1\\}``
 """
 struct Ulam{T<:AbstractVector} <:Basis
 	p::T
 	# TODO: check in constructor that p is sorted, starts with 0 and ends with 1
 end
 
-@doc raw"""
+"""
 	Ulam(n::Integer)
-Constructor that constructs a Ulam basis with homogeneous elements of size ``\frac{1}{n}``
+	
+Equispaced Ulam basis on [0,1] of size n
 """
 Ulam(n::Integer) = Ulam(LinRange(0., 1., n+1))
 
@@ -46,7 +46,7 @@ julia> B[2](1/32)
 
 """
 function Base.getindex(B::Ulam, i::Int)
-	return x-> (B.p[i]< x < B.p[i+1] ? 1 : 0)
+	return x-> (B.p[i]<= x < B.p[i+1] ? 1 : 0)
 end
 
 function BasisDefinition.is_dual_element_empty(::Ulam, d)
@@ -100,8 +100,8 @@ end
 
 # Base.eltype(f::DualComposedWithDynamic{<:Ulam, <:Dynamic}) = Tuple{Int64,Tuple{Interval{Float64},Interval{Float64}}}
 
-@doc raw"""
-	BasisDefinition.nonzero_on(B::Ulam, (a, b))
+"""
+	nonzero_on(B::Ulam, (a, b))
 
 Returns the indices of the elements of the Ulam basis that intersect with the interval y
 We do not assume an order of a and b; this should not matter unless
@@ -124,6 +124,8 @@ function BasisDefinition.nonzero_on(B::Ulam, (a, b))
 end
 
 """
+	relative_measure((a,b)::Tuple{<:Interval,<:Interval}, (c,d)::Tuple{<:Interval,<:Interval})
+
 Relative measure of the intersection of (a,b) wrt the whole interval (c,d)
 Assumes that a,b and c,d are sorted correctly
 """
@@ -159,6 +161,12 @@ BasisDefinition.evaluate(B::Ulam{T}, i, x) where {T} = (x>(i-1)/n) && (x<i/n) ? 
 
 BasisDefinition.evaluate_integral(B::Ulam{S}, i, T::Type) where{S} = T(i)/length(B)
 
+"""
+	iterate(S::AverageZero{Ulam{T}}, state = 1) where{T}
+
+Return the elements of the basis of average ``0`` functions in the Ulam 
+Basis
+"""
 function Base.iterate(S::AverageZero{Ulam{T}}, state = 1) where{T}
 	n = length(S.basis)
 	if state == n
@@ -170,6 +178,11 @@ function Base.iterate(S::AverageZero{Ulam{T}}, state = 1) where{T}
 	return (v, state+1)
 end
 
+"""
+	Base.length(S::AverageZero{Ulam})
+
+Return the size of the Average Zero space
+"""
 Base.length(S::AverageZero{Ulam{T}}) where {T} = length(S.basis)-1
 
 BasisDefinition.is_refinement(Bf::Ulam, Bc::Ulam) = Bc.p ⊆ Bf.p

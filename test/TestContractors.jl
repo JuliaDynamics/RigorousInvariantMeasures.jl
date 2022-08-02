@@ -1,6 +1,6 @@
 using RigorousInvariantMeasures: root, nthpreimage!
 using StaticArrays
-using ValidatedNumerics
+using IntervalArithmetic
 
 @testset "Contractors" begin
 

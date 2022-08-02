@@ -1,8 +1,7 @@
 using RigorousInvariantMeasures: is_full_branch
-using ValidatedNumerics
-
 
 @testset "Dynamics" begin
+using IntervalArithmetic
 
 D = mod1_dynamic(x->2*x)
 
@@ -83,5 +82,11 @@ g(x) = f(x) - floor(f(x))
 @test endpoints(D) ≈ [0.0, 0.07389363935392047, 0.18200396341631753, 0.28117073603385473, 0.4384471871911697, 0.5287080193012084, 0.6633983486837269, 0.7902622123165944, 1.0]
 
 @test [branch(D.E, k)(Interval(0.2)) for k in 1:nbranches(D)] ≈ [∅, ∅, g(g(g(Interval(0.2)))), ∅, ∅, ∅, ∅, ∅]
+
+D = mod1_dynamic(x->2*x)
+
+@test 0.5 ∈ expansivity(D)
+@test 0 <= max_distortion(D)
+
 
 end

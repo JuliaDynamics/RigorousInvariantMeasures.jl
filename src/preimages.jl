@@ -10,6 +10,8 @@ using .Contractors
 
 
 """
+    first_overlapping(y, a)
+
 Smallest possible i such that a is in the semi-open interval [y[i], y[i+1]).
 
 This should work properly even if `a, y` are intervals; in this case it returns the *smallest* possible value of i over all possible "assignments" of a, y inside those intervals.
@@ -23,6 +25,8 @@ function first_overlapping(y, a)
 end
 
 """
+    last_overlapping(y, a)
+
 Largest possible j such that a-ε is in the semi-open interval [y[j], y[j+1]).
 
 This should work properly even if `a, y` are intervals; in this case it returns the *largest* possible value of i over all possible "assignments" of a, y inside those intervals.
@@ -37,6 +41,8 @@ end
 
 """
     preimages(y, br::Branch, ylabel = 1:length(y), ϵ = 0.0)
+
+Construct preimages of an increasing array y under a monotonic branch defined on X = (a, b), propagating additional labels `ylabel`
 
 Construct preimages of an increasing array `y` under a monotonic branch `br` defined on X = (a, b), propagating additional labels `ylabel`
 
@@ -125,6 +131,11 @@ function preimages(y, br::Branch, ylabel = 1:length(y), ϵ = 0.0)
     return (x, xlabel)
 end
 
+"""
+    preimages(y, D::Dynamic, ylabel = 1:length(y), ϵ = 0.0; progress = true)
+
+    Construct preimages of an increasing array y under a dynamic, propagating additional labels `ylabel`
+"""
 function preimages(y, D::Dynamic, ylabel = 1:length(y), ϵ = 0.0)
     results = @showprogress 1 "Computing preimages..." [preimages(y, b, ylabel, ϵ) for b in branches(D)]
     x = vcat((result[1] for result in results)...)
@@ -133,6 +144,8 @@ function preimages(y, D::Dynamic, ylabel = 1:length(y), ϵ = 0.0)
 end
 
 """
+    preimages_and_derivatives(y, br::Branch, ylabel = 1:length(y), ϵ = 0.0)
+
 Compute preimages of D *and* the derivatives f'(x) in each point.
 
 Returns: x, xlabel, x′
@@ -174,6 +187,7 @@ Base.:∘(D1::ComposedDynamic, D2::PwMap) = ComposedDynamic((D1, D2), composedPw
 Base.:∘(D1::ComposedDynamic, D2::ComposedDynamic) = ComposedDynamic((D1, D2), composedPwMap(D1.E, D2.E))
 dfly(N1::Type{<:NormKind}, N2::Type{<:NormKind}, D::ComposedDynamic) = dfly(N1, N2, D.E)
 dfly(N1::Type{RigorousInvariantMeasures.TotalVariation}, N2::Type{RigorousInvariantMeasures.L1}, D::ComposedDynamic) = dfly(N1, N2, D.E)
+dfly(N1::Type{RigorousInvariantMeasures.Lipschitz}, N2::Type{RigorousInvariantMeasures.L1}, D::ComposedDynamic) = dfly(N1, N2, D.E)
 
 
 """

@@ -1,5 +1,5 @@
 using ..BasisDefinition, ..DynamicDefinition
-using ValidatedNumerics
+
 
 struct C1 <: NormKind end
 struct W{k, l} <:NormKind end
@@ -33,6 +33,8 @@ Base.length(B::Chebyshev) = length(B.p)
 # they need refactoring, but not now
 #########################################################
 """
+	_eval_T
+
 Eval the Chebyshev polynomial up to degree n on an array of 
 points in [-1, 1].
 
@@ -50,7 +52,10 @@ function _eval_T(n, x::Array{T}) where {T}
 	return M
 end
 
-""" Eval a polynomial in Chebyshev basis, ClenshawBackward, using ball arithmetic
+""" 
+	eval_Clenshaw_BackwardFirst
+
+Eval a polynomial in Chebyshev basis, ClenshawBackward, using ball arithmetic
 Following Viviane Ledoux, Guillaume Moroz 
 "Evaluation of Chebyshev polynomials on intervals andapplication to root finding"
 """
@@ -162,9 +167,14 @@ function BasisDefinition.aux_normalized_projection_error(B::Chebyshev)
 	return 2.0 ⊘₊den
 end
 
-# V.A. Markov estimate from 
-# GRADIMIR MILOVANOVIC EXTREMAL PROBLEMS AND INEQUALITIES OF MARKOV-BERNSTEIN TYPE FOR POLYNOMIALS
+"""
+	BasisDefinition.strong_weak_bound(B::Chebyshev)
+
+V.A. Markov estimate from GRADIMIR MILOVANOVIC EXTREMAL PROBLEMS AND 
+INEQUALITIES OF MARKOV-BERNSTEIN TYPE FOR POLYNOMIALS
+"""
 # TODO: Check the indexes
+
 function BasisDefinition.strong_weak_bound(B::Chebyshev)
 	n = length(B)-1
 	k = B.k-1
@@ -190,7 +200,9 @@ BasisDefinition.aux_norm(B::Chebyshev) = L1
 BasisDefinition.strong_norm(B::Chebyshev) = W{B.k, 1}
 
 """
-makes so that B[j] returns a HatFunctionOnTorus with the j-th basis element
+	Base.getindex(B::Chebyshev, i::Int)
+
+Make so that B[j] returns a HatFunctionOnTorus with the j-th basis element
 """
 function Base.getindex(B::Chebyshev, i::Int)
 	n = length(B)
