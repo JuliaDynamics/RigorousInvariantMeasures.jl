@@ -87,6 +87,39 @@ import TaylorSeries
 
 function discretizationlogder(B, D::PwMap; degree = 7)
     v = zeros(Interval{Float64}, length(B))
+    # we first compute the indexes in the Ulam approximation 
+    # of the endpoints of the branches 
+    infbound  = emptyinterval()
+    
+    for (i, br) in enumerate(D.branches)
+        ind_X1 = Int64(floor(length(B)*br.X[1].lo))+1
+        ind_X2 = min(Int64(floor(length(B)*br.X[2].lo))+1, length(B))    
+        dom = hull(br.X[1], br.X[2])
+        for i in ind_X1:ind_X2
+            I = Interval(B.p[i], B.p[i+1]) ∩ dom
+            r = Interval(radius(I))
+            Tmid = TaylorSeries.Taylor1([Interval(mid(I)), Interval(1)], degree)
+            Tint = TaylorSeries.Taylor1([I, Interval(1)], degree)
+            Fmid = log(abs(br.fprime(Tmid)))
+            Fint = log(abs(br.fprime(Tint)))   
+            infbound = infbound ∪ abs(Fint[0])
+            ϵ = mag(Fint[degree]-Fmid[degree]) 
+            
+            for k in 0:Int64(floor(Float64(degree)/2))
+                v[i]+=2*(Fmid[2*k]*r^(2*k+1))/(2*k+1)            
+            end
+            v[i]+=Interval(-ϵ, ϵ)*r^(degree+1)/(degree+1)
+        end
+        v[ind_X1]+=2*Interval(radius(br.X[1]))*abs(log(br.fprime(br.X[1])))
+        v[ind_X2]+=2*Interval(radius(br.X[2]))*abs(log(br.fprime(br.X[2])))
+    end
+
+    v*=length(B)
+    return Observable(B, v, infbound)
+end
+
+#= function discretizationlogder(B, D::PwMap; degree = 7)
+    v = zeros(Interval{Float64}, length(B))
     infbound  = emptyinterval()
     endpoints = D.endpoints
     delicate_indexes = Int64.(floor.(length(B)*[x.lo for x in endpoints])).+1
@@ -119,7 +152,7 @@ function discretizationlogder(B, D::PwMap; degree = 7)
     end
     v*=length(B)
     return Observable(B, v, infbound)
-end
+end =#
 
 function integrateobservable(B::Ulam, ϕ::Observable, f::Vector, error)
     val = (ϕ.v)'*f 
