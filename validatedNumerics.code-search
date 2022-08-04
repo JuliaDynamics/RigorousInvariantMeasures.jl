@@ -1,0 +1,199 @@
+# Query: validatedNumerics
+# ContextLines: 1
+
+44 results - 41 files
+
+examples/4x_perturbed_Hat.jl:
+  1  using RigorousInvariantMeasures
+  2: 
+  3  
+
+examples/4x_perturbed_Ulam.jl:
+  1  using RigorousInvariantMeasures
+  2: 
+
+examples/175_nonlinear_ulam.jl:
+  1  using RigorousInvariantMeasures
+  2: 
+
+examples/175_ulam.jl:
+  1  using RigorousInvariantMeasures
+  2: 
+
+examples/doublenewton.jl:
+  1  using RigorousInvariantMeasures
+  2: 
+
+examples/Induced_LSV.jl:
+  1  using RigorousInvariantMeasures
+  2: 
+
+examples/Lanford_Hat.jl:
+  1  using RigorousInvariantMeasures
+  2: 
+
+examples/Lanford_Ulam.jl:
+  1  using RigorousInvariantMeasures
+  2: 
+
+examples/LorenzMap.jl:
+  1  using RigorousInvariantMeasures
+  2: 
+
+examples/norm_bounds_kinds.jl:
+  1  using RigorousInvariantMeasures
+  2: 
+
+examples/norms_vs_dimension_plot.jl:
+  1  using RigorousInvariantMeasures
+  2: 
+
+examples/Pw_NonMarkov_Ulam.jl:
+  1  using RigorousInvariantMeasures
+  2: 
+
+examples/PwLinear_NonMarkov_Ulam.jl:
+  1  using RigorousInvariantMeasures
+  2: 
+
+examples/time_convergence_plot2.jl:
+  1  using RigorousInvariantMeasures
+  2: using Glob
+
+examples/warmup.jl:
+  1  using RigorousInvariantMeasures
+  2: 
+
+src/C2Basis.jl:
+  6  
+  7: using ..BasisDefinition, ..DynamicDefinition
+  8  import Base: iterate, length
+
+src/Chebyshev.jl:
+   5  using ..BasisDefinition, ..DynamicDefinition
+   7  import ..BasisDefinition: one_vector, integral_covector, is_integral_preserving
+
+  13  
+  14: #we suppose ValidatedNumerics computes the Chebyshev points with adequate precision
+  15  ChebCouples(n, T) = hcat(
+
+src/Contractors.jl:
+  1  module Contractors
+  2: 
+
+src/FourierBasis.jl:
+  1  using ..BasisDefinition, ..DynamicDefinition, ..Contractors, ..PwDynamicDefinition
+  2: using LinearAlgebra
+  3  import Base: iterate
+
+src/GenericAssembler.jl:
+  1: using SparseArrays
+  2  using ..DynamicDefinition, ..BasisDefinition
+
+  5  
+  6: import IntervalArithmetic: mid
+  7  import Base: size, eltype
+
+src/GenericEstimate.jl:
+  1: using LinearAlgebra, Arpack, FastRounding
+  2  using ..DynamicDefinition, ..BasisDefinition
+
+src/HatBasis.jl:
+  5  using ..BasisDefinition, ..DynamicDefinition
+  7  import ..BasisDefinition: one_vector, integral_covector, is_integral_preserving
+
+src/InducedLSV.jl:
+  1  module InducedLSVMapDefinition
+  2: using ValidatedNumerics
+  3  using ..DynamicDefinition, ..Contractors
+
+src/IterateDynamic.jl:
+  1: using ValidatedNumerics
+  2  using .DynamicDefinition, .PwDynamicDefinition
+
+src/LorenzMap.jl:
+  3  using ..PwDynamicDefinition: PwMap
+  4: using ValidatedNumerics
+  5  
+
+src/NewChebyshev.jl:
+  1  using ..BasisDefinition, ..DynamicDefinition
+  2: using ValidatedNumerics
+  3  
+
+src/NonPeriodicHatBasis.jl:
+  5  using ..BasisDefinition, ..DynamicDefinition
+  6: using ValidatedNumerics
+  7  import ..BasisDefinition: one_vector, integral_covector, is_integral_preserving
+
+src/NormsOfPowers.jl:
+  7  using FastRounding
+  8: using ValidatedNumerics
+  9  
+
+src/NormsOfPowersNoise.jl:
+  7  using FastRounding
+  8: using ValidatedNumerics
+  9  using FFTW
+
+src/pitrig.jl:
+  5  
+  6: using ValidatedNumerics
+  7  
+  8: using ValidatedNumerics.IntervalArithmetic: atomic, SVector, @round
+  9  
+
+src/PwDynamicDefinition.jl:
+  5  module PwDynamicDefinition
+  6: using ValidatedNumerics
+  7  using ..DynamicDefinition
+
+src/RigorousInvariantMeasures.jl:
+  63  
+  64: import ValidatedNumerics: Interval
+  65  export Interval
+
+src/UlamBasis.jl:
+  1  using ..BasisDefinition, ..DynamicDefinition, ..Contractors, ..PwDynamicDefinition
+  2: using ValidatedNumerics, LinearAlgebra
+  3  #import ..BasisDefinition: one_vector, integral_covector, is_integral_preserving, strong_norm, weak_norm, aux_norm
+
+test/TestAssemble.jl:
+  1  using RigorousInvariantMeasures
+  2: using ValidatedNumerics
+  3  using RigorousInvariantMeasures: assemble, L1, Linf
+
+test/TestAssembleHat.jl:
+  1  using RigorousInvariantMeasures
+  2: using ValidatedNumerics
+  3  using LinearAlgebra
+
+test/TestContractors.jl:
+  2  using StaticArrays
+  3: using ValidatedNumerics
+  4  
+
+test/TestDynamic.jl:
+  1  using RigorousInvariantMeasures: is_full_branch
+  2: using ValidatedNumerics
+  3  
+
+test/TestHat.jl:
+  2  
+  3: using ValidatedNumerics
+  4  using RigorousInvariantMeasures
+
+test/TestHatNP.jl:
+  2  
+  3: using ValidatedNumerics
+  4  using RigorousInvariantMeasures
+
+test/TestNormOfPowers.jl:
+  1  using RigorousInvariantMeasures
+  2: using ValidatedNumerics
+  3  using LinearAlgebra: I, opnorm
+
+test/TestUlam.jl:
+  2  
+  3: using ValidatedNumerics
+  4  using RigorousInvariantMeasures

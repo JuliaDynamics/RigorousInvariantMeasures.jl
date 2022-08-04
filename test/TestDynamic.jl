@@ -85,6 +85,18 @@ g(x) = f(x) - floor(f(x))
 
 D = mod1_dynamic(x->2*x)
 
+@test D.full_branch == true
+@test D.branches[1].f(0.125) == 0.25
+@test D.branches[2].f(0.5+0.125) == 0.25
+@test D.branches[1].fprime(0.1) == 2.0
+@test D.branches[2].fprime(0.1) == 2.0
+
+@test 0 ∈ D.branches[1].X[1]
+@test 0 ∈ D.branches[1].Y[1]
+
+@test 0.5 ∈ D.branches[1].X[2]
+@test 1 ∈ D.branches[1].Y[2]
+
 @test 0.5 ∈ expansivity(D)
 @test 0 <= max_distortion(D)
 
