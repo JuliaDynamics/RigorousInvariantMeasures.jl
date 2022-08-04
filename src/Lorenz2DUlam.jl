@@ -46,11 +46,16 @@ Ginverse(; x, r, c) = x > 0 ?
 
 
 """
-    PreimageRectangleLorenz(; branch, preim_x_left, preim_x_right, y_lower, y_upper, k)
+    PreimageRectangleLorenz(; preim_x_left, preim_x_right, y_lower, y_upper, k)
 
-
+Return a Polyhedra that approximates the preimage of the rectangle 
+``[T(preimx_{left}), T(preimx_{right})] × [y_{lower}, y_{upper}]``
+through the skew product map ``F(x, y) = (T(x), G(x, y)) and the maximum of the 
+error in the computation of the vertices.
+The argument `k` is the number of equispaced linear interpolation points in the
+`x` direction.
 """
-function PreimageRectangleLorenz2(;  preim_x_left::Interval, 
+function PreimageRectangleLorenz(;  preim_x_left::Interval, 
                                     preim_x_right::Interval,
                                     y_lower, 
                                     y_upper, 
@@ -84,9 +89,30 @@ function PreimageRectangleLorenz2(;  preim_x_left::Interval,
     return P, max(err_x, err_y)
 end
 
+using IntervalArithmetic
+function _Lorenz_one_dim_map(x::Interval, α, s)
+    x_left = x ∩ @interval -1 0
+    x_right = x ∩ @interval 0 1
+    return -α*(-x_left)^s+1 ∪ α*(x_right)^s-1
+end
+
+_Lorenz_left_one_dim_map(x::Interval, α, s) = -α*(-(x ∩ @interval -1 0))^s-Interval(1)
+_Lorenz_right_one_dim_map(x::Interval, α, s) = α*(x ∩ @interval 0 1)^s-Interval(1)
+_Lorenz_left_fiber_map(x::Interval, y::Interval, r, c) = 2^(-r)*y*(-x)^r-c
+_Lorenz_right_fiber_map(x::Interval, y::Interval, r, c) = 2^(-r)*y*x^r+c
 
 
-"""
+function BoundingRandomAttractor(α, r, s, c, ξ)
+    Dict1to2 = Dict{Int64, NTuple{2, Int64}}()
+    Dict2to1 = Dict{NTuple{2, Int64}, Int64}()
+
+    
+
+
+
+end
+
+#= """
     PreimageRectangleLorenz(; T, x_left, x_right, y_lower, y_upper, k)
 
 Return a Polyhedra that approximates the preimage of the rectangle ``[x_{left}, x_{right}] × [y_{lower}, y_{upper}]``
@@ -122,6 +148,6 @@ function PreimageRectangleLorenz(; T, x_left, x_right, y_lower, y_upper, k)
 
     P = PH.polyhedron(PH.vrep(A), lib)
     return P, max(err_x, err_y)
-end
+end =#
 
 end

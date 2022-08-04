@@ -47,6 +47,7 @@ function Base.:*(M::DiscretizedNoiseKernelFFT, v)
 end 
 
 struct DiscretizedNoiseKernelUlam{S<:AbstractVector} <: NoiseKernel
+	B::Ulam
 	ξ
 	v::S
 	rad
@@ -64,14 +65,16 @@ function UniformNoiseUlam(ξ, B::Ulam, boundarycondition = :periodic)
 	v[1] = (k-sum(v))/2
 	v[n] = v[1]
 	if boundarycondition == :periodic
-		return DiscretizedNoiseKernelUlam(Interval(ξ),
+		return DiscretizedNoiseKernelUlam(B,
+										  Interval(ξ),
 										  mid.(v), 
 										  opnormbound(L1, v)-k, 
 										  boundarycondition, 
 										  zeros(k+n), 
 										  zeros(k)) 
 	elseif boundarycondition == :reflecting
-		return DiscretizedNoiseKernelUlam(Interval(ξ),
+		return DiscretizedNoiseKernelUlam(B,
+										  Interval(ξ),
 										  mid.(v), 
 										  opnormbound(L1, v)-k, 
 										  boundarycondition, 
@@ -81,7 +84,7 @@ function UniformNoiseUlam(ξ, B::Ulam, boundarycondition = :periodic)
 end
 
 #TODO, but at the moment this is fine, it is a Markov operator
-BasisDefinition.opnormbound(::Type{L1}, M::DiscretizedNoiseKernelUlam) = 1.0
+BasisDefinition.opnormbound(B::Ulam, ::Type{L1}, M::DiscretizedNoiseKernelUlam) = 1.0
 opradius(::Type{L1}, M::DiscretizedNoiseKernelUlam) = M.rad
 nonzero_per_row(M::DiscretizedNoiseKernelUlam) = length(M.v)
 dfly(::Type{TotalVariation}, ::Type{L1}, N::DiscretizedNoiseKernelUlam) = (0.0, (1/(2*N.ξ)).hi)
@@ -115,10 +118,10 @@ function mult(M::DiscretizedNoiseKernelUlam, v::Vector{Interval{T}}, ::Val{:peri
 	k = length(v)
 	l =n÷2
 
-	nrmv = opnormbound(L1, v)
+	nrmv = opnormbound(M.B, L1, v)
 	midv = mid.(v)
 	radv = radius.(v)
-	nrmrad = opnormbound(L1, radv)
+	nrmrad = opnormbound(M.B, L1, radv)
 
 	M.w .= 0
 	
@@ -132,7 +135,7 @@ function mult(M::DiscretizedNoiseKernelUlam, v::Vector{Interval{T}}, ::Val{:peri
 	end
 	δₖ = opradius(L1, M)
 	γₖ = gamma(T, nonzero_per_row(M)) 
-    nrm_MK = opnormbound(L1, M)
+    nrm_MK = opnormbound(M.B, L1, M)
     normMK = nrm_MK ⊕₊ δₖ	
 	
 	ϵ = (γₖ ⊗₊ normMK) ⊗₊ nrmv ⊕₊ normMK ⊗₊ nrmrad 		

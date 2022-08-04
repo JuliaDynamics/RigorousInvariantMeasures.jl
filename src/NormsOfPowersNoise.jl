@@ -32,7 +32,7 @@ function norms_of_powers_noise(
         N::Type{L1}, 
         m::Integer, 
         Q::DiscretizedOperator,
-        NK::NoiseKernel, 
+        MK::NoiseKernel, 
         f::AbstractArray;
         normv0::Real=-1., #used as "missing" value
         normQ::Real=-1.,
@@ -149,7 +149,8 @@ end
 Array of "trivial" bounds for the powers of a DiscretizedOperator (on the whole space)
 coming from from ||Q^k|| ≤ ||Q||^k
 """
-function norms_of_powers_trivial_noise(N::Type{<:NormKind}, 
+function norms_of_powers_trivial_noise(B::Basis,
+                                       N::Type{<:NormKind}, 
                                        Q::DiscretizedOperator, 
                                        MK::NoiseKernel,
                                        m::Integer)
@@ -208,7 +209,7 @@ function norms_of_powers_from_coarser_grid_noise(fine_basis::Ulam,
     end
     m = length(coarse_norms)
     fine_norms = fill(NaN, m+1)
-    trivial_norms = norms_of_powers_trivial_noise(weak_norm(fine_basis), Q, NK, m+1)
+    trivial_norms = norms_of_powers_trivial_noise(fine_basis, weak_norm(fine_basis), Q, NK, m+1)
 
     A, B = dfly(strong_norm(fine_basis), aux_norm(fine_basis), NK)
 
@@ -264,13 +265,13 @@ function powernormboundsnoise(B; Q=DiscretizedOperator(B, D), NK = NK::NoiseKern
 	m = 8
 	computed_norms = []
 	while true
-		computed_norms = norms_of_powers_noise(weak_norm(B), m, Q, NK, integral_covector(B))
+		computed_norms = norms_of_powers_noise(B, weak_norm(B), m, Q, NK, integral_covector(B))
 		if any(computed_norms .< 0.1)
 			break
 		end
 		m = 2*m
 	end
-	trivial_norms = norms_of_powers_trivial_noise(weak_norm(B), Q, NK, m)
+	trivial_norms = norms_of_powers_trivial_noise(B, weak_norm(B), Q, NK, m)
 	norms = min.(trivial_norms, computed_norms)
 
 	m_extend = 2*m
@@ -298,7 +299,7 @@ function finepowernormboundsnoise(B,
                                   NKfine::NoiseKernel)
 	                              m = length(coarse_norms)
 
-	trivial_norms_fine = norms_of_powers_trivial_noise(weak_norm(B), Qfine, NKfine, m+1)
+	trivial_norms_fine = norms_of_powers_trivial_noise(Bfine, weak_norm(B), Qfine, NKfine, m+1)
 	twogrid_norms_fine = norms_of_powers_from_coarser_grid_noise(Bfine, 
                                                                  B, 
                                                                  Qfine,
@@ -357,14 +358,14 @@ function distance_from_invariant_noise(B::Basis,
                                  norms::Vector; 
                                  ε₁::Float64 = residualboundnoise(B, weak_norm(B), Q, NK, w), 
                                  ε₂::Float64 = mag(integral_covector(B) * w - 1), 
-                                 normQ::Float64 = opnormbound(weak_norm(B), Q))
+                                 normQ::Float64 = opnormbound(B, weak_norm(B), Q))
 	if ε₂ > 1e-8
 		@error "w does not seem normalized correctly"
 	end
     _ , us = dfly(strong_norm(B), aux_norm(B), NK)
 	Cs = infinite_sum_norms(norms)
 	Kh =  BasisDefinition.weak_projection_error(B)
-	normw = normbound(weak_norm(B), w)
+	normw = normbound(B, weak_norm(B), w)
 
 	return Cs ⊗₊ (2. ⊗₊ Kh ⊗₊ (1. ⊕₊ normQ) ⊗₊ us ⊕₊ ε₁ ⊘₊ (1. ⊖₋ ε₂)) ⊕₊ ε₂ ⊘₊ (1. ⊖₋ ε₂) ⊗₊ normw
 end
