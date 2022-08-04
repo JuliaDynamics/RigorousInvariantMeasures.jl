@@ -12,6 +12,8 @@ using Test, Documenter
     include("TestAssemble.jl")
     include("TestAssembleHat.jl")
     include("TestEstimate.jl")
+    include("TestFullRunHat2x.jl")
+    include("TestFullRunUlam2x.jl")
     include("TestNormOfPowers.jl")
     include("TestAbstractConvergence.jl")
     include("TestPreimages.jl")
