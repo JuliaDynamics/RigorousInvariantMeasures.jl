@@ -22,14 +22,15 @@ function Diff(v::Vector{SymbL})
 end
 
 function compute_dfly_k_fi_DDi(k::Int)
-    @variables x 
-    @variables f[0:k](x) #(f(x))[0:k] 
-    @variables DD[0:k](x)
+    @variables x D(x)
+    @variables (f(x))[1:k+1] #f[0:k](x) # 
+    @variables (DD(x))[1:k+1]
     ∂ = Differential(x)
 
     der_dict = Dict([[D => DD[1] ]; [∂(f[i]) => f[i+1] for i in 1:k]; [∂(DD[i]) => DD[i+1] for i in 1:k]])
 
     P = SymbL(1, f[1]) #Lf
+
     v = P   
     for i in 1:k
         v = Diff(v)
@@ -40,7 +41,6 @@ function compute_dfly_k_fi_DDi(k::Int)
             v[k] = SymbL(v[k].n, l)
         end
     end
-
     return v
 end
 
@@ -50,10 +50,10 @@ function _optimize_mult(k, n, h::SymbolicUtils.Mul, vals)
     
     @variables x 
     
-    @variables f[0:k](x) 
+    @variables f(x)[1:k+1] 
     boolf = [(symb in keys(h.dict)) for symb in f]
     
-    @variables DD[0:k](x)
+    @variables DD(x)[1:k+1]
     boolDD = [(symb in keys(h.dict)) for symb in DD]
     
     # I start with a simple version, where I use the n on 

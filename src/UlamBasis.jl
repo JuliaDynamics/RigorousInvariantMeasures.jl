@@ -18,7 +18,33 @@ end
 Equispaced Ulam basis on [0,1] of size n
 """
 Ulam(n::Integer) = Ulam(LinRange(0., 1., n+1))
+
+@doc raw"""
+	Base.length(B::Ulam)
+Returns the size of the Ulam basis (the size of the underlying vector -1)
+"""
 Base.length(B::Ulam) = length(B.p) - 1
+
+@doc raw"""
+	Base.getindex(B::Ulam, i::Int)
+Returns the i-th element of the Ulam basis as a function.
+
+# Example
+
+```jldoctest
+julia> using RigorousInvariantMeasures
+
+julia> B = Ulam(16)
+Ulam{LinRange{Float64, Int64}}(range(0.0, stop=1.0, length=17))
+
+julia> B[1](1/32)
+1
+
+julia> B[2](1/32)
+0
+```
+
+"""
 function Base.getindex(B::Ulam, i::Int)
 	return x-> (B.p[i]<= x < B.p[i+1] ? 1 : 0)
 end
@@ -79,9 +105,9 @@ end
 
 Returns the indices of the elements of the Ulam basis that intersect with the interval y
 We do not assume an order of a and b; this should not matter unless
-the preimages are computed with very low accuracy
+the preimages are computed with very low accuracy.
 We assume, though, that y comes from the (possibly inexact) numerical approximation
-of an interval in [0,1], i.e., we restrict to y ∩ [0,1]
+of an interval in ``[0,1]``, i.e., we restrict to ``y \\cap [0,1]``
 """
 function BasisDefinition.nonzero_on(B::Ulam, (a, b))
 	y = hull(a, b)

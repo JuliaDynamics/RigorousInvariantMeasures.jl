@@ -22,6 +22,7 @@ unique_increasing(a, b)
 Given intervals a, b, returns `true` if a < b, `false` if b < a, and raises an error if it is not uniquely determined.
 """
 function unique_increasing(a::Interval, b::Interval)
+	#@info a, b
 	if a.hi < b.lo
 		return true
 	elseif b.hi < a.lo
