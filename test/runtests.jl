@@ -18,7 +18,11 @@ using Test, Documenter
     include("TestChebyshev.jl")
     include("TestObservables.jl")
     include("TestLorenz2DUlam.jl")
-    doctest(RigorousInvariantMeasures)
+    
+    @testset "Doctests" begin 
+        doctest(RigorousInvariantMeasures)
+    end
+
 end
 
 

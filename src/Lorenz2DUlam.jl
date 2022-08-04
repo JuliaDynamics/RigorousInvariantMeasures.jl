@@ -96,7 +96,7 @@ function _Lorenz_one_dim_map(x::Interval, α, s)
     return -α*(-x_left)^s+1 ∪ α*(x_right)^s-1
 end
 
-_Lorenz_left_one_dim_map(x::Interval, α, s) = -α*(-(x ∩ @interval -1 0))^s-Interval(1)
+_Lorenz_left_one_dim_map(x::Interval, α, s) = -α*(-(x ∩ @interval -1 0))^s+Interval(1)
 _Lorenz_right_one_dim_map(x::Interval, α, s) = α*(x ∩ @interval 0 1)^s-Interval(1)
 _Lorenz_left_fiber_map(x::Interval, y::Interval, r, c) = 2^(-r)*y*(-x)^r-c
 _Lorenz_right_fiber_map(x::Interval, y::Interval, r, c) = 2^(-r)*y*x^r+c
