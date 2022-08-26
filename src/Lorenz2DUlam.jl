@@ -18,16 +18,14 @@ ContractingLorenz1D(; α , s) = PwMap([x-> -α*(-x)^s+1, x-> α*(x)^s-1], [-1, 0
 
 T = ContractingLorenz1D(α = α , s = s)
 
-"""
-    FiberMapLorenz1D(; x, r, c)
+# these are the coordinate change maps
+ϕ = PwMap([x->2*x-1, ], [0, 1])
+ψ = PwMap([x-> x/2+1/2, ], [-1, 1])
 
-For a fixed ``x`` return the fiber map of the skew product, with parameter ``r`` and ``c``,
-i.e., if ``x>0`` we have ``G(x, y) = 2^(-r)y x^r+c``
-and for ``x<0`` we have ``G(x, y) = 2^(-r)*y*(-x)^r-c``
+# this is the map on [0, 1], incredibly it works!!!
+D = ψ∘T∘ϕ
 
-This map is represented as a Branch object, where we pass the function, the value of the ``y``-derivative
-(which is a constant depending on ``x``)
-"""
+
 # to simplify implementation, we use the Julia Polyhedra library
 import Polyhedra as PH
 import GLPK
@@ -41,8 +39,6 @@ import RigorousInvariantMeasures: preimages
 Ginverse(; x, r, c) = x > 0 ?
                 v -> ((v-c)*2^r)/(x^r) :
                 v -> ((v+c)*2^r)/((-x)^r)
-
-
 
 
 """
@@ -59,8 +55,9 @@ function PreimageRectangleLorenz(;  preim_x_left::Interval,
                                     preim_x_right::Interval,
                                     y_lower, 
                                     y_upper, 
-                                    k)
-
+                                    k,
+                                    r,
+                                    c)
     preim_x = [preim_x_left+(preim_x_right-preim_x_left)/k*i for i in 0:k]
 
     err_x = maximum(IntervalArithmetic.radius.(preim_x))
@@ -69,7 +66,7 @@ function PreimageRectangleLorenz(;  preim_x_left::Interval,
     y_s = NTuple{2, Interval}[]
 
     for x in preim_x
-        G_inv = Ginverse(x = x, r = 5.0, c = 0.5)
+        G_inv = Ginverse(x = x, r = r, c = c)
         preim_y_low = min(max(G_inv(y_lower), -1), 1)
         preim_y_up = max(min(G_inv(y_upper), 1), -1)
         err_y = maximum([err_y, IntervalArithmetic.radius(preim_y_low), IntervalArithmetic.radius(preim_y_up)])
@@ -96,7 +93,7 @@ function _Lorenz_one_dim_map(x::Interval, α, s)
     return -α*(-x_left)^s+1 ∪ α*(x_right)^s-1
 end
 
-_Lorenz_left_one_dim_map(x::Interval, α, s) = -α*(-(x ∩ @interval -1 0))^s-Interval(1)
+_Lorenz_left_one_dim_map(x::Interval, α, s) = -α*(-(x ∩ @interval -1 0))^s+Interval(1)
 _Lorenz_right_one_dim_map(x::Interval, α, s) = α*(x ∩ @interval 0 1)^s-Interval(1)
 _Lorenz_left_fiber_map(x::Interval, y::Interval, r, c) = 2^(-r)*y*(-x)^r-c
 _Lorenz_right_fiber_map(x::Interval, y::Interval, r, c) = 2^(-r)*y*x^r+c
@@ -106,48 +103,11 @@ function BoundingRandomAttractor(α, r, s, c, ξ)
     Dict1to2 = Dict{Int64, NTuple{2, Int64}}()
     Dict2to1 = Dict{NTuple{2, Int64}, Int64}()
 
-    
-
-
-
+    left_image_rectangle_x = _Lorenz_left_one_dim_map(Interval(-1,0), α, s)
+    left_image_rectangle_y = _Lorenz_left_fiber_map(Interval(-1), Interval(-1, 1), r, c)
+    @info left_image_rectangle_x
+    @info left_image_rectangle_y
 end
 
-#= """
-    PreimageRectangleLorenz(; T, x_left, x_right, y_lower, y_upper, k)
-
-Return a Polyhedra that approximates the preimage of the rectangle ``[x_{left}, x_{right}] × [y_{lower}, y_{upper}]``
-through the skew product map ``F(x, y) = (T(x), G(x, y)) and the maximum of the error in the computation 
-of the vertices.
-"""
-function PreimageRectangleLorenz(; T, x_left, x_right, y_lower, y_upper, k)
-    x = [Interval(-1); [Interval(x_left)+i*Interval(x_right-x_left)/k for i in 0:k]; Interval(1)]
-    
-    
-    preim_x = preimages(x, T.branches[2])
-    @info preim_x
-    
-    err_x = maximum(IntervalArithmetic.radius.(preim_x[1]))
-    y_s = NTuple{2, Interval}[]
-    err_y = 0.0
-    for x in preim_x[1][2:end]
-        G_inv = Ginverse(x = x, r = 5.0, c = 0.5)
-        preim_y_low = min(max(G_inv(y_lower), -1), 1)
-        preim_y_up = max(min(G_inv(y_upper), 1), -1)
-        err_y = maximum([err_y, IntervalArithmetic.radius(preim_y_low), IntervalArithmetic.radius(preim_y_up)])
-        push!(y_s, (preim_y_low, preim_y_up))
-    end
-    n = length(preim_x[1][2:end])
-    A = Matrix{Float64}(undef, 2*n, 2)
-    for (i, x) in enumerate(preim_x[1][2:end])
-        A[i, :] = [mid(x) mid(y_s[i][1])]
-    end
-
-    for (i, x) in enumerate(reverse(preim_x[1][2:end]))
-        A[n+i, :] = [mid(x) mid(y_s[end-i+1][2])]
-    end
-
-    P = PH.polyhedron(PH.vrep(A), lib)
-    return P, max(err_x, err_y)
-end =#
 
 end
