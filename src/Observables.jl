@@ -84,8 +84,14 @@ function Observable(B::Ulam, ϕ::Function; tol = 2^-10)
 end
 
 import TaylorSeries
+"""
+    discretizationlogder(B::Ulam, D::PwMap; degree = 7)
 
-function discretizationlogder(B, D::PwMap; degree = 7)
+Compute the discretization of the logarithm of the derivative 
+of the dynamics 'D' on the Ulam basis 'B', using a Taylor series 
+expansion of degree 'degree' 
+"""
+function discretizationlogder(B::Ulam, D::PwMap; degree = 7)
     v = zeros(Interval{Float64}, length(B))
     # we first compute the indexes in the Ulam approximation 
     # of the endpoints of the branches 
@@ -117,6 +123,17 @@ function discretizationlogder(B, D::PwMap; degree = 7)
     v*=length(B)
     return Observable(B, v, infbound)
 end
+
+function discretizationlogder_fast(B, D::PwMap)
+    v = zeros(Interval{Float64}, length(B))
+
+    @error "Not implemented yet!"
+
+
+end
+
+
+
 
 #= function discretizationlogder(B, D::PwMap; degree = 7)
     v = zeros(Interval{Float64}, length(B))

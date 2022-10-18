@@ -295,7 +295,7 @@ function compute_transfer_operator(α, s, r, c, k_x, k_y, interp_step)
                          
 
                         intersection = PH.intersect(P, domain_rectangle)
-
+                        @info PH.vrep(intersection)
                         rel_meas_poly = (PH.volume(intersection)*k_x*k_y)/4
                         # TODO: add error for the computed value!
                         

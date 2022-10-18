@@ -95,4 +95,6 @@ export L2, Fourier1D, GaussianNoise
 
 include("Lorenz2DUlam.jl")
 
+include("FourierBasisBack.jl")
+
 end
