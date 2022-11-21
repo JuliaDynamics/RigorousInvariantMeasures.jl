@@ -202,10 +202,30 @@ end
 
 
 using SparseArrays
+
+
+"""
+    Lorenz2D.compute_transfer_operator
+
+Compute the transfer operator of the two dimensional
+discretized Lorenz map
+
+Arguments:
+- α
+- s
+- r
+- c
+- k_x discretization size on x
+- k_y discretization size on y 
+- interp_step number of interpolation points for the upper and lower sides
+"""
 function compute_transfer_operator(α, s, r, c, k_x, k_y, interp_step)
     T = ContractingLorenz1D(α = α , s = s)
+    
     ϕ = PwMap([x->2*x-1, ], [0, 1])
     ψ = PwMap([x-> x/2+1/2, ], [-1, 1])
+    
+    # This map is the Dynamic T, but on [0, 1]
     D = ψ∘T∘ϕ
     
     I = Int64[]
@@ -213,112 +233,125 @@ function compute_transfer_operator(α, s, r, c, k_x, k_y, interp_step)
 	nzvals = Interval{Float64}[]
 	n = k_x*k_y
 
+    # First we compute the preimages for the one dimensional map
     preim_x = preimages(LinRange(0., 1., k_x+1), D)
+    
+    # We change coordinate, so that everything is on [-1, 1]
     preim_x_coord_change = (2 .*preim_x[1].-1, preim_x[2]) 
-    #@info preim_x_coord_change
+    @info preim_x_coord_change
 
     part_x = LinRange(-1., 1., k_x+1)
     part_y = LinRange(-1., 1., k_y+1)
 
-    for ind_x_preim in 1:length(preim_x_coord_change[1][1:end]) 
-        a = preim_x_coord_change[1][ind_x_preim]
+    for (ind_x_preim, a) in enumerate(preim_x_coord_change[1][1:end]) 
+        # this if is used to keep track of the last interval
+        # as in the constructor of UlamDual in UlamBasis.jl 
         if ind_x_preim == length(preim_x_coord_change[1][1:end])
-            b = domain(D)[end] 
+             b = domain(D)[end] 
         else
-            b = preim_x_coord_change[1][ind_x_preim+1]
+             b = preim_x_coord_change[1][ind_x_preim+1]
         end
-        #TODO add what happens near 1
-    
-        y = hull(a, b)
-        #@info "preimage" y
-        image_ind_x = preim_x_coord_change[2][ind_x_preim]
         
+        # this is an enclosure of the preimage interval in the x direction
+        I = hull(a, b)
 
+        index_image_x = preim_x_coord_change[2][ind_x_preim]
+        
+        # this computes the index on x of the preimage
         preim_a = searchsortedlast(part_x, y.lo)
         preim_b = min(searchsortedlast(part_x, y.hi), k_x)
 
-        for ind_x in preim_a:preim_b
+        for ind_x in preim_a:preim_b         
+            #this is the relative measure of T^{-1}I_i in I_j
             rel_meas = relative_measure((a, b), (Interval(part_x[ind_x]), Interval(part_x[ind_x+1])))
             #@info ind_x, part_x[ind_x], part_x[ind_x+1]
             #@info a, b, rel_meas
-            dom_ind_x = ind_x
+            index_domain_x = ind_x
 
             for ind_y in 1:k_y
-                # tot_meas = 0.0 
+    #           # tot_meas = 0.0 
                 dom_ind_y = ind_y
-
                 dom_ind_reshaped = (dom_ind_x-1)*k_y+dom_ind_y
 
+                # this is somewhat hacky and adapted to our form 
+                # of the two dimensional contracting Lorenz map 
                 if ind_x <= k_x/2
-                    im_y = _Lorenz_left_fiber_map(y, Interval(part_y[ind_y], part_y[ind_y+1]), r, c)
+                    # we compute an enclosure of 
+                    # F(I, J) where J = (part_y[ind_y], part_y[ind_y+1])
+                    
+                    im_y = _Lorenz_left_fiber_map(I, Interval(part_y[ind_y], part_y[ind_y+1]), r, c)
                     ind_y_lower = searchsortedlast(part_y, im_y.lo)
                     ind_y_upper = searchsortedlast(part_y, im_y.hi)
                     indexes_y = ind_y_lower:ind_y_upper
                 else
+                    # same, but for the right part of the domain
                     im_y = _Lorenz_right_fiber_map(y, Interval(part_y[ind_y], part_y[ind_y+1]), r, c)
-                    ind_y_lower = searchsortedlast(part_x, im_y.lo)
-                    ind_y_upper = searchsortedlast(part_x, im_y.hi)
-                    indexes_y = ind_y_lower:ind_y_upper
-                end
+    #                 ind_y_lower = searchsortedlast(part_x, im_y.lo)
+    #                 ind_y_upper = searchsortedlast(part_x, im_y.hi)
+    #                 indexes_y = ind_y_lower:ind_y_upper
+    #             end
 
-                if length(indexes_y)==1
-                    @debug "Only 1"
+    #             if length(indexes_y)==1
+    #                 @debug "Only 1"
                         
-                    image_ind_y = ind_y_lower
+    #                 image_ind_y = ind_y_lower
 
-                    image_ind_reshaped = (image_ind_x-1)*k_y+image_ind_y
+    #                 image_ind_reshaped = (image_ind_x-1)*k_y+image_ind_y
 
-                    push!(I, dom_ind_reshaped)
-				    push!(J, image_ind_reshaped)
-				    push!(nzvals, rel_meas)
-                    @debug ind_y, im_y, ind_y_lower, ind_y_upper, part_y[ind_y_lower], part_y[ind_y_lower+1]
-                else
-                    @debug "More than 1"
-                    for j in indexes_y
-                        image_ind_y = j
-                        image_ind_reshaped = (image_ind_x-1)*k_y+image_ind_y
+    #                 push!(I, dom_ind_reshaped)
+	# 			    push!(J, image_ind_reshaped)
+	# 			    push!(nzvals, rel_meas)
+    #                 @debug ind_y, im_y, ind_y_lower, ind_y_upper, part_y[ind_y_lower], part_y[ind_y_lower+1]
+    #             else
+    #                 @debug "More than 1"
+    #                 for j in indexes_y
+    #                     image_ind_y = j
+    #                     image_ind_reshaped = (image_ind_x-1)*k_y+image_ind_y
 
-                        P, ϵ = PreimageRectangleLorenz(;  preim_x_left = a , 
-                                    preim_x_right = b, 
-                                    y_lower = part_y[j], 
-                                    y_upper = part_y[j+1], 
-                                    k = interp_step,
-                                    r = r,
-                                    c = c)
+    #                     P, ϵ = PreimageRectangleLorenz(;  preim_x_left = a , 
+    #                                 preim_x_right = b, 
+    #                                 y_lower = part_y[j], 
+    #                                 y_upper = part_y[j+1], 
+    #                                 k = interp_step,
+    #                                 r = r,
+    #                                 c = c)
 
-                        domain_rectangle =  PH.polyhedron(PH.vrep([
-                                            part_x[ind_x] part_y[ind_y]
-                                            part_x[ind_x+1] part_y[ind_y]
-                                            part_x[ind_x+1] part_y[ind_y+1]
-                                            part_x[ind_x] part_y[ind_y+1]
-                                                ]), lib)
+    #                     domain_rectangle =  PH.polyhedron(PH.vrep([
+    #                                         part_x[ind_x] part_y[ind_y]
+    #                                         part_x[ind_x+1] part_y[ind_y]
+    #                                         part_x[ind_x+1] part_y[ind_y+1]
+    #                                         part_x[ind_x] part_y[ind_y+1]
+    #                                             ]), lib)
                          
 
-                        intersection = PH.intersect(P, domain_rectangle)
-                        @info PH.vrep(intersection)
-                        rel_meas_poly = (PH.volume(intersection)*k_x*k_y)/4
-                        # TODO: add error for the computed value!
+    #                     intersection = PH.intersect(P, domain_rectangle)
+    #                     @debug PH.vrep(intersection)
+    #                     rel_meas_poly = (PH.volume(intersection)*k_x*k_y)/4
+    #                     # TODO: add error for the computed value!
                         
-                        push!(I, dom_ind_reshaped)
-				        push!(J, image_ind_reshaped)
-				        push!(nzvals, rel_meas_poly)
+    #                     push!(I, dom_ind_reshaped)
+	# 			        push!(J, image_ind_reshaped)
+	# 			        push!(nzvals, rel_meas_poly)
 
-                        @debug ind_y, im_y, ind_y_lower, ind_y_upper, part_y[j], part_y[j+1]
-                    end
-                    # @debug "tot" tot_meas
-                    # @debug "rel_meas" rel_meas 
-                    # if abs(rel_meas-tot_meas)> 0.1
-                    #    @info "ind_x" ind_x 
-                    #    @info "ind_y" ind_y 
-                    #    @info "difference" rel_meas-tot_meas
-                    # else
-                    #    @info "Good"
-                    # end
-                end
-            end
-        end
-    end
-    return sparse(I, J, nzvals, n, n)
+    #                     @debug ind_y, im_y, ind_y_lower, ind_y_upper, part_y[j], part_y[j+1]
+    #                 end
+    #                 # @debug "tot" tot_meas
+    #                 # @debug "rel_meas" rel_meas 
+    #                 # if abs(rel_meas-tot_meas)> 0.1
+    #                 #    @info "ind_x" ind_x 
+    #                 #    @info "ind_y" ind_y 
+    #                 #    @info "difference" rel_meas-tot_meas
+    #                 # else
+    #                 #    @info "Good"
+    #                 # end
+    #             end
+    #         end
+    #     end
+    # end
+    # return sparse(I, J, nzvals, n, n)
 end
+
+convert_index_to_square(i, size_x, size_y) = (i÷size_y+1, i%size_y)
+
 
 end
