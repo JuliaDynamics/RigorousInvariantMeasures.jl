@@ -200,6 +200,39 @@ struct LorenzOperator
     d12
 end
 
+"""
+    rectangular_indexes_to_linear(i, j, size_x, size_y)
+
+Maps the indexes i, j in a rectangle of sizes
+size_x and size_y to linear indexes
+
+It follows the same convention as reshape, i.e.,
+the rectangle
+[(1, 1)  (1, 2)  (1, 3)
+(2, 1)  (2, 2)  (2, 3)
+(3, 1)  (3, 2)  (3, 3)
+]
+is mapped to [(1, 1), (2, 1), (3, 1), (1, 2), (2, 2), (3, 2), (1, 3), (2, 3), (3, 3)]
+"""
+function square_indexes_to_linear(ind_x, ind_y, size_x, size_y)
+    @assert ind_x<=size_x
+    @assert ind_y<=size_y
+    return ind_y+size_y*(ind_x-1)
+end
+
+"""
+    linear_indexes_to_square(k, size_x, size_y)
+
+Transforms a linear index k in an index in a rectangle 
+of shape size_x, size_y
+
+It follows the reshape convention as in rectangular_indexes_to_linear
+"""
+
+function linear_indexes_to_square(k, size_x, size_y)
+    return (k%size_y, k%size_y+1)
+end
+
 
 using SparseArrays
 
@@ -257,7 +290,8 @@ function compute_transfer_operator(α, s, r, c, k_x, k_y, interp_step)
 
         index_image_x = preim_x_coord_change[2][ind_x_preim]
         
-        # this computes the index on x of the preimage
+        # this computes the indexes with nonzero intersection with 
+        # the preimage
         preim_a = searchsortedlast(part_x, y.lo)
         preim_b = min(searchsortedlast(part_x, y.hi), k_x)
 
@@ -268,53 +302,59 @@ function compute_transfer_operator(α, s, r, c, k_x, k_y, interp_step)
             #@info a, b, rel_meas
             index_domain_x = ind_x
 
-            for ind_y in 1:k_y
-    #           # tot_meas = 0.0 
-                dom_ind_y = ind_y
-                dom_ind_reshaped = (dom_ind_x-1)*k_y+dom_ind_y
+            for index_domain_y in 1:k_y
+                index_domain_y = ind_y
+                
+                # we map square indexes to linear indexes
+                index_domain_reshaped = square_indexes_to_linear(index_domain_x, index_domain_y, k_x, k_y)
 
                 # this is somewhat hacky and adapted to our form 
                 # of the two dimensional contracting Lorenz map 
                 if ind_x <= k_x/2
                     # we compute an enclosure of 
                     # F(I, J) where J = (part_y[ind_y], part_y[ind_y+1])
-                    
+                    # this allows us to restrict our computation only to the indexes 
+                    # that have nontrivial intersection with the image
                     im_y = _Lorenz_left_fiber_map(I, Interval(part_y[ind_y], part_y[ind_y+1]), r, c)
-                    ind_y_lower = searchsortedlast(part_y, im_y.lo)
-                    ind_y_upper = searchsortedlast(part_y, im_y.hi)
+                    
+                    # here we have to be careful, since the matrix has 
+                    # as left upper corner (1, 1), while 
+                    # the partitions part_x and part_y start at -1 
+                    ind_y_lower = k_y-searchsortedlast(part_y, im_y.hi)
+                    ind_y_upper = k_y-searchsortedlast(part_y, im_y.lo)
+                    
                     indexes_y = ind_y_lower:ind_y_upper
                 else
                     # same, but for the right part of the domain
-                    im_y = _Lorenz_right_fiber_map(y, Interval(part_y[ind_y], part_y[ind_y+1]), r, c)
-    #                 ind_y_lower = searchsortedlast(part_x, im_y.lo)
-    #                 ind_y_upper = searchsortedlast(part_x, im_y.hi)
-    #                 indexes_y = ind_y_lower:ind_y_upper
-    #             end
+                    im_y = _Lorenz_left_fiber_map(I, Interval(part_y[ind_y], part_y[ind_y+1]), r, c)
+                    ind_y_lower = k_y-searchsortedlast(part_y, im_y.hi)
+                    ind_y_upper = k_y-searchsortedlast(part_y, im_y.lo)
+                    indexes_y = ind_y_lower:ind_y_upper
+                end
 
-    #             if length(indexes_y)==1
-    #                 @debug "Only 1"
-                        
-    #                 image_ind_y = ind_y_lower
-
-    #                 image_ind_reshaped = (image_ind_x-1)*k_y+image_ind_y
-
-    #                 push!(I, dom_ind_reshaped)
-	# 			    push!(J, image_ind_reshaped)
-	# 			    push!(nzvals, rel_meas)
-    #                 @debug ind_y, im_y, ind_y_lower, ind_y_upper, part_y[ind_y_lower], part_y[ind_y_lower+1]
-    #             else
-    #                 @debug "More than 1"
-    #                 for j in indexes_y
-    #                     image_ind_y = j
-    #                     image_ind_reshaped = (image_ind_x-1)*k_y+image_ind_y
-
-    #                     P, ϵ = PreimageRectangleLorenz(;  preim_x_left = a , 
-    #                                 preim_x_right = b, 
-    #                                 y_lower = part_y[j], 
-    #                                 y_upper = part_y[j+1], 
-    #                                 k = interp_step,
-    #                                 r = r,
-    #                                 c = c)
+                # we take advantage of the contracting fibers,
+                # if the image of a rectangle is strictly contained 
+                # in an interval, we simplify the computation
+                if length(indexes_y)==1
+                    index_image_y = ind_y_lower
+                    image_ind_reshaped = square_indexes_to_linear(index_image_x, index_image_y, k_x, k_y)
+                    push!(I, dom_ind_reshaped)
+                    push!(J, image_ind_reshaped)
+                    push!(nzvals, rel_meas)                 
+                else
+                # this is a more delicate case, and we approximate 
+                # preimage of the lower and upper side of the polygonal 
+                # by a polygonal line; rigorous error bounds are provided 
+                # in the paper
+                for index_image_y in indexes_y
+                    image_ind_reshaped = square_indexes_to_linear(index_image_x, index_image_y, k_x, k_y)
+                    P, ϵ = PreimageRectangleLorenz(;  preim_x_left = a , 
+                                     preim_x_right = b, 
+                                     y_lower = part_y[j], 
+                                     y_upper = part_y[j+1], 
+                                     k = interp_step,
+                                     r = r,
+                                     c = c)
 
     #                     domain_rectangle =  PH.polyhedron(PH.vrep([
     #                                         part_x[ind_x] part_y[ind_y]
