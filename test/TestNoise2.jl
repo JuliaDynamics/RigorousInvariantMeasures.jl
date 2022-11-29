@@ -4,7 +4,9 @@
                                       PeriodicBoundaryConditionOperator, 
                                       ReflectingBoundaryConditionOperator,
                                       UniformNoiseUlam2,
-                                      uniform_convolution!
+                                      uniform_convolution!,
+                                      PeriodicBoundaryCondition2!,
+                                      ReflectingBoundaryCondition2!
 
     using LinearAlgebra
     
@@ -26,6 +28,16 @@
 
     @test w[1] == 1
 
+    z = zeros(256)
+    PeriodicBoundaryCondition2!(z, v, n = 256, l = 16)
+    @test all(z .== w)
+
+    v = rand(256+16*2)
+    w = BC * v
+    z = zeros(256)
+    PeriodicBoundaryCondition2!(z, v, n = 256, l = 16)
+    @test all(z .== w)
+
     BC = PeriodicBoundaryConditionOperator(256, 128)
     @test all(Per[:, 256-128+1:512+128].== BC)
 
@@ -39,6 +51,16 @@
     v[256+16+1] = 1 
     w = RC * v
     @test w[end] == 1
+    z = zeros(256)
+    ReflectingBoundaryCondition2!(z, v, n = 256, l = 16)
+    @test all(z .== w)
+
+    v = rand(256+16*2)
+    w = RC * v
+    z = zeros(256)
+    ReflectingBoundaryCondition2!(z, v, n = 256, l = 16)
+    @test all(z .== w)
+
 
     RC = ReflectingBoundaryConditionOperator(256, 128)
     @test all(Ref[:, 256-128+1:512+128].== RC)
@@ -67,7 +89,14 @@
     v = zeros(length(B))
     v[1] = 1
     w = N*v
-    @test all(w[1:l].==1/k) && all(w[end-l+1:end].== 1/k)
+    @test all(w[1:l+1].==1/k) && all(w[end-l+1:end].== 1/k)
+
+    N = UniformNoiseUlam2(B, k, boundary_condition = :reflecting)
+
+    v = zeros(length(B))
+    v[1] = 1
+    w = N*v
+    @test all(w[1:l].==2/k) && w[l+1] == 1/k
 
 
 end

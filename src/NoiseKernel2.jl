@@ -1,16 +1,18 @@
 using LinearAlgebra
 
-struct NoiseUlam
+export UniformNoiseUlam2
+
+struct NoiseUlam <: NoiseKernel
     B::Ulam
     k::Integer
-    BC::Matrix
+    BC!
     Ext::Matrix
     w_ext::Vector
     w_conv::Vector
     ξ 
 end
 
-NoiseUlam(B, k, BC, Ext) = NoiseUlam(B, k, BC, Ext, zeros(length(B)+k-1), zeros(length(B)+k-1), Float64(k)/length(B))
+NoiseUlam(B, k, BC, Ext) = NoiseUlam(B, k, BC, Ext, zeros(length(B)+k-1), zeros(length(B)+k-1), Interval(k)/(2*length(B)))
 
 
 """
@@ -79,6 +81,20 @@ function ReflectingBoundaryConditionOperator(n, k)
 end
 
 
+function PeriodicBoundaryCondition2!(w_out, w_in; n, l)
+    w_out .= @view w_in[l+1:n+l] 
+    w_out[1:l] += @view w_in[n+l+1:n+2*l]
+    w_out[end-l+1:end] += @view w_in[1:l]
+    return nothing
+end
+
+function ReflectingBoundaryCondition2!(w_out, w_in; n, l)
+    w_out .= @view w_in[l+1:n+l] 
+    w_out[1:l] += reverse(@view w_in[1:l])
+    w_out[end-l+1:end] += reverse(@view w_in[n+l+1:n+2*l])
+    return nothing
+end
+
 """
     UniformNoiseUlam2(B, k, boundary_condition)
 
@@ -95,15 +111,15 @@ function UniformNoiseUlam2(B::Ulam, k; boundary_condition = :periodic)
     w_conv = zeros(n+2*k)
 
     if boundary_condition == :periodic 
-        BC = PeriodicBoundaryConditionOperator(n, l)
+        BC! = PeriodicBoundaryCondition2!
     elseif boundary_condition == :reflecting
-        BC = PeriodicBoundaryConditionOperator(n, l)
+        BC! = ReflectingBoundaryCondition2!
     else
         @error "Not implemented"
     end
     Ext = ExtensionOperator(n, l)
     
-    return NoiseUlam(B, k, BC, Ext) 
+    return NoiseUlam(B, k, BC!, Ext) 
 end
 
 import LinearAlgebra: mul!
@@ -125,14 +141,17 @@ function uniform_convolution!(w_conv, w_ext, l)
     w_conv ./= (2*l+1)
 end
 
+#using TimerOutputs
+
+#const to = TimerOutput()
+
 function LinearAlgebra.mul!(w::Vector{Float64}, N::NoiseUlam, v::Vector{Float64})
-    mul!(N.w_ext, N.Ext, v)
     k = N.k
     l = (k-1) ÷ 2
-
+    n = length(v)
+    N.w_ext[l+1:l+n] = v
     uniform_convolution!(N.w_conv, N.w_ext, l)
-
-    mul!(w, N.BC, N.w_conv)
+    N.BC!(w, N.w_conv; n = n, l = l)
 end 
 
 function Base.:*(N::NoiseUlam, v::Vector{Float64})
@@ -140,3 +159,8 @@ function Base.:*(N::NoiseUlam, v::Vector{Float64})
     mul!(w, N, v)
     return w
 end
+
+BasisDefinition.opnormbound(B::Ulam, ::Type{L1}, M::NoiseUlam) = 1.0
+opradius(::Type{L1}, N::NoiseUlam) = N.k*Interval(radius(Interval(1)/N.k)).hi
+nonzero_per_row(N::NoiseUlam) = N.k
+dfly(::Type{TotalVariation}, ::Type{L1}, N::NoiseUlam) = (0.0, (1/(2*N.ξ)).hi)
