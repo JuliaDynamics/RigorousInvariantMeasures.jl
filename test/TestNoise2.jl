@@ -6,7 +6,9 @@
                                       UniformNoiseUlam2,
                                       uniform_convolution!,
                                       PeriodicBoundaryCondition2!,
-                                      ReflectingBoundaryCondition2!
+                                      ReflectingBoundaryCondition2!, 
+                                      mul2!,
+                                      cuda_uniform_convolution!
 
     using LinearAlgebra
     
@@ -98,5 +100,25 @@
     w = N*v
     @test all(w[1:l].==2/k) && w[l+1] == 1/k
 
+    z = zeros(length(B))
+    mul2!(z, N, v)
+    @test all(z .== w)
+
+    using CUDA
+
+    if has_cuda() && has_cuda_gpu()
+        l = 9
+        w_ext = rand(1042)
+        w_conv = zeros(1042)
+        uniform_convolution!(w_conv, w_ext, l)
+        
+        w_ext_d = CuArray{Float64}(w_ext)
+        w_conv_d = CUDA.zeros(Float64, 1042)
+        cuda_uniform_convolution!(w_conv_d, w_ext_d, l, 1024, 1)
+        
+        z = w_conv-Array(w_conv_d)
+
+        @test all(z .== 0.0)
+    end
 
 end
