@@ -8,7 +8,8 @@
                                       PeriodicBoundaryCondition2!,
                                       ReflectingBoundaryCondition2!, 
                                       mul2!,
-                                      cuda_uniform_convolution!
+                                      cuda_uniform_convolution!,
+                                      cuda_uniform_convolution_shared!
 
     using LinearAlgebra
     
@@ -119,6 +120,13 @@
         z = w_conv-Array(w_conv_d)
 
         @test all(z .== 0.0)
+    
+        # cuda_uniform_convolution_shared!(w_conv_d, w_ext_d, l, 1024, 1)
+        
+        # z = w_conv-Array(w_conv_d)
+
+        # @test all(z .== 0.0)
+    
     end
 
 end

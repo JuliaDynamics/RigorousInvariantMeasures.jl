@@ -315,6 +315,50 @@ if has_cuda() && has_cuda_gpu()
     nonzero_per_row(N::NoiseUlamCuda) = N.k
     dfly(::Type{TotalVariation}, ::Type{L1}, N::NoiseUlamCuda) = (0.0, (1/(2*N.ξ)).hi)
 
+    # function cuda_central_conv_shared!(w_conv, w_ext, l)
+    #     n = length(w_ext)
+
+    #     cache_size = blockDim().x+2*l
+    #     cache = @cuDynamicSharedMem(Float64, cache_size)
+
+    #     lindex = threadIdx().x
+    #     start_block = (blockIdx().x - 1) * blockDim().x 
+    #     gindex = start_block + i_x
+        
+    #     stride_block = blockDim().x
+        
+    #     if (gindex+l) < n 
+    #         for i = i_x:stride_block:cache_size
+    #             cache[i] = w_ext[start_block-l+i] 
+    #         end
+    #     end
+
+    #     sync_threads()
+
+    #     #index =  start_block + i_x 
+    #     #stride = gridDim().x * blockDim().x
+        
+    #     #for i = index:stride:n
+    #         # w_conv[i+l] = sum(@view w_ext[i:i+2*l])
+    #     #    for j in 0:2*l
+    #     #        @inbounds w_conv[i+l] += cache[i-start_block+j]
+    #     #    end
+    #     #end
+    #     return nothing 
+    # end
+    
+    function cuda_uniform_convolution_shared!(w_conv, w_ext, l, threads, blocks)
+        #@info l
+        #n = (length(w_ext)-2*l)
+        #@info n
+        w_conv .= 0.0
+
+        @cuda threads = l cuda_left_conv!(w_conv, w_ext, l)
+        @cuda threads = threads blocks = blocks shmem = ((threads+2*l)*sizeof(Float64)) cuda_central_conv_shared!(w_conv, w_ext, l)
+        @cuda threads = l cuda_right_conv!(w_conv, w_ext, l)
+        CUDA.synchronize()
+        w_conv ./= (2*l+1)
+    end
 
 end
 
