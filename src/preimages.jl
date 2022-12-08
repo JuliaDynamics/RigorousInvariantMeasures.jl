@@ -104,7 +104,7 @@ function preimages(y, br::Branch, ylabel = 1:length(y), ϵ = 0.0)
             # fill in v[i] using x[i-stride].lo and x[i+stride].hi as range for the preimage search
             for k = 1+stride:2*stride:n
                 search_range = Interval(x[k-stride].lo, (k+stride <= n ? x[k+stride] : Interval(br.X[2])).hi)
-                x[k] = preimage(y[i-1+k], br.f, search_range, ϵ)
+                x[k] = preimage(y[i-1+k], br.f, br.fprime, search_range, ϵ)
             end
             stride = stride ÷ 2
         end
@@ -123,7 +123,7 @@ function preimages(y, br::Branch, ylabel = 1:length(y), ϵ = 0.0)
             # fill in v[i] using x[i-stride].lo and x[i+stride].hi as range for the preimage search
             for k = 1+stride:2*stride:n
                 search_range = Interval(x[k-stride].lo, (k+stride <= n ? x[k+stride] : Interval(br.X[2])).hi)
-                x[k] = preimage(y[i+2-k], br.f, search_range, ϵ)
+                x[k] = preimage(y[i+2-k], br.f, br.fprime, search_range, ϵ)
             end
             stride = stride ÷ 2
         end
