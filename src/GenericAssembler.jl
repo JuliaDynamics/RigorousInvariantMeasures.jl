@@ -77,12 +77,22 @@ BasisDefinition.is_integral_preserving(Q::IntegralPreservingDiscretizedOperator)
 # Variants of assemble and DiscretizedOperator; the code is repeated here for easier comparison with the older algorithm
 function assemble(B, D, ϵ=0.0; T = Float64)
 	@debug "Assembling the matrix"
-	I = Int64[]
-	J = Int64[]
-	nzvals = Interval{T}[]
-	n = length(B)
 
-	# TODO: reasonable size hint?
+	n = length(B)
+	sh = 10*n
+	@info "sizehint", sh
+
+	I = Int64[]
+	sizehint!(I, sh)
+	J = Int64[]
+	sizehint!(J, sh)
+	nzvals = Interval{T}[]
+	sizehint!(nzvals, sh)
+	
+	# TODO: reasonable size hint? I think we can compute an hint explictly
+	# by computing n*\sum_{i=1}^n m(T(I_i)) for each elementh of the basis
+	# at least in the Ulam case
+
 
 	for (i, dual_element) in Dual(B, D, ϵ)
 		@debug "dual element" index = i dual_element
