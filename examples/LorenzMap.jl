@@ -8,7 +8,10 @@ using StatsPlots
 ENV["GKSwstype"]="nul" # for headless displays
 
 LorenzMap(θ, α) = PwMap([x->θ*(0.5-x)^α, x->1-θ*(x-0.5)^α],
-                    [@interval(0), @interval(0.5), @interval(1)]; infinite_derivative=true)
+                    [x->θ*α*(0.5-x)^(α-1), x->-θ*α*(x-0.5)^(α-1)],
+                    [@interval(0), @interval(0.5), @interval(1)],
+                    [θ*(Interval(0.5))^α Interval(0.0);
+                    Interval(1.0)  1-θ*(Interval(0.5))^α]; infinite_derivative=true)
 
 include("warmup.jl")
 

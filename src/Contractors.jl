@@ -91,7 +91,7 @@ function root(f, f′, x, ϵ; max_iter = 200)
 			end
 		end
 	end
-	@info "Maximum iterates reached" max_iter, x, f(x), diam(x)
+	@debug "Maximum iterates reached" max_iter, x, f(x), diam(x)
 	return x
 end
 
