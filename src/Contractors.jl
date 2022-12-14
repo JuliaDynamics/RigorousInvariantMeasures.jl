@@ -58,16 +58,40 @@ or when max_iter iterations are reached (with an error)
 """
 root(f, x, ϵ; max_iter = 100) = root(f, derivative(f), x, ϵ; max_iter = max_iter)
 
-function root(f, f′, x, ϵ; max_iter = 100)
+function root(f, f′, x, ϵ; max_iter = 200)
 	for i in 1:max_iter
 		x_old = x
+
 		x_mid = Interval(mid(x))
 		x = intersect(x, x_mid - f′(x) \ f(x_mid))
-		if x_old == x || isempty(x) || diam(x) < ϵ
+
+		if (x_old == x && diam(x) < ϵ) || isempty(x) 
 			return x
 		end
+
+		if x_old == x
+			# we assume our function is monotone 
+			# on x and may only be not monotone 
+			# on the interval representation of an 
+			# endpoint if it is not a representable number
+			
+			x_l, x_r = bisect(x)
+			y_l = range_estimate_monotone(f, x_l)
+			y_r = range_estimate_monotone(f, x_r)
+			
+			
+			# does a bisection step
+
+			if !(0 ∈ (y_l)) 
+				#@info "right"
+				x = Interval(prevfloat(x_r.lo), nextfloat(x_r.hi))
+			elseif !(0 ∈ (y_r))
+				#@info "left"
+				x = Interval(prevfloat(x_l.lo), nextfloat(x_l.hi))
+			end
+		end
 	end
-	@info "Maximum iterates reached" max_iter, x, f(x)
+	@info "Maximum iterates reached" max_iter, x, f(x), diam(x)
 	return x
 end
 
@@ -85,6 +109,25 @@ function range_estimate(f, domain, recstep = 5)
 		return Iₐ ∪ Iᵦ
 	end
 end
+
+function range_estimate_der(f, fprime, domain, recstep = 5)
+	if recstep == 1
+		m = typeof(domain)(mid(domain))
+		return f(m)+fprime(domain)*radius(domain)
+	else
+		a, b = bisect(domain)
+		Iₐ = range_estimate_der(f, fprime, a, recstep-1)
+		Iᵦ = range_estimate_der(f, fprime, b, recstep-1)
+		return Iₐ ∪ Iᵦ
+	end
+end
+
+function range_estimate_monotone(f, x)
+	low = Interval(prevfloat(x.lo), nextfloat(x.lo))
+	high = Interval(prevfloat(x.hi), nextfloat(x.hi))
+	return hull(f(low),f(high))
+end
+
 
 using LinearAlgebra
 

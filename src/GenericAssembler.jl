@@ -80,7 +80,9 @@ function assemble(B, D, ϵ=0.0; T = Float64)
 
 	n = length(B)
 	sh = 10*n
+	@info n
 	@info "sizehint", sh
+
 
 	I = Int64[]
 	sizehint!(I, sh)
@@ -89,6 +91,7 @@ function assemble(B, D, ϵ=0.0; T = Float64)
 	nzvals = Interval{T}[]
 	sizehint!(nzvals, sh)
 	
+	@info "Memory allocated"
 	# TODO: reasonable size hint? I think we can compute an hint explictly
 	# by computing n*\sum_{i=1}^n m(T(I_i)) for each elementh of the basis
 	# at least in the Ulam case
