@@ -28,8 +28,16 @@ struct Branch{T<:Function, U<:Function, S}
     Y::Tuple{S, S}
     increasing::Bool
 end
+
 Branch(f::Function, X, Y=(f(Interval(X[1])), f(Interval(X[2]))), increasing=unique_increasing(Y[1], Y[2])) = Branch{typeof(f), typeof(der(f)), typeof(interval(X[1]))}(f, der(f), X, Y, increasing)
 Branch(f::Function, fprime::Function, X, Y=(f(Interval(X[1])), f(Interval(X[2]))), increasing=unique_increasing(Y[1], Y[2])) = Branch{typeof(f), typeof(fprime), typeof(interval(X[1]))}(f, fprime, X, Y, increasing)
+
+DynamicDefinition.derivative(br::Branch) = br.fprime
+
+function Contractors.preimage(y, br::Branch, X, ϵ; max_iter = 100)
+	return root(x-> br.f(x)-y, br.fprime, X, ϵ; max_iter)
+end
+
 
 function equal_up_to_orientation(X, Y)
     @assert length(X)==2 && length(Y)==2
@@ -191,16 +199,23 @@ function DynamicDefinition.expansivity(D::PwDynamicDefinition.PwMap, tol=1e-3)
     return maximum([branch_expansivity(br, tol) for br in D.branches])
 end
 
-
 """
-    branch_distortion(br::Branch; tol = 0.01)
-
-Compute a rigorous bound for the distortion of a branch
+    Return the distortion function of a branch, i.e., |f′′ / f′^2|
 """
-function branch_distortion(br::Branch; tol = 0.01)
+function DynamicDefinition.distortion(br::Branch)
     g(x) = 1/br.fprime(x)
     h(x) = abs(der(g)(x))
-    I = hull(br.X[1], br.X[2])
+    return h
+end
+
+"""
+    bound_branch_distortion(br::Branch; tol = 0.01)
+
+Compute a rigorous bound for the distortion of a branch
+on an interval I, defaults to the domain of the branch
+"""
+function bound_branch_distortion(br::Branch, I = hull(br.X[1], br.X[2]); tol = 0.01)
+    h = distortion(br)
     val, listofboxes = maximise(h, I, tol=tol)
     @debug val, listofboxes
     return val
@@ -230,7 +245,7 @@ function DynamicDefinition.max_distortion(D::PwDynamicDefinition.PwMap, tol=1e-3
     #     max_dist = max(val, max_dist)
     # end
     # return max_dist
-    return maximum([branch_distortion(br; tol = tol) for br in D.branches])
+    return maximum([bound_branch_distortion(br; tol = tol) for br in D.branches])
 end
 
 function DynamicDefinition.plottable(D::PwMap, x)
@@ -331,18 +346,19 @@ function composedPwMap(D1::PwDynamicDefinition.PwMap, D2::PwDynamicDefinition.Pw
 #                @info left
 #                @info right
                 F = br1.f∘br2.f
+                Fprime = x->br1.fprime(br2.f(x))*br2.fprime(x) 
                 F_increasing = conv_orientation(br1.increasing)*conv_orientation(br2.increasing)
                 if left!=∅ && right!=∅
                     y_endpoints = (F(left) ∩ y_range, F(right) ∩ y_range)
-                    push!(new_branches, Branch(F, (left, right), y_endpoints, inv_conv_orientarion(F_increasing)))
+                    push!(new_branches, Branch(F, Fprime, (left, right), y_endpoints, inv_conv_orientarion(F_increasing)))
                 elseif left == ∅ && right != ∅
                     left = br2.X[1]
                     y_endpoints = (F(left) ∩ y_range, F(right) ∩ y_range)
-                    push!(new_branches, Branch(F, (left, right), y_endpoints, inv_conv_orientarion(F_increasing)))
+                    push!(new_branches, Branch(F, Fprime, (left, right), y_endpoints, inv_conv_orientarion(F_increasing)))
                 elseif left !=∅ && right == ∅
                     right = br2.X[2]
                     y_endpoints = (F(left) ∩ y_range, F(right) ∩ y_range)
-                    push!(new_branches, Branch(F, (left, right), y_endpoints, inv_conv_orientarion(F_increasing)))
+                    push!(new_branches, Branch(F, Fprime, (left, right), y_endpoints, inv_conv_orientarion(F_increasing)))
                 end
             end
         else
@@ -351,18 +367,19 @@ function composedPwMap(D1::PwDynamicDefinition.PwMap, D2::PwDynamicDefinition.Pw
                 left  = preimage(br1.X[2], br2.f, br2.fprime, hull(br2.X[1], br2.X[2]), 10^-13)
                 right  = preimage(br1.X[1], br2.f, br2.fprime, hull(br2.X[1], br2.X[2]), 10^-13)
                 F = br1.f∘br2.f
+                Fprime = x->br1.fprime(br2.f(x))*br2.fprime(x) 
                 F_increasing = conv_orientation(br1.increasing)*conv_orientation(br2.increasing)
                 if left!=∅ && right!=∅
                     y_endpoints = (F(left) ∩ y_range, F(right) ∩ y_range)
-                    push!(new_branches, Branch(F, (left, right), y_endpoints, inv_conv_orientarion(F_increasing)))
+                    push!(new_branches, Branch(F, Fprime, (left, right), y_endpoints, inv_conv_orientarion(F_increasing)))
                 elseif left == ∅ && right != ∅
                     left = br2.X[1]
                     y_endpoints = (F(left) ∩ y_range, F(right) ∩ y_range)
-                    push!(new_branches, Branch(F, (left, right), y_endpoints, inv_conv_orientarion(F_increasing)))
+                    push!(new_branches, Branch(F, Fprime, (left, right), y_endpoints, inv_conv_orientarion(F_increasing)))
                 elseif left !=∅ && right == ∅
                     right = br2.X[2]
                     y_endpoints = (F(left) ∩ y_range, F(right) ∩ y_range)
-                    push!(new_branches, Branch(F, (left, right), y_endpoints, inv_conv_orientarion(F_increasing)))
+                    push!(new_branches, Branch(F, Fprime, (left, right), y_endpoints, inv_conv_orientarion(F_increasing)))
                 end
             end
         end
@@ -386,7 +403,7 @@ function dfly_inf_der(::Type{TotalVariation}, ::Type{L1}, D::PwDynamicDefinition
     for br in branches(D)
         
         rad = radius(hull(br.X[1], br.X[2]))
-        f = x->abs(1/derivative(br.f, x))
+        f = x->abs(1/br.fprime(x))
         I = Interval((br.X[1]+rad/4).hi, (br.X[2]-rad/4).lo)
         val, listofboxes = maximise(f, I, tol=tol)
         
@@ -412,8 +429,8 @@ function dfly_inf_der(::Type{TotalVariation}, ::Type{L1}, D::PwDynamicDefinition
             rad = radius(hull(br.X[1], br.X[2]))
             tol = rad/2^(i+1)
             left, right = leftrightsingularity[j]
-            f = x->-1/derivative(br.f, x)
-            g = x-> distortion(br.f, x)
+            f = x->-1/br.fprime(x)
+            g = distortion(br)
             left_endpoint = br.X[1]
             right_endpoint = br.X[2]
             if left

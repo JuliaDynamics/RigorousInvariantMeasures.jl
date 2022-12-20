@@ -60,10 +60,19 @@ root(f, x, ϵ; max_iter = 100) = root(f, derivative(f), x, ϵ; max_iter = max_it
 
 function root(f, f′, x, ϵ; max_iter = 200)
 	for i in 1:max_iter
+		
 		x_old = x
 
 		x_mid = Interval(mid(x))
-		x = intersect(x, x_mid - f′(x) \ f(x_mid))
+		@debug "Step $i of the Newton method:
+			   - the interval $x, 
+			   - the derivative $(f′(x)),
+			   - the value at the midpoint $(f(x_mid))"
+		
+		Nx = x_mid - f′(x) \ f(x_mid)
+		@debug "Candidate", Nx 
+
+		x = intersect(x, Nx)
 
 		if (x_old == x && diam(x) < ϵ) || isempty(x) 
 			return x
@@ -75,19 +84,33 @@ function root(f, f′, x, ϵ; max_iter = 200)
 			# on the interval representation of an 
 			# endpoint if it is not a representable number
 			
+			# Isaia: Sketch of proof
+			# Suppose the Newton method did not contract,
+			# we do a bisection step; we need to estimate the 
+			# range on each one of the two bisection intervals
+			# since the map is guaranteed monotone by hypothesis
+			# with the exception of endpoints coming from representation,
+			# its range is contained in the hull of the enlarged endpoints
+			# by interval arithmetic inclusion principle.
+			
 			x_l, x_r = bisect(x)
+
 			y_l = range_estimate_monotone(f, x_l)
 			y_r = range_estimate_monotone(f, x_r)
-			
 			
 			# does a bisection step
 
 			if !(0 ∈ (y_l)) 
-				#@info "right"
-				x = Interval(prevfloat(x_r.lo), nextfloat(x_r.hi))
+				x = x_r
 			elseif !(0 ∈ (y_r))
-				#@info "left"
-				x = Interval(prevfloat(x_l.lo), nextfloat(x_l.hi))
+				x = x_l
+			else
+				# we need to treat the case in which both 
+				# range estimates contain $0$; since the range estimate 
+				# is obtained by evaluating on the enlarged endpoints
+				# and the function is monotone this means that the zero
+				# is contained in the enlarged common endpoint
+				x = Interval(prevfloat(x_l.hi), nextfloat(x_r.lo))
 			end
 		end
 	end
