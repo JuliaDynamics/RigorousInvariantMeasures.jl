@@ -271,7 +271,7 @@ struct UlamDual <: Dual
     xlabel::Vector{Int}
     lastpoint::Interval
 end
-Dual(B::Ulam, D, ϵ) = UlamDual(preimages(B.p, D, 1:length(B.p)-1, ϵ)..., domain(D)[end])
+Dual(B::Ulam, D; ϵ, max_iter) = UlamDual(preimages(B.p, D, 1:length(B.p)-1; ϵ, max_iter)..., domain(D)[end])
 
 Base.length(dual::UlamDual) = length(dual.x)
 Base.eltype(dual::UlamDual) = Tuple{eltype(dual.xlabel), Tuple{eltype(dual.x), eltype(dual.x)}}

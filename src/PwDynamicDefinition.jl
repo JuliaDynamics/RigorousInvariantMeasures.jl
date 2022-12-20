@@ -279,12 +279,13 @@ Piecewise-defined dynamic with 2 branches
 ```
 """
 
-mod1_dynamic(f::Function, ε = 0.0; full_branch = false) = mod1_dynamic(f, 
-                                                                        x->derivative(f, x),
-                                                                        ε,
+mod1_dynamic(f::Function; ϵ = 0.0, max_iter =100, full_branch = false) = mod1_dynamic(f, 
+                                                                        x->derivative(f, x);
+                                                                        ϵ,
+                                                                        max_iter,
                                                                         full_branch = full_branch)
 
-function mod1_dynamic(f::Function, fprime::Function, ε = 0.0; full_branch = false)
+function mod1_dynamic(f::Function, fprime::Function; ϵ = 0.0, max_iter = 100, full_branch = false)
     X = (0..0, 1..1)
     br = Branch(f, fprime, X)
     @debug "Auxiliary branch" br
@@ -307,7 +308,7 @@ function mod1_dynamic(f::Function, fprime::Function, ε = 0.0; full_branch = fal
     possible_integer_parts = floor(Int, Yhull.lo):ceil(Int, Yhull.hi)
     @debug "Possible integer parts" possible_integer_parts
 
-    x, integer_parts = preimages(possible_integer_parts, br, possible_integer_parts)
+    x, integer_parts = preimages(possible_integer_parts, br, possible_integer_parts; ϵ, max_iter)
 
     ep = [x; X[end]]
     Ts = [x->f(x)-k for k in integer_parts]

@@ -75,7 +75,7 @@ BasisDefinition.is_integral_preserving(Q::NonIntegralPreservingDiscretizedOperat
 BasisDefinition.is_integral_preserving(Q::IntegralPreservingDiscretizedOperator) = true
 
 # Variants of assemble and DiscretizedOperator; the code is repeated here for easier comparison with the older algorithm
-function assemble(B, D, ϵ=0.0; T = Float64)
+function assemble(B, D; ϵ, max_iter, T)
 	@debug "Assembling the matrix"
 	I = Int64[]
 	J = Int64[]
@@ -84,7 +84,7 @@ function assemble(B, D, ϵ=0.0; T = Float64)
 
 	# TODO: reasonable size hint?
 
-	for (i, dual_element) in Dual(B, D, ϵ)
+	for (i, dual_element) in Dual(B, D; ϵ, max_iter)
 		@debug "dual element" index = i dual_element
 		if !is_dual_element_empty(B, dual_element)
 			for (j, x) in ProjectDualElement(B, dual_element)
@@ -98,8 +98,8 @@ function assemble(B, D, ϵ=0.0; T = Float64)
 	return sparse(I, J, nzvals, n, n)
 end
 
-function DiscretizedOperator(B, D, ϵ=0.0; T = Float64)
-	L = assemble(B, D, ϵ; T)
+function DiscretizedOperator(B, D; ϵ = 10^(-14), max_iter = 100, T = Float64)
+	L = assemble(B, D; ϵ, max_iter, T)
 	if is_integral_preserving(B)
 		@debug "The discretized operator preserves the integral"
 		return IntegralPreservingDiscretizedOperator(L)

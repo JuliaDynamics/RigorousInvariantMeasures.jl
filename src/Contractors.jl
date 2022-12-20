@@ -56,9 +56,9 @@ x must be an Interval (univariate) or IntervalBox (multivariate)
 Stops when the interval reaches a fixed point, when the diameter is smaller than ε,
 or when max_iter iterations are reached (with an error)
 """
-root(f, x, ϵ; max_iter = 100) = root(f, derivative(f), x, ϵ; max_iter = max_iter)
+root(f, x; ϵ, max_iter) = root(f, derivative(f), x, ϵ; max_iter = max_iter)
 
-function root(f, f′, x, ϵ; max_iter = 200)
+function root(f, f′, x; ϵ, max_iter)
 	for i in 1:max_iter
 		
 		x_old = x
@@ -118,8 +118,8 @@ function root(f, f′, x, ϵ; max_iter = 200)
 	return x
 end
 
-preimage(y, f, X, ϵ; max_iter=100) = root(x -> f(x)-y, X, ϵ; max_iter)
-preimage(y, f, fprime, X, ϵ; max_iter=100) = root(x -> f(x)-y, fprime, X, ϵ; max_iter)
+preimage(y, f, X; ϵ,  max_iter) = root(x -> f(x)-y, X; ϵ, max_iter)
+preimage(y, f, fprime, X; ϵ, max_iter) = root(x -> f(x)-y, fprime, X; ϵ, max_iter)
 
 # superseded by IntervalOptimisation.jl
 function range_estimate(f, domain, recstep = 5)
