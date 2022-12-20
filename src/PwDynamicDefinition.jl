@@ -342,8 +342,8 @@ function composedPwMap(D1::PwDynamicDefinition.PwMap, D2::PwDynamicDefinition.Pw
         if br2.increasing
             for br1 in branches(D1)
                 y_range = hull(br1.Y[1], br1.Y[2])
-                left  = preimage(br1.X[1], br2.f, br2.fprime, hull(br2.X[1], br2.X[2]), 10^-13)
-                right  = preimage(br1.X[2], br2.f, br2.fprime, hull(br2.X[1], br2.X[2]), 10^-13)
+                left  = preimage(br1.X[1], br2.f, br2.fprime, hull(br2.X[1], br2.X[2]); ϵ = 10^-13, max_iter = 100)
+                right  = preimage(br1.X[2], br2.f, br2.fprime, hull(br2.X[1], br2.X[2]); ϵ = 10^-13, max_iter = 100)
 #                @info left
 #                @info right
                 F = br1.f∘br2.f
@@ -365,8 +365,8 @@ function composedPwMap(D1::PwDynamicDefinition.PwMap, D2::PwDynamicDefinition.Pw
         else
             for br1 in Iterators.reverse(branches(D1))
                 y_range = hull(br1.Y[1], br1.Y[2])
-                left  = preimage(br1.X[2], br2.f, br2.fprime, hull(br2.X[1], br2.X[2]), 10^-13)
-                right  = preimage(br1.X[1], br2.f, br2.fprime, hull(br2.X[1], br2.X[2]), 10^-13)
+                left  = preimage(br1.X[2], br2.f, br2.fprime, hull(br2.X[1], br2.X[2]); ϵ = 10^-13, max_iter = 100)
+                right  = preimage(br1.X[1], br2.f, br2.fprime, hull(br2.X[1], br2.X[2]); ϵ = 10^-13, max_iter = 100)
                 F = br1.f∘br2.f
                 Fprime = x->br1.fprime(br2.f(x))*br2.fprime(x) 
                 F_increasing = conv_orientation(br1.increasing)*conv_orientation(br2.increasing)

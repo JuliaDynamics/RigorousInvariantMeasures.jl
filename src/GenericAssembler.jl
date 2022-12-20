@@ -99,6 +99,8 @@ function assemble(B, D; ϵ, max_iter, T)
 end
 
 function DiscretizedOperator(B, D; ϵ = 10^(-14), max_iter = 100, T = Float64)
+	@info "Assembling operator, the Newton stopping options are 
+			ϵ = $ϵ, max_iter = $max_iter"
 	L = assemble(B, D; ϵ, max_iter, T)
 	if is_integral_preserving(B)
 		@debug "The discretized operator preserves the integral"
