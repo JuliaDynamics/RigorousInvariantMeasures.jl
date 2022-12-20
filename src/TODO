@@ -1,0 +1,5 @@
+When calling Dual(B, D, 0.00001) with epsilon different from 0,
+it gives an error, probably some error in function calls
+
+To avoid unnecessary clutter, the Newton contractor 
+outputs to debug instead than to warn

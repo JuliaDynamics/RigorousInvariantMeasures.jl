@@ -56,23 +56,70 @@ x must be an Interval (univariate) or IntervalBox (multivariate)
 Stops when the interval reaches a fixed point, when the diameter is smaller than ε,
 or when max_iter iterations are reached (with an error)
 """
-root(f, x, ϵ; max_iter = 100) = root(f, derivative(f), x, ϵ; max_iter = max_iter)
+root(f, x; ϵ, max_iter) = root(f, derivative(f), x; ϵ, max_iter)
 
-function root(f, f′, x, ϵ; max_iter = 100)
+function root(f, f′, x; ϵ, max_iter)
 	for i in 1:max_iter
+		
 		x_old = x
+
 		x_mid = Interval(mid(x))
-		x = intersect(x, x_mid - f′(x) \ f(x_mid))
-		if x_old == x || isempty(x) || diam(x) < ϵ
+		@debug "Step $i of the Newton method:
+			   - the interval $x, 
+			   - the derivative $(f′(x)),
+			   - the value at the midpoint $(f(x_mid))"
+		
+		Nx = x_mid - f′(x) \ f(x_mid)
+		@debug "Candidate", Nx 
+
+		x = intersect(x, Nx)
+
+		if (x_old == x && diam(x) < ϵ) || isempty(x) 
 			return x
 		end
+
+		if x_old == x
+			# we assume our function is monotone 
+			# on x and may only be not monotone 
+			# on the interval representation of an 
+			# endpoint if it is not a representable number
+			
+			# Isaia: Sketch of proof
+			# Suppose the Newton method did not contract,
+			# we do a bisection step; we need to estimate the 
+			# range on each one of the two bisection intervals
+			# since the map is guaranteed monotone by hypothesis
+			# with the exception of endpoints coming from representation,
+			# its range is contained in the hull of the enlarged endpoints
+			# by interval arithmetic inclusion principle.
+			
+			x_l, x_r = bisect(x)
+
+			y_l = range_estimate_monotone(f, x_l)
+			y_r = range_estimate_monotone(f, x_r)
+			
+			# does a bisection step
+
+			if !(0 ∈ (y_l)) 
+				x = x_r
+			elseif !(0 ∈ (y_r))
+				x = x_l
+			else
+				# we need to treat the case in which both 
+				# range estimates contain $0$; since the range estimate 
+				# is obtained by evaluating on the enlarged endpoints
+				# and the function is monotone this means that the zero
+				# is contained in the enlarged common endpoint
+				x = Interval(prevfloat(x_l.hi), nextfloat(x_r.lo))
+			end
+		end
 	end
-	@info "Maximum iterates reached" max_iter, x, f(x)
+	@debug "Maximum iterates reached" max_iter, x, f(x), diam(x)
 	return x
 end
 
-preimage(y, f, X, ϵ; max_iter=100) = root(x -> f(x)-y, X, ϵ; max_iter)
-preimage(y, f, fprime, X, ϵ; max_iter=100) = root(x -> f(x)-y, fprime, X, ϵ; max_iter)
+preimage(y, f, X; ϵ,  max_iter) = root(x -> f(x)-y, X; ϵ, max_iter)
+preimage(y, f, fprime, X; ϵ, max_iter) = root(x -> f(x)-y, fprime, X; ϵ, max_iter)
 
 # superseded by IntervalOptimisation.jl
 function range_estimate(f, domain, recstep = 5)
@@ -85,6 +132,25 @@ function range_estimate(f, domain, recstep = 5)
 		return Iₐ ∪ Iᵦ
 	end
 end
+
+function range_estimate_der(f, fprime, domain, recstep = 5)
+	if recstep == 1
+		m = typeof(domain)(mid(domain))
+		return f(m)+fprime(domain)*radius(domain)
+	else
+		a, b = bisect(domain)
+		Iₐ = range_estimate_der(f, fprime, a, recstep-1)
+		Iᵦ = range_estimate_der(f, fprime, b, recstep-1)
+		return Iₐ ∪ Iᵦ
+	end
+end
+
+function range_estimate_monotone(f, x)
+	low = Interval(prevfloat(x.lo), nextfloat(x.lo))
+	high = Interval(prevfloat(x.hi), nextfloat(x.hi))
+	return hull(f(low),f(high))
+end
+
 
 using LinearAlgebra
 

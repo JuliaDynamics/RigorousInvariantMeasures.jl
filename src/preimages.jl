@@ -76,12 +76,12 @@ julia> using RigorousInvariantMeasures
 julia> D = mod1_dynamic(x->2x)
 Piecewise-defined dynamic with 2 branches
 
-julia> RigorousInvariantMeasures.preimages(0:0.1:1, D.branches[1])
+julia> RigorousInvariantMeasures.preimages(0:0.1:1, D.branches[1]; ϵ = 10^(-15), max_iter = 100)
 (Interval{Float64}[[0, 0], [0.05, 0.0500001], [0.1, 0.100001], [0.149999, 0.15], [0.2, 0.200001], [0.25, 0.25], [0.299999, 0.3], [0.349999, 0.35], [0.4, 0.400001], [0.45, 0.450001]], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
 ```
 
 """
-function preimages(y, br::Branch, ylabel = 1:length(y), ϵ = 0.0)
+function preimages(y, br::Branch, ylabel = 1:length(y); ϵ, max_iter)
 
     if br.increasing
         i = first_overlapping(y, br.Y[1])  # smallest possible i such that a = br.Y[1] is in the semi-open interval [y[i], y[i+1]).
@@ -104,7 +104,7 @@ function preimages(y, br::Branch, ylabel = 1:length(y), ϵ = 0.0)
             # fill in v[i] using x[i-stride].lo and x[i+stride].hi as range for the preimage search
             for k = 1+stride:2*stride:n
                 search_range = Interval(x[k-stride].lo, (k+stride <= n ? x[k+stride] : Interval(br.X[2])).hi)
-                x[k] = preimage(y[i-1+k], br.f, search_range, ϵ)
+                x[k] = preimage(y[i-1+k], br.f, br.fprime, search_range; ϵ, max_iter)
             end
             stride = stride ÷ 2
         end
@@ -123,7 +123,7 @@ function preimages(y, br::Branch, ylabel = 1:length(y), ϵ = 0.0)
             # fill in v[i] using x[i-stride].lo and x[i+stride].hi as range for the preimage search
             for k = 1+stride:2*stride:n
                 search_range = Interval(x[k-stride].lo, (k+stride <= n ? x[k+stride] : Interval(br.X[2])).hi)
-                x[k] = preimage(y[i+2-k], br.f, search_range, ϵ)
+                x[k] = preimage(y[i+2-k], br.f, br.fprime, search_range; ϵ, max_iter)
             end
             stride = stride ÷ 2
         end
@@ -136,8 +136,8 @@ end
 
     Construct preimages of an increasing array y under a dynamic, propagating additional labels `ylabel`
 """
-function preimages(y, D::Dynamic, ylabel = 1:length(y), ϵ = 0.0)
-    results = @showprogress 1 "Computing preimages..." [preimages(y, b, ylabel, ϵ) for b in branches(D)]
+function preimages(y, D::Dynamic, ylabel = 1:length(y); ϵ, max_iter)
+    results = @showprogress 1 "Computing preimages..." [preimages(y, b, ylabel; ϵ, max_iter) for b in branches(D)]
     x = vcat((result[1] for result in results)...)
     xlabel = vcat((result[2] for result in results)...)
     return x, xlabel
@@ -155,15 +155,15 @@ This is not restrictive because we'll need it only for the Hat assembler (at the
 
 We combine them in a single function because there are avenues to optimize by recycling some computations (not completely exploited for now)
 """
-function preimages_and_derivatives(y, br::Branch, ylabel = 1:length(y), ϵ = 0.0)
-    x, xlabel = preimages(y, br, ylabel, ϵ)
+function preimages_and_derivatives(y, br::Branch, ylabel = 1:length(y); ϵ, max_iter)
+    x, xlabel = preimages(y, br, ylabel; ϵ, max_iter)
     f′ = Contractors.derivative(br.f)
     x′ = f′.(x)
     return x, xlabel, x′
 end
-function preimages_and_derivatives(y, D::Dynamic, ylabel = 1:length(y), ϵ = 0.0)
+function preimages_and_derivatives(y, D::Dynamic, ylabel = 1:length(y); ϵ, max_iter)
     @assert is_full_branch(D)
-    results = @showprogress 1 "Computing preimages and derivatives..." [preimages_and_derivatives(y, b, ylabel, ϵ) for b in branches(D)]
+    results = @showprogress 1 "Computing preimages and derivatives..." [preimages_and_derivatives(y, b, ylabel; ϵ, max_iter) for b in branches(D)]
     x = vcat((result[1] for result in results)...)
     xlabel = vcat((result[2] for result in results)...)
     x′ = vcat((result[3] for result in results)...)
@@ -195,16 +195,16 @@ Utility function to return the domain of a dynamic
 """
 DynamicDefinition.domain(D::ComposedDynamic) = DynamicDefinition.domain(D.dyns[end])
 
-function preimages(z, Ds::ComposedDynamic, zlabel = 1:length(z), ϵ = 0.0)
+function preimages(z, Ds::ComposedDynamic, zlabel = 1:length(z); ϵ, max_iter)
     for d in Ds.dyns
-        z, zlabel = preimages(z, d, zlabel, ϵ)
+        z, zlabel = preimages(z, d, zlabel; ϵ, max_iter)
     end
     return z, zlabel
 end
-function preimages_and_derivatives(z, Ds::ComposedDynamic, zlabel = 1:length(z), ϵ = 0.0)   
+function preimages_and_derivatives(z, Ds::ComposedDynamic, zlabel = 1:length(z); ϵ, max_iter)   
     derivatives = fill(1, length(z))
     for d in Ds.dyns
-        z, zindex, z′ = preimages_and_derivatives(z, d, 1:length(z), ϵ)
+        z, zindex, z′ = preimages_and_derivatives(z, d, 1:length(z); ϵ, max_iter)
         zlabel = zlabel[zindex]
         derivatives = derivatives[zindex] .* z′ 
     end
@@ -221,7 +221,7 @@ end
 function DynamicDefinition.endpoints(D::ComposedDynamic)
     v = endpoints(D.dyns[1])
     auxDyn = D.dyns[2]
-    x, xlabel = preimages(v, auxDyn)
+    x, xlabel = preimages(v, auxDyn; ϵ = 10^-14, max_iter = 100)
     x = [x; domain(auxDyn)[2]]
     return sort!(x)
 end
