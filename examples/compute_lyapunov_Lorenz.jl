@@ -27,8 +27,8 @@ function discretizationlogderLorenz(B::Ulam, θ, α)
     return z*N.+(log(α)+log(θ))
 end
 
-size_coarse = 2^10
-size_fine = 2^15
+size_coarse = 2^15
+size_fine = 2^20
 
 @info "Size coarse: $(size_coarse) Size fine: $(size_fine)"
 
@@ -40,15 +40,16 @@ file = jldopen("output_Lorenz_$(size_coarse)_$(size_fine).jld", "w")
 @info "Computing Lorenz"
 
 B = Ulam(size_coarse)
-Q = DiscretizedOperator(B, D)
+Q = DiscretizedOperator(B, D; ϵ = 10^(-14), max_iter = 100)
 
 dfly_coefficients = dfly(strong_norm(B), aux_norm(B), D)
 @info dfly_coefficients
 
-norms = powernormbounds(B, D, Q=Q, m=20)
+norms = powernormbounds(B, D, Q=Q, m=40)
+@info norms
 
 B_fine = Ulam(size_fine)
-Q_fine = DiscretizedOperator(B_fine, D)
+Q_fine = DiscretizedOperator(B_fine, D; ϵ = 10^(-14), max_iter = 100)
 
 normQ_fine = opnormbound(B_fine, weak_norm(B_fine), Q_fine)
 norms2 = refine_norms_of_powers(norms,400)
