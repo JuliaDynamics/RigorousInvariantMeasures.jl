@@ -4,9 +4,9 @@ using IntervalArithmetic
 
 @testset "Contractors" begin
 
-@test root(x -> x^2-2, 1..2, 1e-13) ≈ sqrt(2)
+@test root(x -> x^2-2, 1..2; ϵ =  1e-13, max_iter = 100) ≈ sqrt(2)
 # to ensure quadratic convergence
-@test root(x -> x^2-2, 1..2, 1e-13; max_iter = 6) ≈ sqrt(2)
+@test root(x -> x^2-2, 1..2; ϵ = 1e-13, max_iter = 6) ≈ sqrt(2)
 
 
 fs = (x -> x^2, x -> x^3)

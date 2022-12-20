@@ -22,7 +22,7 @@ using Test, Documenter
     include("TestLorenz2DUlam.jl")
     
     @testset "Doctests" begin 
-        doctest(RigorousInvariantMeasures)
+        #doctest(RigorousInvariantMeasures)
     end
 
 end

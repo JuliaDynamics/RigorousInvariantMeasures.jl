@@ -236,27 +236,27 @@ struct ChebyshevDual <: Dual
     x′::Vector{Interval}
 end
 
-function ChebDualBranch(y, br::Branch, ylabel = 1:length(y), ϵ = 0.0)
+function ChebDualBranch(y, br::Branch, ylabel = 1:length(y); ϵ, max_iter)
 	if br.increasing
 		endpoint_X = br.X[2]
 		der = Contractors.derivative(br.f)(endpoint_X)
-		preim_der = preimages_and_derivatives(y, br, ylabel, ϵ)
+		preim_der = preimages_and_derivatives(y, br, ylabel; ϵ, max_iter)
 		return [preim_der[1]; endpoint_X],
 			[preim_der[2]; length(preim_der[2])+1], 
 			[preim_der[3]; der]
 	else
 		endpoint_X = br.X[2]
 		der = Contractors.derivative(br.f)(endpoint_X)
-		preim_der = preimages_and_derivatives(B.p, D, 1:length(B.p)-1, ϵ)
+		preim_der = preimages_and_derivatives(B.p, D, 1:length(B.p)-1; ϵ, max_iter)
 		return [preim_der[1]; endpoint_X], 
 			[preim_der[2]; length(preim_with_der[2])+1], 
 			[preim_der[3]; der]
 	end
 end
 
-function Dual(B::Chebyshev, D::PwMap, ϵ)
+function Dual(B::Chebyshev, D::PwMap; ϵ, max_iter)
 	@assert is_full_branch(D)
-    results = collect(ChebDualBranch(B.p, b, 1:length(B.p)-1, ϵ) for b in branches(D))
+    results = collect(ChebDualBranch(B.p, b, 1:length(B.p)-1; ϵ, max_iter) for b in branches(D))
     x = vcat((result[1] for result in results)...)
     xlabel = vcat((result[2] for result in results)...)
     x′ = vcat((result[3] for result in results)...)
@@ -284,10 +284,10 @@ function chebtransform(w)
 end
 
 using ProgressMeter
-function assemble(B::Chebyshev, D::Dynamic, ϵ=0.0; T = Float64)
+function assemble(B::Chebyshev, D::Dynamic; ϵ =  1e-13, max_iter = 100, T = Float64)
 	n = length(B.p)
 	M = zeros(Interval{T}, (n, n))
-	x, labels, x′ = Dual(B, D, ϵ)
+	x, labels, x′ = Dual(B, D; ϵ, max_iter)
 	@showprogress for i in 1:n
 		ϕ = B[i]
 		w = zeros(Interval{Float64}, n)

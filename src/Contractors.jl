@@ -56,7 +56,7 @@ x must be an Interval (univariate) or IntervalBox (multivariate)
 Stops when the interval reaches a fixed point, when the diameter is smaller than ε,
 or when max_iter iterations are reached (with an error)
 """
-root(f, x; ϵ, max_iter) = root(f, derivative(f), x, ϵ; max_iter = max_iter)
+root(f, x; ϵ, max_iter) = root(f, derivative(f), x; ϵ, max_iter)
 
 function root(f, f′, x; ϵ, max_iter)
 	for i in 1:max_iter

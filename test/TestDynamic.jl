@@ -28,7 +28,7 @@ D = PwMap([x->2*x, x->2-2*x], [@interval(0), @interval(0.5), @interval(1)])
 @test RigorousInvariantMeasures.orientation(D, 1) == 1
 @test RigorousInvariantMeasures.orientation(D, 2) == -1
 
-D = mod1_dynamic(x -> 3.5x, (0,1))
+D = mod1_dynamic(x -> 3.5x)
 
 @test length(D.branches) == 4
 @test [D.branches[i].X[1] for i in 1:4] ≈ [0, 2/7, 4/7, 6/7]
@@ -65,7 +65,7 @@ D = D0 ∘ D0
 @test is_full_branch(D0) == true
 @test is_full_branch(D) == true
 
-A, B, C = RigorousInvariantMeasures.preimages_and_derivatives([0.,0.1], D)
+A, B, C = RigorousInvariantMeasures.preimages_and_derivatives([0.,0.1], D; ϵ =  1e-13, max_iter = 100)
 @test A ≈ [0, 0.025, 0.25, 0.275, 0.5, 0.525, 0.75, 0.775]
 @test B == [1, 2, 1, 2, 1, 2, 1, 2]
 @test C == fill(4, 8)
@@ -75,7 +75,7 @@ A, B, C = RigorousInvariantMeasures.preimages_and_derivatives([0.,0.1], D)
 f = x->2*x+0.5*x*(1-x)
 D0 = mod1_dynamic(f)
 D = D0 ∘ D0 ∘ D0
-A, B = RigorousInvariantMeasures.preimages([0., 0.5],D)
+A, B = RigorousInvariantMeasures.preimages([0., 0.5],D; ϵ =  1e-13, max_iter = 100)
 g(x) = f(x) - floor(f(x))
 @test g.(g.(g.(A[2:2:end]))) ≈ fill(0.5, 8)
 
