@@ -50,7 +50,7 @@ function Base.getindex(B::Ulam, i::Int)
 end
 
 function BasisDefinition.is_dual_element_empty(::Ulam, d)
-	return isempty(d[1])
+	return isempty(d[1]) || isempty(d[2])
 end
 
 #Base.length(S::DualComposedWithDynamic{<:Ulam, <:Dynamic}) = length(S.basis) * nbranches(S.dynamic)

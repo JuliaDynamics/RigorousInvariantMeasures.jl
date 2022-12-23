@@ -16,7 +16,12 @@ struct DualComposedWithDynamic{B<:Basis, D<:Dynamic}
 	ϵ::Float64
 end
 
-Base.iterate(S::DualComposedWithDynamic{B, D}, state) where {B<:Basis, D<:Dynamic} = @error "Not implemented"
+"""
+Replacement of DualComposedWithDynamic.
+"""
+abstract type Dual end
+
+#Base.iterate(S::DualComposedWithDynamic{B, D}, state) where {B<:Basis, D<:Dynamic} = @error "Not implemented"
 
 struct ProjectDualElement{B<:Basis, DT}
 	basis::B
@@ -262,8 +267,5 @@ normbound(B::Basis, N::NormKind, v) = @error "Must be specialized"
 
 end
 
-"""
-Replacement of DualComposedWithDynamic.
-"""
-abstract type Dual end
+
 
