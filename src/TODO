@@ -1,5 +1,8 @@
-When calling Dual(B, D, 0.00001) with epsilon different from 0,
-it gives an error, probably some error in function calls
 
-To avoid unnecessary clutter, the Newton contractor 
-outputs to debug instead than to warn
+
+Contractors.preimage in preimages.jl
+Decide what is the best behavior
+
+
+BasisDefinition opnormbound, normbound
+Failing due to a delicate issue, while L1 is a subtype of NormKind,  Type{L1} is not a subtype of Type{NormKind}

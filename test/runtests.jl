@@ -1,9 +1,11 @@
 using RigorousInvariantMeasures
-using Test, Documenter
+using Test, Documenter, Aqua
 
+#Aqua.test_all(RigorousInvariantMeasures)
 
 @testset "RigorousInvariantMeasures.jl" begin
 
+    include("TestBasisDefinition.jl")
     include("TestContractors.jl")
     include("TestDynamic.jl")
     include("TestHat.jl")
