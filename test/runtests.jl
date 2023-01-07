@@ -22,7 +22,12 @@ using Test, Documenter
     include("TestLorenz2DUlam.jl")
     
     @testset "Doctests" begin 
-        doctest(RigorousInvariantMeasures)
+        if Base.VERSION >= v"1.8"
+            # It seems that some output formats have changed from 1.7 to 1.8
+            # therefore we use this hack to avoid failing doctests
+            @info "The doctest implemented for version $(Base.VERSION)"
+            doctest(RigorousInvariantMeasures)
+        end
     end
 
 end
