@@ -62,7 +62,7 @@ Return the type of the strong norm of the basis
 julia> using RigorousInvariantMeasures
 
 julia> B = Ulam(1024)
-Ulam{LinRange{Float64, Int64}}(range(0.0, stop=1.0, length=1025))
+Ulam{LinRange{Float64, Int64}}(LinRange{Float64}(0.0, 1.0, 1025))
 
 julia> strong_norm(B)
 TotalVariation
@@ -80,7 +80,7 @@ Return the type of the weak norm of the basis
 julia> using RigorousInvariantMeasures
 
 julia> B = Ulam(1024)
-Ulam{LinRange{Float64, Int64}}(range(0.0, stop=1.0, length=1025))
+Ulam{LinRange{Float64, Int64}}(LinRange{Float64}(0.0, 1.0, 1025))
 
 julia> weak_norm(B)
 L1
@@ -99,16 +99,16 @@ Check if Bfine is a refinement of Bcoarse
 julia> using RigorousInvariantMeasures
 
 julia> B = Ulam(1024)
-Ulam{LinRange{Float64, Int64}}(range(0.0, stop=1.0, length=1025))
+Ulam{LinRange{Float64, Int64}}(LinRange{Float64}(0.0, 1.0, 1025))
 
 julia> Bfine = Ulam(2048)
-Ulam{LinRange{Float64, Int64}}(range(0.0, stop=1.0, length=2049))
+Ulam{LinRange{Float64, Int64}}(LinRange{Float64}(0.0, 1.0, 2049))
 
 julia> is_refinement(Bfine, B)
 true
 
 julia> Bfine = Ulam(2049)
-Ulam{LinRange{Float64, Int64}}(range(0.0, stop=1.0, length=2050))
+Ulam{LinRange{Float64, Int64}}(LinRange{Float64}(0.0, 1.0, 2050))
 
 julia> is_refinement(Bfine, B)
 false

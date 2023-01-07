@@ -37,7 +37,7 @@ for y = (a1, a2)
     for f in (x->x/2, x->1+x/2, x-> 1-x/2)
         b = RigorousInvariantMeasures.Branch(f, (@interval(0), @interval(1)))
         ylabel = 1:length(y)
-        x, xlabel = preimages(y, b, ylabel; ϵ = 0.0, max_iter = 100)
+        x, xlabel = RigorousInvariantMeasures.preimages(y, b, ylabel; ϵ = 0.0, max_iter = 100)
         @test x[1] == b.X[1]
         @test x[end] != b.X[2] # to make sure the last entry isn't there
         @test length(x) == length(xlabel)
@@ -46,6 +46,7 @@ for y = (a1, a2)
         if !b.increasing
             y2 = reverse(y2)
         end
+        
         @test all(approxintervals.(y1, y2))
     end
 end
