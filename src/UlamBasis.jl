@@ -35,7 +35,7 @@ Returns the i-th element of the Ulam basis as a function.
 julia> using RigorousInvariantMeasures
 
 julia> B = Ulam(16)
-Ulam{LinRange{Float64, Int64}}(range(0.0, stop=1.0, length=17))
+Ulam{LinRange{Float64, Int64}}(LinRange{Float64}(0.0, 1.0, 17))
 
 julia> B[1](1/32)
 1

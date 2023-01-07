@@ -14,7 +14,7 @@ julia> D = D0∘D0∘D0
 RigorousInvariantMeasures.ComposedDynamic((RigorousInvariantMeasures.ComposedDynamic((Piecewise-defined dynamic with 4 branches, Piecewise-defined dynamic with 4 branches), Piecewise-defined dynamic with 16 branches), Piecewise-defined dynamic with 4 branches), Piecewise-defined dynamic with 64 branches)
 
 julia> B = Hat(1024)
-Hat{LinRange{Float64, Int64}}(range(0.0, stop=1.0, length=1025))
+Hat{LinRange{Float64, Int64}}(LinRange{Float64}(0.0, 1.0, 1025))
 ```
 
 ## Building the discretized operator
@@ -93,7 +93,7 @@ julia> Q_fine = DiscretizedOperator(B_fine, D);
 Then, we call the coarse fine routines
 ```jldoctest userguide
 julia> normQ_fine = opnormbound(B_fine, weak_norm(B_fine), Q_fine)
-1.0433672005775962
+1.043367200577545
 
 julia> norms_fine = finepowernormbounds(B, B_fine, D, norms; normQ_fine=normQ_fine);
 
