@@ -47,10 +47,6 @@ for y = (a1, a2)
             y2 = reverse(y2)
         end
         
-        @info y
-        @info  x
-        @info  y1
-        @info  y2
         @test all(approxintervals.(y1, y2))
     end
 end

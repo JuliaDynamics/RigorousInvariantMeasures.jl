@@ -34,11 +34,6 @@ Branch(f::Function, fprime::Function, X, Y=(f(Interval(X[1])), f(Interval(X[2]))
 
 DynamicDefinition.derivative(br::Branch) = br.fprime
 
-function Contractors.preimage(y, br::Branch, X, ϵ; max_iter = 100)
-	return root(x-> br.f(x)-y, br.fprime, X, ϵ; max_iter)
-end
-
-
 function equal_up_to_orientation(X, Y)
     @assert length(X)==2 && length(Y)==2
     if eltype(X) <: Interval && !all(isthin.(X))

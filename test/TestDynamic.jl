@@ -6,10 +6,10 @@ using IntervalArithmetic
 D = mod1_dynamic(x->2*x)
 
 @test D.branches[1].f(0.1) == 0.2
+@test derivative(D.branches[1])(0.1) == 2.0
 
 @test RigorousInvariantMeasures.dfly(RigorousInvariantMeasures.Lipschitz, RigorousInvariantMeasures.L1, D) == (0.5, 0.0)
 @test RigorousInvariantMeasures.dfly(RigorousInvariantMeasures.TotalVariation, RigorousInvariantMeasures.L1, D) == (0.5, 0.0)
-
 
 D = PwMap([ x-> x^2+0.25, x -> 4*x-2, x -> 4*x-3], [0, 0.5, 0.75, 1])
 
@@ -64,11 +64,38 @@ D = D0 ∘ D0
 
 @test is_full_branch(D0) == true
 @test is_full_branch(D) == true
+@test RigorousInvariantMeasures.DynamicDefinition.domain(D) == (Interval(0), Interval(1))
 
 A, B, C = RigorousInvariantMeasures.preimages_and_derivatives([0.,0.1], D; ϵ =  1e-13, max_iter = 100)
 @test A ≈ [0, 0.025, 0.25, 0.275, 0.5, 0.525, 0.75, 0.775]
 @test B == [1, 2, 1, 2, 1, 2, 1, 2]
 @test C == fill(4, 8)
+
+T = mod1_dynamic(x-> 1-2*x)
+
+D = D0∘T
+@test is_full_branch(D) == true
+
+A, B, C = RigorousInvariantMeasures.preimages_and_derivatives([0.,0.1], D; ϵ =  1e-13, max_iter = 100)
+@test A ≈ [0, 0.225, 0.25, 0.475, 0.5, 0.725, 0.75, 0.975]
+@test B == [2, 1, 2, 1, 2, 1, 2, 1]
+@test C == fill(-4, 8)
+
+D = T∘D0
+@test is_full_branch(D) == true
+@test mid.(A) ≈ [0, 0.225, 0.25, 0.475, 0.5, 0.725, 0.75, 0.975]
+@test B == [2, 1, 2, 1, 2, 1, 2, 1]
+@test C == fill(-4, 8)
+
+D = T ∘ T
+
+@test is_full_branch(D) == true
+
+A, B, C = RigorousInvariantMeasures.preimages_and_derivatives([0.,0.1], D; ϵ =  1e-13, max_iter = 100)
+@test mid.(A) ≈ [0, 0.025, 0.25, 0.275, 0.5, 0.525, 0.75, 0.775]
+@test B == [1, 2, 1, 2, 1, 2, 1, 2]
+@test C == fill(4, 8)
+
 
 
 # Lanford map, so that we test also something that is not linear
