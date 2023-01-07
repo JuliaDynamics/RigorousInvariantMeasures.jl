@@ -129,13 +129,9 @@ function preimage(y::Interval, f, fprime, X; ϵ, max_iter)
 	# to define a preimage method which dispatches on the branch type
 	# now, the question is if it should be in Contractors.jl 
 	# or PwDynamicDefinition.jl
-	if fprime(X)>0	
+	if !(0 ∈ fprime(X))
 		x_lo = preimage(y.lo, f, fprime, X; ϵ, max_iter)
 		x_hi = preimage(y.hi, f, fprime, X; ϵ, max_iter)
-		return hull(x_lo, x_hi)
-	elseif fprime(X)<0
-		x_lo = preimage(y.hi, f, fprime, X; ϵ, max_iter)
-		x_hi = preimage(y.lo, f, fprime, X; ϵ, max_iter)
 		return hull(x_lo, x_hi)
 	else
 		@error "Preimage of a wide interval through a non monotone function"

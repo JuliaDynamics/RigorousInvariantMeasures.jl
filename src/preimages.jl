@@ -39,8 +39,44 @@ function last_overlapping(y, a)
     searchsortedfirst(y, Interval(a).hi, by=x->Interval(x).lo) - 1
 end
 
+function Contractors.preimage(y, br::Branch, X; ϵ, max_iter)
+    return root( x->br.f(x)-y, br.fprime, X; ϵ, max_iter)
+end 
+
+function Contractors.preimage(y::Interval, br::Branch, X; ϵ, max_iter)
+    y = intersect(y, hull(br.Y[1], br.Y[2]))
+    x_lo = root( x->br.f(x)-y.lo, br.fprime, X; ϵ, max_iter)
+    x_hi = root( x->br.f(x)-y.hi, br.fprime, X; ϵ, max_iter)
+    
+    # TODO (Isaia): I'm not convinced; I think that instead of 
+    # intersecting with the image of the branch, I should treat the 
+    # case when one of the preimages is empty and work consequently,
+    # as in the commented code below.
+    # The tests are passing, but I'm not sure this is the best approach.
+    
+    #
+    # if isempty(x_lo) || isempty(x_hi)
+    #     if br.increasing
+    #         if y.lo <= br.Y[1]
+    #             x_lo = br.X[1]
+    #         elseif y.hi >= br.Y[2]
+    #             x_hi = br.X[2]
+    #         end
+    #     else
+    #         if y.lo <= br.Y[1]
+    #             x_hi = br.X[2]
+    #         elseif y.hi >= br.Y[2]
+    #             x_lo = br.X[1]
+    #         end
+    #     end
+    # end
+    
+    return hull(x_lo, x_hi)
+end 
+
+
 """
-    preimages(y, br::Branch, ylabel = 1:length(y), ϵ = 0.0)
+    preimages(y, br::Branch, ylabel = 1:length(y); ϵ, max_iter)
 
 Construct preimages of an increasing array y under a monotonic branch defined on X = (a, b), propagating additional labels `ylabel`
 
@@ -104,7 +140,7 @@ function preimages(y, br::Branch, ylabel = 1:length(y); ϵ, max_iter)
             # fill in v[i] using x[i-stride].lo and x[i+stride].hi as range for the preimage search
             for k = 1+stride:2*stride:n
                 search_range = Interval(x[k-stride].lo, (k+stride <= n ? x[k+stride] : Interval(br.X[2])).hi)
-                x[k] = preimage(y[i-1+k], br.f, br.fprime, search_range; ϵ, max_iter)
+                x[k] = preimage(y[i-1+k], br, search_range; ϵ, max_iter)
             end
             stride = stride ÷ 2
         end
@@ -123,7 +159,7 @@ function preimages(y, br::Branch, ylabel = 1:length(y); ϵ, max_iter)
             # fill in v[i] using x[i-stride].lo and x[i+stride].hi as range for the preimage search
             for k = 1+stride:2*stride:n
                 search_range = Interval(x[k-stride].lo, (k+stride <= n ? x[k+stride] : Interval(br.X[2])).hi)
-                x[k] = preimage(y[i+2-k], br.f, br.fprime, search_range; ϵ, max_iter)
+                x[k] = preimage(y[i+2-k], br, search_range; ϵ, max_iter)
             end
             stride = stride ÷ 2
         end
