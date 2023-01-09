@@ -257,8 +257,8 @@ Returns an a priori bound on the weak norm of the abstract operator ``L``
 bound_weak_norm_abstract(B::Basis, D=nothing; dfly_coefficients=nothing) = @error "Must be specialized"
 
 using ..RigorousInvariantMeasures: NormKind
-opnormbound(B::Basis, N::Type{NormKind}, M::AbstractVecOrMat{S}) where {S} = @error "Must be specialized"
-normbound(B::Basis, N::Type{NormKind}, v) = @error "Must be specialized"
+opnormbound(B::Basis, N::Type{<:NormKind}, M::AbstractVecOrMat{S}) where {S} = @error "Must be specialized"
+normbound(B::Basis, N::Type{<:NormKind}, v) = @error "Must be specialized"
 
 end
 

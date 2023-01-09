@@ -79,6 +79,7 @@ function root(f, f′, x; ϵ, max_iter)
 		end
 
 		if x_old == x
+			@debug "Not contracting, fallback to bisection"
 			# we assume our function is monotone 
 			# on x and may only be not monotone 
 			# on the interval representation of an 

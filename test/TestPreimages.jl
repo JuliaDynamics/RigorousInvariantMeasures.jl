@@ -51,6 +51,18 @@ for y = (a1, a2)
     end
 end
 
+# Test nonmonotone 
+f = x->(x-@interval(0.3))^2
+b = RigorousInvariantMeasures.Branch(f, (@interval(0.3), @interval(1)))
+x = RigorousInvariantMeasures.preimage(0.04, b, Interval(0.2, 0.7), ϵ = 1e-14, max_iter = 100)        
+@test 0.5 ∈ x
+
+b = RigorousInvariantMeasures.Branch(f, (@interval(0), @interval(0.3)))
+x = RigorousInvariantMeasures.preimage(0.04, b, Interval(0, 0.4), ϵ = 1e-14, max_iter = 100)        
+@test 0.1 ∈ x
+
+#@test_logs (:debug,"Not contracting, fallback to bisection") RigorousInvariantMeasures.preimage(0.04, b, Interval(0, 0.4), ϵ = 1e-14, max_iter = 100)
+
 D = mod1_dynamic(x -> 2x)
 DD = ∘(D, D, D, D)
 p = [0, 0.2, 0.4, 0.6, 0.8]

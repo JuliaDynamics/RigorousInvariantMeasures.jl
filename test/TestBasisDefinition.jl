@@ -43,13 +43,9 @@ D = mod1_dynamic(x->2*x)
 @test_logs (:error,"Must be specialized") BasisDefinition.bound_weak_norm_abstract(B, D)
 
 
-# Failing due to a delicate issue, while L1 is a subtype of NormKind
-# Type{L1} is not a subtype of Type{NormKind}
-# 
-# 
-# @test_logs (:error,"Must be specialized") BasisDefinition.opnormbound(B, L1, [1.0 0.0;
-#                                                                             0.0  1.0])
-# @test_logs (:error,"Must be specialized") BasisDefinition.normbound(B, L1, [1.0; 1.0])
+@test_logs (:error,"Must be specialized") BasisDefinition.opnormbound(B, L1, [1.0 0.0;
+                                                                             0.0  1.0])
+@test_logs (:error,"Must be specialized") BasisDefinition.normbound(B, L1, [1.0; 1.0])
 
 
 
