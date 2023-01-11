@@ -390,29 +390,35 @@ end
 
 
 using ProgressMeter
+"""
+dfly inequality for maps with infinite derivatives. 
+    
+The strategy to compute it follows a variant of Lemma 9.1 in the GMNP paper: 
+* we find a "problematic set" I by taking a small interval of size radius(branch domain)/2^3 around each endpoint with infinite derivative; 
+* we find l such that T >= l for each point in I
+* we compute the dfly coefficients as in the lemma.
+* we repeat the computation replacing 2^3 with 2^4, 2^5, ... 2^15 and take the best estimate among these.
+"""
 function dfly_inf_der(::Type{TotalVariation}, ::Type{L1}, D::PwDynamicDefinition.PwMap, tol=1e-3)
     leftrightsingularity = Tuple{Bool, Bool}[]
     A = +∞
     B = +∞
     
-    # for each branch we detect if the singularity is on the left or on the right (or both)
+    # for each branch, we check if the derivative is infinite at any of the endpoints:
     for br in branches(D)
-        
-        rad = radius(hull(br.X[1], br.X[2]))
-        f = x->abs(1/br.fprime(x))
-        I = Interval((br.X[1]+rad/4).hi, (br.X[2]-rad/4).lo)
-        val, listofboxes = maximise(f, I, tol=tol)
-        
-        # we try to identify if the singularity of the derivative is on the left or the right
-        left, right = false, false
-        if all((listofboxes.-br.X[1]).>rad/4)
-            # the maximum of the inverse of the derivative is far from the left
+        # the Interval(0, 1e-15) summand is there because for some reason TaylorSeries fails on point intervals of singularity but not on larger intervals containing them:
+        # derivative(x->x^(6/10), 0..0) # fails
+        # derivative(x->x^(6/10), 0..1e-15) # succeeds
+
+        left = false
+        if !isfinite(derivative(br.f, br.X[1] + Interval(0, 1e-15)))
             left = true
         end
-        if all((br.X[2].-listofboxes).>rad/4)
-            # the maximum of the inverse of the derivative is far from the right
+        right = false
+        if !isfinite(derivative(br.f, br.X[2] - Interval(0, 1e-15)))
             right = true
         end
+
         push!(leftrightsingularity, (left, right))
     end
     est = +∞
@@ -425,6 +431,7 @@ function dfly_inf_der(::Type{TotalVariation}, ::Type{L1}, D::PwDynamicDefinition
             rad = radius(hull(br.X[1], br.X[2]))
             tol = rad/2^(i+1)
             left, right = leftrightsingularity[j]
+            @debug "branch $j, left_singularity=$left, right_singularity=$right"
             f = x->-1/br.fprime(x)
             g = distortion(br)
             left_endpoint = br.X[1]
@@ -437,26 +444,37 @@ function dfly_inf_der(::Type{TotalVariation}, ::Type{L1}, D::PwDynamicDefinition
             end
             I = hull(left_endpoint, right_endpoint)
             val_br = 2*maximise(x->abs(f(x)), I, tol=tol)[1]
+            @debug "maximise on $I: $val_br"
             val = max(val, val_br.hi)
             
             if left
+                # we work on the interval [br.X[1], left_endpoint] =: [a, b].
+                # we assume here that f(a) = 0, g(a)=∞, and that g is monotonically decreasing on [a,b]
                 l_left = abs(g(left_endpoint))
-                # we use the fact that the primitive of the distortion is 1/T'
+                @debug "left endpoint: g($left_endpoint) = $l_left"
+                # we use the fact that the primitive of the distortion g is f=1/T', and compute
+                # int_a^b (distorsion) = f(b) - f(a) = f(b)
                 val_summand+= abs(f(left_endpoint)/2)
+                @debug "abs(f($left_endpoint)/2) = $val_summand"
                 l = max(l, abs(l_left).hi )
             end
             if right
+                # same reasoning as above but on the right endpoint
                 l_right = abs(g(right_endpoint)) 
+                @debug "right endpoint: g($right_endpoint) = $l_right"
                 val_summand+= abs(f(right_endpoint)/2)
+                @debug "abs(f($right_endpoint)/2) = $val_summand"
                 l = max(l, abs(l_right).hi )
             end
         end
         val = val ⊕₊ val_summand.hi 
+        @debug "i=$i, A=$val, B=$l"
 
         if val<1.0 && l⊘₊(1.0 ⊖₋val) < est
             est = l⊘₊(1.0 ⊖₋val)
             A = val
             B = l
+            @debug "improving on previous best"
         end
     end
     endpts = endpoints(D)
