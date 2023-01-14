@@ -248,10 +248,11 @@ function DynamicDefinition.plottable(D::PwMap, x)
 	for k in 1:nbranches(D)
 		domain = hull(D[k].X[1], D[k].X[2])
 		if x in domain
-			return D[k].f(x)
+			return mid(Interval(D[k].f(x)))
 		end
 	end
 end
+DynamicDefinition.plottable(D::PwMap) = x -> DynamicDefinition.plottable(D, x)
 
 using RecipesBase
 @recipe f(::Type{PM}, D::PM) where {PM <: PwMap} = x -> plottable(D, x)
