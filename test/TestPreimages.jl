@@ -102,4 +102,37 @@ D = PwMap([x->17*x/5,
 # we just check that this doesn't throw, for now
 RigorousInvariantMeasures.preimages(0:0.25:1, D; ϵ = 0.0, max_iter = 100)
 
+# test has_infinite_derivative_at_endpoints
+using RigorousInvariantMeasures: has_infinite_derivative_at_endpoints
+
+D = PwMap([x->17*x/5, 
+	x->(34*((17*x-5)/17)/25+3)*((17*x-5)/17), 
+	x->(34*((17*x-10)/17)/25+3)*((17*x-10)/17), 
+	x->17*((17*x-15)/17)/5], 
+	[Interval(0), Interval(5)/17, Interval(10)/17, Interval(15)/17, Interval(1)],
+	[Interval(0) Interval(1);
+	 Interval(0) Interval(1);
+	 Interval(0) Interval(1);
+	 Interval(0) @interval(0.4)]
+	)
+
+for i in 1:length(D.branches)
+    @test has_infinite_derivative_at_endpoints(D.branches[i]) == (false, false)
+end
+
+LorenzMap(θ, α) = PwMap([x->θ*(0.5-x)^α, x->1-θ*(x-0.5)^α],
+                    [x->-1*θ*α*(0.5-x)^(α-1), x->-θ*α*(x-0.5)^(α-1)],
+                    [@interval(0), @interval(0.5), @interval(1)],
+                    [θ*(Interval(0.5))^α Interval(0.0);
+                    Interval(1.0)  1-θ*(Interval(0.5))^α]; infinite_derivative=true)
+
+D0 = LorenzMap(109/64, 51/64)
+D = D0 ∘ D0 ∘ D0
+
+@test has_infinite_derivative_at_endpoints(D.E.branches[1]) == (false, true)
+for i = 2:7
+    @test has_infinite_derivative_at_endpoints(D.E.branches[i]) == (true, true)
+end
+@test has_infinite_derivative_at_endpoints(D.E.branches[end]) == (true, false)
+
 end #testset

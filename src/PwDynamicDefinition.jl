@@ -388,7 +388,18 @@ function composedPwMap(D1::PwDynamicDefinition.PwMap, D2::PwDynamicDefinition.Pw
     return PwMap(new_branches; full_branch = full_branch, infinite_derivative = infinite_derivative)
 end
 
+"""
+Returns a pair (left::Bool, right::Bool) that tells if a branch has infinite derivative at any of its endpoints
+"""
+function has_infinite_derivative_at_endpoints(branch)
+        # the Interval(0, 1e-15) summand is there because for some reason TaylorSeries fails on point intervals of singularity but not on larger intervals containing them:
+        # derivative(x->x^(6/10), 0..0) # fails
+        # derivative(x->x^(6/10), 0..1e-15) # succeeds
 
+        left = !isfinite(derivative(branch.f, branch.X[1] + Interval(0, 1e-15)))
+        right = !isfinite(derivative(branch.f, branch.X[2] - Interval(0, 1e-15)))
+        return (left, right)
+end
 
 using ProgressMeter
 """
@@ -407,18 +418,7 @@ function dfly_inf_der(::Type{TotalVariation}, ::Type{L1}, D::PwDynamicDefinition
     
     # for each branch, we check if the derivative is infinite at any of the endpoints:
     for br in branches(D)
-        # the Interval(0, 1e-15) summand is there because for some reason TaylorSeries fails on point intervals of singularity but not on larger intervals containing them:
-        # derivative(x->x^(6/10), 0..0) # fails
-        # derivative(x->x^(6/10), 0..1e-15) # succeeds
-
-        left = false
-        if !isfinite(derivative(br.f, br.X[1] + Interval(0, 1e-15)))
-            left = true
-        end
-        right = false
-        if !isfinite(derivative(br.f, br.X[2] - Interval(0, 1e-15)))
-            right = true
-        end
+        (left, right) = has_infinite_derivative_at_endpoints(br)
 
         push!(leftrightsingularity, (left, right))
     end
