@@ -13,6 +13,10 @@ domain(S::Dynamic) = @error "Not implemented"
 nbranches(S::Dynamic) = @error "Not implemented"
 branch(S::Dynamic, k) = @error "Not implemented"
 branches(S::Dynamic, k) = @error "Not implemented"
+
+"""
+Return a non-interval version of the map as a function. This can be used, for instance, for plot(plottable(D)).
+"""
 plottable(S::Dynamic) = @error "Not implemented"
 
 """
