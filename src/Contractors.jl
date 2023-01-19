@@ -59,6 +59,10 @@ or when max_iter iterations are reached (with an error)
 root(f, x; ϵ, max_iter) = root(f, derivative(f), x; ϵ, max_iter)
 
 function root(f, f′, x; ϵ, max_iter)
+	
+	enl = 1
+	search_step = 0
+
 	for i in 1:max_iter
 		
 		x_old = x
@@ -67,11 +71,37 @@ function root(f, f′, x; ϵ, max_iter)
 		@debug "Step $i of the Newton method:
 			   - the interval $x, 
 			   - the derivative $(f′(x)),
-			   - the value at the midpoint $(f(x_mid))"
+			   - the value at the midpoint $(f(x_mid))
+			   - the value $(f(x))"
 		
-		Nx = x_mid - f′(x) \ f(x_mid)
-		@debug "Candidate", Nx 
 
+		enc_der = f′(x)
+		fm = f(x_mid)
+		
+		Nx = Interval(∅)
+
+		if !(0 ∈ enc_der) 
+			Nx = x_mid - fm / enc_der 
+			@debug "Newton Candidate", Nx
+		else 
+			# we do one Krawczyk step, avoids 
+			# dividing by an interval containing $0$
+			rad = radius(x)
+			der_mid = f′(x_mid)
+			
+			# if 0 ∈ der_mid, due to the definition of branches, 
+			# we have that the midpoint must an endpoint 
+			# of the intervals that contain the points 
+			# that bound the monotonicity interval, so we assume that 
+			# we cannot further refine and return it
+			if 0 ∈ der_mid
+				return x
+			end
+
+			Nx = x_mid - fm/der_mid -(1-enc_der/der_mid)*Interval(-rad, rad) 
+			@debug "Krawczyk candidate", Nx
+		end
+		 
 		x = intersect(x, Nx)
 
 		if (x_old == x && diam(x) < ϵ) || isempty(x) 
@@ -79,40 +109,41 @@ function root(f, f′, x; ϵ, max_iter)
 		end
 
 		if x_old == x
-			# we assume our function is monotone 
-			# on x and may only be not monotone 
-			# on the interval representation of an 
-			# endpoint if it is not a representable number
+			@debug fm
 			
-			# Isaia: Sketch of proof
-			# Suppose the Newton method did not contract,
-			# we do a bisection step; we need to estimate the 
-			# range on each one of the two bisection intervals
-			# since the map is guaranteed monotone by hypothesis
-			# with the exception of endpoints coming from representation,
-			# its range is contained in the hull of the enlarged endpoints
-			# by interval arithmetic inclusion principle.
-			
-			x_l, x_r = bisect(x)
+			if 0 ∈ fm
+				# if 0 belongs to the image of the midpoint, 
+				# we implement this search strategy;
+				# but this is not the most effective, probably 
+				# a bisection search is better
+				search_step = max_iter-i-2
+				
+				@debug "0 is in fm"
+				if enl == search_step 
+					return x
+				end
+				rint = Interval(radius(x))
+				
+				x_cand_l = x_mid-enl*rint/search_step
+				@debug x_cand_l, f(x_cand_l)
+				x_cand_r = x_mid+enl*rint/search_step
+				@debug x_cand_r, f(x_cand_r)
 
-			y_l = range_estimate_monotone(f, x_l)
-			y_r = range_estimate_monotone(f, x_r)
-			
-			# does a bisection step
-
-			if !(0 ∈ (y_l)) 
-				x = x_r
-			elseif !(0 ∈ (y_r))
-				x = x_l
+				if !(0 ∈ f(x_cand_l)) && !(0 ∈ f(x_cand_r))
+					x = hull(x_cand_l, x_cand_r)
+					enl = 1
+					@debug "Value of f(x)", f(x) 
+				else 
+					x = x_old
+					enl += 1
+				end
 			else
-				# we need to treat the case in which both 
-				# range estimates contain $0$; since the range estimate 
-				# is obtained by evaluating on the enlarged endpoints
-				# and the function is monotone this means that the zero
-				# is contained in the enlarged common endpoint
-				x = Interval(prevfloat(x_l.hi), nextfloat(x_r.lo))
+				if !(0 ∈ hull(fa, fm))
+					x = Interval(x_mid, x.hi)
+				else 
+					x = Interval(x.lo, x_mid)
+				end
 			end
-			x = intersect(x, x_old)
 		end
 	end
 	@debug "Maximum iterates reached" max_iter, x, f(x), diam(x)
@@ -123,20 +154,20 @@ end
 preimage(y, f, X; ϵ,  max_iter) = preimage(y, f, derivative(f), X; ϵ, max_iter)
 preimage(y, f, fprime, X; ϵ, max_iter) = root(x -> f(x)-y, fprime, X; ϵ, max_iter)
 
-function preimage(y::Interval, f, fprime, X; ϵ, max_iter)
+#function preimage(y::Interval, f, fprime, X; ϵ, max_iter)
 	# I don't really like this, it is checking again if the function 
 	# is increasing or decreasing; probably the best would be 
 	# to define a preimage method which dispatches on the branch type
 	# now, the question is if it should be in Contractors.jl 
 	# or PwDynamicDefinition.jl
-	if !(0 ∈ fprime(X))
-		x_lo = preimage(y.lo, f, fprime, X; ϵ, max_iter)
-		x_hi = preimage(y.hi, f, fprime, X; ϵ, max_iter)
-		return hull(x_lo, x_hi)
-	else
-		@error "Preimage of a wide interval through a non monotone function"
-	end
-end
+#	if !(0 ∈ fprime(X))
+#		x_lo = preimage(y.lo, f, fprime, X; ϵ, max_iter)
+#		x_hi = preimage(y.hi, f, fprime, X; ϵ, max_iter)
+#		return hull(x_lo, x_hi)
+#	else
+#		@error "Preimage of a wide interval through a non monotone function"
+#	end
+#end
 
 
 
