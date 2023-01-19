@@ -60,8 +60,8 @@ root(f, x; ϵ, max_iter) = root(f, derivative(f), x; ϵ, max_iter)
 
 function root(f, f′, x; ϵ, max_iter)
 	
-	enl = 1
-	search_step = 0
+	#enl = 1
+	#search_step = 0
 
 	for i in 1:max_iter
 		
@@ -119,23 +119,25 @@ function root(f, f′, x; ϵ, max_iter)
 				search_step = max_iter-i-2
 				
 				@debug "0 is in fm"
-				if enl == search_step 
-					return x
-				end
+				#if enl == search_step 
+				#	return x
+				#end
 				rint = Interval(radius(x))
 				
-				x_cand_l = x_mid-enl*rint/search_step
+				# rand has average 1/2, so in average this is a bisection step
+
+				x_cand_l = x_mid+rand()*rint
 				@debug x_cand_l, f(x_cand_l)
-				x_cand_r = x_mid+enl*rint/search_step
+				x_cand_r = x_mid-rand()*rint
 				@debug x_cand_r, f(x_cand_r)
 
 				if !(0 ∈ f(x_cand_l)) && !(0 ∈ f(x_cand_r))
 					x = hull(x_cand_l, x_cand_r)
-					enl = 1
+				#	enl = 1
 					@debug "Value of f(x)", f(x) 
 				else 
 					x = x_old
-					enl += 1
+				#	enl += 1
 				end
 			else
 				if !(0 ∈ hull(fa, fm))
