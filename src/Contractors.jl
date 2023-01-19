@@ -49,96 +49,109 @@ derivative(f) = x-> f(Taylor1([x,1.],1))[1]
 #derivative(f) = x->f(Dual(x, 1..1)).epsilon
 
 """
-Compute a single root with (possibly multivariate) interval Newton
+Compute the root of a monotonic function with interval Newton + bisection.
 
-x must be an Interval (univariate) or IntervalBox (multivariate)
+This function was originally written to work also with IntervalBox'es (multivariate Newton),
+but in the end we do not really need it since switching to recursive preimage computation,
+which should be more performant than the "shooting method".
 
-Stops when the interval reaches a fixed point, when the diameter is smaller than ε,
-or when max_iter iterations are reached (with an error)
+The function first attempts to contract x with a step of interval Newton; if this fails, then
+a bisection strategy is used.
+
+Stops when the diameter is smaller than ε, or when `max_iter`` iterations are reached (with a warning),
+or when the iterations fail to improve the interval (which may happen even with large `diam(x)` if the enclosures computed by `f`
+are particularly poor).
+
+The method should be quite robust to the value of `ϵ`, since it is not used as the main stopping criterion.
+
 """
 root(f, x; ϵ, max_iter) = root(f, derivative(f), x; ϵ, max_iter)
 
 function root(f, f′, x; ϵ, max_iter)
+	f_endpoints_computed = false
 	for i in 1:max_iter
-		
+		# attempt 1: Newton
+
 		x_old = x
 
-		x_mid = Interval(mid(x))
+		x_mid = mid(x)
+		Ix_mid = Interval(x_mid)
+		f_mid = f(Ix_mid)
+
 		@debug "Step $i of the Newton method:
 			   - the interval $x, 
 			   - the derivative $(f′(x)),
 			   - the value at the midpoint $(f(x_mid))"
 		
-		Nx = x_mid - f′(x) \ f(x_mid)
+		Nx = Ix_mid - f′(x) \ f_mid
 		@debug "Candidate", Nx 
 
 		x = intersect(x, Nx)
 
-		if (x_old == x && diam(x) < ϵ) || isempty(x) 
+		# if the interval is small enough, we can call it a day
+		# this fixes cases in which Newton gets closer and closer to 0 with little practical improvement
+		if diam(x) < ϵ || isempty(x)
 			return x
 		end
 
-		if x_old == x
-			# we assume our function is monotone 
-			# on x and may only be not monotone 
-			# on the interval representation of an 
-			# endpoint if it is not a representable number
-			
-			# Isaia: Sketch of proof
-			# Suppose the Newton method did not contract,
-			# we do a bisection step; we need to estimate the 
-			# range on each one of the two bisection intervals
-			# since the map is guaranteed monotone by hypothesis
-			# with the exception of endpoints coming from representation,
-			# its range is contained in the hull of the enlarged endpoints
-			# by interval arithmetic inclusion principle.
-			
-			x_l, x_r = bisect(x)
-
-			y_l = range_estimate_monotone(f, x_l)
-			y_r = range_estimate_monotone(f, x_r)
-			
-			# does a bisection step
-
-			if !(0 ∈ (y_l)) 
-				x = x_r
-			elseif !(0 ∈ (y_r))
-				x = x_l
-			else
-				# we need to treat the case in which both 
-				# range estimates contain $0$; since the range estimate 
-				# is obtained by evaluating on the enlarged endpoints
-				# and the function is monotone this means that the zero
-				# is contained in the enlarged common endpoint
-				x = Interval(prevfloat(x_l.hi), nextfloat(x_r.lo))
-			end
-			x = intersect(x, x_old)
+		# if Newton worked and improved the interval, continue iterating
+		if !(x_old == x)
+			continue
 		end
+
+		# Attempt 2: use the computed `fx_mid` to exclude half of the interval
+		# in a bisection step
+
+		if !f_endpoints_computed
+			f_lo = f(Interval(x.lo))
+			f_hi = f(Interval(x.hi))
+			f_endpoints_computed = true
+		end
+
+		# here we rely on monotonicity
+		if 0 ∉ hull(f_lo, f_mid)
+			x = Interval(x_mid, x.hi)
+			continue
+		end
+		if 0 ∉ hull(f_mid, f_hi)
+			x = Interval(x.lo, x_mid)
+			continue
+		end
+
+		# worst case: both hulls contain 0 (for instance, because 0 ∈ f_mid).
+		# This looks like good news at first, but in practice it may just mean
+		# that the computed enclosures are very large. x_mid may not be close to the solution at all.
+
+		# Attempt 3: we compute the midpoints of (x.lo, x_mid) and (x_mid, x.hi)
+		# to try to exclude the leftmost or rigthmost quarter of the interval
+		#
+		# Picture the number line like this:
+		# x.lo .... a .... x_mid .... b .... x.hi
+
+		a = (x.lo + x_mid) / 2
+		if 0 ∉ hull(f_lo, f(Interval(a)))
+			x = Interval(a, x.hi)
+			continue
+		end
+		b = (x_mid + x.hi) / 2
+		if 0 ∉ hull(f(Interval(b)), f_hi)
+			x = Interval(x.lo, b)
+			continue
+		end
+
+		# if all these attempts failed, then we cannot exclude that the solution belongs to [x.lo,a] nor [b,x.hi]
+		# we can only return the current interval, which we cannot shrink anyway by more than a factor 2 at this point.
+		# This will likely happen only when f() cannot be computed with sufficient precision.
+		return x
+
 	end
-	@debug "Maximum iterates reached" max_iter, x, f(x), diam(x)
+	@info "Maximum iterates reached in Newton contractor" max_iter, x, f(x), diam(x)
 	return x
 end
 
 
 preimage(y, f, X; ϵ,  max_iter) = preimage(y, f, derivative(f), X; ϵ, max_iter)
 preimage(y, f, fprime, X; ϵ, max_iter) = root(x -> f(x)-y, fprime, X; ϵ, max_iter)
-
-function preimage(y::Interval, f, fprime, X; ϵ, max_iter)
-	# I don't really like this, it is checking again if the function 
-	# is increasing or decreasing; probably the best would be 
-	# to define a preimage method which dispatches on the branch type
-	# now, the question is if it should be in Contractors.jl 
-	# or PwDynamicDefinition.jl
-	if !(0 ∈ fprime(X))
-		x_lo = preimage(y.lo, f, fprime, X; ϵ, max_iter)
-		x_hi = preimage(y.hi, f, fprime, X; ϵ, max_iter)
-		return hull(x_lo, x_hi)
-	else
-		@error "Preimage of a wide interval through a non monotone function"
-	end
-end
-
-
 
 
 # superseded by IntervalOptimisation.jl
@@ -163,12 +176,6 @@ function range_estimate_der(f, fprime, domain, recstep = 5)
 		Iᵦ = range_estimate_der(f, fprime, b, recstep-1)
 		return Iₐ ∪ Iᵦ
 	end
-end
-
-function range_estimate_monotone(f, x)
-	low = Interval(prevfloat(x.lo), nextfloat(x.lo))
-	high = Interval(prevfloat(x.hi), nextfloat(x.hi))
-	return hull(f(low),f(high))
 end
 
 
@@ -196,6 +203,7 @@ function ShootingMethod(f, fprime, n, x, y, rigstep = 10)
 	return x
 end
 
+# this is now unused
 """
 Newer version of the 'shooting method' to compute the kth preimage of a point (or interval y)
 fs contains k functions, X contains their domains. This computes a solution of
