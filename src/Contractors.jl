@@ -60,9 +60,6 @@ root(f, x; ϵ, max_iter) = root(f, derivative(f), x; ϵ, max_iter)
 
 function root(f, f′, x; ϵ, max_iter)
 	
-	#enl = 1
-	#search_step = 0
-
 	for i in 1:max_iter
 		
 		x_old = x
@@ -89,6 +86,7 @@ function root(f, f′, x; ϵ, max_iter)
 			rad = radius(x)
 			der_mid = f′(x_mid)
 			
+			@debug "derivative at midpoint $(der_mid)"
 			# if 0 ∈ der_mid, due to the definition of branches, 
 			# we have that the midpoint must an endpoint 
 			# of the intervals that contain the points 
@@ -98,6 +96,9 @@ function root(f, f′, x; ϵ, max_iter)
 				return x
 			end
 
+			@debug "fm/der_mid", fm/der_mid
+			@debug "end_der/der_mid", enc_der/der_mid 
+			@debug (1-enc_der/der_mid)*Interval(-rad, rad)
 			Nx = x_mid - fm/der_mid -(1-enc_der/der_mid)*Interval(-rad, rad) 
 			@debug "Krawczyk candidate", Nx
 		end
@@ -113,31 +114,35 @@ function root(f, f′, x; ϵ, max_iter)
 			
 			if 0 ∈ fm
 				# if 0 belongs to the image of the midpoint, 
-				# we implement this search strategy;
-				# but this is not the most effective, probably 
+				# we implement  
 				# a bisection search is better
-				search_step = max_iter-i-2
-				
+
 				@debug "0 is in fm"
-				#if enl == search_step 
-				#	return x
-				#end
 				rint = Interval(radius(x))
 				
 				# rand has average 1/2, so in average this is a bisection step
 
-				x_cand_l = x_mid+rand()*rint
+				x_cand_l = x_mid-15/16*rint
 				@debug x_cand_l, f(x_cand_l)
-				x_cand_r = x_mid-rand()*rint
+				x_cand_r = x_mid+15/16*rint
 				@debug x_cand_r, f(x_cand_r)
+				
+				left = Interval(x.lo) 
+				right = Interval(x.hi)
 
-				if !(0 ∈ f(x_cand_l)) && !(0 ∈ f(x_cand_r))
-					x = hull(x_cand_l, x_cand_r)
-				#	enl = 1
-					@debug "Value of f(x)", f(x) 
-				else 
-					x = x_old
-				#	enl += 1
+				if !(0 ∈ f(x_cand_l)) 
+					left = x_cand_l
+				end
+				if !(0 ∈ f(x_cand_r))
+					right = x_cand_r
+				end
+
+				
+				x = hull(left, right)#	enl = 1
+				
+				@debug "After bisection step", x
+				if x == x_old
+					return x
 				end
 			else
 				if !(0 ∈ hull(fa, fm))
