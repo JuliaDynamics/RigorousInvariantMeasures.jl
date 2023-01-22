@@ -18,12 +18,21 @@ x6 = 0.3
 
 # test for the for wide intervals and 0 derivative 
 
+@test RigorousInvariantMeasures.range_estimate_monotone(x->x, Interval(0, 1)) == Interval(0, 1)
+@test RigorousInvariantMeasures.range_estimate_monotone(x->exp(x), Interval(0, 1)) == Interval(1, exp(Interval(1)).hi)
+
 begin 
     preim_branch = RigorousInvariantMeasures.preimage
     br = RigorousInvariantMeasures.Branch(x-> x^2, (@interval(0),@interval(1)))
 
     ϵ = 1.0/1024
     max_iter = 100
+    
+    
+    # if X is the search interval we test when f(X) ⊂ y
+    root = preim_branch(Interval(-5, 5), br, @interval(0.0, 1.0); ϵ, max_iter = 100)
+    @test root ⊂ (@interval(0.0, 1.0)+@interval(-ϵ , ϵ))
+
     # if X is the search interval we test when y ⊂ f(X)
     root = preim_branch(Interval(0.0, 0.04), br, @interval(0.0, 1.0); ϵ, max_iter = 100)
     @test root ⊂ (@interval(0, 0.2)+@interval(-ϵ , ϵ))
@@ -60,6 +69,18 @@ begin
     root = preim_branch(Interval(0.0, 0.04), br, @interval(0.4, 1.0); ϵ, max_iter = 10)
     @test isempty(root)
     
+    # we test the exit rule for Krawczyk, i.e., if 0 ∈ f′(x_mid)
+    # return x
+    # remark that to bypass the unique increasing test we need to call 
+    # the full Branch constructor. In general this function would not be allowed
+    # by the constructor. Branch are monotone in Interval(X[1].hi, X[2].lo)
+    br = RigorousInvariantMeasures.Branch(x-> x^2, 
+                                    (@interval(-1), @interval(1)),
+                                    (Interval(1), Interval(1)),
+                                    true)
+    root = preim_branch(Interval(0.0), br, @interval(0.0); ϵ, max_iter = 10)
+    @test root == Interval(0.0)
+
 
 end
 
