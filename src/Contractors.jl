@@ -58,10 +58,18 @@ or when max_iter iterations are reached (with an error)
 """
 root(f, x; ϵ, max_iter) = root(f, derivative(f), x; ϵ, max_iter)
 
-function root(f, f′, x; ϵ, max_iter)
-	
+function root(f::Function, f′::Function, x::Interval; ϵ, max_iter)
 	for i in 1:max_iter
+		x_left, x_right = bisect(x)
 		
+		if !(0 ∈ f(x_left))
+			x = x_right
+		end
+
+		if !(0 ∈ f(x_right))
+			x = x_left
+		end
+
 		x_old = x
 
 		x_mid = Interval(mid(x))
@@ -73,6 +81,7 @@ function root(f, f′, x; ϵ, max_iter)
 		
 
 		enc_der = f′(x)
+
 		fm = f(x_mid)
 		
 		Nx = Interval(∅)
@@ -99,7 +108,7 @@ function root(f, f′, x; ϵ, max_iter)
 			@debug "fm/der_mid", fm/der_mid
 			@debug "end_der/der_mid", enc_der/der_mid 
 			@debug (1-enc_der/der_mid)*Interval(-rad, rad)
-			Nx = x_mid - fm/der_mid -(1-enc_der/der_mid)*Interval(-rad, rad) 
+			Nx = x_mid - fm/der_mid + (1-enc_der/der_mid)*(x-x_mid) 
 			@debug "Krawczyk candidate", Nx
 		end
 		 
@@ -109,9 +118,12 @@ function root(f, f′, x; ϵ, max_iter)
 			return x
 		end
 
-		if x_old == x
+		#= if x_old == x
+			@debug fif x_old == x
 			@debug fm
-			
+			a, b = Interval(x.lo), Interval(x.hi)
+			fa, fb = f(a), f(b)
+
 			if 0 ∈ fm
 				# if 0 belongs to the image of the midpoint, 
 				# we implement  
@@ -122,9 +134,9 @@ function root(f, f′, x; ϵ, max_iter)
 				
 				# rand has average 1/2, so in average this is a bisection step
 
-				x_cand_l = x_mid-15/16*rint
+				x_cand_l = x_mid-1/14*rint
 				@debug x_cand_l, f(x_cand_l)
-				x_cand_r = x_mid+15/16*rint
+				x_cand_r = x_mid+3/4*rint
 				@debug x_cand_r, f(x_cand_r)
 				
 				left = Interval(x.lo) 
@@ -152,14 +164,57 @@ function root(f, f′, x; ϵ, max_iter)
 				end
 			end
 		end
+			a, b = Interval(x.lo), Interval(x.hi)
+			fa, fb = f(a), f(b)
+
+			if 0 ∈ fm
+				# if 0 belongs to the image of the midpoint, 
+				# we implement  
+				# a bisection search is better
+
+				@debug "0 is in fm"
+				rint = Interval(radius(x))
+				
+				# rand has average 1/2, so in average this is a bisection step
+
+				x_cand_l = x_mid-1/14*rint
+				@debug x_cand_l, f(x_cand_l)
+				x_cand_r = x_mid+3/4*rint
+				@debug x_cand_r, f(x_cand_r)
+				
+				left = Interval(x.lo) 
+				right = Interval(x.hi)
+
+				if !(0 ∈ f(x_cand_l)) 
+					left = x_cand_l
+				end
+				if !(0 ∈ f(x_cand_r))
+					right = x_cand_r
+				end
+
+				
+				x = hull(left, right)#	enl = 1
+				
+				@debug "After bisection step", x
+				if x == x_old
+					return x
+				end
+			else
+				if !(0 ∈ hull(fa, fm))
+					x = Interval(x_mid, x.hi)
+				else 
+					x = Interval(x.lo, x_mid)
+				end
+			end
+		end =#
 	end
 	@debug "Maximum iterates reached" max_iter, x, f(x), diam(x)
 	return x
 end
 
 
-preimage(y, f, X; ϵ,  max_iter) = preimage(y, f, derivative(f), X; ϵ, max_iter)
-preimage(y, f, fprime, X; ϵ, max_iter) = root(x -> f(x)-y, fprime, X; ϵ, max_iter)
+#preimage(y, f, X; ϵ,  max_iter) = preimage(y, f, derivative(f), X; ϵ, max_iter)
+#preimage(y, f, fprime, X; ϵ, max_iter) = root(x -> f(x)-y, fprime, X; ϵ, max_iter)
 
 #function preimage(y::Interval, f, fprime, X; ϵ, max_iter)
 	# I don't really like this, it is checking again if the function 

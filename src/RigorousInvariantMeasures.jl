@@ -61,7 +61,7 @@ export PwMap, Basis, assemble, preim, Hat, Ulam,
 	distance_from_invariant,
 	mod1_dynamic, is_refinement
 
-import IntervalArithmetic: Interval
+import IntervalArithmetic: Interval, @interval, @biginterval, midpoint_radius
 using IntervalArithmetic
 export Interval
 

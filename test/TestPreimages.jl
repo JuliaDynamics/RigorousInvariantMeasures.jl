@@ -16,6 +16,53 @@ x4 = -1
 x5 = 0
 x6 = 0.3
 
+# test for the for wide intervals and 0 derivative 
+
+begin 
+    preim_branch = RigorousInvariantMeasures.preimage
+    br = RigorousInvariantMeasures.Branch(x-> x^2, (@interval(0),@interval(1)))
+
+    ϵ = 1.0/1024
+    max_iter = 100
+    # if X is the search interval we test when y ⊂ f(X)
+    root = preim_branch(Interval(0.0, 0.04), br, @interval(0.0, 1.0); ϵ, max_iter = 100)
+    @test root ⊂ (@interval(0, 0.2)+@interval(-ϵ , ϵ))
+
+    # if X is the search interval we test when y ∩ f(X) ≂̸ ∅, the expected result is
+    # f^{-1}(y) ∩ X
+    root = preim_branch(Interval(0.0, 0.04), br, @interval(0.1, 1.0); ϵ, max_iter = 100)
+    @test root ⊂ (@interval(0.1, 0.2)+@interval(-ϵ, ϵ))
+
+    root = preim_branch(Interval(0.0, 0.04), br, @interval(0.2, 1.0); ϵ, max_iter = 100)
+    @test root ⊂ (@interval(0.2)+@interval(-ϵ, ϵ))
+
+    # if X is the search interval we test when y ∩ f(X) = ∅ 
+    root = preim_branch(Interval(0.0, 0.04), br, @interval(0.3, 1.0); ϵ, max_iter = 10)
+    @test isempty(root)
+    
+    # we test when the domain of f contains the zero of the derivative
+
+    br = RigorousInvariantMeasures.Branch(x-> (x-@interval(0.1))^2, (@interval(0.1),@interval(1)))
+
+    # if X is the search interval we test when y ⊂ f(X)
+    root = preim_branch(Interval(0.0, 0.04), br, @interval(0.1, 1.0); ϵ, max_iter = 100)
+    @test root ⊂ (@interval(0.1, 0.3)+@interval(-ϵ , ϵ))
+
+    # if X is the search interval we test when y ∩ f(X) ≂̸ ∅, the expected result is
+    # f^{-1}(y) ∩ X
+    root = preim_branch(Interval(0.0, 0.04), br, @interval(0.2, 1.0); ϵ, max_iter = 100)
+    @test root ⊂ (@interval(0.2, 0.3)+@interval(-ϵ, ϵ))
+
+    root = preim_branch(Interval(0.0, 0.04), br, @interval(0.0); ϵ, max_iter = 100)
+    @test root ⊂ (@interval(0.0)+@interval(-ϵ, ϵ))
+
+    # if X is the search interval we test when y ∩ f(X) = ∅ 
+    root = preim_branch(Interval(0.0, 0.04), br, @interval(0.4, 1.0); ϵ, max_iter = 10)
+    @test isempty(root)
+    
+
+end
+
 for a = (a1, a2)
     for x = (x1, x2, x3, x4, x5,  x6)
         i = RigorousInvariantMeasures.first_overlapping(a, x)
