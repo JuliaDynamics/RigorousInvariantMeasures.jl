@@ -5,6 +5,7 @@ version = "0.2.0"
 
 [deps]
 AbstractFFTs = "621f4979-c628-5d54-868e-fcf4e3e8185c"
+Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
 Arpack = "7d9fca2a-8960-54d3-9f78-7d1dccf2cb97"
 CRlibm = "96374032-68de-5a5b-8d9e-752f78720389"
 CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"

@@ -115,7 +115,7 @@ false
 ```
 
 """
-is_refinement(Bfine::Basis, Bcoarse::Basis) = @error "Not implemented"
+is_refinement(Bfine::Basis, Bcoarse::Basis) = @error "Not Implemented"
 
 """
 	integral_covector(B::Basis)
@@ -180,7 +180,7 @@ julia> RigorousInvariantMeasures.BasisDefinition.weak_projection_error(B)
 0.00048828125
 ````
 """
-weak_projection_error(B::Basis) = @error "Not implemented"
+weak_projection_error(B::Basis) = @error "Not Implemented"
 
 """
 	aux_normalized_projection_error(B::Basis)
@@ -189,7 +189,7 @@ Return a constant Eh (typically scales as h ~ 1/n) such that
 ```|||P_h f|||\\leq |||f|||+ Eh * ||f||_s```
 Must be rounded up correctly!
 """
-aux_normalized_projection_error(B::Basis) = @error "Not implemented"
+aux_normalized_projection_error(B::Basis) = @error "Not Implemented"
 
 """
 	strong_weak_bound(B::Basis)
@@ -197,7 +197,7 @@ Return a constant ``M₁n`` such that for a vector ``v ∈ Uₕ``
 ```||v||_s\\leq M1n*||v||```
 Must be rounded up correctly!
 """
-strong_weak_bound(B::Basis) = @error "Not implemented"
+strong_weak_bound(B::Basis) = @error "Not Implemented"
 
 """
 	aux_weak_bound(B::Basis)
@@ -205,14 +205,14 @@ Return a constant ``M₂`` such that for a vector ``v ∈ Uₕ``
 ```|||v|||\\leq M_2||v||```
 Must be rounded up correctly!
 """
-aux_weak_bound(B::Basis) = @error "Not implemented"
+aux_weak_bound(B::Basis) = @error "Not Implemented"
 
 """
 	Return constants ``S₁, S₂`` such that for a vector ``v ∈ Uₕ`` 
 	```||v||\\leq S_1||v||_s+S_2|||v|||```
 Must be rounded up correctly!
 """
-weak_by_strong_and_aux_bound(B::Basis) = @error "Not implemented"
+weak_by_strong_and_aux_bound(B::Basis) = @error "Not Implemented"
 
 """
 	bound_weak_norm_from_linalg_norm(B::Basis)
@@ -220,7 +220,7 @@ Return constants W₁, W₂ such that for a vector ``v ∈ Uₕ``
 ```||v||\\leq W_1||v||_1+W_2||v||_{\\infty}```
 Must be rounded up correctly!
 """
-bound_weak_norm_from_linalg_norm(B::Basis) = @error "Not implemented"
+bound_weak_norm_from_linalg_norm(B::Basis) = @error "Not Implemented"
 
 """
 	bound_linalg_norm_L1_from_weak(B::Basis)
@@ -229,7 +229,7 @@ Return a constant ``A`` such that for a vector ``v ∈ Uₕ``
 ```||v||_1\\leq A||v||```
 Must be rounded up correctly!
 """
-bound_linalg_norm_L1_from_weak(B::Basis) = @error "Not implemented"
+bound_linalg_norm_L1_from_weak(B::Basis) = @error "Not Implemented"
 
 """
 	bound_linalg_norm_L∞_from_weak(B::Basis)
@@ -238,7 +238,7 @@ Return a constant ``A`` such that for a vector ``v ∈ Uₕ``
 ```||v||_\\infty \\leq A||v||```
 Must be rounded up correctly!
 """
-bound_linalg_norm_L∞_from_weak(B::Basis) = @error "Not implemented"
+bound_linalg_norm_L∞_from_weak(B::Basis) = @error "Not Implemented"
 
 """
 	invariant_measure_strong_norm_bound(B::Basis, D::Dynamic)
@@ -257,8 +257,8 @@ Returns an a priori bound on the weak norm of the abstract operator ``L``
 bound_weak_norm_abstract(B::Basis, D=nothing; dfly_coefficients=nothing) = @error "Must be specialized"
 
 using ..RigorousInvariantMeasures: NormKind
-opnormbound(B::Basis, N::NormKind, M::AbstractVecOrMat{S}) where {S} = @error "Must be specialized"
-normbound(B::Basis, N::NormKind, v) = @error "Must be specialized"
+opnormbound(B::Basis, N::Type{<:NormKind}, M::AbstractVecOrMat{S}) where {S} = @error "Must be specialized"
+normbound(B::Basis, N::Type{<:NormKind}, v) = @error "Must be specialized"
 
 end
 

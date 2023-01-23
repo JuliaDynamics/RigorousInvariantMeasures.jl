@@ -1,9 +1,11 @@
 using RigorousInvariantMeasures
-using Test, Documenter
+using Test, Documenter, Aqua
 
+#Aqua.test_all(RigorousInvariantMeasures)
 
 @testset "RigorousInvariantMeasures.jl" begin
 
+    include("TestBasisDefinition.jl")
     include("TestContractors.jl")
     include("TestDynamic.jl")
     include("TestHat.jl")
@@ -20,6 +22,7 @@ using Test, Documenter
     include("TestChebyshev.jl")
     include("TestObservables.jl")
     include("TestLorenz2DUlam.jl")
+    include("TestHigherDFLY.jl")
     
     @testset "Doctests" begin 
         if Base.VERSION >= v"1.8"

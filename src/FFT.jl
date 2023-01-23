@@ -18,9 +18,7 @@ end
 using FFTW, FastTransforms, IntervalArithmetic
 import AbstractFFTs
 
-# TODO, actually it is not dispatching right, I would like this to work
-# as P*w, so to dispatch the right way Base.:*
-function interval_fft(P, v::Vector{Complex{Interval{T}}}) where {T}
+function interval_fft(P::AbstractFFTs.Plan{Complex{T}}, v::Vector{Complex{Interval{T}}}) where {T}
     n = Float64(length(v), RoundUp)
     u = Float64(eps(T), RoundUp)
     γ₄ = (4.0 ⊗₊ u)⊘₊(1.0 ⊖₋ 4.0 ⊗₋ u) 
@@ -39,15 +37,18 @@ function interval_fft(P, v::Vector{Complex{Interval{T}}}) where {T}
     return w.+(Interval(-err_fft, err_fft)+im*Interval(-err_fft, err_fft))
 end
 
+Base.:*(P::AbstractFFTs.Plan{Complex{T}}, v::Vector{Complex{Interval{T}}}) where {T} = interval_fft(P, v)
+
+
 function interval_fft(v::Vector{Complex{Interval{T}}}) where {T}
     w = ones(T, length(v))
     P = plan_fft(w)
-    return interval_fft(P,v)
+    return interval_fft(P, v)
 end
 
 function interval_fft(v::Vector{Interval{T}}) where {T}
     w = ones(T, length(v))
     v+=im*zeros(T, length(v))
     P = plan_fft(w)
-    return interval_fft(P,v)
+    return interval_fft(P, v)
 end

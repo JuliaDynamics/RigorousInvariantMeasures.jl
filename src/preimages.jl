@@ -39,39 +39,76 @@ function last_overlapping(y, a)
     searchsortedfirst(y, Interval(a).hi, by=x->Interval(x).lo) - 1
 end
 
-function Contractors.preimage(y, br::Branch, X; ϵ, max_iter)
-    return root( x->br.f(x)-y, br.fprime, X; ϵ, max_iter)
-end 
+#function Contractors.preimage(y, br::Branch, X; ϵ, max_iter)
+#    return root( x->br.f(x)-y, br.fprime, X; ϵ, max_iter)
+#end 
 
-function Contractors.preimage(y::Interval, br::Branch, X; ϵ, max_iter)
-    y = intersect(y, hull(br.Y[1], br.Y[2]))
-    x_lo = root( x->br.f(x)-y.lo, br.fprime, X; ϵ, max_iter)
-    x_hi = root( x->br.f(x)-y.hi, br.fprime, X; ϵ, max_iter)
+range_estimate_monotone(f, X) = hull(f(Interval(X.lo)), f(Interval(X.hi)))
+
+function preimage_monotone(y::Interval, br::Branch, X; ϵ, max_iter)
+    f = x-> br.f(x)
+    f′(x) = br.fprime(x)
     
-    # TODO (Isaia): I'm not convinced; I think that instead of 
-    # intersecting with the image of the branch, I should treat the 
-    # case when one of the preimages is empty and work consequently,
-    # as in the commented code below.
-    # The tests are passing, but I'm not sure this is the best approach.
+    Y = intersect(range_estimate_monotone(f, X), y)
+    @debug "range_estimate" range_estimate_monotone(f, X) 
+    @debug "range ∩ y" Y
+
+    if isempty(Y)
+        return Interval(∅)
+    end
     
-    #
-    # if isempty(x_lo) || isempty(x_hi)
-    #     if br.increasing
-    #         if y.lo <= br.Y[1]
-    #             x_lo = br.X[1]
-    #         elseif y.hi >= br.Y[2]
-    #             x_hi = br.X[2]
-    #         end
-    #     else
-    #         if y.lo <= br.Y[1]
-    #             x_hi = br.X[2]
-    #         elseif y.hi >= br.Y[2]
-    #             x_lo = br.X[1]
-    #         end
-    #     end
-    # end
+    f_lo = x -> br.f(x)-Interval(Y.lo)  
+    x_lo = Contractors.root(f_lo, f′, X; ϵ, max_iter)
+    @debug "x_lo", x_lo
     
-    return hull(x_lo, x_hi)
+    if isthin(Y)
+        return x_lo ∩ X
+    end
+    
+    f_hi = x-> br.f(x)-Interval(Y.hi)
+    x_hi = Contractors.root(f_hi, f′, X; ϵ, max_iter)
+    @debug "x_hi", x_hi
+
+    return hull(x_lo, x_hi) ∩ X
+end
+
+
+preimage(y, br::Branch, X; ϵ, max_iter) = preimage(Interval(y),br, X; ϵ, max_iter)
+function preimage(y::Interval, br::Branch, X; ϵ, max_iter)
+    f(x) = br.f(x)-y
+    
+    int_left, int_right = !isdisjoint(br.X[1],X), !isdisjoint(br.X[2],X)
+    
+    # Alternative version with some broadcasting tricks, as future memory
+    # of code that works but is not so easy to read
+    # int_left, int_right = .!(isdisjoint.(br.X, X))
+    
+    # if there is no intersection, we can assume f monotone on X
+    if !(int_left || int_right)
+        return preimage_monotone(y, br, X; ϵ, max_iter)
+    else
+        @debug "Branch preimage, non monotone case"
+        @debug br.X[1], f(br.X[1])
+        @debug br.X[2], f(br.X[2])
+        zero_in_im_X_1 = 0 ∈ f(br.X[1]) 
+        zero_in_im_X_2 = 0 ∈ f(br.X[2])
+        
+        @debug "0 in f(br.X[1]), 0 in f(br.X[2])", zero_in_im_X_1, zero_in_im_X_2
+        
+        if (zero_in_im_X_1) && (zero_in_im_X_2)
+            return X 
+        else 
+            X_monotone = Interval(br.X[1].hi, br.X[2].lo) ∩ X
+            X_root = preimage_monotone(y, br, X_monotone; ϵ, max_iter)
+            if zero_in_im_X_1
+                X_root = hull(br.X[1], X_root)
+            end
+            if zero_in_im_X_2
+                X_root = hull(X_root, br.X[2])
+            end
+            return X_root ∩ X
+        end
+    end
 end 
 
 
