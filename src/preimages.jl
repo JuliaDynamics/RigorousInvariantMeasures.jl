@@ -57,12 +57,16 @@ function preimage_monotone(y::Interval, br::Branch, X; ϵ, max_iter)
         return Interval(∅)
     end
     
-    f =x -> br.f(x)-Interval(Y.lo)  
-    x_lo = Contractors.root(f, f′, X; ϵ, max_iter)
+    f_lo = x -> br.f(x)-Interval(Y.lo)  
+    x_lo = Contractors.root(f_lo, f′, X; ϵ, max_iter)
     @debug "x_lo", x_lo
     
-    f = x-> br.f(x)-Interval(Y.hi)
-    x_hi = Contractors.root(f, f′, X; ϵ, max_iter)
+    if isthin(Y)
+        return x_lo ∩ X
+    end
+    
+    f_hi = x-> br.f(x)-Interval(Y.hi)
+    x_hi = Contractors.root(f_hi, f′, X; ϵ, max_iter)
     @debug "x_hi", x_hi
 
     return hull(x_lo, x_hi) ∩ X
@@ -73,7 +77,11 @@ preimage(y, br::Branch, X; ϵ, max_iter) = preimage(Interval(y),br, X; ϵ, max_i
 function preimage(y::Interval, br::Branch, X; ϵ, max_iter)
     f(x) = br.f(x)-y
     
-    int_left, int_right = .!(isdisjoint.(br.X, X))
+    int_left, int_right = !isdisjoint(br.X[1],X), !isdisjoint(br.X[2],X)
+    
+    # Alternative version with some broadcasting tricks, as future memory
+    # of code that works but is not so easy to read
+    # int_left, int_right = .!(isdisjoint.(br.X, X))
     
     # if there is no intersection, we can assume f monotone on X
     if !(int_left || int_right)
