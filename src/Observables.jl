@@ -38,7 +38,7 @@ function adaptive_integration(f, I::Interval; tol = 2^-10, steps = 8, degree = 6
         else
             I₁, I₂ = bisect(I)
             val₁ = adaptive_integration(f, I₁; tol = tol/2, steps = steps, degree = degree+2)
-            val₂ = adaptive_integration(f, I₁; tol = tol/2, steps = steps, degree = degree+2)
+            val₂ = adaptive_integration(f, I₂; tol = tol/2, steps = steps, degree = degree+2)
             int_value +=val₁+val₂
         end
     end

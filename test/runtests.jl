@@ -22,6 +22,7 @@ using Test, Documenter, Aqua
     include("TestChebyshev.jl")
     include("TestObservables.jl")
     include("TestLorenz2DUlam.jl")
+    include("TestHigherDFLY.jl")
     
     @testset "Doctests" begin 
         if Base.VERSION >= v"1.8"

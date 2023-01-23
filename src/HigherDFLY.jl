@@ -1,44 +1,72 @@
 using Symbolics
 
-# this symbolic structure corresponds to a symbolic transfer operator
-# (L_n f)(x) = \sum_{y\in T^{-1}(x)}\frac{f(y)}{|T'(y)|^n}
+""" 
+    Represent a symbolic transfer operator
+    `(L_n f)(x) = \\sum_{y\\in T^{-1}(x)}\\frac{f(y)}{|T'(y)|^n}`
+""" 
 struct SymbL
     n
-    f
+    f::Num
 end
 
-@variables x D(x)
 
-∂ = Differential(x)
 
-Diff(P::SymbL) = [SymbL(P.n+1, ∂(P.f)), SymbL(P.n, P.n*P.f*D)]
+"""
+    Compute the derivative of a symbolic transfer operator  
+    `P` with respect to differential `∂`
+    and with derivative of `1/T′ ` given by the function 
+    `Dist`.
+    Refer to Eq. 3.2 in Butterley-Kiamari-Liverani Locating Ruelle Pollicot Resonances
+"""
+Diff(P::SymbL, ∂::Differential, Dist) = [SymbL(P.n+1, ∂(P.f)), SymbL(P.n, P.n*P.f*Dist)]
 
-function Diff(v::Vector{SymbL}) 
+"""
+    Given the summands of a sum of Symbolic Transfer Operator
+    given in a vector, computes a vector containing 
+    the sum of the derivatives
+"""
+function Diff(v::Vector{SymbL}, ∂::Differential, Dist) 
     w = SymbL[]
     for P in v
-        append!(w, Diff(P))
+        append!(w, Diff(P, ∂, Dist))
     end
     return w
 end
 
 function compute_dfly_k_fi_DDi(k::Int)
-    @variables x D(x)
+    # the following vector valued function is such that 
+    # f_i corresponds to the $i-1$ derivative of f 
+    @variables x
     @variables (f(x))[1:k+1] #f[0:k](x) # 
+    
+    # the following vector valued function is such that 
+    # DD_i corresponds to the $i-1$ derivative of Dist 
+    @variables Dist(x)
     @variables (DD(x))[1:k+1]
+
     ∂ = Differential(x)
 
-    der_dict = Dict([[D => DD[1] ]; [∂(f[i]) => f[i+1] for i in 1:k]; [∂(DD[i]) => DD[i+1] for i in 1:k]])
+    # the substitution rules we stated above
+    der_dict = Dict([[Dist => DD[1] ]; 
+            [∂(f[i]) => f[i+1] for i in 1:k]; 
+            [∂(DD[i]) => DD[i+1] for i in 1:k]])
 
     P = SymbL(1, f[1]) #Lf
 
     v = P   
     for i in 1:k
-        v = Diff(v)
+        v = Diff(v, ∂, Dist)
         for k in 1:length(v)
-            l = expand_derivatives(v[k].f, true)
-            l = substitute(l, der_dict)
-            l = simplify(l; expand = true)
-            v[k] = SymbL(v[k].n, l)
+            # for each one of the elements in v
+            # we first expand the derivatives
+            temporary = expand_derivatives(v[k].f, true)
+            # we know use the dictionary above 
+            # ∂(f[i]) = f[i+1], and similarly for DD
+            temporary = substitute(temporary, der_dict)
+            # we simplify
+            temporary = simplify(temporary; expand = true)
+            # we store again in the vector
+            v[k] = SymbL(v[k].n, temporary)
         end
     end
     return v
@@ -50,10 +78,10 @@ function _optimize_mult(k, n, h::SymbolicUtils.Mul, vals)
     
     @variables x 
     
-    @variables f(x)[1:k+1] 
+    @variables (f(x))[1:k+1] 
     boolf = [(symb in keys(h.dict)) for symb in f]
     
-    @variables DD(x)[1:k+1]
+    @variables (DD(x))[1:k+1]
     boolDD = [(symb in keys(h.dict)) for symb in DD]
     
     # I start with a simple version, where I use the n on 
@@ -77,7 +105,6 @@ function _optimize_mult(k, n, h::SymbolicUtils.Mul, vals)
 
     i = findlast(boolf)
     return h.coeff*bound*f[i]
-    
 end
 
 function optimize_coefficients(k, v::Vector{SymbL}, vals)
@@ -103,8 +130,8 @@ function substitute_values(k, v::Vector{SymbL}, vals)
     λ = vals[1]
     DDs = vals[2:end] 
     @variables x 
-    @variables f[0:k](x) 
-    @variables DD[0:k](x)
+    @variables f(x)[1:k] 
+    @variables DD(x)[1:k]
 
     subsdict = Dict([DD[i]=>DDs[i] for i in 1:k])
 

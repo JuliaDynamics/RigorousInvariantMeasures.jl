@@ -17,4 +17,5 @@ logder = RigorousInvariantMeasures.discretizationlogder(B, D)
 
 @test log(2) ∈ logder.v[5]
 
+
 end

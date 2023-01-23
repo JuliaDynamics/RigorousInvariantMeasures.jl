@@ -248,10 +248,11 @@ function DynamicDefinition.plottable(D::PwMap, x)
 	for k in 1:nbranches(D)
 		domain = hull(D[k].X[1], D[k].X[2])
 		if x in domain
-			return D[k].f(x)
+			return mid(Interval(D[k].f(x)))
 		end
 	end
 end
+DynamicDefinition.plottable(D::PwMap) = x -> DynamicDefinition.plottable(D, x)
 
 using RecipesBase
 @recipe f(::Type{PM}, D::PM) where {PM <: PwMap} = x -> plottable(D, x)
@@ -337,8 +338,8 @@ function composedPwMap(D1::PwDynamicDefinition.PwMap, D2::PwDynamicDefinition.Pw
         if br2.increasing
             for br1 in branches(D1)
                 y_range = hull(br1.Y[1], br1.Y[2])
-                left  = preimage(br1.X[1], br2.f, br2.fprime, hull(br2.X[1], br2.X[2]); ϵ = 10^-13, max_iter = 100)
-                right  = preimage(br1.X[2], br2.f, br2.fprime, hull(br2.X[1], br2.X[2]); ϵ = 10^-13, max_iter = 100)
+                left  = preimage(br1.X[1], br2, hull(br2.X[1], br2.X[2]); ϵ = 10^-13, max_iter = 100)
+                right  = preimage(br1.X[2], br2, hull(br2.X[1], br2.X[2]); ϵ = 10^-13, max_iter = 100)
 #                @info left
 #                @info right
                 F = br1.f∘br2.f
@@ -360,8 +361,8 @@ function composedPwMap(D1::PwDynamicDefinition.PwMap, D2::PwDynamicDefinition.Pw
         else
             for br1 in Iterators.reverse(branches(D1))
                 y_range = hull(br1.Y[1], br1.Y[2])
-                left  = preimage(br1.X[2], br2.f, br2.fprime, hull(br2.X[1], br2.X[2]); ϵ = 10^-13, max_iter = 100)
-                right  = preimage(br1.X[1], br2.f, br2.fprime, hull(br2.X[1], br2.X[2]); ϵ = 10^-13, max_iter = 100)
+                left  = preimage(br1.X[2], br2, hull(br2.X[1], br2.X[2]); ϵ = 10^-13, max_iter = 100)
+                right  = preimage(br1.X[1], br2, hull(br2.X[1], br2.X[2]); ϵ = 10^-13, max_iter = 100)
                 F = br1.f∘br2.f
                 Fprime = x->br1.fprime(br2.f(x))*br2.fprime(x) 
                 F_increasing = conv_orientation(br1.increasing)*conv_orientation(br2.increasing)
@@ -387,32 +388,38 @@ function composedPwMap(D1::PwDynamicDefinition.PwMap, D2::PwDynamicDefinition.Pw
     return PwMap(new_branches; full_branch = full_branch, infinite_derivative = infinite_derivative)
 end
 
+"""
+Returns a pair (left::Bool, right::Bool) that tells if a branch has infinite derivative at any of its endpoints
+"""
+function has_infinite_derivative_at_endpoints(branch)
+        # the Interval(0, 1e-15) summand is there because for some reason TaylorSeries fails on point intervals of singularity but not on larger intervals containing them:
+        # derivative(x->x^(6/10), 0..0) # fails
+        # derivative(x->x^(6/10), 0..1e-15) # succeeds
 
+        left = !isfinite(derivative(branch.f, branch.X[1] + Interval(0, 1e-15)))
+        right = !isfinite(derivative(branch.f, branch.X[2] - Interval(0, 1e-15)))
+        return (left, right)
+end
 
 using ProgressMeter
+"""
+dfly inequality for maps with infinite derivatives. 
+    
+The strategy to compute it follows a variant of Lemma 9.1 in the GMNP paper: 
+* we find a "problematic set" I by taking a small interval of size radius(branch domain)/2^3 around each endpoint with infinite derivative; 
+* we find l such that T >= l for each point in I
+* we compute the dfly coefficients as in the lemma.
+* we repeat the computation replacing 2^3 with 2^4, 2^5, ... 2^15 and take the best estimate among these.
+"""
 function dfly_inf_der(::Type{TotalVariation}, ::Type{L1}, D::PwDynamicDefinition.PwMap, tol=1e-3)
     leftrightsingularity = Tuple{Bool, Bool}[]
     A = +∞
     B = +∞
     
-    # for each branch we detect if the singularity is on the left or on the right (or both)
+    # for each branch, we check if the derivative is infinite at any of the endpoints:
     for br in branches(D)
-        
-        rad = radius(hull(br.X[1], br.X[2]))
-        f = x->abs(1/br.fprime(x))
-        I = Interval((br.X[1]+rad/4).hi, (br.X[2]-rad/4).lo)
-        val, listofboxes = maximise(f, I, tol=tol)
-        
-        # we try to identify if the singularity of the derivative is on the left or the right
-        left, right = false, false
-        if all((listofboxes.-br.X[1]).>rad/4)
-            # the maximum of the inverse of the derivative is far from the left
-            left = true
-        end
-        if all((br.X[2].-listofboxes).>rad/4)
-            # the maximum of the inverse of the derivative is far from the right
-            right = true
-        end
+        (left, right) = has_infinite_derivative_at_endpoints(br)
+
         push!(leftrightsingularity, (left, right))
     end
     est = +∞
@@ -425,6 +432,7 @@ function dfly_inf_der(::Type{TotalVariation}, ::Type{L1}, D::PwDynamicDefinition
             rad = radius(hull(br.X[1], br.X[2]))
             tol = rad/2^(i+1)
             left, right = leftrightsingularity[j]
+            @debug "branch $j, left_singularity=$left, right_singularity=$right"
             f = x->-1/br.fprime(x)
             g = distortion(br)
             left_endpoint = br.X[1]
@@ -437,26 +445,37 @@ function dfly_inf_der(::Type{TotalVariation}, ::Type{L1}, D::PwDynamicDefinition
             end
             I = hull(left_endpoint, right_endpoint)
             val_br = 2*maximise(x->abs(f(x)), I, tol=tol)[1]
+            @debug "maximise on $I: $val_br"
             val = max(val, val_br.hi)
             
             if left
+                # we work on the interval [br.X[1], left_endpoint] =: [a, b].
+                # we assume here that f(a) = 0, g(a)=∞, and that g is monotonically decreasing on [a,b]
                 l_left = abs(g(left_endpoint))
-                # we use the fact that the primitive of the distortion is 1/T'
+                @debug "left endpoint: g($left_endpoint) = $l_left"
+                # we use the fact that the primitive of the distortion g is f=1/T', and compute
+                # int_a^b (distorsion) = f(b) - f(a) = f(b)
                 val_summand+= abs(f(left_endpoint)/2)
+                @debug "abs(f($left_endpoint)/2) = $val_summand"
                 l = max(l, abs(l_left).hi )
             end
             if right
+                # same reasoning as above but on the right endpoint
                 l_right = abs(g(right_endpoint)) 
+                @debug "right endpoint: g($right_endpoint) = $l_right"
                 val_summand+= abs(f(right_endpoint)/2)
+                @debug "abs(f($right_endpoint)/2) = $val_summand"
                 l = max(l, abs(l_right).hi )
             end
         end
         val = val ⊕₊ val_summand.hi 
+        @debug "i=$i, A=$val, B=$l"
 
         if val<1.0 && l⊘₊(1.0 ⊖₋val) < est
             est = l⊘₊(1.0 ⊖₋val)
             A = val
             B = l
+            @debug "improving on previous best"
         end
     end
     endpts = endpoints(D)

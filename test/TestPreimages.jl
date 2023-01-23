@@ -16,6 +16,74 @@ x4 = -1
 x5 = 0
 x6 = 0.3
 
+# test for the for wide intervals and 0 derivative 
+
+@test RigorousInvariantMeasures.range_estimate_monotone(x->x, Interval(0, 1)) == Interval(0, 1)
+@test RigorousInvariantMeasures.range_estimate_monotone(x->exp(x), Interval(0, 1)) == Interval(1, exp(Interval(1)).hi)
+
+begin 
+    preim_branch = RigorousInvariantMeasures.preimage
+    br = RigorousInvariantMeasures.Branch(x-> x^2, (@interval(0),@interval(1)))
+
+    ϵ = 1.0/1024
+    max_iter = 100
+    
+    
+    # if X is the search interval we test when f(X) ⊂ y
+    root = preim_branch(Interval(-5, 5), br, @interval(0.0, 1.0); ϵ, max_iter = 100)
+    @test root ⊂ (@interval(0.0, 1.0)+@interval(-ϵ , ϵ))
+
+    # if X is the search interval we test when y ⊂ f(X)
+    root = preim_branch(Interval(0.0, 0.04), br, @interval(0.0, 1.0); ϵ, max_iter = 100)
+    @test root ⊂ (@interval(0, 0.2)+@interval(-ϵ , ϵ))
+
+    # if X is the search interval we test when y ∩ f(X) ≂̸ ∅, the expected result is
+    # f^{-1}(y) ∩ X
+    root = preim_branch(Interval(0.0, 0.04), br, @interval(0.1, 1.0); ϵ, max_iter = 100)
+    @test root ⊂ (@interval(0.1, 0.2)+@interval(-ϵ, ϵ))
+
+    root = preim_branch(Interval(0.0, 0.04), br, @interval(0.2, 1.0); ϵ, max_iter = 100)
+    @test root ⊂ (@interval(0.2)+@interval(-ϵ, ϵ))
+
+    # if X is the search interval we test when y ∩ f(X) = ∅ 
+    root = preim_branch(Interval(0.0, 0.04), br, @interval(0.3, 1.0); ϵ, max_iter = 10)
+    @test isempty(root)
+    
+    # we test when the domain of f contains the zero of the derivative
+
+    br = RigorousInvariantMeasures.Branch(x-> (x-@interval(0.1))^2, (@interval(0.1),@interval(1)))
+
+    # if X is the search interval we test when y ⊂ f(X)
+    root = preim_branch(Interval(0.0, 0.04), br, @interval(0.1, 1.0); ϵ, max_iter = 100)
+    @test root ⊂ (@interval(0.1, 0.3)+@interval(-ϵ , ϵ))
+
+    # if X is the search interval we test when y ∩ f(X) ≂̸ ∅, the expected result is
+    # f^{-1}(y) ∩ X
+    root = preim_branch(Interval(0.0, 0.04), br, @interval(0.2, 1.0); ϵ, max_iter = 100)
+    @test root ⊂ (@interval(0.2, 0.3)+@interval(-ϵ, ϵ))
+
+    root = preim_branch(Interval(0.0, 0.04), br, @interval(0.0); ϵ, max_iter = 100)
+    @test root ⊂ (@interval(0.0)+@interval(-ϵ, ϵ))
+
+    # if X is the search interval we test when y ∩ f(X) = ∅ 
+    root = preim_branch(Interval(0.0, 0.04), br, @interval(0.4, 1.0); ϵ, max_iter = 10)
+    @test isempty(root)
+    
+    # we test the exit rule for Krawczyk, i.e., if 0 ∈ f′(x_mid)
+    # return x
+    # remark that to bypass the unique increasing test we need to call 
+    # the full Branch constructor. In general this function would not be allowed
+    # by the constructor. Branch are monotone in Interval(X[1].hi, X[2].lo)
+    br = RigorousInvariantMeasures.Branch(x-> x^2, 
+                                    (@interval(-1), @interval(1)),
+                                    (Interval(1), Interval(1)),
+                                    true)
+    root = preim_branch(Interval(0.0), br, @interval(0.0); ϵ, max_iter = 10)
+    @test root == Interval(0.0)
+
+
+end
+
 for a = (a1, a2)
     for x = (x1, x2, x3, x4, x5,  x6)
         i = RigorousInvariantMeasures.first_overlapping(a, x)
@@ -113,5 +181,38 @@ D = PwMap([x->17*x/5,
 
 # we just check that this doesn't throw, for now
 RigorousInvariantMeasures.preimages(0:0.25:1, D; ϵ = 0.0, max_iter = 100)
+
+# test has_infinite_derivative_at_endpoints
+using RigorousInvariantMeasures: has_infinite_derivative_at_endpoints
+
+D = PwMap([x->17*x/5, 
+	x->(34*((17*x-5)/17)/25+3)*((17*x-5)/17), 
+	x->(34*((17*x-10)/17)/25+3)*((17*x-10)/17), 
+	x->17*((17*x-15)/17)/5], 
+	[Interval(0), Interval(5)/17, Interval(10)/17, Interval(15)/17, Interval(1)],
+	[Interval(0) Interval(1);
+	 Interval(0) Interval(1);
+	 Interval(0) Interval(1);
+	 Interval(0) @interval(0.4)]
+	)
+
+for i in 1:length(D.branches)
+    @test has_infinite_derivative_at_endpoints(D.branches[i]) == (false, false)
+end
+
+LorenzMap(θ, α) = PwMap([x->θ*(0.5-x)^α, x->1-θ*(x-0.5)^α],
+                    [x->-1*θ*α*(0.5-x)^(α-1), x->-θ*α*(x-0.5)^(α-1)],
+                    [@interval(0), @interval(0.5), @interval(1)],
+                    [θ*(Interval(0.5))^α Interval(0.0);
+                    Interval(1.0)  1-θ*(Interval(0.5))^α]; infinite_derivative=true)
+
+D0 = LorenzMap(109/64, 51/64)
+D = D0 ∘ D0 ∘ D0
+
+@test has_infinite_derivative_at_endpoints(D.E.branches[1]) == (false, true)
+for i = 2:7
+    @test has_infinite_derivative_at_endpoints(D.E.branches[i]) == (true, true)
+end
+@test has_infinite_derivative_at_endpoints(D.E.branches[end]) == (true, false)
 
 end #testset
