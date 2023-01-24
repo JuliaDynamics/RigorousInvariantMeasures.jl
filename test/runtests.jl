@@ -1,7 +1,5 @@
 using RigorousInvariantMeasures
-using Test, Documenter, Aqua
-
-#Aqua.test_all(RigorousInvariantMeasures)
+using Test, Documenter
 
 @testset "RigorousInvariantMeasures.jl" begin
 
