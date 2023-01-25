@@ -330,15 +330,15 @@ end
 
 
 BasisDefinition.is_integral_preserving(B::Chebyshev) = false
-function BasisDefinition.opnormbound(B::Chebyshev, N::Type{C1}, v::Vector{S}) where {T, S} 
+function BasisDefinition.opnormbound(B::Chebyshev, N::Type{C1}, v::Vector{S}) where {S} 
 	return normbound(B, N, v)
 end
 
-function BasisDefinition.opnormbound(B::Chebyshev, N::Type{C1}, w::LinearAlgebra.Adjoint) where {T, S} 
+function BasisDefinition.opnormbound(B::Chebyshev, N::Type{C1}, w::LinearAlgebra.Adjoint)
 	return normbound(B, N, w')
 end
 
-function BasisDefinition.opnormbound(B::Chebyshev, N::Type{C1}, A::Matrix{S}) where {T, S} 
+function BasisDefinition.opnormbound(B::Chebyshev, N::Type{C1}, A::Matrix{S}) where {S} 
 	n, m = size(A)
 	norm = 0.0
 	for i in 1:m
