@@ -11,7 +11,7 @@ using IntervalArithmetic, IntervalOptimisation
 
 import ..DynamicDefinition: derivative, orientation
 
-export PwMap, preim, nbranches, plottable, branches, MonotonicBranch, mod1_dynamic, dfly_inf_der, composedPwMap, equal_up_to_orientation, distortion, expansivity
+export PwMap, preim, nbranches, plottable, branches, MonotonicBranch, mod1_dynamic, dfly_inf_der, composedPwMap, equal_up_to_order, distortion, expansivity
 
 import TaylorSeries
 der(f) = x-> f(TaylorSeries.Taylor1([x,1.],1))[1]
@@ -33,7 +33,7 @@ MonotonicBranch(f::Function, fprime::Function, X, Y=(f(Interval(X[1])), f(Interv
 
 DynamicDefinition.derivative(br::MonotonicBranch) = br.fprime
 
-function equal_up_to_orientation(X, Y)
+function equal_up_to_order(X, Y)
     @assert length(X)==2 && length(Y)==2
     if eltype(X) <: Interval && !all(isthin.(X))
         return false
@@ -47,7 +47,7 @@ function equal_up_to_orientation(X, Y)
     return false
 end
 
-DynamicDefinition.is_full_branch(b::MonotonicBranch{T,S}, X) where {T,S} = equal_up_to_orientation(b.Y, X)
+DynamicDefinition.is_full_branch(b::MonotonicBranch{T,S}, X) where {T,S} = equal_up_to_order(b.Y, X)
 
 """
 Dynamic based on a piecewise monotonic map.
@@ -323,7 +323,7 @@ function mod1_dynamic(f::Function, fprime::Function; ϵ = 0.0, max_iter = 100, f
         y_endpoints[end, end] = 0. # hack to get rid of -0..0 intervals
     end
     # not needed, since the check is moved into the PwMap() constructor
-    # full_branch_detected = full_branch || all(equal_up_to_orientation(X, y_endpoints[i,:]) for i in 1:n)
+    # full_branch_detected = full_branch || all(equal_up_to_order(X, y_endpoints[i,:]) for i in 1:n)
 
     return PwMap(Ts, [fprime for k in integer_parts], ep, y_endpoints; full_branch = full_branch)
 end
