@@ -329,7 +329,7 @@ function mod1_dynamic(f::Function, fprime::Function; ϵ = 0.0, max_iter = 100, f
 end
 
 conv_orientation(x::Bool) = x ? 1 : -1
-inv_conv_orientarion(x::Int64) = x > 0
+inv_conv_orientation(x::Int64) = x > 0
 
 function composedPwMap(D1::PwDynamicDefinition.PwMap, D2::PwDynamicDefinition.PwMap)
     new_branches =  MonotonicBranch[]
@@ -346,15 +346,15 @@ function composedPwMap(D1::PwDynamicDefinition.PwMap, D2::PwDynamicDefinition.Pw
                 F_increasing = conv_orientation(br1.increasing)*conv_orientation(br2.increasing)
                 if left!=∅ && right!=∅
                     y_endpoints = (F(left) ∩ y_range, F(right) ∩ y_range)
-                    push!(new_branches, MonotonicBranch(F, Fprime, (left, right), y_endpoints, inv_conv_orientarion(F_increasing)))
+                    push!(new_branches, MonotonicBranch(F, Fprime, (left, right), y_endpoints, inv_conv_orientation(F_increasing)))
                 elseif left == ∅ && right != ∅
                     left = br2.X[1]
                     y_endpoints = (F(left) ∩ y_range, F(right) ∩ y_range)
-                    push!(new_branches, MonotonicBranch(F, Fprime, (left, right), y_endpoints, inv_conv_orientarion(F_increasing)))
+                    push!(new_branches, MonotonicBranch(F, Fprime, (left, right), y_endpoints, inv_conv_orientation(F_increasing)))
                 elseif left !=∅ && right == ∅
                     right = br2.X[2]
                     y_endpoints = (F(left) ∩ y_range, F(right) ∩ y_range)
-                    push!(new_branches, MonotonicBranch(F, Fprime, (left, right), y_endpoints, inv_conv_orientarion(F_increasing)))
+                    push!(new_branches, MonotonicBranch(F, Fprime, (left, right), y_endpoints, inv_conv_orientation(F_increasing)))
                 end
             end
         else
@@ -367,15 +367,15 @@ function composedPwMap(D1::PwDynamicDefinition.PwMap, D2::PwDynamicDefinition.Pw
                 F_increasing = conv_orientation(br1.increasing)*conv_orientation(br2.increasing)
                 if left!=∅ && right!=∅
                     y_endpoints = (F(left) ∩ y_range, F(right) ∩ y_range)
-                    push!(new_branches, MonotonicBranch(F, Fprime, (left, right), y_endpoints, inv_conv_orientarion(F_increasing)))
+                    push!(new_branches, MonotonicBranch(F, Fprime, (left, right), y_endpoints, inv_conv_orientation(F_increasing)))
                 elseif left == ∅ && right != ∅
                     left = br2.X[1]
                     y_endpoints = (F(left) ∩ y_range, F(right) ∩ y_range)
-                    push!(new_branches, MonotonicBranch(F, Fprime, (left, right), y_endpoints, inv_conv_orientarion(F_increasing)))
+                    push!(new_branches, MonotonicBranch(F, Fprime, (left, right), y_endpoints, inv_conv_orientation(F_increasing)))
                 elseif left !=∅ && right == ∅
                     right = br2.X[2]
                     y_endpoints = (F(left) ∩ y_range, F(right) ∩ y_range)
-                    push!(new_branches, MonotonicBranch(F, Fprime, (left, right), y_endpoints, inv_conv_orientarion(F_increasing)))
+                    push!(new_branches, MonotonicBranch(F, Fprime, (left, right), y_endpoints, inv_conv_orientation(F_increasing)))
                 end
             end
         end
