@@ -222,7 +222,7 @@ struct HatNPDual <: Dual
     x′::Vector{Interval}
 end
 
-function HatNPDualBranch(y, br::Branch, ylabel = 1:length(y), ϵ = 0.0)
+function HatNPDualBranch(y, br::MonotonicBranch, ylabel = 1:length(y), ϵ = 0.0)
 	if br.increasing
 		endpoint_X = br.X[2]
 		der = Contractors.derivative(br.f)(endpoint_X)

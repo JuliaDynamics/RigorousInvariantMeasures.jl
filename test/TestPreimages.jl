@@ -23,7 +23,7 @@ x6 = 0.3
 
 begin 
     preim_branch = RigorousInvariantMeasures.preimage
-    br = RigorousInvariantMeasures.Branch(x-> x^2, (@interval(0),@interval(1)))
+    br = RigorousInvariantMeasures.MonotonicBranch(x-> x^2, (@interval(0),@interval(1)))
 
     ϵ = 1.0/1024
     max_iter = 100
@@ -51,7 +51,7 @@ begin
     
     # we test when the domain of f contains the zero of the derivative
 
-    br = RigorousInvariantMeasures.Branch(x-> (x-@interval(0.1))^2, (@interval(0.1),@interval(1)))
+    br = RigorousInvariantMeasures.MonotonicBranch(x-> (x-@interval(0.1))^2, (@interval(0.1),@interval(1)))
 
     # if X is the search interval we test when y ⊂ f(X)
     root = preim_branch(Interval(0.0, 0.04), br, @interval(0.1, 1.0); ϵ, max_iter = 100)
@@ -72,9 +72,9 @@ begin
     # we test the exit rule for Krawczyk, i.e., if 0 ∈ f′(x_mid)
     # return x
     # remark that to bypass the unique increasing test we need to call 
-    # the full Branch constructor. In general this function would not be allowed
-    # by the constructor. Branch are monotone in Interval(X[1].hi, X[2].lo)
-    br = RigorousInvariantMeasures.Branch(x-> x^2, 
+    # the full MonotonicBranch constructor. In general this function would not be allowed
+    # by the constructor. MonotonicBranch are monotone in Interval(X[1].hi, X[2].lo)
+    br = RigorousInvariantMeasures.MonotonicBranch(x-> x^2, 
                                     (@interval(-1), @interval(1)),
                                     (Interval(1), Interval(1)),
                                     true)
@@ -103,7 +103,7 @@ end
 
 for y = (a1, a2)
     for f in (x->x/2, x->1+x/2, x-> 1-x/2)
-        b = RigorousInvariantMeasures.Branch(f, (@interval(0), @interval(1)))
+        b = RigorousInvariantMeasures.MonotonicBranch(f, (@interval(0), @interval(1)))
         ylabel = 1:length(y)
         x, xlabel = RigorousInvariantMeasures.preimages(y, b, ylabel; ϵ = 0.0, max_iter = 100)
         @test x[1] == b.X[1]
@@ -121,11 +121,11 @@ end
 
 # Test nonmonotone 
 f = x->(x-@interval(0.3))^2
-b = RigorousInvariantMeasures.Branch(f, (@interval(0.3), @interval(1)))
+b = RigorousInvariantMeasures.MonotonicBranch(f, (@interval(0.3), @interval(1)))
 x = RigorousInvariantMeasures.preimage(0.04, b, Interval(0.2, 0.7), ϵ = 1e-14, max_iter = 100)        
 @test 0.5 ∈ x
 
-b = RigorousInvariantMeasures.Branch(f, (@interval(0), @interval(0.3)))
+b = RigorousInvariantMeasures.MonotonicBranch(f, (@interval(0), @interval(0.3)))
 x = RigorousInvariantMeasures.preimage(0.04, b, Interval(0, 0.4), ϵ = 1e-14, max_iter = 100)        
 @test 0.1 ∈ x
 

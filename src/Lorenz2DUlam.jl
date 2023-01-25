@@ -25,7 +25,7 @@ For a fixed ``x`` return the fiber map of the skew product, with parameter ``r``
 i.e., if ``x>0`` we have ``G(x, y) = 2^(-r)y x^r+c``
 and for ``x<0`` we have ``G(x, y) = 2^(-r)*y*(-x)^r-c``
 
-This map is represented as a Branch object, where we pass the function, the value of the ``y``-derivative
+This map is represented as a MonotonicBranch object, where we pass the function, the value of the ``y``-derivative
 (which is a constant depending on ``x``)
 """
 # to simplify implementation, we use the Julia Polyhedra library

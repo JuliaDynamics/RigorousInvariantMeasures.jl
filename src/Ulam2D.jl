@@ -22,8 +22,8 @@ plot(Tfloat, -1, 1)
 @info preim_x[1][1]
 
 G(; x, r, c) = x > 0 ?  
-                RigorousInvariantMeasures.Branch(y-> 2^(-r)*y*x^r+c, y-> 2^(-r)*x^r, (Interval(-1), Interval(1))) :
-                RigorousInvariantMeasures.Branch(y-> 2^(-r)*y*(-x)^r-c, y-> 2^(-r)*(-x)^r, (Interval(-1), Interval(1)))
+                RigorousInvariantMeasures.MonotonicBranch(y-> 2^(-r)*y*x^r+c, y-> 2^(-r)*x^r, (Interval(-1), Interval(1))) :
+                RigorousInvariantMeasures.MonotonicBranch(y-> 2^(-r)*y*(-x)^r-c, y-> 2^(-r)*(-x)^r, (Interval(-1), Interval(1)))
 
 Gtrue = G(x = (preim_x[1])[10], r = 5.0, c = 0.5)
 
