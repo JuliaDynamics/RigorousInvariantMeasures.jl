@@ -2,10 +2,10 @@ using IntervalArithmetic
 using .DynamicDefinition
 
 """
-Return Branches for a given dynamic, in an iterable
+Return MonotonicBranches for a given dynamic, in an iterable
 """
 function branches(D::PwMap)
-    return [Branch(D.Ts[k], (D.endpoints[k], D.endpoints[k+1]), D.is_full[k] ? (Interval(0),Interval(1)) : (D.Ts[k](Interval(D.endpoints[k]), D.Ts[k](Interval(D.endpoints[k+1])))), D.orientations[k]==1) for k in 1:length(D.Ts)]
+    return [MonotonicBranch(D.Ts[k], (D.endpoints[k], D.endpoints[k+1]), D.is_full[k] ? (Interval(0),Interval(1)) : (D.Ts[k](Interval(D.endpoints[k]), D.Ts[k](Interval(D.endpoints[k+1])))), D.orientations[k]==1) for k in 1:length(D.Ts)]
 end
 
 """
@@ -23,7 +23,7 @@ handling endpoints correctly. A callback `f(k, (a, b))` is called on each dual.
 
 This should eventually replace `DualComposedWithDynamic`.
 """
-function callback_duals(f, B::Ulam, branch::Branch, preims=nothing)
+function callback_duals(f, B::Ulam, branch::MonotonicBranch, preims=nothing)
     if preims === nothing
         preims = preimages(PointSequence(B.p), b)
     end
@@ -58,7 +58,7 @@ function callback_duals(f, B::Ulam, branch::Branch, preims=nothing)
     return nothing
 end
 
-function callback_duals(f, B::Hat, branch::Branch, preims=nothing)
+function callback_duals(f, B::Hat, branch::MonotonicBranch, preims=nothing)
     if preims === nothing
         preims = preimages(PointSequence(B.p), b)
     end

@@ -5,8 +5,8 @@ Compute preimages of monotonic sequences
 using IntervalArithmetic
 using .Contractors
 
-## Moved the definition of Branch in PwDynamicDefinition, with the objective
-## of transforming PwMap into an Array of Branch
+## Moved the definition of MonotonicBranch in PwDynamicDefinition, with the objective
+## of transforming PwMap into an Array of MonotonicBranch
 
 
 """
@@ -39,13 +39,13 @@ function last_overlapping(y, a)
     searchsortedfirst(y, Interval(a).hi, by=x->Interval(x).lo) - 1
 end
 
-#function Contractors.preimage(y, br::Branch, X; ϵ, max_iter)
+#function Contractors.preimage(y, br::MonotonicBranch, X; ϵ, max_iter)
 #    return root( x->br.f(x)-y, br.fprime, X; ϵ, max_iter)
 #end 
 
 range_estimate_monotone(f, X) = hull(f(Interval(X.lo)), f(Interval(X.hi)))
 
-function preimage_monotone(y::Interval, br::Branch, X; ϵ, max_iter)
+function preimage_monotone(y::Interval, br::MonotonicBranch, X; ϵ, max_iter)
     f = x-> br.f(x)
     f′(x) = br.fprime(x)
     
@@ -73,8 +73,8 @@ function preimage_monotone(y::Interval, br::Branch, X; ϵ, max_iter)
 end
 
 
-preimage(y, br::Branch, X; ϵ, max_iter) = preimage(Interval(y),br, X; ϵ, max_iter)
-function preimage(y::Interval, br::Branch, X; ϵ, max_iter)
+preimage(y, br::MonotonicBranch, X; ϵ, max_iter) = preimage(Interval(y),br, X; ϵ, max_iter)
+function preimage(y::Interval, br::MonotonicBranch, X; ϵ, max_iter)
     f(x) = br.f(x)-y
     
     int_left, int_right = !isdisjoint(br.X[1],X), !isdisjoint(br.X[2],X)
@@ -87,7 +87,7 @@ function preimage(y::Interval, br::Branch, X; ϵ, max_iter)
     if !(int_left || int_right)
         return preimage_monotone(y, br, X; ϵ, max_iter)
     else
-        @debug "Branch preimage, non monotone case"
+        @debug "MonotonicBranch preimage, non monotone case"
         @debug br.X[1], f(br.X[1])
         @debug br.X[2], f(br.X[2])
         zero_in_im_X_1 = 0 ∈ f(br.X[1]) 
@@ -113,7 +113,7 @@ end
 
 
 """
-    preimages(y, br::Branch, ylabel = 1:length(y); ϵ, max_iter)
+    preimages(y, br::MonotonicBranch, ylabel = 1:length(y); ϵ, max_iter)
 
 Construct preimages of an increasing array y under a monotonic branch defined on X = (a, b), propagating additional labels `ylabel`
 
@@ -154,7 +154,7 @@ julia> RigorousInvariantMeasures.preimages(0:0.1:1, D.branches[1]; ϵ = 10^(-15)
 ```
 
 """
-function preimages(y, br::Branch, ylabel = 1:length(y); ϵ, max_iter)
+function preimages(y, br::MonotonicBranch, ylabel = 1:length(y); ϵ, max_iter)
 
     if br.increasing
         i = first_overlapping(y, br.Y[1])  # smallest possible i such that a = br.Y[1] is in the semi-open interval [y[i], y[i+1]).
@@ -217,7 +217,7 @@ function preimages(y, D::Dynamic, ylabel = 1:length(y); ϵ, max_iter)
 end
 
 """
-    preimages_and_derivatives(y, br::Branch, ylabel = 1:length(y), ϵ = 0.0)
+    preimages_and_derivatives(y, br::MonotonicBranch, ylabel = 1:length(y), ϵ = 0.0)
 
 Compute preimages of D *and* the derivatives f'(x) in each point.
 
@@ -228,7 +228,7 @@ This is not restrictive because we'll need it only for the Hat assembler (at the
 
 We combine them in a single function because there are avenues to optimize by recycling some computations (not completely exploited for now)
 """
-function preimages_and_derivatives(y, br::Branch, ylabel = 1:length(y); ϵ, max_iter)
+function preimages_and_derivatives(y, br::MonotonicBranch, ylabel = 1:length(y); ϵ, max_iter)
     x, xlabel = preimages(y, br, ylabel; ϵ, max_iter)
     f′ = Contractors.derivative(br.f)
     x′ = f′.(x)

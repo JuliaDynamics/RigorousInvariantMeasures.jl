@@ -1,5 +1,5 @@
 struct IntervalDynamic <: Dynamic
-    branches::Array{Branch, 1}
+    branches::Array{MonotonicBranch, 1}
 	full_branch::Bool
 end
 
@@ -8,11 +8,11 @@ Base.getindex(D::IntervalDynamic, k::Int64) = D.branches[k]
 IntervalDynamic(Ts, endpoints::Vector{Interval{T}}; full_branch = false) where {T} = IntervalDynamic(Ts, endpoints, hcat([Ts[k](Interval(endpoints[k])) for k in 1:length(Ts)], [Ts[k](Interval(endpoints[k+1])) for k in 1:length(Ts)]); full_branch = full_branch)
 
 function IntervalDynamic(Ts, endpoints, y_endpoints_in; full_branch = false)
-    branches = Branch[]
+    branches = MonotonicBranch[]
     for k in 1:length(endpoints)-1
         y_endpoints = (y_endpoints_in[k,1], y_endpoints_in[k,2])
         increasing  = unique_increasing(y_endpoints_in[k,1], y_endpoints_in[k,2])
-        push!(branches, Branch(Ts[k], (endpoints[k], endpoints[k+1]), y_endpoints, increasing))
+        push!(branches, MonotonicBranch(Ts[k], (endpoints[k], endpoints[k+1]), y_endpoints, increasing))
     end
     return IntervalDynamic(branches, full_branch)
 end
