@@ -2,7 +2,7 @@ module Contractors
 using IntervalArithmetic
 
 
-export root, range_estimate, ShootingMethod, nthpreimage!, preimage, unique_sign, unique_increasing
+export preimage_monotonic, range_estimate, ShootingMethod, nthpreimage!, preimage, unique_sign, unique_increasing
 
 """
 unique_sign(x)
@@ -48,167 +48,101 @@ derivative(f) = x-> f(Taylor1([x,1.],1))[1]
 #using DualNumbers
 #derivative(f) = x->f(Dual(x, 1..1)).epsilon
 
-"""
-Compute a single root with (possibly multivariate) interval Newton
 
-x must be an Interval (univariate) or IntervalBox (multivariate)
+"""
+Compute the guaranteed interval preimage f⁻¹(y) of a point y ∈ R according to the function f: [a,b] → R. 
+This preimage is guaranteed to lie inside the real interval `x = hull(a,b)`.
+
+`f` must be strictly monotonic on [a,b], at least in the sense of MonotonicBranch functions (allowing for uncertainty on the endpoints).
+`f` must be differentiable; zero and infinite derivative are allowed.
+
+`y1`, `y2` must be guaranteed to be equal to f(a), f(b) or "more outside", so that  y ∉ hull(y1,f(z)) ⟹ f⁻¹(y) ∉ hull(a, z).
 
 Stops when the interval reaches a fixed point, when the diameter is smaller than ε,
 or when max_iter iterations are reached (with an error)
 """
-root(f, x; ϵ, max_iter) = root(f, derivative(f), x; ϵ, max_iter)
-
-function root(f::Function, f′::Function, x::Interval; ϵ, max_iter)
+preimage_monotonic(y, f::Function, x::Interval, (y1, y2); ϵ, max_iter) = preimage_monotonic(y, f::Function, derivative(f), x::Interval, (y1, y2); ϵ, max_iter)
+function preimage_monotonic(y, f::Function, f′, x::Interval, (y1, y2) = (f(Interval(x.lo)), f(Interval(x.hi))); ϵ, max_iter)
+	x_old::typeof(x) = ∅
 	for i in 1:max_iter
-		x_left, x_right = bisect(x)
-		
-		if !(0 ∈ f(x_left))
-			x = x_right
-		end
 
-		if !(0 ∈ f(x_right))
-			x = x_left
-		end
-
-		x_old = x
-
-		x_mid = Interval(mid(x))
-		@debug "Step $i of the Newton method:
-			   - the interval $x, 
-			   - the derivative $(f′(x)),
-			   - the value at the midpoint $(f(x_mid))
-			   - the value $(f(x))"
-		
-
-		enc_der = f′(x)
-
-		fm = f(x_mid)
-		
-		Nx = Interval(∅)
-
-		if !(0 ∈ enc_der) 
-			Nx = x_mid - fm / enc_der 
-			@debug "Newton Candidate", Nx
-		else 
-			# we do one Krawczyk step, avoids 
-			# dividing by an interval containing $0$
-			rad = radius(x)
-			der_mid = f′(x_mid)
-			
-			@debug "derivative at midpoint $(der_mid)"
-			# if 0 ∈ der_mid, due to the definition of branches, 
-			# we have that the midpoint must an endpoint 
-			# of the intervals that contain the points 
-			# that bound the monotonicity interval, so we assume that 
-			# we cannot further refine and return it
-			if 0 ∈ der_mid
-				return x
-			end
-
-			@debug "fm/der_mid", fm/der_mid
-			@debug "end_der/der_mid", enc_der/der_mid 
-			@debug (1-enc_der/der_mid)*Interval(-rad, rad)
-			Nx = x_mid - fm/der_mid + (1-enc_der/der_mid)*(x-x_mid) 
-			@debug "Krawczyk candidate", Nx
-		end
-		 
-		x = intersect(x, Nx)
-
-		if (x_old == x && diam(x) < ϵ) || isempty(x) 
+		# x == x_old should almost never happen here, since the iterations of this loop are guaranteed
+		#  to chop off a part of the interval (when they work),
+		# but if the interval contains very few floating-point numbers then it is possible that, for instance, `x.lo == x.lo + 1/4*rad(x)`
+		if diam(x) < ϵ || isempty(x) || x == x_old
 			return x
 		end
 
-		#= if x_old == x
-			@debug fif x_old == x
-			@debug fm
-			a, b = Interval(x.lo), Interval(x.hi)
-			fa, fb = f(a), f(b)
+		x_old = x
+		x_mid = Interval(mid(x))
 
-			if 0 ∈ fm
-				# if 0 belongs to the image of the midpoint, 
-				# we implement  
-				# a bisection search is better
+		fm::typeof(x) = ∅  # both Newton and Krawczyk will compute f(x_mid) as a byproduct; we save it here.
+		enc_der = f′(x)
+		if 0 ∉ enc_der
+			# Interval Newton step on x -> f(x) - y
+			@debug "Step $i, Newton method:
+			- the interval $x, 
+			- the derivative $(f′(x)),
+			- the value at the midpoint $(f(x_mid))
+			- the value $(f(x))"
 
-				@debug "0 is in fm"
-				rint = Interval(radius(x))
-				
-				# rand has average 1/2, so in average this is a bisection step
+			fm = f(x_mid)
+			Nx = x_mid - enc_der \ (fm - y)  # we use the "backward division" operator for good practice, just in case this will ever applied in a multidimensional setting
+			@debug "Newton Candidate", Nx
+			
+		else
+			# Krawczyk step on x -> f(x) - y
+			@debug "Step $i, Krawczyk method:
+			- the interval $x, 
+			- the derivative $(f′(x)),
+			- the value at the midpoint $(f(x_mid))
+			- the value $(f(x))"
 
-				x_cand_l = x_mid-1/14*rint
-				@debug x_cand_l, f(x_cand_l)
-				x_cand_r = x_mid+3/4*rint
-				@debug x_cand_r, f(x_cand_r)
-				
-				left = Interval(x.lo) 
-				right = Interval(x.hi)
+			fm = f(x_mid) # TODO: merge this line and the next into a single call
+			der_mid = f′(x_mid)
 
-				if !(0 ∈ f(x_cand_l)) 
-					left = x_cand_l
-				end
-				if !(0 ∈ f(x_cand_r))
-					right = x_cand_r
-				end
+			Nx = x_mid - der_mid \ (fm - y) + (1 - der_mid \ enc_der)*(x-x_mid)
 
-				
-				x = hull(left, right)#	enl = 1
-				
-				@debug "After bisection step", x
-				if x == x_old
-					return x
-				end
-			else
-				if !(0 ∈ hull(fa, fm))
-					x = Interval(x_mid, x.hi)
-				else 
-					x = Interval(x.lo, x_mid)
-				end
+			@debug "Krawczyk Candidate", Nx
+
+		end
+		x = intersect(x, Nx)
+		if !(x_old == x)  # Newton / Krawczyk was effective and improved the interval
+			continue
+		end
+		# otherwise, let us switch to a zero-th order method based on bisection
+		# fm has already been computed, let us use it
+
+		# Notice that this bisection strategy works also when f is not monotonic outside [a,b]; 
+		# see https://github.com/JuliaDynamics/RigorousInvariantMeasures.jl/issues/140#issuecomment-1413541452 for a proof
+		if y ∉ hull(y1, fm)
+			x = Interval(x_mid.hi, x.hi)
+			continue
+		end
+		if y ∉ hull(fm, y2)
+			x = Interval(x.lo, x_mid.lo)
+			continue
+		end
+
+		# this may still fail if y ≈ fm or if the function is computed in a very inaccurate way (relative to the size of `x`)
+		# in this case, we try chopping off smaller and smaller parts of `x` at both ends
+		# If we cannot even cut off 1/2^6th of the interval it's time to give up.
+		for k = 2:6
+			c = x.lo + diam(x) / 2^k
+			if y ∉ hull(y1, f(Interval(c)))
+				x = Interval(c, x.hi)
+				continue
+			end
+			c = x.hi - diam(x) / 2^k
+			if y ∉ hull(f(Interval(c)), y2)
+				x = Interval(x.lo, c)
+				continue
 			end
 		end
-			a, b = Interval(x.lo), Interval(x.hi)
-			fa, fb = f(a), f(b)
-
-			if 0 ∈ fm
-				# if 0 belongs to the image of the midpoint, 
-				# we implement  
-				# a bisection search is better
-
-				@debug "0 is in fm"
-				rint = Interval(radius(x))
-				
-				# rand has average 1/2, so in average this is a bisection step
-
-				x_cand_l = x_mid-1/14*rint
-				@debug x_cand_l, f(x_cand_l)
-				x_cand_r = x_mid+3/4*rint
-				@debug x_cand_r, f(x_cand_r)
-				
-				left = Interval(x.lo) 
-				right = Interval(x.hi)
-
-				if !(0 ∈ f(x_cand_l)) 
-					left = x_cand_l
-				end
-				if !(0 ∈ f(x_cand_r))
-					right = x_cand_r
-				end
-
-				
-				x = hull(left, right)#	enl = 1
-				
-				@debug "After bisection step", x
-				if x == x_old
-					return x
-				end
-			else
-				if !(0 ∈ hull(fa, fm))
-					x = Interval(x_mid, x.hi)
-				else 
-					x = Interval(x.lo, x_mid)
-				end
-			end
-		end =#
+		return x
 	end
-	@debug "Maximum iterates reached" max_iter, x, f(x), diam(x)
+	@info "Maximum iterates reached:" max_iter, x, f(x), diam(x)
+	@info "This should not happen normally, consider debugging Contractors.preimage_monotonic."
 	return x
 end
 
@@ -256,12 +190,6 @@ function range_estimate_der(f, fprime, domain, recstep = 5)
 		Iᵦ = range_estimate_der(f, fprime, b, recstep-1)
 		return Iₐ ∪ Iᵦ
 	end
-end
-
-function range_estimate_monotone(f, x)
-	low = Interval(prevfloat(x.lo), nextfloat(x.lo))
-	high = Interval(prevfloat(x.hi), nextfloat(x.hi))
-	return hull(f(low),f(high))
 end
 
 

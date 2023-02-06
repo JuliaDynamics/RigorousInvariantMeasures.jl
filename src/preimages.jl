@@ -39,77 +39,36 @@ function last_overlapping(y, a)
     searchsortedfirst(y, Interval(a).hi, by=x->Interval(x).lo) - 1
 end
 
-#function Contractors.preimage(y, br::MonotonicBranch, X; ϵ, max_iter)
-#    return root( x->br.f(x)-y, br.fprime, X; ϵ, max_iter)
-#end 
-
+"""
+Utility function that estimates the range of a monotone function
+"""
 range_estimate_monotone(f, X) = hull(f(Interval(X.lo)), f(Interval(X.hi)))
 
-function preimage_monotone(y::Interval, br::MonotonicBranch, X; ϵ, max_iter)
-    f = x-> br.f(x)
-    f′(x) = br.fprime(x)
-    
-    Y = intersect(range_estimate_monotone(f, X), y)
-    @debug "range_estimate" range_estimate_monotone(f, X) 
-    @debug "range ∩ y" Y
+"""
+Compute the preimage f⁻¹(y), knowing that it lies inside `search_interval`.
+"""
+function preimage(y, br::MonotonicBranch, search_interval; ϵ, max_iter)
+    # Since the branch is monotonic, we can compute the preimages of y.lo and y.hi separately
+    # This should give slightly thinner intervals.
+
+    Y = intersect(range_estimate_monotone(br.f, search_interval), Interval(y))
 
     if isempty(Y)
         return Interval(∅)
     end
-    
-    f_lo = x -> br.f(x)-Interval(Y.lo)  
-    x_lo = Contractors.root(f_lo, f′, X; ϵ, max_iter)
-    @debug "x_lo", x_lo
-    
+
+    xlo = preimage_monotonic(Y.lo, br.f, br.fprime, search_interval, br.Y; ϵ, max_iter)
+
     if isthin(Y)
-        return x_lo ∩ X
+        @debug "preimage of $y on $search_interval: $xlo"
+        return xlo
     end
-    
-    f_hi = x-> br.f(x)-Interval(Y.hi)
-    x_hi = Contractors.root(f_hi, f′, X; ϵ, max_iter)
-    @debug "x_hi", x_hi
 
-    return hull(x_lo, x_hi) ∩ X
+    xhi = preimage_monotonic(Y.hi, br.f, br.fprime, search_interval, br.Y; ϵ, max_iter)
+
+    @debug "preimage of $y on $search_interval: $(hull(xlo, xhi))"
+    return hull(xlo, xhi) ∩ search_interval
 end
-
-
-preimage(y, br::MonotonicBranch, X; ϵ, max_iter) = preimage(Interval(y),br, X; ϵ, max_iter)
-function preimage(y::Interval, br::MonotonicBranch, X; ϵ, max_iter)
-    f(x) = br.f(x)-y
-    
-    int_left, int_right = !isdisjoint(br.X[1],X), !isdisjoint(br.X[2],X)
-    
-    # Alternative version with some broadcasting tricks, as future memory
-    # of code that works but is not so easy to read
-    # int_left, int_right = .!(isdisjoint.(br.X, X))
-    
-    # if there is no intersection, we can assume f monotone on X
-    if !(int_left || int_right)
-        return preimage_monotone(y, br, X; ϵ, max_iter)
-    else
-        @debug "MonotonicBranch preimage, non monotone case"
-        @debug br.X[1], f(br.X[1])
-        @debug br.X[2], f(br.X[2])
-        zero_in_im_X_1 = 0 ∈ f(br.X[1]) 
-        zero_in_im_X_2 = 0 ∈ f(br.X[2])
-        
-        @debug "0 in f(br.X[1]), 0 in f(br.X[2])", zero_in_im_X_1, zero_in_im_X_2
-        
-        if (zero_in_im_X_1) && (zero_in_im_X_2)
-            return X 
-        else 
-            X_monotone = Interval(br.X[1].hi, br.X[2].lo) ∩ X
-            X_root = preimage_monotone(y, br, X_monotone; ϵ, max_iter)
-            if zero_in_im_X_1
-                X_root = hull(br.X[1], X_root)
-            end
-            if zero_in_im_X_2
-                X_root = hull(X_root, br.X[2])
-            end
-            return X_root ∩ X
-        end
-    end
-end 
 
 
 """
@@ -155,6 +114,12 @@ julia> RigorousInvariantMeasures.preimages(0:0.1:1, D.branches[1]; ϵ = 10^(-15)
 
 """
 function preimages(y, br::MonotonicBranch, ylabel = 1:length(y); ϵ, max_iter)
+    # TODO: one could remove some code duplication by defining the method only for increasing functions and applying it to -f if the function is decreasing
+    # TODO: there is some efficiency to be gained if we keep track of the value of f on each computed point
+    # so that we can pass pairs (x,f(x)) to the underlying preimage() functions. Currently it is recomputed many times,
+    # for instance in range_estimate_monotone
+
+    # TODO: consider separate types (maybe via a parametric type) for increasing and decreasing branches.
 
     if br.increasing
         i = first_overlapping(y, br.Y[1])  # smallest possible i such that a = br.Y[1] is in the semi-open interval [y[i], y[i+1]).
