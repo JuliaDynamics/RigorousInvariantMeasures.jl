@@ -3,6 +3,7 @@ using Test, Documenter
 
 @testset "RigorousInvariantMeasures.jl" begin
 
+    include("TestDifferentiation.jl")
     include("TestBasisDefinition.jl")
     include("TestContractors.jl")
     include("TestDynamic.jl")
@@ -21,7 +22,9 @@ using Test, Documenter
     include("TestObservables.jl")
     include("TestLorenz2DUlam.jl")
     include("TestHigherDFLY.jl")
-    
+
+    DocMeta.setdocmeta!(RigorousInvariantMeasures, :DocTestSetup, :(using RigorousInvariantMeasures); recursive=true)
+
     @testset "Doctests" begin 
         if Base.VERSION >= v"1.8"
             # It seems that some output formats have changed from 1.7 to 1.8

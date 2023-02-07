@@ -10,6 +10,8 @@ struct TotalVariation <: NormKind end
 struct ℓ1 <: NormKind end
 struct ℓinf <: NormKind end
 
+include("differentiation_interface.jl")
+
 # the module Contractors does not depend on any submodule
 include("Contractors.jl")
 using .Contractors
