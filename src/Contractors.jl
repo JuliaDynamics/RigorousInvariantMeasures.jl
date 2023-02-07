@@ -2,7 +2,7 @@ module Contractors
 using IntervalArithmetic
 
 
-export preimage_monotonic, range_estimate, ShootingMethod, nthpreimage!, preimage, unique_sign, unique_increasing
+export preimage_monotonic, range_estimate, ShootingMethod, preimage, unique_sign, unique_increasing
 
 """
 unique_sign(x)
@@ -215,35 +215,6 @@ function ShootingMethod(f, fprime, n, x, y, rigstep = 10)
 		x = intersect.(x, x_mid-Jac(fprime, x)\F(x_mid))
 	end
 	return x
-end
-
-"""
-Newer version of the 'shooting method' to compute the kth preimage of a point (or interval y)
-fs contains k functions, X contains their domains. This computes a solution of
-fk(f_{k-1}( ...  f1(x) ... )) = y.
-Overwrites X with [x f1(x) f2(f1(x)) ... f_{k-1}(...)], so the
-true solution is X[1].
-
-Tries to avoid allocations and stuff.
-"""
-function nthpreimage!(y, fs, X; max_iter = 100)
-	newX = zero(X)
-	Xmid = zero(X)
-	n = length(X)
-	for i in 1:max_iter
-		Xmid .= Interval.(mid.(X))
-		newX[end] = (fs[end](Xmid[end]) - y) / derivative(fs[end])(X[end])
-		for i = length(X)-1:-1:1
-			newX[i] = (fs[i](Xmid[i]) - Xmid[i+1] + newX[i+1]) / derivative(fs[i])(X[i])
-		end
-		newX .= intersect.(Xmid - newX, X)
-		if isempty(newX) || newX == X
-			return newX
-		end
-		X .= newX
-	end
-	@info "Maximum iterates reached" max_iter
-	return X
 end
 
 end #module
