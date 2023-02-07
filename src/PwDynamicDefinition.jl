@@ -55,6 +55,14 @@ end
 
 DynamicDefinition.is_full_branch(b::MonotonicBranch{T,S}, X) where {T,S} = equal_up_to_order(b.Y, X)
 
+import Base.reverse
+"""
+    Base.reverse(br:MonotonicBranch)
+
+"Reverses" the x-axis of a branch: given f:[a,b] -> R, creates a branch with the function g:[-b,-a] -> R defined as g(x) = f(-x)
+"""
+Base.reverse(br::MonotonicBranch) = MonotonicBranch(x -> br.f(-x), x -> -br.fprime(-x), (-br.X[2], -br.X[1]), (br.Y[2], br.Y[1]), !br.increasing)
+
 """
 Dynamic based on a piecewise monotonic map.
 

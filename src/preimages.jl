@@ -114,7 +114,6 @@ julia> RigorousInvariantMeasures.preimages(0:0.1:1, D.branches[1]; ϵ = 10^(-15)
 
 """
 function preimages(y, br::MonotonicBranch, ylabel = 1:length(y); ϵ, max_iter)
-    # TODO: one could remove some code duplication by defining the method only for increasing functions and applying it to -f if the function is decreasing
     # TODO: there is some efficiency to be gained if we keep track of the value of f on each computed point
     # so that we can pass pairs (x,f(x)) to the underlying preimage() functions. Currently it is recomputed many times,
     # for instance in range_estimate_monotone
@@ -146,27 +145,18 @@ function preimages(y, br::MonotonicBranch, ylabel = 1:length(y); ϵ, max_iter)
             end
             stride = stride ÷ 2
         end
-    else # branch decreasing
-        i = last_overlapping(y, br.Y[1]) # largest possible j such that b-ε, where b = br.Y[1]  is in the semi-open interval [y[j], y[j+1]).
-        j = first_overlapping(y, br.Y[2]) # smallest possible i such that a = br.Y[2] is in the semi-open interval [y[i], y[i+1]).
-        n = i - j + 1
-        x = fill((-∞..∞)::typeof(br.X[1]), n)
-        xlabel = collect(ylabel[i:-1:j])
-        x[1] = br.X[1]
-        if n == 1
-            return (x, xlabel)
-        end
-        stride = prevpow(2, n-1)
-        while stride >= 1
-            # fill in v[i] using x[i-stride].lo and x[i+stride].hi as range for the preimage search
-            for k = 1+stride:2*stride:n
-                search_range = Interval(x[k-stride].lo, (k+stride <= n ? x[k+stride] : br.X[2]).hi)
-                x[k] = preimage(y[i+2-k], br, search_range; ϵ, max_iter)
-            end
-            stride = stride ÷ 2
-        end
+        return x, xlabel
+    else # decreasing branch
+        # there is some asymmetry in how the Y axis is treated, since we assume that the function never goes below y[1] but can go above y[end].
+        # hence to treat this case it is better to "reverse" the X axis: we switch to [br.X[1], x[1], ... x[d]], with an implied br.X[2] at the end 
+        # as the last endpoint, to [-br.X[2], -x[d], -x[d-1], ..., -x[1]], with an implied -br.X[1] at the end.
+
+        revx, revxlabel = preimages(y, reverse(br), ylabel; ϵ, max_iter)
+        x = .-reverse(revx[2:end])
+        insert!(x, 1, br.X[1])
+        xlabel = collect(reverse(revxlabel))
+        return x, xlabel
     end
-    return (x, xlabel)
 end
 
 """
