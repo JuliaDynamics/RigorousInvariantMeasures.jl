@@ -345,6 +345,7 @@ end
     Create explicitly D1 ∘ D2 as a PwMap (list of MonotonicBranches)
 """
 function composedPwMap(D1::PwDynamicDefinition.PwMap, D2::PwDynamicDefinition.PwMap)
+    # TODO: this could be rewritten using preimages()
     new_branches =  MonotonicBranch[]
     for br2 in branches(D2)
         if br2.increasing
