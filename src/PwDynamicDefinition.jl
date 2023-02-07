@@ -26,7 +26,7 @@ This is a tricky case that must be dealt with.
 
 Enclosures `Y[1], Y[2]` for f(a), f(b) and `increasing` may be provided (for instance if we know that `Y=(0,1)`), otherwise they are computed automatically.
 """
-struct MonotonicBranch{T<:Function, U<:Function, S}
+struct MonotonicBranch{T<:Function, U<:Function, S<:Interval}
     f::T
     fprime::U
     X::Tuple{S, S}

@@ -125,7 +125,7 @@ function preimages(y, br::MonotonicBranch, ylabel = 1:length(y); ϵ, max_iter)
         i = first_overlapping(y, br.Y[1])  # smallest possible i such that a = br.Y[1] is in the semi-open interval [y[i], y[i+1]).
         j = last_overlapping(y, br.Y[2]) # largest possible j such that b-ε, where b = br.Y[2] is in the semi-open interval [y[j], y[j+1]).
         n = j - i + 1
-        x = fill((-∞..∞)::typeof(Interval(br.X[1])), n)
+        x = fill((-∞..∞)::typeof(br.X[1]), n)
         xlabel = collect(ylabel[i:j]) # we collect to avoid potential type instability, since this may be an UnitRange while in the other branch we could have a StepRange
         x[1] = br.X[1]
         if n == 1
@@ -141,7 +141,7 @@ function preimages(y, br::MonotonicBranch, ylabel = 1:length(y); ϵ, max_iter)
         while stride >= 1
             # fill in v[i] using x[i-stride].lo and x[i+stride].hi as range for the preimage search
             for k = 1+stride:2*stride:n
-                search_range = Interval(x[k-stride].lo, (k+stride <= n ? x[k+stride] : Interval(br.X[2])).hi)
+                search_range = Interval(x[k-stride].lo, (k+stride <= n ? x[k+stride] : br.X[2]).hi)
                 x[k] = preimage(y[i-1+k], br, search_range; ϵ, max_iter)
             end
             stride = stride ÷ 2
@@ -150,7 +150,7 @@ function preimages(y, br::MonotonicBranch, ylabel = 1:length(y); ϵ, max_iter)
         i = last_overlapping(y, br.Y[1]) # largest possible j such that b-ε, where b = br.Y[1]  is in the semi-open interval [y[j], y[j+1]).
         j = first_overlapping(y, br.Y[2]) # smallest possible i such that a = br.Y[2] is in the semi-open interval [y[i], y[i+1]).
         n = i - j + 1
-        x = fill((-∞..∞)::typeof(Interval(br.X[1])), n)
+        x = fill((-∞..∞)::typeof(br.X[1]), n)
         xlabel = collect(ylabel[i:-1:j])
         x[1] = br.X[1]
         if n == 1
@@ -160,7 +160,7 @@ function preimages(y, br::MonotonicBranch, ylabel = 1:length(y); ϵ, max_iter)
         while stride >= 1
             # fill in v[i] using x[i-stride].lo and x[i+stride].hi as range for the preimage search
             for k = 1+stride:2*stride:n
-                search_range = Interval(x[k-stride].lo, (k+stride <= n ? x[k+stride] : Interval(br.X[2])).hi)
+                search_range = Interval(x[k-stride].lo, (k+stride <= n ? x[k+stride] : br.X[2]).hi)
                 x[k] = preimage(y[i+2-k], br, search_range; ϵ, max_iter)
             end
             stride = stride ÷ 2
