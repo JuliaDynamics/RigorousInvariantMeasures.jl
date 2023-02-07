@@ -257,7 +257,7 @@ function iterate_LSV(x, i, α)
 end
 
 using RecipesBase
-@recipe f(::Type{ApproxInducedLSV}, D::ApproxInducedLSV) where {FT} = x -> plottable(D, x)
+@recipe f(::Type{ApproxInducedLSV}, D::ApproxInducedLSV) = x -> plottable(D, x)
 
 end
 
