@@ -2,19 +2,7 @@ module Contractors
 using IntervalArithmetic
 
 
-export preimage_monotonic, range_estimate, ShootingMethod, preimage, unique_sign, unique_increasing
-
-"""
-unique_sign(x)
-
-Sign of an interval, but throws an error if it is not unique.
-Used by various functions to compute orientations
-"""
-function unique_sign(x)
-	s = sign(x)
-	@assert isthin(s)
-	return s.hi
-end
+export preimage_monotonic, range_estimate, ShootingMethod, preimage, unique_increasing
 
 """
 unique_increasing(a, b)
@@ -145,28 +133,6 @@ function preimage_monotonic(y, f::Function, f′, x::Interval, (y1, y2) = (f(Int
 	@info "This should not happen normally, consider debugging Contractors.preimage_monotonic."
 	return x
 end
-
-
-#preimage(y, f, X; ϵ,  max_iter) = preimage(y, f, derivative(f), X; ϵ, max_iter)
-#preimage(y, f, fprime, X; ϵ, max_iter) = root(x -> f(x)-y, fprime, X; ϵ, max_iter)
-
-#function preimage(y::Interval, f, fprime, X; ϵ, max_iter)
-	# I don't really like this, it is checking again if the function 
-	# is increasing or decreasing; probably the best would be 
-	# to define a preimage method which dispatches on the branch type
-	# now, the question is if it should be in Contractors.jl 
-	# or PwDynamicDefinition.jl
-#	if !(0 ∈ fprime(X))
-#		x_lo = preimage(y.lo, f, fprime, X; ϵ, max_iter)
-#		x_hi = preimage(y.hi, f, fprime, X; ϵ, max_iter)
-#		return hull(x_lo, x_hi)
-#	else
-#		@error "Preimage of a wide interval through a non monotone function"
-#	end
-#end
-
-
-
 
 # superseded by IntervalOptimisation.jl
 function range_estimate(f, domain, recstep = 5)
