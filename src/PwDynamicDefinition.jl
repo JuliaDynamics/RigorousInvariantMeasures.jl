@@ -6,15 +6,11 @@ module PwDynamicDefinition
 
 using ..DynamicDefinition
 using ..Contractors
+using ..RigorousInvariantMeasures: derivative, distortion, expansivity
 using TaylorSeries: Taylor1
 using IntervalArithmetic, IntervalOptimisation
 
-import ..DynamicDefinition: derivative, orientation
-
 export PwMap, preim, nbranches, plottable, branches, MonotonicBranch, mod1_dynamic, dfly_inf_der, composedPwMap, equal_up_to_order, distortion, expansivity
-
-import TaylorSeries
-der(f) = x-> f(TaylorSeries.Taylor1([x,1.],1))[1]
 
 """
 Type used to represent a "branch" of a dynamic. The branch is represented by a map `f` with domain `X=(a,b)`. X[1] and X[2] are interval enclosures of a,b.
@@ -26,18 +22,14 @@ This is a tricky case that must be dealt with.
 
 Enclosures `Y[1], Y[2]` for f(a), f(b) and `increasing` may be provided (for instance if we know that `Y=(0,1)`), otherwise they are computed automatically.
 """
-struct MonotonicBranch{T<:Function, U<:Function, S<:Interval}
+struct MonotonicBranch{T<:Function, S<:Interval}
     f::T
-    fprime::U
     X::Tuple{S, S}
     Y::Tuple{S, S}
     increasing::Bool
 end
 
-MonotonicBranch(f::Function, X, Y=(f(Interval(X[1])), f(Interval(X[2]))), increasing=unique_increasing(Y[1], Y[2])) = MonotonicBranch{typeof(f), typeof(der(f)), typeof(interval(X[1]))}(f, der(f), X, Y, increasing)
-MonotonicBranch(f::Function, fprime::Function, X, Y=(f(Interval(X[1])), f(Interval(X[2]))), increasing=unique_increasing(Y[1], Y[2])) = MonotonicBranch{typeof(f), typeof(fprime), typeof(interval(X[1]))}(f, fprime, X, Y, increasing)
-
-DynamicDefinition.derivative(br::MonotonicBranch) = br.fprime
+MonotonicBranch(f::Function, X, Y=(f(Interval(X[1])), f(Interval(X[2]))), increasing=unique_increasing(Y[1], Y[2])) = MonotonicBranch{typeof(f), typeof(interval(X[1]))}(f, X, Y, increasing)
 
 function equal_up_to_order(X, Y)
     @assert length(X)==2 && length(Y)==2
@@ -61,7 +53,7 @@ import Base.reverse
 
 "Reverses" the x-axis of a branch: given f:[a,b] -> R, creates a branch with the function g:[-b,-a] -> R defined as g(x) = f(-x)
 """
-Base.reverse(br::MonotonicBranch) = MonotonicBranch(x -> br.f(-x), x -> -br.fprime(-x), (-br.X[2], -br.X[1]), (br.Y[2], br.Y[1]), !br.increasing)
+Base.reverse(br::MonotonicBranch) = MonotonicBranch(x -> br.f(-x), (-br.X[2], -br.X[1]), (br.Y[2], br.Y[1]), !br.increasing)
 
 """
 Dynamic based on a piecewise monotonic map.
@@ -83,39 +75,16 @@ struct PwMap <: Dynamic
     end
 end
 
-function PwMap(Ts, endpoints, y_endpoints_in; full_branch = false, infinite_derivative = false)
-#    branches = MonotonicBranch[]
-#    for k in 1:length(endpoints)-1
-#        y_endpoints = (y_endpoints_in[k,1], y_endpoints_in[k,2])
-#        increasing  = unique_increasing(y_endpoints_in[k,1], y_endpoints_in[k,2])
-#        push!(branches, MonotonicBranch(Ts[k],x->derivative(Ts[k],x),(endpoints[k], endpoints[k+1]), y_endpoints, increasing))
-#    end
-#    X = (endpoints[begin], endpoints[end])
-#    full_branch_detected = full_branch || all(is_full_branch(b, X) for b in branches)
-#    return PwMap(branches; full_branch = full_branch_detected, infinite_derivative = infinite_derivative)
-    return PwMap(
-        Ts, 
-        [x->derivative(Ts[k],x) for k in 1:length(Ts)], 
-        endpoints, y_endpoints_in; 
-        full_branch = full_branch, 
-        infinite_derivative = infinite_derivative
-        ) 
-end
-
-function PwMap(Ts, Tsprime, endpoints, y_endpoints_in; full_branch = false, infinite_derivative = false)
+function PwMap(Ts, endpoints, y_endpoints_in=hcat([Ts[k](Interval(endpoints[k]))  for k in 1:length(Ts)], [Ts[k](Interval(endpoints[k+1])) for k in 1:length(Ts)]); full_branch = false, infinite_derivative = false)
     branches = MonotonicBranch[]
     for k in 1:length(endpoints)-1
         y_endpoints = (y_endpoints_in[k,1], y_endpoints_in[k,2])
         increasing  = unique_increasing(y_endpoints_in[k,1], y_endpoints_in[k,2])
-        push!(branches, MonotonicBranch(Ts[k],Tsprime[k], (endpoints[k], endpoints[k+1]), y_endpoints, increasing))
+        push!(branches, MonotonicBranch(Ts[k], (endpoints[k], endpoints[k+1]), y_endpoints, increasing))
     end
     X = (endpoints[begin], endpoints[end])
     full_branch_detected = full_branch || all(is_full_branch(b, X) for b in branches)
     return PwMap(branches; full_branch = full_branch_detected, infinite_derivative = infinite_derivative)
-end
-
-function PwMap(Ts, endpoints::Vector{T}; full_branch = false, infinite_derivative = false) where {T<:Real}  
-	return PwMap(Ts, endpoints, hcat([Ts[k](Interval(endpoints[k]))  for k in 1:length(Ts)], [Ts[k](Interval(endpoints[k+1])) for k in 1:length(Ts)]); full_branch = full_branch, infinite_derivative = infinite_derivative)
 end
 
 Base.show(io::IO, D::PwMap) = print(io, "Piecewise-defined dynamic with $(nbranches(D)) branches")
@@ -128,14 +97,13 @@ DynamicDefinition.nbranches(D::PwMap) = length(D.branches)
 DynamicDefinition.endpoints(D::PwMap) = [[br.X[1] for br in branches(D)]; branches(D)[end].X[2]]
 DynamicDefinition.branches(D::PwMap) = D.branches
 
-DynamicDefinition.orientation(D::PwMap, k) = D[k].increasing ? 1. : -1.
-
 DynamicDefinition.is_full_branch(D::PwMap) = D.full_branch
 
+"""
+Deprecated, but still used in C2Basis
+"""
 function DynamicDefinition.preim(D::PwMap, k, y, ϵ = 1e-15)
-	@assert 1 <= k <= nbranches(D)
-	domain = hull(D[k].X[1], D[k].X[2])
-	return preimage(y, D[k].f, D[k].fprime, domain, ϵ)
+	return preimage(y, D.branches[k];ϵ=ϵ, max_iter=100)
 end
 
 """
@@ -186,9 +154,8 @@ end
 Compute a rigorous bound for the expansivity of a branch
 """
 function branch_expansivity(br::MonotonicBranch, tol = 0.01)
-    g(x) = abs(1/br.fprime(x))
     I = hull(br.X[1], br.X[2])
-    val, listofboxes = maximise(g, I, tol=tol)
+    val, listofboxes = maximise(expansivity(br.f), I, tol=tol)
     @debug val, listofboxes
     return val
 end
@@ -198,7 +165,7 @@ end
 
 Compute a rigorous bound for the expansivity of a PwMap
 """
-function DynamicDefinition.expansivity(D::PwDynamicDefinition.PwMap, tol=1e-3)
+function DynamicDefinition.max_expansivity(D::PwDynamicDefinition.PwMap, tol=1e-3)
     #for br in branches(D)
     #    val = maximise(x -> abs(1/derivative(br.f, x)), hull(br.X[1], br.X[2]), tol=tol)[1]
 #        @info val
@@ -208,22 +175,13 @@ function DynamicDefinition.expansivity(D::PwDynamicDefinition.PwMap, tol=1e-3)
 end
 
 """
-    Return the distortion function of a branch, i.e., |f′′ / f′^2|
-"""
-function DynamicDefinition.distortion(br::MonotonicBranch)
-    g(x) = 1/br.fprime(x)
-    h(x) = abs(der(g)(x))
-    return h
-end
-
-"""
     bound_branch_distortion(br::MonotonicBranch; tol = 0.01)
 
 Compute a rigorous bound for the distortion of a branch
 on an interval I, defaults to the domain of the branch
 """
 function bound_branch_distortion(br::MonotonicBranch, I = hull(br.X[1], br.X[2]); tol = 0.01)
-    h = distortion(br)
+    h = x -> abs(distortion(br.f, x))
     val, listofboxes = maximise(h, I, tol=tol)
     @debug val, listofboxes
     return val
@@ -287,25 +245,18 @@ julia> D0 = mod1_dynamic(x->2*x+0.5*x*(1-x), full_branch = true)
 Piecewise-defined dynamic with 2 branches
 ```
 """
-mod1_dynamic(f::Function; ϵ = 0.0, max_iter =100, full_branch = false) = mod1_dynamic(f, 
-                                                                        x->derivative(f, x);
-                                                                        ϵ,
-                                                                        max_iter,
-                                                                        full_branch = full_branch)
-
-function mod1_dynamic(f::Function, fprime::Function; ϵ = 0.0, max_iter = 100, full_branch = false)
+function mod1_dynamic(f::Function; ϵ = 0.0, max_iter = 100, full_branch = false)
     X = (0..0, 1..1)
-    br = MonotonicBranch(f, fprime, X)
+    br = MonotonicBranch(f, X)
     @debug "Auxiliary branch" br
     
     # check monotonicity
     
-    @debug "Defined fprime at 0" fprime(0.0)
     try 
-        @assert minimise(x -> fprime(x) * (br.increasing ? 1 : -1), hull(Interval.(X)...))[1] > 0
+        @assert minimise(x -> derivative(f, x) * (br.increasing ? 1 : -1), hull(Interval.(X)...))[1] > 0
     catch exc
         if isa(exc, MethodError)
-            @warn "It probably is complaining that the result of fprime is not an interval"
+            @warn "It probably is complaining that the result of derivative(f) is not an interval"
             rethrow(exc)
         else
             rethrow(exc)
@@ -338,7 +289,7 @@ function mod1_dynamic(f::Function, fprime::Function; ϵ = 0.0, max_iter = 100, f
     # not needed, since the check is moved into the PwMap() constructor
     # full_branch_detected = full_branch || all(equal_up_to_order(X, y_endpoints[i,:]) for i in 1:n)
 
-    return PwMap(Ts, [fprime for k in integer_parts], ep, y_endpoints; full_branch = full_branch)
+    return PwMap(Ts, ep, y_endpoints; full_branch = full_branch)
 end
 
 """
@@ -356,19 +307,18 @@ function composedPwMap(D1::PwDynamicDefinition.PwMap, D2::PwDynamicDefinition.Pw
                 @debug left
                 @debug right
                 F = br1.f∘br2.f
-                Fprime = x->br1.fprime(br2.f(x))*br2.fprime(x) 
                 F_increasing = br1.increasing
                 if left!=∅ && right!=∅
                     y_endpoints = (F(left) ∩ y_range, F(right) ∩ y_range)
-                    push!(new_branches, MonotonicBranch(F, Fprime, (left, right), y_endpoints, F_increasing))
+                    push!(new_branches, MonotonicBranch(F, (left, right), y_endpoints, F_increasing))
                 elseif left == ∅ && right != ∅
                     left = br2.X[1]
                     y_endpoints = (F(left) ∩ y_range, F(right) ∩ y_range)
-                    push!(new_branches, MonotonicBranch(F, Fprime, (left, right), y_endpoints, F_increasing))
+                    push!(new_branches, MonotonicBranch(F, (left, right), y_endpoints, F_increasing))
                 elseif left !=∅ && right == ∅
                     right = br2.X[2]
                     y_endpoints = (F(left) ∩ y_range, F(right) ∩ y_range)
-                    push!(new_branches, MonotonicBranch(F, Fprime, (left, right), y_endpoints, F_increasing))
+                    push!(new_branches, MonotonicBranch(F, (left, right), y_endpoints, F_increasing))
                 end
             end
         else # br2.increasing == false
@@ -377,19 +327,18 @@ function composedPwMap(D1::PwDynamicDefinition.PwMap, D2::PwDynamicDefinition.Pw
                 left  = preimage(br1.X[2], br2, hull(br2.X[1], br2.X[2]); ϵ = 10^-13, max_iter = 100)
                 right  = preimage(br1.X[1], br2, hull(br2.X[1], br2.X[2]); ϵ = 10^-13, max_iter = 100)
                 F = br1.f∘br2.f
-                Fprime = x->br1.fprime(br2.f(x))*br2.fprime(x) 
                 F_increasing = !br1.increasing
                 if left!=∅ && right!=∅
                     y_endpoints = (F(left) ∩ y_range, F(right) ∩ y_range)
-                    push!(new_branches, MonotonicBranch(F, Fprime, (left, right), y_endpoints, F_increasing))
+                    push!(new_branches, MonotonicBranch(F, (left, right), y_endpoints, F_increasing))
                 elseif left == ∅ && right != ∅
                     left = br2.X[1]
                     y_endpoints = (F(left) ∩ y_range, F(right) ∩ y_range)
-                    push!(new_branches, MonotonicBranch(F, Fprime, (left, right), y_endpoints, F_increasing))
+                    push!(new_branches, MonotonicBranch(F, (left, right), y_endpoints, F_increasing))
                 elseif left !=∅ && right == ∅
                     right = br2.X[2]
                     y_endpoints = (F(left) ∩ y_range, F(right) ∩ y_range)
-                    push!(new_branches, MonotonicBranch(F, Fprime, (left, right), y_endpoints, F_increasing))
+                    push!(new_branches, MonotonicBranch(F, (left, right), y_endpoints, F_increasing))
                 end
             end
         end
@@ -446,8 +395,8 @@ function dfly_inf_der(::Type{TotalVariation}, ::Type{L1}, D::PwDynamicDefinition
             tol = rad/2^(i+1)
             left, right = leftrightsingularity[j]
             @debug "branch $j, left_singularity=$left, right_singularity=$right"
-            f = x->-1/br.fprime(x)
-            g = distortion(br)
+            f = expansivity(br.f)
+            g = distortion(br.f)
             left_endpoint = br.X[1]
             right_endpoint = br.X[2]
             if left

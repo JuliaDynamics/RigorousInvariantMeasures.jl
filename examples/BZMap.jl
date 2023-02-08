@@ -31,17 +31,13 @@ T_right(x) =BZC*(10*x*exp(-Interval(10)/3*x))^(19)+BZB
 #der_expr_T_right = expand_derivatives(D(expr_T_right))
 #der_T_right_func = Symbolics.build_function(der_expr_T_right, x, expression = Val(false))
 
-der_T_l_leq_1_8_func(x) = -exp(-x)*(6*BZA*(1-8*x)^(Interval(2)/3)+24*x-11)/(6*(1-8*x)^(Interval(2)/3))
-der_T_l_geq_1_8_func(x) = -exp(-x)*(6*BZA*(8*x-1)^(Interval(2)/3)+24*x-11)/(6*(8*x-1)^(Interval(2)/3))
-der_T_right_func(x) = (19*BZC*(10*x*exp(x*Interval(-10)/3))^18)*(10*exp(x*Interval(-10)/3)+10*x*exp(x*Interval(-10)/3)*(Interval(-10)/3))
+# der_T_l_leq_1_8_func(x) = -exp(-x)*(6*BZA*(1-8*x)^(Interval(2)/3)+24*x-11)/(6*(1-8*x)^(Interval(2)/3))
+# der_T_l_geq_1_8_func(x) = -exp(-x)*(6*BZA*(8*x-1)^(Interval(2)/3)+24*x-11)/(6*(8*x-1)^(Interval(2)/3))
+# der_T_right_func(x) = (19*BZC*(10*x*exp(x*Interval(-10)/3))^18)*(10*exp(x*Interval(-10)/3)+10*x*exp(x*Interval(-10)/3)*(Interval(-10)/3))
 
 BZmap() = PwMap([T_left_leq_1_8,
     T_left_geq_1_8,
     T_right],
-    [der_T_l_leq_1_8_func,
-    der_T_l_geq_1_8_func,
-    der_T_right_func
-    ],    
 	[Interval(0), Interval(1)/8, Interval(3)/10, Interval(1)],
     [T_left_leq_1_8(Interval(0)) T_left_leq_1_8(Interval(1)/8);
     T_left_geq_1_8(Interval(1)/8) T_left_geq_1_8(Interval(3)/10);

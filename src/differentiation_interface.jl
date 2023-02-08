@@ -1,5 +1,7 @@
 using TaylorSeries
 
+# TODO: explore if ForwardDiff(), DualNumbers() or other packages work better
+
 """
 
     value_and_derivative(f, x)
@@ -34,10 +36,45 @@ function value_derivative_and_second_derivative(f, x)
     return y[0], y[1], 2y[2]
 end
 
+function derivative(f, x)
+    y = f(Taylor1([x, one(x)]))
+    return y[1]
+end
+derivative(f) = x -> derivative(f, x)
+
+function second_derivative(f, x)
+    y = f(Taylor1([x, one(x), zero(x)]))
+    return 2y[2]
+end
+second_derivative(f) = x -> second_derivative(f, x)
+
+function derivative_and_second_derivative(f, x)
+    y = f(Taylor1([x, one(x), zero(x)]))
+    return y[1], 2y[2]
+end
+derivative_and_second_derivative(f) = x -> derivative_and_second_derivative(f, x)
+
+"""
+The expansivity of f is 1/f'.
+"""
+function expansivity(f, x)
+    return 1 / derivative(f, x)
+end
+expansivity(f) = x -> expansivity(f, x)
+
+"""
+The distortion of f is f'' / (f')^2.
+"""
+function distortion(f, x)
+    dy, ddy = derivative_and_second_derivative(f, x)
+    return ddy / dy^2
+end
+distortion(f) = x -> distortion(f, x)
+
 """
     f = @define_with_derivatives(ex1, ex2, ex3)
 
-Declares a new function f, and redefines `value_and_derivative` and `value_derivative_and_second_derivative`
+Declares a new function f, and redefines the various functions related to derivatives
 so that its derivatives are computed with the given expressions.
 
 ```jldoctest
@@ -64,9 +101,12 @@ macro define_with_derivatives(f, df, ddf)
         local g = $f
         RigorousInvariantMeasures.value_and_derivative(::typeof(g), x) = ($f(x), $df(x))
         RigorousInvariantMeasures.value_derivative_and_second_derivative(::typeof(g), x) = ($f(x), $df(x), $ddf(x))
+        RigorousInvariantMeasures.derivative(::typeof(g), x) = $df(x)
+        RigorousInvariantMeasures.second_derivative(::typeof(g), x) = $ddf(x)
+        RigorousInvariantMeasures.derivative_and_second_derivative(::typeof(g), x) = ($df(x), $ddf(x))
         g
     end
 end
 
-
-export value_and_derivative, value_derivative_and_second_derivative, @define_with_derivatives
+export value_and_derivative, value_derivative_and_second_derivative, derivative, 
+        derivative_and_second_derivative, second_derivative, distortion, expansivity, @define_with_derivatives
