@@ -17,10 +17,16 @@ import TaylorSeries
 der(f) = x-> f(TaylorSeries.Taylor1([x,1.],1))[1]
 
 """
-Type used to represent a "branch" of a dynamic. The branch is represented by a monotonic map `f` with domain `X=(a,b)` with a≤b (where typically a,b are intervals). 
-`Y=(f(a),f(b))` and `increasing` may be provided (for instance if we know that `Y=(0,1)`), otherwise they are computed automatically.
+Type used to represent a "branch" of a dynamic. The branch is represented by a map `f` with domain `X=(a,b)`. X[1] and X[2] are interval enclosures of a,b.
+
+The map must be monotonic on [a,b]. Note that this is not the same thing as being monotonic on hull(X[1], X[2]): 
+for instance, take the map x → (x-√2)^2 on [√2, 1]: the left endpoint X[1] will be prevfloat(√2)..nextfloat(√2), 
+but then the map is not monotonic on the whole hull(X[1], X[2]) because it also contains points that lie left of √2.
+This is a tricky case that must be dealt with.
+
+Enclosures `Y[1], Y[2]` for f(a), f(b) and `increasing` may be provided (for instance if we know that `Y=(0,1)`), otherwise they are computed automatically.
 """
-struct MonotonicBranch{T<:Function, U<:Function, S}
+struct MonotonicBranch{T<:Function, U<:Function, S<:Interval}
     f::T
     fprime::U
     X::Tuple{S, S}
@@ -48,6 +54,14 @@ function equal_up_to_order(X, Y)
 end
 
 DynamicDefinition.is_full_branch(b::MonotonicBranch{T,S}, X) where {T,S} = equal_up_to_order(b.Y, X)
+
+import Base.reverse
+"""
+    Base.reverse(br:MonotonicBranch)
+
+"Reverses" the x-axis of a branch: given f:[a,b] -> R, creates a branch with the function g:[-b,-a] -> R defined as g(x) = f(-x)
+"""
+Base.reverse(br::MonotonicBranch) = MonotonicBranch(x -> br.f(-x), x -> -br.fprime(-x), (-br.X[2], -br.X[1]), (br.Y[2], br.Y[1]), !br.increasing)
 
 """
 Dynamic based on a piecewise monotonic map.
@@ -331,6 +345,7 @@ end
     Create explicitly D1 ∘ D2 as a PwMap (list of MonotonicBranches)
 """
 function composedPwMap(D1::PwDynamicDefinition.PwMap, D2::PwDynamicDefinition.PwMap)
+    # TODO: this could be rewritten using preimages()
     new_branches =  MonotonicBranch[]
     for br2 in branches(D2)
         if br2.increasing

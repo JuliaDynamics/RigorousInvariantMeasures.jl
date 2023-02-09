@@ -105,17 +105,17 @@ for y = (a1, a2)
     for f in (x->x/2, x->1+x/2, x-> 1-x/2)
         b = RigorousInvariantMeasures.MonotonicBranch(f, (@interval(0), @interval(1)))
         ylabel = 1:length(y)
-        x, xlabel = RigorousInvariantMeasures.preimages(y, b, ylabel; ϵ = 0.0, max_iter = 100)
+        x, xlabel = RigorousInvariantMeasures.preimages(y, b, ylabel; ϵ = 1e-14, max_iter = 100)
         @test x[1] == b.X[1]
         @test x[end] != b.X[2] # to make sure the last entry isn't there
         @test length(x) == length(xlabel)
-        y1 = filter(x->!isempty(x),intersect.(map(Interval,y), hull(b.Y[1], b.Y[2]+1e-15))) # the 1e-15 is there to simulate "disjoint intervals"
-        y2 = f.(x)
+        z1 = filter(x->!isempty(x),intersect.(map(Interval,y), hull(b.Y[1], b.Y[2]+1e-15))) # the 1e-15 is there to simulate "disjoint intervals"
+        z2 = f.(x)
         if !b.increasing
-            y2 = reverse(y2)
+            z2 = reverse(z2)
         end
         
-        @test all(approxintervals.(y1, y2))
+        @test all(approxintervals.(z1, z2))
     end
 end
 

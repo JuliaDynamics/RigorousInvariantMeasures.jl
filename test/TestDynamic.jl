@@ -1,3 +1,5 @@
+using Test
+using IntervalArithmetic
 using RigorousInvariantMeasures: is_full_branch
 
 @testset "Dynamics" begin

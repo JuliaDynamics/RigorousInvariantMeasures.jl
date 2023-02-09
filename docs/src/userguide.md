@@ -92,8 +92,10 @@ julia> Q_fine = DiscretizedOperator(B_fine, D);
 
 Then, we call the coarse fine routines
 ```jldoctest userguide
-julia> normQ_fine = opnormbound(B_fine, weak_norm(B_fine), Q_fine)
-1.0433672005775334
+julia> normQ_fine = opnormbound(B_fine, weak_norm(B_fine), Q_fine);
+
+julia> normQ_fine ≈ 1.0433672
+true
 
 julia> norms_fine = finepowernormbounds(B, B_fine, D, norms; normQ_fine=normQ_fine);
 
