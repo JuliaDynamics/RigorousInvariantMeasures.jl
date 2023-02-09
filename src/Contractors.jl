@@ -47,9 +47,6 @@ function preimage_monotonic(y, f::Function, x::Interval, (y1, y2) = (f(Interval(
 	x_old::typeof(x) = ∅
 	for i in 1:max_iter
 
-		# x == x_old should almost never happen here, since the iterations of this loop are guaranteed
-		#  to chop off a part of the interval (when they work),
-		# but if the interval contains very few floating-point numbers then it is possible that, for instance, `x.lo == x.lo + 1/4*rad(x)`
 		if diam(x) < ϵ || isempty(x) || x == x_old
 			return x
 		end
@@ -106,23 +103,22 @@ function preimage_monotonic(y, f::Function, x::Interval, (y1, y2) = (f(Interval(
 
 		# this may still fail if y ≈ fm or if the function is computed in a very inaccurate way (relative to the size of `x`)
 		# in this case, we try chopping off smaller and smaller parts of `x` at both ends
-		# If we cannot even cut off 1/2^6th of the interval it's time to give up.
+		# If we cannot chop off even 1/2^6th of `x`, at the next outer loop iteration `x == x_old` and we will return.
 		for k = 2:6
 			c = x.lo + diam(x) / 2^k
 			if y ∉ hull(y1, f(Interval(c)))
 				x = Interval(c, x.hi)
-				continue
+				break
 			end
 			c = x.hi - diam(x) / 2^k
 			if y ∉ hull(f(Interval(c)), y2)
 				x = Interval(x.lo, c)
-				continue
+				break
 			end
 		end
-		return x
 	end
-	@info "Maximum iterates reached:" max_iter, x, f(x), diam(x)
-	@info "This should not happen normally, consider debugging Contractors.preimage_monotonic."
+	@warn "Maximum iterates reached:" max_iter, x, f(x), diam(x)
+	@warn "This should not happen normally, consider debugging Contractors.preimage_monotonic."
 	return x
 end
 
