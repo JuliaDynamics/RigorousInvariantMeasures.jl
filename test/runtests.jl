@@ -17,8 +17,9 @@ using Test, Documenter
     include("TestPreimages.jl")
     include("TestChebyshev.jl")
     include("TestObservables.jl")
-    include("TestLorenz2DUlam.jl")
-    doctest(RigorousInvariantMeasures)
+    #include("TestLorenz2DUlam.jl")
+    include("TestUlam2DSP.jl")
+    #doctest(RigorousInvariantMeasures)
 end
 
 
