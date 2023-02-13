@@ -45,13 +45,13 @@ PointSequence(v, skip=0, increasing=unique_increasing(v[begin], v[end])) = Point
 Type used to represent a "branch" of a dynamic. The branch is represented by a monotonic map `f` with domain `X=(a,b)` with a≤b (where typically a,b are intervals). 
 `Y=(f(a),f(b))` and `increasing` may be provided (for instance if we know that `Y=(0,1)`), otherwise they are computed automatically.
 """
-struct Branch{T,S}
+struct MonotonicBranch{T,S}
     f::T
     X::Tuple{S, S}
     Y::Tuple{S, S}
     increasing::Bool
 end
-Branch(f, X, Y=(f(Interval(X[1])), f(Interval(X[2]))), increasing=unique_increasing(Y[1], Y[2])) = Branch{typeof(f), typeof(X[1])}(f, X, Y, increasing)
+MonotonicBranch(f, X, Y=(f(Interval(X[1])), f(Interval(X[2]))), increasing=unique_increasing(Y[1], Y[2])) = MonotonicBranch{typeof(f), typeof(X[1])}(f, X, Y, increasing)
 
 """
 Construct preimages of a monotonic array y under a monotonic function f in a domain X.

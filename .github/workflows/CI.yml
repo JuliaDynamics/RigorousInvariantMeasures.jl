@@ -18,8 +18,9 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - '1.6'
-          - '1.7'
+          #- '1.7' # Minimum compatible version
+          - '1'   # Automatic reference to latest stable
+          - 'nightly' # Nightly release
         os:
           - ubuntu-latest
         arch:

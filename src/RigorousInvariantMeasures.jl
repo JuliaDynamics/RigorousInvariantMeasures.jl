@@ -10,6 +10,8 @@ struct TotalVariation <: NormKind end
 struct ℓ1 <: NormKind end
 struct ℓinf <: NormKind end
 
+include("differentiation_interface.jl")
+
 # the module Contractors does not depend on any submodule
 include("Contractors.jl")
 using .Contractors
@@ -61,7 +63,7 @@ export PwMap, Basis, assemble, preim, Hat, Ulam,
 	distance_from_invariant,
 	mod1_dynamic, is_refinement
 
-import IntervalArithmetic: Interval
+import IntervalArithmetic: Interval, @interval, @biginterval, midpoint_radius
 using IntervalArithmetic
 export Interval
 

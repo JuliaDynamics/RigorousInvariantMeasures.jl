@@ -298,7 +298,7 @@ struct HatDual <: Dual
     x′::Vector{Interval}
 end
 
-Dual(B::Hat, D, ϵ) = HatDual(preimages_and_derivatives(B.p, D, 1:length(B.p)-1, ϵ)...)
+Dual(B::Hat, D; ϵ, max_iter) = HatDual(preimages_and_derivatives(B.p, D, 1:length(B.p)-1; ϵ, max_iter)...)
 Base.length(dual::HatDual) = length(dual.x)
 Base.eltype(dual::HatDual) = Tuple{eltype(dual.xlabel), Tuple{eltype(dual.x), eltype(dual.x′)}}
 function Base.iterate(dual::HatDual, state=1)

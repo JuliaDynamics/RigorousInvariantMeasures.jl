@@ -27,6 +27,9 @@ T = ContractingLorenz1D(α = α , s = s)
 D = ψ∘T∘ϕ
 
 
+This map is represented as a MonotonicBranch object, where we pass the function, the value of the ``y``-derivative
+(which is a constant depending on ``x``)
+"""
 # to simplify implementation, we use the Julia Polyhedra library
 import Polyhedra as PH
 import GLPK

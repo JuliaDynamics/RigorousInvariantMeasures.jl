@@ -35,7 +35,7 @@ Returns the i-th element of the Ulam basis as a function.
 julia> using RigorousInvariantMeasures
 
 julia> B = Ulam(16)
-Ulam{LinRange{Float64, Int64}}(range(0.0, stop=1.0, length=17))
+Ulam{LinRange{Float64, Int64}}(LinRange{Float64}(0.0, 1.0, 17))
 
 julia> B[1](1/32)
 1
@@ -50,7 +50,7 @@ function Base.getindex(B::Ulam, i::Int)
 end
 
 function BasisDefinition.is_dual_element_empty(::Ulam, d)
-	return isempty(d[1])
+	return isempty(d[1]) || isempty(d[2])
 end
 
 #Base.length(S::DualComposedWithDynamic{<:Ulam, <:Dynamic}) = length(S.basis) * nbranches(S.dynamic)
@@ -271,7 +271,7 @@ struct UlamDual <: Dual
     xlabel::Vector{Int}
     lastpoint::Interval
 end
-Dual(B::Ulam, D, ϵ) = UlamDual(preimages(B.p, D, 1:length(B.p)-1, ϵ)..., domain(D)[end])
+Dual(B::Ulam, D; ϵ, max_iter) = UlamDual(preimages(B.p, D, 1:length(B.p)-1; ϵ, max_iter)..., domain(D)[end])
 
 Base.length(dual::UlamDual) = length(dual.x)
 Base.eltype(dual::UlamDual) = Tuple{eltype(dual.xlabel), Tuple{eltype(dual.x), eltype(dual.x)}}

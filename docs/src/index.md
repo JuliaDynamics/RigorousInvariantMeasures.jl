@@ -11,11 +11,13 @@ A [Julia](http://julialang.org) package which implements a implements a flexible
 
 If you find useful this package, please cite the paper:
 
+Galatolo S., Monge M., Nisoli I., Poloni F.
+A general framework for the rigorous computation of invariant densities and the coarse-fine strategy
+[arXiv:2212.05017]
+
 Galatolo S., Nisoli I., An elementary approach to rigorous approximation of invariant
 measures SIAM J. Appl Dyn Sys.13 pp. 958-985 (2014)
 
-A preprint with a full explanation of the coarse fine scheme is in preparation, by the authors
-Galatolo S., Monge M., Nisoli I., Poloni F.
 
 ### License
 

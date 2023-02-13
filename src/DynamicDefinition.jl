@@ -13,6 +13,10 @@ domain(S::Dynamic) = @error "Not implemented"
 nbranches(S::Dynamic) = @error "Not implemented"
 branch(S::Dynamic, k) = @error "Not implemented"
 branches(S::Dynamic, k) = @error "Not implemented"
+
+"""
+Return a non-interval version of the map as a function. This can be used, for instance, for plot(plottable(D)).
+"""
 plottable(S::Dynamic) = @error "Not implemented"
 
 """
@@ -47,14 +51,14 @@ derivative(n, f, x) = isempty(x) ?  ∅ : f(TaylorSeries.Taylor1([x, 1], n))[n] 
 distortion of a function (or a dynamic), i.e., |f′′ / f′^2|
 """
 function distortion(f, x)
-	#@error "Not implemented"
-	if isempty(x)
-	 	return ∅
-	end
-	series = f(TaylorSeries.Taylor1([x, 1], 2))
-	f′ = series[1]
-	f′′ = 2*series[2]
-	return abs(f′′ / f′^2)
+	@error "Not implemented"
+	#if isempty(x)
+	# 	return ∅
+	#end
+	#series = f(TaylorSeries.Taylor1([x, 1], 2))
+	#f′ = series[1]
+	#f′′ = 2*series[2]
+	#return abs(f′′ / f′^2)
 end
 
 """

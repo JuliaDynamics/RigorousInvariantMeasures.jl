@@ -5,8 +5,8 @@ Compute preimages of monotonic sequences
 using IntervalArithmetic
 using .Contractors
 
-## Moved the definition of Branch in PwDynamicDefinition, with the objective
-## of transforming PwMap into an Array of Branch
+## Moved the definition of MonotonicBranch in PwDynamicDefinition, with the objective
+## of transforming PwMap into an Array of MonotonicBranch
 
 
 """
@@ -40,7 +40,39 @@ function last_overlapping(y, a)
 end
 
 """
-    preimages(y, br::Branch, ylabel = 1:length(y), ϵ = 0.0)
+Utility function that estimates the range of a monotone function
+"""
+range_estimate_monotone(f, X) = hull(f(Interval(X.lo)), f(Interval(X.hi)))
+
+"""
+Compute the preimage f⁻¹(y), knowing that it lies inside `search_interval`.
+"""
+function preimage(y, br::MonotonicBranch, search_interval; ϵ, max_iter)
+    # Since the branch is monotonic, we can compute the preimages of y.lo and y.hi separately
+    # This should give slightly thinner intervals.
+
+    Y = intersect(range_estimate_monotone(br.f, search_interval), Interval(y))
+
+    if isempty(Y)
+        return Interval(∅)
+    end
+
+    xlo = preimage_monotonic(Y.lo, br.f, br.fprime, search_interval, br.Y; ϵ, max_iter)
+
+    if isthin(Y)
+        @debug "preimage of $y on $search_interval: $xlo"
+        return xlo
+    end
+
+    xhi = preimage_monotonic(Y.hi, br.f, br.fprime, search_interval, br.Y; ϵ, max_iter)
+
+    @debug "preimage of $y on $search_interval: $(hull(xlo, xhi))"
+    return hull(xlo, xhi) ∩ search_interval
+end
+
+
+"""
+    preimages(y, br::MonotonicBranch, ylabel = 1:length(y); ϵ, max_iter)
 
 Construct preimages of an increasing array y under a monotonic branch defined on X = (a, b), propagating additional labels `ylabel`
 
@@ -76,18 +108,23 @@ julia> using RigorousInvariantMeasures
 julia> D = mod1_dynamic(x->2x)
 Piecewise-defined dynamic with 2 branches
 
-julia> RigorousInvariantMeasures.preimages(0:0.1:1, D.branches[1])
+julia> RigorousInvariantMeasures.preimages(0:0.1:1, D.branches[1]; ϵ = 10^(-15), max_iter = 100)
 (Interval{Float64}[[0, 0], [0.05, 0.0500001], [0.1, 0.100001], [0.149999, 0.15], [0.2, 0.200001], [0.25, 0.25], [0.299999, 0.3], [0.349999, 0.35], [0.4, 0.400001], [0.45, 0.450001]], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
 ```
 
 """
-function preimages(y, br::Branch, ylabel = 1:length(y), ϵ = 0.0)
+function preimages(y, br::MonotonicBranch, ylabel = 1:length(y); ϵ, max_iter)
+    # TODO: there is some efficiency to be gained if we keep track of the value of f on each computed point
+    # so that we can pass pairs (x,f(x)) to the underlying preimage() functions. Currently it is recomputed many times,
+    # for instance in range_estimate_monotone
+
+    # TODO: consider separate types (maybe via a parametric type) for increasing and decreasing branches.
 
     if br.increasing
         i = first_overlapping(y, br.Y[1])  # smallest possible i such that a = br.Y[1] is in the semi-open interval [y[i], y[i+1]).
         j = last_overlapping(y, br.Y[2]) # largest possible j such that b-ε, where b = br.Y[2] is in the semi-open interval [y[j], y[j+1]).
         n = j - i + 1
-        x = fill((-∞..∞)::typeof(Interval(br.X[1])), n)
+        x = fill((-∞..∞)::typeof(br.X[1]), n)
         xlabel = collect(ylabel[i:j]) # we collect to avoid potential type instability, since this may be an UnitRange while in the other branch we could have a StepRange
         x[1] = br.X[1]
         if n == 1
@@ -103,32 +140,23 @@ function preimages(y, br::Branch, ylabel = 1:length(y), ϵ = 0.0)
         while stride >= 1
             # fill in v[i] using x[i-stride].lo and x[i+stride].hi as range for the preimage search
             for k = 1+stride:2*stride:n
-                search_range = Interval(x[k-stride].lo, (k+stride <= n ? x[k+stride] : Interval(br.X[2])).hi)
-                x[k] = preimage(y[i-1+k], br.f, search_range, ϵ)
+                search_range = Interval(x[k-stride].lo, (k+stride <= n ? x[k+stride] : br.X[2]).hi)
+                x[k] = preimage(y[i-1+k], br, search_range; ϵ, max_iter)
             end
             stride = stride ÷ 2
         end
-    else # branch decreasing
-        i = last_overlapping(y, br.Y[1]) # largest possible j such that b-ε, where b = br.Y[1]  is in the semi-open interval [y[j], y[j+1]).
-        j = first_overlapping(y, br.Y[2]) # smallest possible i such that a = br.Y[2] is in the semi-open interval [y[i], y[i+1]).
-        n = i - j + 1
-        x = fill((-∞..∞)::typeof(Interval(br.X[1])), n)
-        xlabel = collect(ylabel[i:-1:j])
-        x[1] = br.X[1]
-        if n == 1
-            return (x, xlabel)
-        end
-        stride = prevpow(2, n-1)
-        while stride >= 1
-            # fill in v[i] using x[i-stride].lo and x[i+stride].hi as range for the preimage search
-            for k = 1+stride:2*stride:n
-                search_range = Interval(x[k-stride].lo, (k+stride <= n ? x[k+stride] : Interval(br.X[2])).hi)
-                x[k] = preimage(y[i+2-k], br.f, search_range, ϵ)
-            end
-            stride = stride ÷ 2
-        end
+        return x, xlabel
+    else # decreasing branch
+        # there is some asymmetry in how the Y axis is treated, since we assume that the function never goes below y[1] but can go above y[end].
+        # hence to treat this case it is better to "reverse" the X axis: we switch to [br.X[1], x[1], ... x[d]], with an implied br.X[2] at the end 
+        # as the last endpoint, to [-br.X[2], -x[d], -x[d-1], ..., -x[1]], with an implied -br.X[1] at the end.
+
+        revx, revxlabel = preimages(y, reverse(br), ylabel; ϵ, max_iter)
+        x = .-reverse(revx[2:end])
+        insert!(x, 1, br.X[1])
+        xlabel = collect(reverse(revxlabel))
+        return x, xlabel
     end
-    return (x, xlabel)
 end
 
 """
@@ -136,15 +164,15 @@ end
 
     Construct preimages of an increasing array y under a dynamic, propagating additional labels `ylabel`
 """
-function preimages(y, D::Dynamic, ylabel = 1:length(y), ϵ = 0.0)
-    results = @showprogress 1 "Computing preimages..." [preimages(y, b, ylabel, ϵ) for b in branches(D)]
+function preimages(y, D::Dynamic, ylabel = 1:length(y); ϵ, max_iter)
+    results = @showprogress 1 "Computing preimages..." [preimages(y, b, ylabel; ϵ, max_iter) for b in branches(D)]
     x = vcat((result[1] for result in results)...)
     xlabel = vcat((result[2] for result in results)...)
     return x, xlabel
 end
 
 """
-    preimages_and_derivatives(y, br::Branch, ylabel = 1:length(y), ϵ = 0.0)
+    preimages_and_derivatives(y, br::MonotonicBranch, ylabel = 1:length(y), ϵ = 0.0)
 
 Compute preimages of D *and* the derivatives f'(x) in each point.
 
@@ -155,15 +183,15 @@ This is not restrictive because we'll need it only for the Hat assembler (at the
 
 We combine them in a single function because there are avenues to optimize by recycling some computations (not completely exploited for now)
 """
-function preimages_and_derivatives(y, br::Branch, ylabel = 1:length(y), ϵ = 0.0)
-    x, xlabel = preimages(y, br, ylabel, ϵ)
+function preimages_and_derivatives(y, br::MonotonicBranch, ylabel = 1:length(y); ϵ, max_iter)
+    x, xlabel = preimages(y, br, ylabel; ϵ, max_iter)
     f′ = Contractors.derivative(br.f)
     x′ = f′.(x)
     return x, xlabel, x′
 end
-function preimages_and_derivatives(y, D::Dynamic, ylabel = 1:length(y), ϵ = 0.0)
+function preimages_and_derivatives(y, D::Dynamic, ylabel = 1:length(y); ϵ, max_iter)
     @assert is_full_branch(D)
-    results = @showprogress 1 "Computing preimages and derivatives..." [preimages_and_derivatives(y, b, ylabel, ϵ) for b in branches(D)]
+    results = @showprogress 1 "Computing preimages and derivatives..." [preimages_and_derivatives(y, b, ylabel; ϵ, max_iter) for b in branches(D)]
     x = vcat((result[1] for result in results)...)
     xlabel = vcat((result[2] for result in results)...)
     x′ = vcat((result[3] for result in results)...)
@@ -195,16 +223,16 @@ Utility function to return the domain of a dynamic
 """
 DynamicDefinition.domain(D::ComposedDynamic) = DynamicDefinition.domain(D.dyns[end])
 
-function preimages(z, Ds::ComposedDynamic, zlabel = 1:length(z), ϵ = 0.0)
+function preimages(z, Ds::ComposedDynamic, zlabel = 1:length(z); ϵ, max_iter)
     for d in Ds.dyns
-        z, zlabel = preimages(z, d, zlabel, ϵ)
+        z, zlabel = preimages(z, d, zlabel; ϵ, max_iter)
     end
     return z, zlabel
 end
-function preimages_and_derivatives(z, Ds::ComposedDynamic, zlabel = 1:length(z), ϵ = 0.0)   
+function preimages_and_derivatives(z, Ds::ComposedDynamic, zlabel = 1:length(z); ϵ, max_iter)   
     derivatives = fill(1, length(z))
     for d in Ds.dyns
-        z, zindex, z′ = preimages_and_derivatives(z, d, 1:length(z), ϵ)
+        z, zindex, z′ = preimages_and_derivatives(z, d, 1:length(z); ϵ, max_iter)
         zlabel = zlabel[zindex]
         derivatives = derivatives[zindex] .* z′ 
     end
@@ -221,7 +249,7 @@ end
 function DynamicDefinition.endpoints(D::ComposedDynamic)
     v = endpoints(D.dyns[1])
     auxDyn = D.dyns[2]
-    x, xlabel = preimages(v, auxDyn)
+    x, xlabel = preimages(v, auxDyn; ϵ = 10^-14, max_iter = 100)
     x = [x; domain(auxDyn)[2]]
     return sort!(x)
 end

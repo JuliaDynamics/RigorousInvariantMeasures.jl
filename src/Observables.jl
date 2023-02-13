@@ -38,7 +38,7 @@ function adaptive_integration(f, I::Interval; tol = 2^-10, steps = 8, degree = 6
         else
             I₁, I₂ = bisect(I)
             val₁ = adaptive_integration(f, I₁; tol = tol/2, steps = steps, degree = degree+2)
-            val₂ = adaptive_integration(f, I₁; tol = tol/2, steps = steps, degree = degree+2)
+            val₂ = adaptive_integration(f, I₂; tol = tol/2, steps = steps, degree = degree+2)
             int_value +=val₁+val₂
         end
     end
@@ -67,10 +67,10 @@ Example
 julia> using RigorousInvariantMeasures;
 
 julia> B = Ulam(4)
-Ulam{LinRange{Float64, Int64}}(range(0.0, stop=1.0, length=5))
+Ulam{LinRange{Float64, Int64}}(LinRange{Float64}(0.0, 1.0, 5))
 
 julia> Observable(B, x->x)
-Observable(Ulam{LinRange{Float64, Int64}}(range(0.0, stop=1.0, length=5)), Interval{Float64}[[0.125, 0.125], [0.375, 0.375], [0.625, 0.625], [0.875, 0.875]], [0.999734, 1])
+Observable(Ulam{LinRange{Float64, Int64}}(LinRange{Float64}(0.0, 1.0, 5)), Interval{Float64}[[0.125, 0.125], [0.375, 0.375], [0.625, 0.625], [0.875, 0.875]], [0.999734, 1])
 ```
 """
 function Observable(B::Ulam, ϕ::Function; tol = 2^-10)

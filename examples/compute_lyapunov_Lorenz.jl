@@ -3,8 +3,14 @@ Pkg.activate("../")
 
 using RigorousInvariantMeasures, IntervalArithmetic
 
+#LorenzMap(θ, α) = PwMap([x->θ*(0.5-x)^α, x->1-θ*(x-0.5)^α],
+#                    [@interval(0), @interval(0.5), @interval(1)]; infinite_derivative=true)
+
 LorenzMap(θ, α) = PwMap([x->θ*(0.5-x)^α, x->1-θ*(x-0.5)^α],
-                    [@interval(0), @interval(0.5), @interval(1)]; infinite_derivative=true)
+                    [x->-1*θ*α*(0.5-x)^(α-1), x->-θ*α*(x-0.5)^(α-1)],
+                    [@interval(0), @interval(0.5), @interval(1)],
+                    [θ*(Interval(0.5))^α Interval(0.0);
+                    Interval(1.0)  1-θ*(Interval(0.5))^α]; infinite_derivative=true)
 
 θ = 109/64
 α = 51/64
@@ -22,7 +28,7 @@ function discretizationlogderLorenz(B::Ulam, θ, α)
 end
 
 size_coarse = 2^15
-size_fine = 2^25
+size_fine = 2^20
 
 @info "Size coarse: $(size_coarse) Size fine: $(size_fine)"
 
@@ -34,15 +40,16 @@ file = jldopen("output_Lorenz_$(size_coarse)_$(size_fine).jld", "w")
 @info "Computing Lorenz"
 
 B = Ulam(size_coarse)
-Q = DiscretizedOperator(B, D)
+Q = DiscretizedOperator(B, D; ϵ = 10^(-14), max_iter = 100)
 
 dfly_coefficients = dfly(strong_norm(B), aux_norm(B), D)
 @info dfly_coefficients
 
-norms = powernormbounds(B, D, Q=Q, m=20)
+norms = powernormbounds(B, D, Q=Q, m=40)
+@info norms
 
 B_fine = Ulam(size_fine)
-Q_fine = DiscretizedOperator(B_fine, D)
+Q_fine = DiscretizedOperator(B_fine, D; ϵ = 10^(-14), max_iter = 100)
 
 normQ_fine = opnormbound(B_fine, weak_norm(B_fine), Q_fine)
 norms2 = refine_norms_of_powers(norms,400)

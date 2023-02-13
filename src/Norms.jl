@@ -90,7 +90,7 @@ function BasisDefinition.opnormbound(::Type{L2}, v::Vector{T}) where {T<:Complex
     return convert(Tnorm, sqrt_round(nrm, RoundUp))
 end
 
-function BasisDefinition.opnormbound(::Type{L1}, A::SparseMatrixCSC) where {T}
+function BasisDefinition.opnormbound(::Type{L1}, A::SparseMatrixCSC)
     # partly taken from JuliaLang's Sparsearray/src/linalg.jl
     m, n = size(A)
     Tnorm = typeof(abs_or_mag(float(real(zero(eltype(A))))))
@@ -108,7 +108,7 @@ function BasisDefinition.opnormbound(::Type{L1}, A::SparseMatrixCSC) where {T}
     return convert(Tnorm, nA)
 end
 
-function BasisDefinition.opnormbound(::Type{Linf}, A::SparseMatrixCSC) where {T}
+function BasisDefinition.opnormbound(::Type{Linf}, A::SparseMatrixCSC)
     # partly taken from JuliaLang's Sparsearray/src/linalg.jl
     m, n = size(A)
     Tnorm = typeof(abs_or_mag(float(real(zero(eltype(A))))))
