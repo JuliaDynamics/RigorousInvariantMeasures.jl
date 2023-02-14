@@ -3,7 +3,7 @@ defines generic Dynamic type
 """
 
 module DynamicDefinition
-export Dynamic, MarkovDynamic, preim, branches, nbranches, plottable, is_full_branch, domain, endpoints, branch, max_distortion, max_expansivity
+export Dynamic, MarkovDynamic, preim, branches, nbranches, plottable, is_full_branch, domain, endpoints, branch, max_distortion, max_inverse_derivative
 
 abstract type Dynamic end
 abstract type MarkovDynamic <: Dynamic end
@@ -38,7 +38,7 @@ endpoints(S::Dynamic) = @error "Not implemented"
 """
 Maximum of |1/T'|
 """
-function max_expansivity(D::Dynamic, tol=1e-3)
+function max_inverse_derivative(D::Dynamic, tol=1e-3)
 	@error "Not implemented"
 	# v = endpoints(D)
 	# # due to the fact that D(x::Taylor1 ) is defined, this calls all the right methods 

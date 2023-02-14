@@ -1,6 +1,10 @@
 using TaylorSeries
 
-# TODO: explore if ForwardDiff(), DualNumbers() or other packages work better
+# TODO: explore if ForwardDiff(), DualNumbers() or other packages work better than TaylorSeries
+
+export value_and_derivative, value_derivative_and_second_derivative, derivative, 
+        derivative_and_second_derivative, second_derivative, distortion, inverse_derivative, @define_with_derivatives
+
 
 """
 
@@ -55,12 +59,12 @@ end
 derivative_and_second_derivative(f) = x -> derivative_and_second_derivative(f, x)
 
 """
-The expansivity of f is 1/f'.
+The inverse_derivative of f is 1/f'.
 """
-function expansivity(f, x)
+function inverse_derivative(f, x)
     return 1 / derivative(f, x)
 end
-expansivity(f) = x -> expansivity(f, x)
+inverse_derivative(f) = x -> inverse_derivative(f, x)
 
 """
 The distortion of f is f'' / (f')^2.
@@ -108,5 +112,3 @@ macro define_with_derivatives(f, df, ddf)
     end
 end
 
-export value_and_derivative, value_derivative_and_second_derivative, derivative, 
-        derivative_and_second_derivative, second_derivative, distortion, expansivity, @define_with_derivatives

@@ -6,11 +6,11 @@ module PwDynamicDefinition
 
 using ..DynamicDefinition
 using ..Contractors
-using ..RigorousInvariantMeasures: derivative, distortion, expansivity
+using ..RigorousInvariantMeasures: derivative, distortion, inverse_derivative
 using TaylorSeries: Taylor1
 using IntervalArithmetic, IntervalOptimisation
 
-export PwMap, preim, nbranches, plottable, branches, MonotonicBranch, mod1_dynamic, dfly_inf_der, composedPwMap, equal_up_to_order, distortion, expansivity
+export PwMap, preim, nbranches, plottable, branches, MonotonicBranch, mod1_dynamic, dfly_inf_der, composedPwMap, equal_up_to_order, distortion, inverse_derivative
 
 """
 Type used to represent a "branch" of a dynamic. The branch is represented by a map `f` with domain `X=(a,b)`. X[1] and X[2] are interval enclosures of a,b.
@@ -149,29 +149,29 @@ function (D::PwMap)(x::Taylor1)
 end
 
 """
-    branch_expansivity(br::MonotonicBranch; tol = 0.01)
+    branch_inverse_derivative(br::MonotonicBranch; tol = 0.01)
 
-Compute a rigorous bound for the expansivity of a branch
+Compute a rigorous bound for the inverse_derivative of a branch
 """
-function branch_expansivity(br::MonotonicBranch, tol = 0.01)
+function branch_inverse_derivative(br::MonotonicBranch, tol = 0.01)
     I = hull(br.X[1], br.X[2])
-    val, listofboxes = maximise(expansivity(br.f), I, tol=tol)
+    val, listofboxes = maximise(inverse_derivative(br.f), I, tol=tol)
     @debug val, listofboxes
     return val
 end
 
 """
-    expansivity(D::PwMap; tol=1e-3)
+    inverse_derivative(D::PwMap; tol=1e-3)
 
-Compute a rigorous bound for the expansivity of a PwMap
+Compute a rigorous bound for the inverse_derivative of a PwMap
 """
-function DynamicDefinition.max_expansivity(D::PwDynamicDefinition.PwMap, tol=1e-3)
+function DynamicDefinition.max_inverse_derivative(D::PwDynamicDefinition.PwMap, tol=1e-3)
     #for br in branches(D)
     #    val = maximise(x -> abs(1/derivative(br.f, x)), hull(br.X[1], br.X[2]), tol=tol)[1]
 #        @info val
     #    max_exp = max(val, max_exp)
     #end
-    return maximum([branch_expansivity(br, tol) for br in D.branches])
+    return maximum([branch_inverse_derivative(br, tol) for br in D.branches])
 end
 
 """
@@ -395,7 +395,7 @@ function dfly_inf_der(::Type{TotalVariation}, ::Type{L1}, D::PwDynamicDefinition
             tol = rad/2^(i+1)
             left, right = leftrightsingularity[j]
             @debug "branch $j, left_singularity=$left, right_singularity=$right"
-            f = expansivity(br.f)
+            f = inverse_derivative(br.f)
             g = distortion(br.f)
             left_endpoint = br.X[1]
             right_endpoint = br.X[2]

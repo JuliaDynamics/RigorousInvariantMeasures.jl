@@ -116,7 +116,7 @@ D = mod1_dynamic(x->2*x)
 @test 0.5 ∈ D.branches[1].X[2]
 @test 1 ∈ D.branches[1].Y[2]
 
-@test 0.5 ∈ max_expansivity(D)
+@test 0.5 ∈ max_inverse_derivative(D)
 @test 0 <= max_distortion(D)
 
 
