@@ -242,11 +242,6 @@ function Base.iterate(S::DualComposedWithDynamic{T, ApproxInducedLSV}, state = (
 	end
 end
 
-function DynamicDefinition.derivative(D::ApproxInducedLSV, x)
-	@error "Not implemented"
-end
-
-
 function iterate_LSV(x, i, α)
 	@assert i>0
 	x = 2*x-1

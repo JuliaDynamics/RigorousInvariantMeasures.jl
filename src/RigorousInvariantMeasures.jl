@@ -18,7 +18,7 @@ using .Contractors
 
 include("DynamicDefinition.jl")
 using .DynamicDefinition
-export Dynamic, derivative, distortion, endpoints, nbranches, branch, expansivity, max_distortion
+export Dynamic, endpoints, nbranches, branch, max_inverse_derivative, max_distortion
 
 include("BasisDefinition.jl")
 using .BasisDefinition
