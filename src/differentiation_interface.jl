@@ -3,7 +3,7 @@ using TaylorSeries
 # TODO: explore if ForwardDiff(), DualNumbers() or other packages work better than TaylorSeries
 
 export value_and_derivative, value_derivative_and_second_derivative, derivative, 
-        derivative_and_second_derivative, second_derivative, distortion, inverse_derivative, @define_with_derivatives
+        derivative_and_second_derivative, second_derivative, distortion, inverse_derivative, @define_with_derivatives, check_derivatives
 
 
 """
@@ -22,6 +22,10 @@ value_and_derivative(f::typeof(f), x) = (x^2, 2x)
 ```
 
 See @define_with_derivatives to define derivatives with three separate expressions.
+
+Remark: when specializing derivatives by hand, always specialize the two-argoment functions 
+(e.g., `value_and_derivative(f, x)`) rather than the one-parameter ones  (e.g., `value_and_derivative(f)`),
+since the latter are defined generically in terms of the former.
 """
 function value_and_derivative(f, x)
     y = f(Taylor1([x, one(x)]))
@@ -82,7 +86,7 @@ Declares a new function f, and redefines the various functions related to deriva
 so that its derivatives are computed with the given expressions.
 
 ```jldoctest
-julia> f = @define_with_derivatives x->x^2 x->2x x->1;
+julia> f = @define_with_derivatives x->x^2 x->2x x->2;
 
 julia> value_and_derivative(f, 45)
 (2025, 90)
@@ -99,6 +103,10 @@ julia> value_derivative_and_second_derivative(g, -23.5)
 This is provided for convenience, but note that in many cases one can find 
 common subexpressions in a function and its derivatives; hence
 it is more efficient to define the two functions separately.
+
+If you define derivatives in this way, it is recommended to run `check_derivatives` to ensure
+that you did not make any mistakes (e.g., forgetting a factor 2).
+We do not run it automatically because that would require knowing a valid `x` in the domain of `f`.
 """
 macro define_with_derivatives(f, df, ddf)
     return quote
@@ -112,3 +120,38 @@ macro define_with_derivatives(f, df, ddf)
     end
 end
 
+
+using Random
+"""
+    check_derivatives(f, x=rand())
+
+Checks (using assertions) that the derivatives of f agree (up to the square root of machine precision) 
+with those computed by TaylorSeries.
+
+This is a useful sanity check if you redefine derivatives.
+    
+The derivative are checked in a point `x` (default: rand()), which should be in the domain of `f`.
+
+```jldoctest
+julia> f = @define_with_derivatives x->x^2 x->2x x->2;
+
+julia> check_derivatives(f, 0.2)
+
+julia> g = @define_with_derivatives x->x^2 x->2x x->3;
+
+julia> check_derivatives(g, 0.2)
+ERROR: AssertionError: all(value_derivative_and_second_derivative(f, x) .≈ (fx, dfx, ddfx))
+```
+"""
+function check_derivatives(f, x=rand())
+    y = f(Taylor1([x, one(x), zero(x)]))
+    fx, dfx, ddfx = y[0], y[1], 2y[2]
+
+    @assert all(value_and_derivative(f, x) .≈ (fx, dfx))
+    @assert all(value_derivative_and_second_derivative(f, x) .≈ (fx, dfx, ddfx))
+    @assert derivative(f, x) ≈ dfx
+    @assert second_derivative(f, x) ≈ ddfx
+    @assert all(derivative_and_second_derivative(f, x) .≈ (dfx, ddfx))
+    @assert inverse_derivative(f, x) ≈ 1/dfx 
+    @assert distortion(f, x) ≈ ddfx / dfx^2
+end
