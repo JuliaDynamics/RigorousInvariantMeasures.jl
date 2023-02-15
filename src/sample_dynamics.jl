@@ -1,15 +1,15 @@
-using JLD2
-
 export BZ, Lorenz
 
 function BZ()
-    BZcoeff = load("./examples/bzmapcoeff.jld2")
-    BZA::Interval{Float64} = Interval{Float64}(BZcoeff["a"])
-    BZB::Interval{Float64} = Interval{Float64}(BZcoeff["b"])
-    BZC::Interval{Float64} = Interval{Float64}(BZcoeff["c"]) 
+    A_big = Interval{BigFloat}(BigFloat("0.5060735690368223513195993710530479569801417368282037493809901142182256388277772"))
+    BZA = Interval{Float64}(A_big)
+    B_big = Interval{BigFloat}(BigFloat("0.02328852830307032296813220750095076307514120085284790788241725176646123060202265"), BigFloat("0.02328852830307032296813220750095076307514120085284790788241849636951680283042265"))
+    BZB = Interval{Float64}(B_big)
+    C_big = Interval{BigFloat}(BigFloat("0.121205692738975111744666848150620569782497212127938371936404761693002104361654"))
+    BZC = Interval{Float64}(C_big)
 
-    T_left_leq_1_8(x) = (BZA - (Interval(1)/8-x)^(Interval(1)/3))*exp(-x) + BZB
-    T_left_geq_1_8(x) = (BZA + (x-Interval(1)/8)^(Interval(1)/3))*exp(-x) + BZB
+    T_left_leq_1_8(x) = (BZA - (Interval(1)/8-x)^(1//3))*exp(-x) + BZB
+    T_left_geq_1_8(x) = (BZA + (x-Interval(1)/8)^(1//3))*exp(-x) + BZB
     T_right(x) =BZC*(10x*exp(-Interval(10)/3*x))^(19)+BZB
 
     return PwMap([T_left_leq_1_8,
