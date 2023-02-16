@@ -97,4 +97,6 @@ export L2, Fourier1D, GaussianNoise
 
 include("Lorenz2DUlam.jl")
 
+include("sample_dynamics.jl")
+
 end

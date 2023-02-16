@@ -200,12 +200,7 @@ for i in 1:length(D.branches)
     @test has_infinite_derivative_at_endpoints(D.branches[i]) == (false, false)
 end
 
-LorenzMap(θ, α) = PwMap([x->θ*(0.5-x)^α, x->1-θ*(x-0.5)^α],
-                    [@interval(0), @interval(0.5), @interval(1)],
-                    [θ*(Interval(0.5))^α Interval(0.0);
-                    Interval(1.0)  1-θ*(Interval(0.5))^α]; infinite_derivative=true)
-
-D0 = LorenzMap(109/64, 51/64)
+D0 = Lorenz()
 D = D0 ∘ D0 ∘ D0
 
 @test has_infinite_derivative_at_endpoints(D.E.branches[1]) == (false, true)

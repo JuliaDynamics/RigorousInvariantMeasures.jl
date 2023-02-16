@@ -7,17 +7,12 @@ using StatsPlots
 
 ENV["GKSwstype"]="nul" # for headless displays
 
-LorenzMap(θ, α) = PwMap([x->θ*(0.5-x)^α, x->1-θ*(x-0.5)^α],
-                    [@interval(0), @interval(0.5), @interval(1)],
-                    [θ*(Interval(0.5))^α Interval(0.0);
-                    Interval(1.0)  1-θ*(Interval(0.5))^α]; infinite_derivative=true)
-
 include("warmup.jl")
 
 function runExperiment()
 
     time_assembling = @elapsed begin
-        D0 = LorenzMap(109/64, 51/64)
+        D0 = Lorenz()
         D = D0 ∘ D0 ∘ D0
         B = Ulam(2^15)
         Q = DiscretizedOperator(B, D)

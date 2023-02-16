@@ -11,13 +11,10 @@ using Serialization
 
 ENV["GKSwstype"]="nul" # for headless displays
 
-LorenzMap(θ, α) = PwMap([x->θ*(0.5-x)^α, x->1-θ*(x-0.5)^α],
-                    [@interval(0), @interval(0.5), @interval(1)]; infinite_derivative=true)
-
 function get_experiment(prefix)
     if prefix=="Lorenz3"
         f = n-> begin
-            D0 = LorenzMap(109/64, 51/64)
+            D0 = Lorenz()
             D = D0 ∘ D0 ∘ D0
             B = Ulam(n)
             Q = DiscretizedOperator(B, D)
@@ -25,7 +22,7 @@ function get_experiment(prefix)
         end
     elseif prefix=="Lorenz2"
         f = n-> begin
-            D0 = LorenzMap(109/64, 51/64)
+            D0 = Lorenz()
             D = D0 ∘ D0
             B = Ulam(n)
             Q = DiscretizedOperator(B, D)
@@ -33,28 +30,28 @@ function get_experiment(prefix)
         end
     elseif prefix=="4x_perturbed_Ulam"
         f = n-> begin
-            D = mod1_dynamic(x -> 4*x + RigorousInvariantMeasures.sinpi(8*x)/100)
+            D = mod1_dynamic(x -> 4x + RigorousInvariantMeasures.sinpi(8x)/100)
             B = Ulam(n)
             Q = DiscretizedOperator(B, D)
             return B, D, Q
         end
     elseif prefix=="4x_perturbed_Hat"
         f = n-> begin
-            D = mod1_dynamic(x -> 4*x + RigorousInvariantMeasures.sinpi(8*x)/100)
+            D = mod1_dynamic(x -> 4x + RigorousInvariantMeasures.sinpi(8x)/100)
             B = Hat(n)
             Q = DiscretizedOperator(B, D)
             return B, D, Q
         end
     elseif prefix=="Lanford_Ulam"
         f = n-> begin
-            D = mod1_dynamic(x -> 2*x+0.5*x*(1-x))
+            D = mod1_dynamic(x -> 2x+0.5*x*(1-x))
             B = Ulam(n)
             Q = DiscretizedOperator(B, D)
             return B, D, Q
         end
     elseif prefix=="Lanford3_Hat"
         f = n-> begin
-            D0 = mod1_dynamic(x->2*x+0.5*x*(1-x))
+            D0 = mod1_dynamic(x->2x+0.5*x*(1-x))
             # Taking an iterate is necessary here to get a DFLY inequality with A < 1
             D = D0∘D0∘D0
             B = Ulam(n)
