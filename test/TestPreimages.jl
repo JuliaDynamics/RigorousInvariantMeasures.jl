@@ -199,6 +199,7 @@ D = PwMap([x->17*x/5,
 for i in 1:length(D.branches)
     @test has_infinite_derivative_at_endpoints(D.branches[i]) == (false, false)
 end
+@test !has_infinite_derivative_at_endpoints(D)
 
 D0 = Lorenz()
 D = D0 ∘ D0 ∘ D0
@@ -208,5 +209,10 @@ for i = 2:7
     @test has_infinite_derivative_at_endpoints(D.E.branches[i]) == (true, true)
 end
 @test has_infinite_derivative_at_endpoints(D.E.branches[end]) == (true, false)
+
+@test has_infinite_derivative_at_endpoints(D.E)
+
+D = BZ()
+@test has_infinite_derivative_at_endpoints(D)
 
 end #testset
