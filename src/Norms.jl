@@ -205,7 +205,7 @@ function dfly(N1::Type{TotalVariation}, N2::Type{L1}, D::Dynamic)
 end
 
 function dfly(N1::Type{TotalVariation}, N2::Type{L1}, D::PwMap)
-    if D.infinite_derivative
+    if has_infinite_derivative_at_endpoints(D)
         return dfly_inf_der(N1, N2, D, 10^-3)
     end
     

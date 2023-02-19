@@ -26,5 +26,5 @@ end
 Lorenz(θ=109/64, α=51/64) = PwMap([x->θ*(0.5-x)^α, x->1-θ*(x-0.5)^α],
                     [@interval(0), @interval(0.5), @interval(1)],
                     [θ*(Interval(0.5))^α Interval(0.0);
-                    Interval(1.0)  1-θ*(Interval(0.5))^α]; infinite_derivative=true)
+                    Interval(1.0)  1-θ*(Interval(0.5))^α])
 

@@ -10,7 +10,7 @@ using ..RigorousInvariantMeasures: derivative, distortion, inverse_derivative
 using TaylorSeries: Taylor1
 using IntervalArithmetic, IntervalOptimisation
 
-export PwMap, preim, nbranches, plottable, branches, MonotonicBranch, mod1_dynamic, dfly_inf_der, composedPwMap, equal_up_to_order, distortion, inverse_derivative
+export PwMap, preim, nbranches, plottable, branches, MonotonicBranch, mod1_dynamic, dfly_inf_der, composedPwMap, equal_up_to_order, has_infinite_derivative_at_endpoints
 
 """
 Type used to represent a "branch" of a dynamic. The branch is represented by a map `f` with domain `X=(a,b)`. X[1] and X[2] are interval enclosures of a,b.
@@ -69,13 +69,12 @@ the array `branches` is guaranteed to satisfy branches[i].X[end]==branches[i+1].
 struct PwMap <: Dynamic
 	branches::Array{MonotonicBranch, 1}
 	full_branch::Bool
-    infinite_derivative::Bool
-    function PwMap(branches::Array{MonotonicBranch, 1}; full_branch = false, infinite_derivative = false)
-        new(branches, full_branch, infinite_derivative)
+    function PwMap(branches::Array{MonotonicBranch, 1}; full_branch = false)
+        new(branches, full_branch)
     end
 end
 
-function PwMap(Ts, endpoints, y_endpoints_in=hcat([Ts[k](Interval(endpoints[k]))  for k in 1:length(Ts)], [Ts[k](Interval(endpoints[k+1])) for k in 1:length(Ts)]); full_branch = false, infinite_derivative = false)
+function PwMap(Ts, endpoints, y_endpoints_in=hcat([Ts[k](Interval(endpoints[k]))  for k in 1:length(Ts)], [Ts[k](Interval(endpoints[k+1])) for k in 1:length(Ts)]); full_branch = false)
     branches = MonotonicBranch[]
     for k in 1:length(endpoints)-1
         y_endpoints = (y_endpoints_in[k,1], y_endpoints_in[k,2])
@@ -84,7 +83,7 @@ function PwMap(Ts, endpoints, y_endpoints_in=hcat([Ts[k](Interval(endpoints[k]))
     end
     X = (endpoints[begin], endpoints[end])
     full_branch_detected = full_branch || all(is_full_branch(b, X) for b in branches)
-    return PwMap(branches; full_branch = full_branch_detected, infinite_derivative = infinite_derivative)
+    return PwMap(branches; full_branch = full_branch_detected)
 end
 
 Base.show(io::IO, D::PwMap) = print(io, "Piecewise-defined dynamic with $(nbranches(D)) branches")
@@ -225,6 +224,29 @@ function DynamicDefinition.plottable(D::PwMap, x)
 end
 DynamicDefinition.plottable(D::PwMap) = x -> DynamicDefinition.plottable(D, x)
 
+"""
+    has_infinite_derivative_at_endpoints(b::MonotonicBranch)
+
+Returns a pair (left::Bool, right::Bool) that tells if a branch has infinite derivative at any of its endpoints
+
+    has_infinite_derivative_at_endpoints(D::PwMap)
+
+Returns a single bool to tell whether the dynamic has infinite derivative at any of its endpoint
+"""
+function has_infinite_derivative_at_endpoints(branch::MonotonicBranch)
+        # the Interval(0, 1e-15) summand is there because for some reason TaylorSeries fails on point intervals of singularity but not on larger intervals containing them:
+        # derivative(x->x^(6/10), 0..0) # fails
+        # derivative(x->x^(6/10), 0..1e-15) # succeeds
+
+        left = !isfinite(derivative(branch.f, branch.X[1] + Interval(0, 1e-15)))
+        right = !isfinite(derivative(branch.f, branch.X[2] - Interval(0, 1e-15)))
+        return (left, right)
+end
+
+function has_infinite_derivative_at_endpoints(D::PwMap)
+    return any(any(has_infinite_derivative_at_endpoints(b)) for b in D.branches)
+end
+
 using RecipesBase
 @recipe f(::Type{PM}, D::PM) where {PM <: PwMap} = x -> plottable(D, x)
 
@@ -346,21 +368,7 @@ function composedPwMap(D1::PwDynamicDefinition.PwMap, D2::PwDynamicDefinition.Pw
     # these are conservative in order to be generic, i.e., due to composition
     # we could have a different behaviour, but the statement belows are conservatively true
     full_branch = D1.full_branch && D2.full_branch
-    infinite_derivative = D1.infinite_derivative || D2.infinite_derivative
-    return PwMap(new_branches; full_branch = full_branch, infinite_derivative = infinite_derivative)
-end
-
-"""
-Returns a pair (left::Bool, right::Bool) that tells if a branch has infinite derivative at any of its endpoints
-"""
-function has_infinite_derivative_at_endpoints(branch)
-        # the Interval(0, 1e-15) summand is there because for some reason TaylorSeries fails on point intervals of singularity but not on larger intervals containing them:
-        # derivative(x->x^(6/10), 0..0) # fails
-        # derivative(x->x^(6/10), 0..1e-15) # succeeds
-
-        left = !isfinite(derivative(branch.f, branch.X[1] + Interval(0, 1e-15)))
-        right = !isfinite(derivative(branch.f, branch.X[2] - Interval(0, 1e-15)))
-        return (left, right)
+    return PwMap(new_branches; full_branch = full_branch)
 end
 
 using ProgressMeter
