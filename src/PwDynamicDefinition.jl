@@ -11,7 +11,7 @@ using IntervalArithmetic, IntervalOptimisation
 
 import ..DynamicDefinition: derivative, orientation
 
-export PwMap, preim, nbranches, plottable, branches, MonotonicBranch, mod1_dynamic, dfly_inf_der, composedPwMap, equal_up_to_order, distortion, expansivity
+export PwMap, preim, nbranches, plottable, branches, MonotonicBranch, mod1_dynamic, dfly_inf_der, composedPwMap, equal_up_to_order, distortion, expansivity, intersect_domain, intersect_domain_bool
 
 import TaylorSeries
 der(f) = x-> f(TaylorSeries.Taylor1([x,1.],1))[1]
@@ -121,6 +121,9 @@ end
 Base.show(io::IO, D::PwMap) = print(io, "Piecewise-defined dynamic with $(nbranches(D)) branches")
 
 DynamicDefinition.domain(D::PwMap) =  (D.branches[1].X[1], D.branches[end].X[2])
+intersect_domain(T::PwMap, x) = [x ∩ hull(br.X[1], br.X[2]) for br in T.branches]
+intersect_domain_bool(T::PwMap, x) = [!(∅ == y) for y in intersect_domain(T, x)]
+
 
 Base.getindex(D::PwMap, k::Int64) = D.branches[k]
 

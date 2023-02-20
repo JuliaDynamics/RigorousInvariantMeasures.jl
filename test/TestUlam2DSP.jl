@@ -52,5 +52,19 @@
     @test getindex_linear(B, 6)(0.0, 0.0) == 0.0
     @test getindex_linear(B, 6)(0.25, 0.2) == 1.0
     
+    T = mod1_dynamic(x->2*x)
+    D = SkewProductMap(T, [(x,y)->(y*x)/8+0.25;(x,y)->(y*x)/8+0.75])
+
+    ϵ = 10^(-14)
+    max_iter = 100
+    #test_Dual = RigorousInvariantMeasures.Dual(B, D; ϵ, max_iter )
+    #@test test_Dual.x == RigorousInvariantMeasures.preimages(B.p_x, D.T; ϵ, max_iter)[1]
+    #@test test_Dual.xlabel == RigorousInvariantMeasures.preimages(B.p_x, D.T; ϵ, max_iter)[2]
+    #@test length(test_Dual) == 40
+
+    G = D.G[1]
+    @test RigorousInvariantMeasures.check_image(B, G, Interval(0.1), Interval(0.2)) == (1,2)
+    B = Ulam2DSP(4, 1024)
+    @test RigorousInvariantMeasures.check_image(B, G, Interval(0.1), Interval(0.2)) == (256, 282)
 
 end

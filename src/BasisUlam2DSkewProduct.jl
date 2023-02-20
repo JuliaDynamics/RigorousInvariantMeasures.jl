@@ -120,6 +120,207 @@ function getindex_linear(B::Ulam2DSP, i::Int)
 end
 
 
-function BasisDefinition.is_dual_element_empty(::Ulam2DSP, d)
-	return isempty(d[1])
+# We define now the Ulam2DSP Dual; each element in the Dual is a polygon
+# please note that we do not save all polygons, but only the preimages on 
+# the x direction
+struct UlamDual2DSP <: Dual
+    B::Ulam2DSP
+    D::SkewProductMap
+    x::Vector{Interval} #TODO: a more generic type may be needed in future
+    xlabel::Vector{Int}
+    lastpoint::Interval
+    meshsize::Integer
 end
+Dual(B::Ulam2DSP, D::SkewProductMap; ϵ, max_iter, meshsize = 8) = UlamDual2DSP(B, D, preimages(B.p_x, D.T, 1:length(B.p_x)-1; ϵ, max_iter)..., domain(D.T)[end], meshsize)
+
+
+# Due to the implementation details, it is not possible to estimate the length 
+# of the iterator before running it
+# Base.length(dual::UlamDual2DSP) = length(dual.x)*length_y(dual.B)
+
+import Polyhedra as PH
+import GLPK
+lib = PH.DefaultLibrary{Float64}(GLPK.Optimizer)
+
+# Iterating on UlamDual2DSP returns an index, a polyhedron and an error on the polyhedron
+Base.eltype(dual::UlamDual2DSP) = Tuple{eltype(dual.xlabel), Array{Interval, 2}}
+
+# we define a specific assemble method for this basis, 
+# to avoid the somewhat confusing Dual+iterate code
+function assemble(B::Ulam2DSP, D::SkewProductMap; ϵ, max_iter, T)
+    # we will break the assembly of the operator into 
+    # sub-operators, one for each injectivity branch
+    BranchOperator = SparseMatrixCSC[]
+    for k in 1:length(branches(D.T))
+        push!(BranchOperator, _assemble_branch(B, D, k; ϵ, max_iter, T))
+    end
+    # now we sum all the branch operators
+    return sum(BranchOperator)
+end
+
+function _assemble_branch(B::Ulam2DSP, D::SkewProductMap, k; ϵ, max_iter, type)
+    I = Int64[]
+	J = Int64[]
+	nzvals = Interval{type}[]
+    
+    T = D.T.branches[k]
+    G = D.G[k]
+
+    # we first compute the preimages in the x direction
+    preim_x, label_x = preimages(B.p_x, T; ϵ, max_iter)
+    # it is important to remember to include the last endpoint
+    if T.increasing
+        preim_x = [preim_x; T.X[2]]
+    else 
+        preim_x = [preim_x; T.X[1]]
+    end
+
+    # now we have two vectors, call j = label[i],
+    # then (preim_x[i], preim_x[i+1]) = T^{-1}(I_j)
+    # the vector preim is ordered with respect to <
+    # while the label vector may be in the reverse order
+
+    for i in 1:length(label_x)
+        x_l, x_r = preim_x[i], preim_x[i+1]
+        ind_im_x = label[i]
+        
+        # we compute a bound in the indexes that are intersected 
+        # in the vertical direction 
+        # is sent into a unique vertical interval
+        # if this is true, we do not need to worry about polygon intersections
+        ind_im_y_lo, ind_im_y_hi = check_image(B, G, x_l, x_r)
+        
+        if (ind_im_y_hi-ind_im_y_lo)==1
+            # in this case, the problem reduces to a one dimensional estimate, 
+            # since the full vertical stripe is sent into 
+            # a single vertical element, i.e., 
+            # the stripe F([x_l, x_r]×[0, 1]) ⊂ I_{ind_im_x} × I_{ind_im_y_lo}
+            ind_x_lo, ind_x_hi = nonzero_on_x(B, x_l, x_r)
+            for i_x in ind_x_lo:ind_x_hi
+                mes = relative_measure((x_l, x_r), (Interval(B.p_x[i_x]), Interval(B.p_x[i_x+1])))
+                # we now need to fill in this value into the matrix
+                for i_y in 1:length(B.part_y)
+                    i = square_indexes_to_linear(B, i_x, i_y)
+                    j = square_indexes_to_linear(B, ind_im_x, ind_im_y_lo)
+
+                    push!(I, i)
+                    push!(J, j)
+                    push!(nzvals, mes)
+                end
+            end
+        end
+
+
+
+
+
+
+    end
+
+
+
+end
+
+function check_image(B::Ulam2DSP, G, x_l, x_r)
+    x = hull(x_l, x_r)
+    im_bound = hull(G(x, 0), G(x, 1))
+    @info im_bound
+    y = im_bound*length(B.p_y)
+    y_ceil = Int64(ceil(y.hi))
+    y_floor = Int64(floor(y.lo))
+    return y_floor, y_ceil
+end
+
+# this function is a copy and paste
+# of UlamBasis.jl:BasisDefinition.nonzero_on(B::Ulam, (a, b))
+function nonzero_on_x(B::Ulam2DSP, a, b)
+    y = hull(a, b)
+
+	# finds in which semi-open interval [p[k], p[k+1]) y.lo and y.hi fall
+	lo = searchsortedlast(B.p_x, y.lo)
+	hi = searchsortedlast(B.p_x, y.hi)
+
+	# they may be n+1 if y.hi==1
+	lo = clamp(lo, 1, length(B.p_x))
+	hi = clamp(hi, 1, length(B.p_x))
+
+	return (lo, hi)
+end
+
+# the state variable is an implementation detail of the iterator, we use it to pass 
+# information to the next iteration; in particular
+# state = (index on x, index on y, lower bound index y, upper bound index y)
+
+
+# function Base.iterate(dual::UlamDual2DSP, state = (1, 0, 0, 0))
+#     B = dual.B
+#     D = dual.D
+#     meshsize = dual.meshsize
+    
+#     n = length(dual.x)
+#     len_y = length_y(B)
+
+#     i_x = state[1]
+#     i_y = state[2]
+#     lowerbound_y = state[3]
+#     upperbound_y = state[4]
+
+#     a, b = (dual.x[i_x], dual.x[i_x+1])
+
+
+#     # when i_y is equal to 0 we compute the upper and lower bounds
+#     # in the y direction, to avoid computing the preimages of 
+#     # uninteresting objects
+#     if i_y == 0 
+
+#         im_a = hull(D.G(a, 0), D.G(a, 1)) 
+#         im_b = hull(D.G(b, 0), D.G(b, 1))
+#         im_y = hull(im_a, im_b)
+        
+#         # TODO, here it needs a cast to integer
+#         lowerbound_y, upperbound_y = len_y*(im_y)
+
+#         # if the difference between lower_bound and upper_bound 
+#         # is smaller or equal to 1, this means that the full 
+#         # rectangle [a,b] × [0, 1] is sent into one a thin horizontal strip
+#         # this is the simplest case
+#         if (upper_bound_y-lower_bound_y)<=1
+#             A = [a Interval(0.0);
+#                 b Interval(0.0);
+#                 b Interval(1.0);
+#                 a Interval(1.0)]
+#             ind_image = square_indexes_to_linear(dual.B, i_x, lower_bound_y)
+
+#             return (ind_image, A), (state[1]+1, 0, 0, 0)
+#         else
+#             A = [Interval(0.0) Interval(0.0)]
+#             return (0, A), (i_x, lower_bound_y, lowerbound_y, upperbound_y)
+#         end
+#     else
+#         # we start by building a mesh between a and b
+#         preim_x = [a+(b-a)/meshsize*i for i in 0:meshsize]
+
+#         A = Matrix{Interval}(Interval(0.0), 2*meshsize, 2)
+#         for x in preim_x
+#             preim_y_low = min(max(G_inv(y_lower), 0), 1)
+#             preim_y_up = max(min(G_inv(y_upper), 1), 0)
+#         end
+        
+#         for (i, x) in enumerate(preim_x)
+#             A[i, :] = [mid(x) mid(y_s[i][1])]
+#         end
+        
+#         for (i, x) in enumerate(reverse(preim_x))
+#             A[n+i, :] = [mid(x) mid(y_s[end-i+1][2])]
+#         end
+#     end
+#     @error "behaving badly"
+# end
+
+
+
+
+
+#function BasisDefinition.is_dual_element_empty(::Ulam2DSP, d)
+#	return isempty(d[1])
+#end
