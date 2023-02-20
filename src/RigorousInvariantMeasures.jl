@@ -95,7 +95,10 @@ export Observable, discretizationlogder, integrateobservable
 include("FourierBasis.jl")
 export L2, Fourier1D, GaussianNoise
 
-include("Lorenz2DUlam.jl")
+#include("Lorenz2DUlam.jl")
+
+include("FourierBasisBack.jl")
+include("BasisUlam2DSkewProduct.jl")
 
 include("sample_dynamics.jl")
 

@@ -2,8 +2,8 @@
 
 function IntervalArithmetic.midpoint_radius(v::Vector{Complex{Interval{T}}}) where {T}
     n = length(v)
-    mid_vector = zeros(T, n)
-    rad_vector = zeros(T, n)
+    mid_vector = zeros(Complex{T}, n)
+    rad_vector = zeros(Complex{T}, n)
     for i in 1:n
         real_m, real_r = midpoint_radius(real(v[i]))
         imag_m, imag_r = midpoint_radius(imag(v[i]))

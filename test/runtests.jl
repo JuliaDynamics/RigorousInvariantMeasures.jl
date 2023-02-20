@@ -22,7 +22,7 @@ DocMeta.setdocmeta!(RigorousInvariantMeasures, :DocTestSetup, :(using RigorousIn
     include("TestPreimages.jl")
     include("TestChebyshev.jl")
     include("TestObservables.jl")
-    include("TestLorenz2DUlam.jl")
+    include("TestUlam2DSP.jl")
     include("TestHigherDFLY.jl")
 
     @testset "Doctests" begin 

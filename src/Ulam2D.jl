@@ -13,6 +13,13 @@ T(; α , s) = PwMap([x-> -α*(-x)^s+1, x-> α*(x)^s-1], [-1, 0, 1])
 
 Ttrue = T(α = α, s =s)
 
+ϕ = PwMap([x->2*x-1, ], [0, 1])
+ψ = PwMap([x-> x/2+1/2, ], [-1, 1])
+
+# it works!!! Incredible!!!
+D = ψ∘Ttrue∘ϕ
+
+
 preim_x = RigorousInvariantMeasures.preimages(-1:0.1:1, Ttrue)
 
 Tfloat(x) = x > 0 ? α*(x)^s-1 : -α*(-x)^s+1
@@ -108,27 +115,53 @@ Ginverse(; x, r, c) = x > 0 ?
                 v -> ((v-c)*2^r)/(x^r) :
                 v -> ((v+c)*2^r)/((-x)^r)
 
-function PreimageRectangleLorenz(; x_left, x_right, y_lower, y_upper, k)
-    x = [Interval(-1); [Interval(x_left)+i*Interval(x_right-x_left)/k for i in 0:k]; Interval(1)]
-    preim_x = RigorousInvarireantMeasures.preimages(x, Ttrue.branches[2])
-    @info preim_x
-    err_x = maximum(IntervalArithmetic.radius.(preim_x[1]))
+# function PreimageRectangleLorenz(; x_left, x_right, y_lower, y_upper, k)
+#     x = [Interval(-1); [Interval(x_left)+i*Interval(x_right-x_left)/k for i in 0:k]; Interval(1)]
+#     preim_x = RigorousInvarireantMeasures.preimages(x, Ttrue.branches[2])
+#     @info preim_x
+#     err_x = maximum(IntervalArithmetic.radius.(preim_x[1]))
+#     y_s = NTuple{2, Interval}[]
+#     err_y = 0.0
+#     for x in preim_x[1][2:end]
+#         G_inv = Ginverse(x = x, r = 5.0, c = 0.5)
+#         preim_y_low = min(max(G_inv(y_lower), -1), 1)
+#         preim_y_up = max(min(G_inv(y_upper), 1), -1)
+#         err_y = maximum([err_y, IntervalArithmetic.radius(preim_y_low), IntervalArithmetic.radius(preim_y_up)])
+#         push!(y_s, (preim_y_low, preim_y_up))
+#     end
+#     n = length(preim_x[1][2:end])
+#     A = Matrix{Float64}(undef, 2*n, 2)
+#     for (i, x) in enumerate(preim_x[1][2:end])
+#         A[i, :] = [mid(x) mid(y_s[i][1])]
+#     end
+
+#     for (i, x) in enumerate(reverse(preim_x[1][2:end]))
+#         A[n+i, :] = [mid(x) mid(y_s[end-i+1][2])]
+#     end
+
+#     P = PH.polyhedron(PH.vrep(A), lib)
+#     return P, err_x, err_y
+# end
+
+function PreimageRectangleLorenz(; preim_x_left, preim_x_right, y_lower, y_upper, k, r, c)
+    x_grid = [Interval(preim_x_left)+i*Interval(preim_x_right-preim_x_left)/k for i in 0:k]
+    err_x = maximum(IntervalArithmetic.radius.(x))
     y_s = NTuple{2, Interval}[]
     err_y = 0.0
-    for x in preim_x[1][2:end]
-        G_inv = Ginverse(x = x, r = 5.0, c = 0.5)
+    for x in x_grid
+        G_inv = Ginverse(x = x, r = r, c = c)
         preim_y_low = min(max(G_inv(y_lower), -1), 1)
         preim_y_up = max(min(G_inv(y_upper), 1), -1)
         err_y = maximum([err_y, IntervalArithmetic.radius(preim_y_low), IntervalArithmetic.radius(preim_y_up)])
         push!(y_s, (preim_y_low, preim_y_up))
     end
-    n = length(preim_x[1][2:end])
+    n = length(x_grid)
     A = Matrix{Float64}(undef, 2*n, 2)
-    for (i, x) in enumerate(preim_x[1][2:end])
+    for (i, x) in enumerate(x_grid)
         A[i, :] = [mid(x) mid(y_s[i][1])]
     end
 
-    for (i, x) in enumerate(reverse(preim_x[1][2:end]))
+    for (i, x) in enumerate(reverse(x_grid))
         A[n+i, :] = [mid(x) mid(y_s[end-i+1][2])]
     end
 
