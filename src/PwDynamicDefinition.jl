@@ -54,7 +54,7 @@ import Base.reverse
 
 "Reverses" the x-axis of a branch: given f:[a,b] -> R, creates a branch with the function g:[-b,-a] -> R defined as g(x) = f(-x)
 """
-Base.reverse(br::MonotonicBranch) = MonotonicBranch(x -> br.f(-x), (-br.X[2], -br.X[1]), (br.Y[2], br.Y[1]), !br.increasing)
+Base.reverse(br::MonotonicBranch) = MonotonicBranch(x -> br.f(-x), (-br.X[2], -br.X[1]), (br.Y[2], br.Y[1]), !is_increasing(br))
 
 """
 Dynamic based on a piecewise monotonic map.
@@ -287,7 +287,7 @@ function mod1_dynamic(f::Function; ϵ = 0.0, max_iter = 100, full_branch = false
     # check monotonicity
     
     try 
-        @assert minimise(x -> derivative(f, x) * (br.increasing ? 1 : -1), hull(Interval.(X)...))[1] > 0
+        @assert minimise(x -> derivative(f, x) * (is_increasing(br) ? 1 : -1), hull(Interval.(X)...))[1] > 0
     catch exc
         if isa(exc, MethodError)
             @warn "It probably is complaining that the result of derivative(f) is not an interval"
@@ -307,7 +307,7 @@ function mod1_dynamic(f::Function; ϵ = 0.0, max_iter = 100, full_branch = false
     Ts = [x->f(x)-k for k in integer_parts]
 
     n = Base.length(x)
-    if br.increasing
+    if is_increasing(br)
         y_endpoints::Matrix{Interval{Float64}} = hcat(fill(0., n), fill(1., n))
     else
         y_endpoints = hcat(fill(1., n), fill(0., n))
@@ -333,7 +333,7 @@ function composedPwMap(D1::PwDynamicDefinition.PwMap, D2::PwDynamicDefinition.Pw
     # TODO: this could be rewritten using preimages()
     new_branches =  MonotonicBranch[]
     for br2 in branches(D2)
-        if br2.increasing
+        if is_increasing(br2)
             for br1 in branches(D1)
                 y_range = hull(br1.Y[1], br1.Y[2])
                 left  = preimage(br1.X[1], br2, hull(br2.X[1], br2.X[2]); ϵ = 10^-13, max_iter = 100)
@@ -341,7 +341,7 @@ function composedPwMap(D1::PwDynamicDefinition.PwMap, D2::PwDynamicDefinition.Pw
                 @debug left
                 @debug right
                 F = br1.f∘br2.f
-                F_increasing = br1.increasing
+                F_increasing = is_increasing(br1)
                 if left!=∅ && right!=∅
                     y_endpoints = (F(left) ∩ y_range, F(right) ∩ y_range)
                     push!(new_branches, MonotonicBranch(F, (left, right), y_endpoints, F_increasing))
@@ -355,13 +355,13 @@ function composedPwMap(D1::PwDynamicDefinition.PwMap, D2::PwDynamicDefinition.Pw
                     push!(new_branches, MonotonicBranch(F, (left, right), y_endpoints, F_increasing))
                 end
             end
-        else # br2.increasing == false
+        else # is_increasing(br2) == false
             for br1 in Iterators.reverse(branches(D1))
                 y_range = hull(br1.Y[1], br1.Y[2])
                 left  = preimage(br1.X[2], br2, hull(br2.X[1], br2.X[2]); ϵ = 10^-13, max_iter = 100)
                 right  = preimage(br1.X[1], br2, hull(br2.X[1], br2.X[2]); ϵ = 10^-13, max_iter = 100)
                 F = br1.f∘br2.f
-                F_increasing = !br1.increasing
+                F_increasing = !is_increasing(br1)
                 if left!=∅ && right!=∅
                     y_endpoints = (F(left) ∩ y_range, F(right) ∩ y_range)
                     push!(new_branches, MonotonicBranch(F, (left, right), y_endpoints, F_increasing))
@@ -469,7 +469,7 @@ end
 #  @info "aux_der", aux_der
     
 #    for br in branches(D)
-#        if br.increasing
+#        if is_increasing(br)
 #            rr = preimage(aux_der, x -> 1/(2*derivative(br.f, x)), hull(br.X[1], br.X[2]), 10^-13)
 #            @info rr
 #        else

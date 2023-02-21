@@ -112,7 +112,7 @@ for y = (a1, a2)
         @test length(x) == length(xlabel)
         z1 = filter(x->!isempty(x),intersect.(map(Interval,y), hull(b.Y[1], b.Y[2]+1e-15))) # the 1e-15 is there to simulate "disjoint intervals"
         z2 = f.(x)
-        if !b.increasing
+        if !is_increasing(b)
             z2 = reverse(z2)
         end
         

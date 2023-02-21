@@ -17,8 +17,8 @@ D = PwMap([ x-> x^2+0.25, x -> 4*x-2, x -> 4*x-3], [0, 0.5, 0.75, 1])
 
 D = PwMap([x->2*x, x->2-2*x], [@interval(0), @interval(0.5), @interval(1)])
 
-@test D.branches[1].increasing == true
-@test D.branches[2].increasing == false
+@test is_increasing(D.branches[1]) == true
+@test is_increasing(D.branches[2]) == false
 
 D = mod1_dynamic(x -> 3.5x)
 
@@ -29,7 +29,7 @@ D = mod1_dynamic(x -> 3.5x)
 @test [D.branches[i].Y[1] for i in 1:4] == [0, 0, 0, 0]
 @test [D.branches[i].Y[2] for i in 1:4] == [1, 1, 1, 0.5]
 
-@test [D.branches[i].increasing for i in 1:4] == [1, 1, 1, 1]
+@test [is_increasing(D.branches[i]) for i in 1:4] == [1, 1, 1, 1]
 
 @test is_full_branch(D) == false
 
@@ -39,7 +39,7 @@ D = mod1_dynamic(x -> 3.5x + 0.5)
 @test  D.branches[end].f(1) == 1
 @test [D.branches[i].Y[1] for i in 1:4] == [0.5, 0, 0, 0]
 @test [D.branches[i].Y[2] for i in 1:4] == [1, 1, 1, 1]
-@test [D.branches[i].increasing for i in 1:4] == [1, 1, 1, 1]
+@test [is_increasing(D.branches[i]) for i in 1:4] == [1, 1, 1, 1]
 
 @test is_full_branch(D) == false
 
@@ -49,7 +49,7 @@ D = mod1_dynamic(x -> -3.5x + 0.5)
 @test  D.branches[end].f(5/7) == 1
 @test [D.branches[i].Y[1] for i in 1:4] == [0.5, 1, 1, 1]
 @test [D.branches[i].Y[2] for i in 1:4] == [0, 0, 0, 0]
-@test [D.branches[i].increasing for i in 1:4] == [0, 0, 0, 0]
+@test [is_increasing(D.branches[i]) for i in 1:4] == [0, 0, 0, 0]
 
 D0 = mod1_dynamic(x->2*x)
 D = D0 ∘ D0

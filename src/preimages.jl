@@ -121,7 +121,7 @@ function preimages(y, br::MonotonicBranch, ylabel = 1:length(y); ϵ, max_iter)
 
     # TODO: consider separate types (maybe via a parametric type) for increasing and decreasing branches.
 
-    if br.increasing
+    if is_increasing(br)
         i = first_overlapping(y, br.Y[1])  # smallest possible i such that a = br.Y[1] is in the semi-open interval [y[i], y[i+1]).
         j = last_overlapping(y, br.Y[2]) # largest possible j such that b-ε, where b = br.Y[2] is in the semi-open interval [y[j], y[j+1]).
         n = j - i + 1

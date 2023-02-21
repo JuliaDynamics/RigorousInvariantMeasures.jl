@@ -237,7 +237,7 @@ struct ChebyshevDual <: Dual
 end
 
 function ChebDualBranch(y, br::MonotonicBranch, ylabel = 1:length(y); ϵ, max_iter)
-	if br.increasing
+	if is_increasing(br)
 		endpoint_X = br.X[2]
 		der = Contractors.derivative(br.f)(endpoint_X)
 		preim_der = preimages_and_derivatives(y, br, ylabel; ϵ, max_iter)
