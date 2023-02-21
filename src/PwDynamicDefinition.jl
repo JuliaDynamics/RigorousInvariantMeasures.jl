@@ -46,6 +46,7 @@ function equal_up_to_order(X, Y)
 end
 
 DynamicDefinition.is_full_branch(b::MonotonicBranch{T,S}, X) where {T,S} = equal_up_to_order(b.Y, X)
+DynamicDefinition.is_increasing(b::MonotonicBranch) = b.increasing
 
 import Base.reverse
 """
@@ -89,6 +90,17 @@ end
 Base.show(io::IO, D::PwMap) = print(io, "Piecewise-defined dynamic with $(nbranches(D)) branches")
 
 DynamicDefinition.domain(D::PwMap) =  (D.branches[1].X[1], D.branches[end].X[2])
+
+function DynamicDefinition.is_increasing(D::PwMap)
+    inc = DynamicDefinition.is_increasing.(D.branches)
+    if all(inc)
+        return true
+    elseif all(.!inc)
+        return false
+    else
+        error("The given dynamic has branches with different orientations")
+    end
+end
 
 Base.getindex(D::PwMap, k::Int64) = D.branches[k]
 

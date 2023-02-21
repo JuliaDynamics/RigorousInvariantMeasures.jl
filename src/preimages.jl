@@ -4,6 +4,7 @@ Compute preimages of monotonic sequences
 
 using IntervalArithmetic
 using .Contractors
+using .DynamicDefinition: is_increasing
 
 ## Moved the definition of MonotonicBranch in PwDynamicDefinition, with the objective
 ## of transforming PwMap into an Array of MonotonicBranch
@@ -172,32 +173,41 @@ function preimages(y, D::Dynamic, ylabel = 1:length(y); ϵ, max_iter)
 end
 
 """
-    preimages_and_derivatives(y, br::MonotonicBranch, ylabel = 1:length(y), ϵ = 0.0)
+    preimages_and_derivatives(y, br::MonotonicBranch, ylabel = 1:length(y); ϵ, maxiter, left=true)
 
 Compute preimages of D *and* the derivatives f'(x) in each point.
 
 Returns: x, xlabel, x′
 
-Assumes that the dynamic is full-branch, because otherwise things may compose the wrong way.
-This is not restrictive because we'll need it only for the Hat assembler (at the moment)
+We combine the two computations in the same function because in this way it can be implemented more efficiently for composed dynamics.
 
-We combine them in a single function because there are avenues to optimize by recycling some computations (not completely exploited for now)
+This assumes that (1) the dynamic is full-branch, and (2) all branches have the same orientation.
+This is not restrictive because we'll need it only for the Hat assembler (at the moment).
+
+If `left==true`, `x′` contains the derivatives `f'.(x)`. If right==true, `x′` contains derivatives in the right endpoint of each interval
+of the partition, i.e., for each branch, `[f'(x[2]), f'(x[3]), ... f'(x[end]), f'(br.X[2])]`. In any case, `length(x) == length(x′)`.
 """
-function preimages_and_derivatives(y, br::MonotonicBranch, ylabel = 1:length(y); ϵ, max_iter)
+function preimages_and_derivatives(y, br::MonotonicBranch, ylabel = 1:length(y); ϵ, max_iter, left=true)
     x, xlabel = preimages(y, br, ylabel; ϵ, max_iter)
     f′ = derivative(br.f)
-    x′ = f′.(x)
+    x′ = similar(x)
+    if left
+        x′[1:end] = f′.(x)
+    else
+        x′ = similar(x)
+        x′[1:end-1] = f′.(x[2:end])
+        x′[end] = f′(br.X[2])
+    end
     return x, xlabel, x′
 end
-function preimages_and_derivatives(y, D::Dynamic, ylabel = 1:length(y); ϵ, max_iter)
+function preimages_and_derivatives(y, D::Dynamic, ylabel = 1:length(y); ϵ, max_iter, left=true)
     @assert is_full_branch(D)
-    results = @showprogress 1 "Computing preimages and derivatives..." [preimages_and_derivatives(y, b, ylabel; ϵ, max_iter) for b in branches(D)]
+    results = @showprogress 1 "Computing preimages and derivatives..." [preimages_and_derivatives(y, b, ylabel; ϵ, max_iter, left) for b in branches(D)]
     x = reduce(vcat, result[1] for result in results)
     xlabel = reduce(vcat, result[2] for result in results)
     x′ = reduce(vcat, result[3] for result in results)
     return x, xlabel, x′
 end
-
 
 #PwOrComposed = Union{PwMap, ComposedDynamic}
 """
@@ -218,10 +228,8 @@ dfly(N1::Type{RigorousInvariantMeasures.TotalVariation}, N2::Type{RigorousInvari
 dfly(N1::Type{RigorousInvariantMeasures.Lipschitz}, N2::Type{RigorousInvariantMeasures.L1}, D::ComposedDynamic) = dfly(N1, N2, D.E)
 
 
-"""
-Utility function to return the domain of a dynamic
-"""
 DynamicDefinition.domain(D::ComposedDynamic) = DynamicDefinition.domain(D.dyns[end])
+DynamicDefinition.is_increasing(D::ComposedDynamic) = iseven(sum(.!is_increasing.(D.dyns)))
 
 function preimages(z, Ds::ComposedDynamic, zlabel = 1:length(z); ϵ, max_iter)
     for d in Ds.dyns
@@ -229,15 +237,26 @@ function preimages(z, Ds::ComposedDynamic, zlabel = 1:length(z); ϵ, max_iter)
     end
     return z, zlabel
 end
-function preimages_and_derivatives(z, Ds::ComposedDynamic, zlabel = 1:length(z); ϵ, max_iter)   
-    derivatives = fill(one(eltype(z)), length(z))
-    for d in Ds.dyns
-        z, zindex, z′ = preimages_and_derivatives(z, d, 1:length(z); ϵ, max_iter)
-        zlabel = zlabel[zindex]
-        derivatives = derivatives[zindex]
-        derivatives = derivatives .* z′ 
+
+function preimages_and_derivatives(z, Ds::ComposedDynamic, zlabel = 1:length(z); ϵ, max_iter, left=true)
+    @assert length(Ds.dyns)==2
+    f = Ds.dyns[1]
+    g = Ds.dyns[2]
+
+    @assert is_full_branch(f) && is_full_branch(g)
+
+    if DynamicDefinition.is_increasing(g)
+        f_left = left
+    else
+        f_left = !left
     end
-    return z, zlabel, derivatives
+
+    y, ylabel, dy = preimages_and_derivatives(z, f, zlabel; ϵ, max_iter, left=f_left)
+    x, yindex, dx = preimages_and_derivatives(y, g, 1:length(y); ϵ, max_iter, left)
+    xlabel = ylabel[yindex]
+    dx = dx .* dy[yindex]
+    
+    return x, xlabel, dx
 end
 
 function (D::ComposedDynamic)(x::Taylor1)
