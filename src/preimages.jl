@@ -74,9 +74,9 @@ end
 """
     preimages(y, br::MonotonicBranch, ylabel = 1:length(y); ϵ, max_iter)
 
-Construct preimages of an increasing array y under a monotonic branch defined on X = (a, b), propagating additional labels `ylabel`
+Construct preimages of a partition y under a monotonic branch defined on X = (a, b), propagating additional labels `ylabel`
 
-Construct preimages of an increasing array `y` under a monotonic branch `br` defined on X = (a, b), propagating additional labels `ylabel`
+Construct preimages of a partition `y` under a monotonic branch `br` defined on X = (a, b), propagating additional labels `ylabel`
 
 It is assumed that it cannot happen that ``f(x) < y[1]``.
 
@@ -166,8 +166,8 @@ end
 """
 function preimages(y, D::Dynamic, ylabel = 1:length(y); ϵ, max_iter)
     results = @showprogress 1 "Computing preimages..." [preimages(y, b, ylabel; ϵ, max_iter) for b in branches(D)]
-    x = vcat((result[1] for result in results)...)
-    xlabel = vcat((result[2] for result in results)...)
+    x = reduce(vcat, result[1] for result in results)
+    xlabel = reduce(vcat, result[2] for result in results)
     return x, xlabel
 end
 
@@ -192,13 +192,13 @@ end
 function preimages_and_derivatives(y, D::Dynamic, ylabel = 1:length(y); ϵ, max_iter)
     @assert is_full_branch(D)
     results = @showprogress 1 "Computing preimages and derivatives..." [preimages_and_derivatives(y, b, ylabel; ϵ, max_iter) for b in branches(D)]
-    x = vcat((result[1] for result in results)...)
-    xlabel = vcat((result[2] for result in results)...)
-    x′ = vcat((result[3] for result in results)...)
+    x = reduce(vcat, result[1] for result in results)
+    xlabel = reduce(vcat, result[2] for result in results)
+    x′ = reduce(vcat, result[3] for result in results)
     return x, xlabel, x′
 end
 
- 
+
 #PwOrComposed = Union{PwMap, ComposedDynamic}
 """
 Composed map D1 ∘ D2 ∘ D3. We store with [D1, D2, D3] in this order.
@@ -234,7 +234,8 @@ function preimages_and_derivatives(z, Ds::ComposedDynamic, zlabel = 1:length(z);
     for d in Ds.dyns
         z, zindex, z′ = preimages_and_derivatives(z, d, 1:length(z); ϵ, max_iter)
         zlabel = zlabel[zindex]
-        derivatives = derivatives[zindex] .* z′ 
+        derivatives = derivatives[zindex]
+        derivatives = derivatives .* z′ 
     end
     return z, zlabel, derivatives
 end
