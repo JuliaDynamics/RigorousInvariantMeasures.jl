@@ -247,10 +247,12 @@ DynamicDefinition.domain(D::ComposedDynamic) = DynamicDefinition.domain(D.dyns[e
 DynamicDefinition.is_increasing(D::ComposedDynamic) = iseven(sum(.!is_increasing.(D.dyns)))
 
 function preimages(z, Ds::ComposedDynamic, zlabel = 1:length(z); ϵ, max_iter)
-    for d in Ds.dyns
-        z, zlabel = preimages(z, d, zlabel; ϵ, max_iter)
-    end
-    return z, zlabel
+    @assert length(Ds.dyns)==2
+    f = Ds.dyns[1]
+    g = Ds.dyns[2]
+    y, ylabel = preimages(z, f, zlabel; ϵ, max_iter)
+    x, xlabel = preimages(y, g, ylabel; ϵ, max_iter)
+    return x, xlabel
 end
 
 function preimages_and_derivatives(z, Ds::ComposedDynamic, zlabel = 1:length(z); ϵ, max_iter, left=true)
