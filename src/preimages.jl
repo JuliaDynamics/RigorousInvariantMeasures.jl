@@ -173,6 +173,21 @@ function preimages(y, D::Dynamic, ylabel = 1:length(y); ϵ, max_iter)
 end
 
 """
+    preimages_and_branches(y, D::Dynamic, ylabel = 1:length(y); ϵ, max_iter)
+
+Works like preimages(y, D) but the second return argument is a vector of pairs (ylabel, branchnumber) that specifies
+which branch of D is the source of each interval in the preimages.
+"""
+# TODO: there is probably a very clever general construction that can reduce `preimages`, `preimages_and_branches`, 
+# `preimages_and_derivatives` to three instances of the same method that keeps track of an "abstract" quantity over preimages.
+function preimages_and_branches(y, D::PwMap, ylabel = 1:length(y); ϵ, max_iter)
+    results = [preimages(y, b, ylabel; ϵ, max_iter) for b in D.branches]
+    x = reduce(vcat, result[1] for result in results)
+    xlabel = reduce(vcat, [(yid, brid) for yid in result[2]] for (brid, result) in enumerate(results))
+    return x, xlabel
+end
+
+"""
     preimages_and_derivatives(y, br::MonotonicBranch, ylabel = 1:length(y); ϵ, maxiter, left=true)
 
 Compute preimages of D *and* the derivatives f'(x) in each point.

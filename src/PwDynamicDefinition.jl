@@ -70,7 +70,7 @@ the array `branches` is guaranteed to satisfy branches[i].X[end]==branches[i+1].
 struct PwMap <: Dynamic
 	branches::Array{MonotonicBranch, 1}
 	full_branch::Bool
-    function PwMap(branches::Array{MonotonicBranch, 1}; full_branch = false)
+    function PwMap(branches::Array{<:MonotonicBranch, 1}; full_branch = false)
         new(branches, full_branch)
     end
 end
@@ -326,60 +326,22 @@ function mod1_dynamic(f::Function; ϵ = 0.0, max_iter = 100, full_branch = false
 end
 
 """
-    Create explicitly D1 ∘ D2 as a PwMap (list of MonotonicBranches)
+    Create explicitly D1 ∘ D2 as a PwMap
 """
 function composedPwMap(D1::PwDynamicDefinition.PwMap, D2::PwDynamicDefinition.PwMap)
-    # TODO: this could be rewritten using preimages()
-    new_branches =  MonotonicBranch[]
-    for br2 in branches(D2)
-        if is_increasing(br2)
-            for br1 in branches(D1)
-                y_range = hull(br1.Y[1], br1.Y[2])
-                left  = preimage(br1.X[1], br2, hull(br2.X[1], br2.X[2]); ϵ = 10^-13, max_iter = 100)
-                right  = preimage(br1.X[2], br2, hull(br2.X[1], br2.X[2]); ϵ = 10^-13, max_iter = 100)
-                @debug left
-                @debug right
-                F = br1.f∘br2.f
-                F_increasing = is_increasing(br1)
-                if left!=∅ && right!=∅
-                    y_endpoints = (F(left) ∩ y_range, F(right) ∩ y_range)
-                    push!(new_branches, MonotonicBranch(F, (left, right), y_endpoints, F_increasing))
-                elseif left == ∅ && right != ∅
-                    left = br2.X[1]
-                    y_endpoints = (F(left) ∩ y_range, F(right) ∩ y_range)
-                    push!(new_branches, MonotonicBranch(F, (left, right), y_endpoints, F_increasing))
-                elseif left !=∅ && right == ∅
-                    right = br2.X[2]
-                    y_endpoints = (F(left) ∩ y_range, F(right) ∩ y_range)
-                    push!(new_branches, MonotonicBranch(F, (left, right), y_endpoints, F_increasing))
-                end
-            end
-        else # is_increasing(br2) == false
-            for br1 in Iterators.reverse(branches(D1))
-                y_range = hull(br1.Y[1], br1.Y[2])
-                left  = preimage(br1.X[2], br2, hull(br2.X[1], br2.X[2]); ϵ = 10^-13, max_iter = 100)
-                right  = preimage(br1.X[1], br2, hull(br2.X[1], br2.X[2]); ϵ = 10^-13, max_iter = 100)
-                F = br1.f∘br2.f
-                F_increasing = !is_increasing(br1)
-                if left!=∅ && right!=∅
-                    y_endpoints = (F(left) ∩ y_range, F(right) ∩ y_range)
-                    push!(new_branches, MonotonicBranch(F, (left, right), y_endpoints, F_increasing))
-                elseif left == ∅ && right != ∅
-                    left = br2.X[1]
-                    y_endpoints = (F(left) ∩ y_range, F(right) ∩ y_range)
-                    push!(new_branches, MonotonicBranch(F, (left, right), y_endpoints, F_increasing))
-                elseif left !=∅ && right == ∅
-                    right = br2.X[2]
-                    y_endpoints = (F(left) ∩ y_range, F(right) ∩ y_range)
-                    push!(new_branches, MonotonicBranch(F, (left, right), y_endpoints, F_increasing))
-                end
-            end
-        end
-    end
-    # these are conservative in order to be generic, i.e., due to composition
-    # we could have a different behaviour, but the statement belows are conservatively true
-    full_branch = D1.full_branch && D2.full_branch
-    return PwMap(new_branches; full_branch = full_branch)
+    y_endpoints = endpoints(D1)
+    x, xlabel = preimages_and_branches(y_endpoints, D2; ϵ = 1e-13, max_iter=100)
+    push!(x, D2.branches[end].X[2])
+    branches = [MonotonicBranch(D1.branches[brid1].f ∘ D2.branches[brid2].f, 
+                                (x[i], x[i+1]), 
+                                D1.branches[brid1].Y) 
+                                for (i,(brid1, brid2)) in enumerate(xlabel)]
+
+    # full_branch is defined conservatively; it is possible that non-full-branch dynamics
+    # composed could yield a full-branch composed dynamic
+    full_branch = is_full_branch(D1) && is_full_branch(D2)
+
+    return PwMap(branches; full_branch = full_branch)
 end
 
 using ProgressMeter
