@@ -29,7 +29,7 @@ struct MonotonicBranch{T<:Function, S<:Interval}
     increasing::Bool
 end
 
-MonotonicBranch(f::Function, X, Y=(f(Interval(X[1])), f(Interval(X[2]))), increasing=unique_increasing(Y[1], Y[2])) = MonotonicBranch{typeof(f), typeof(interval(X[1]))}(f, X, Y, increasing)
+MonotonicBranch(f::Function, X, Y=(f(X[1]), f(X[2])), increasing=unique_increasing(Y[1], Y[2])) = MonotonicBranch{typeof(f), typeof(interval(X[1]))}(f, X, Y, increasing)
 
 function equal_up_to_order(X, Y)
     @assert length(X)==2 && length(Y)==2
@@ -79,8 +79,7 @@ function PwMap(Ts, endpoints, y_endpoints_in=hcat([Ts[k](Interval(endpoints[k]))
     branches = MonotonicBranch[]
     for k in 1:length(endpoints)-1
         y_endpoints = (y_endpoints_in[k,1], y_endpoints_in[k,2])
-        increasing  = unique_increasing(y_endpoints_in[k,1], y_endpoints_in[k,2])
-        push!(branches, MonotonicBranch(Ts[k], (endpoints[k], endpoints[k+1]), y_endpoints, increasing))
+        push!(branches, MonotonicBranch(Ts[k], (endpoints[k], endpoints[k+1]), y_endpoints))
     end
     X = (endpoints[begin], endpoints[end])
     full_branch_detected = full_branch || all(is_full_branch(b, X) for b in branches)
