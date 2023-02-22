@@ -1,6 +1,7 @@
 using Test
 using IntervalArithmetic
 using RigorousInvariantMeasures: is_full_branch
+using RigorousInvariantMeasures.DynamicDefinition: is_increasing
 
 @testset "Dynamics" begin
 using IntervalArithmetic
