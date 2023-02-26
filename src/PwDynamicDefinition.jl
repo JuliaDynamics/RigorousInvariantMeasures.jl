@@ -344,6 +344,60 @@ function composedPwMap(D1::PwDynamicDefinition.PwMap, D2::PwDynamicDefinition.Pw
     return PwMap(branches; full_branch = full_branch)
 end
 
+"""
+max_expansivity, int_distortion, bound_distortion = dfly_inf_der_auxiliary_quantities(br::PwDynamicDefinition.MonotonicBranch, radratio, tol=1e-3)
+
+Return three auxiliary quantities used in dfly_inf_der:
+
+* max_expansivity: maximum of the expansivity outside the critical intervals
+* int_distortion: integral of the distortion over the critical intervals
+* bound_distortion: lower bound to the distortion inside the critical intervals
+
+The "critical intervals" for a branch defined on `(a,b) = br.X` are:
+* [a, a+rad], if the branch has infinite derivative in a
+* [b-rad, b], if the branch has infinite derivative in b
+
+If the branch does not have infinite derivatives, int_distortion = 0 and bound_distortion = 0.
+
+Three intervals are returned; it is up to the caller to take their .hi.
+"""
+function dfly_inf_der_auxiliary_quantities(br::PwDynamicDefinition.MonotonicBranch, i, tol=1e-3)
+    left, right = has_infinite_derivative_at_endpoints(br) # this could be cached along calls with different values of `rad`, but it is cheap anyway
+    int_distortion = Interval(0.0) # integral of the distortion over the critical intervals
+    bound_distortion = Interval(0.0) # lower bound to the distortion inside the critical intervals
+    rad = radius(hull(br.X[1], br.X[2]))
+    tol = rad/2^(i+1)  # TODO: this ignores the passed `tol` at the moment, but I am just refactoring for now
+    f = inverse_derivative(br.f)
+    g = distortion(br.f)
+    left_endpoint = br.X[1]
+    right_endpoint = br.X[2]
+    if left
+        left_endpoint += rad/2^i
+    end
+    if right
+        right_endpoint-= rad/2^i
+    end
+    I = hull(left_endpoint, right_endpoint)
+    max_expansivity = maximise(x->abs(f(x)), I, tol=tol)[1]
+    
+    if left
+        # we work on the interval [br.X[1], left_endpoint] =: [a, b].
+        # we assume here that f(a) = 0, g(a)=∞, and that g is monotonically decreasing on [a,b]
+        l_left = abs(g(left_endpoint))
+        # we use the fact that the primitive of the distortion g is f=1/T', and compute
+        # int_a^b (distorsion) = f(b) - f(a) = f(b)
+        int_distortion += abs(f(left_endpoint))
+        bound_distortion = max(bound_distortion, abs(l_left))
+    end
+    if right
+        # same reasoning as above but on the right endpoint
+        l_right = abs(g(right_endpoint)) 
+        int_distortion += abs(f(right_endpoint))
+        bound_distortion = max(bound_distortion, abs(l_right))
+    end
+    return max_expansivity, int_distortion, bound_distortion
+end
+
 using ProgressMeter
 """
 dfly inequality for maps with infinite derivatives. 
@@ -355,60 +409,20 @@ The strategy to compute it follows a variant of Lemma 9.1 in the GMNP paper:
 * we repeat the computation replacing 2^3 with 2^4, 2^5, ... 2^15 and take the best estimate among these.
 """
 function dfly_inf_der(::Type{TotalVariation}, ::Type{L1}, D::PwDynamicDefinition.PwMap, tol=1e-3)
-    leftrightsingularity = Tuple{Bool, Bool}[]
     A = +∞
     B = +∞
-
-    width_term = maximum( 2 / (br.X[2] - br.X[1]) for br in D.branches).hi
-
-    # for each branch, we check if the derivative is infinite at any of the endpoints:
-    for br in branches(D)
-        (left, right) = has_infinite_derivative_at_endpoints(br)
-
-        push!(leftrightsingularity, (left, right))
-    end
+    width_term = maximum( 2 / (br.X[2] - br.X[1]) for br in D.branches)
     est = +∞
-    @showprogress 1 "Computing infinite-derivative DFLY..." for i in 3:15
-        max_expansivity = Interval(0.0) # maximum of the expansivity outside the critical intervals
-        int_distortion = Interval(0.0) # integral of the distortion over the critical intervals
-        bound_distortion = 0.0 # lower bound to the distortion inside the critical intervals
 
-        for (j, br) in enumerate(branches(D))
-            rad = radius(hull(br.X[1], br.X[2]))
-            tol = rad/2^(i+1)
-            left, right = leftrightsingularity[j]
-            f = inverse_derivative(br.f)
-            g = distortion(br.f)
-            left_endpoint = br.X[1]
-            right_endpoint = br.X[2]
-            if left
-                left_endpoint += rad/2^i
-            end
-            if right
-                right_endpoint-= rad/2^i
-            end
-            I = hull(left_endpoint, right_endpoint)
-            val_br = maximise(x->abs(f(x)), I, tol=tol)[1]
-            max_expansivity = max(max_expansivity, val_br)
-            
-            if left
-                # we work on the interval [br.X[1], left_endpoint] =: [a, b].
-                # we assume here that f(a) = 0, g(a)=∞, and that g is monotonically decreasing on [a,b]
-                l_left = abs(g(left_endpoint))
-                # we use the fact that the primitive of the distortion g is f=1/T', and compute
-                # int_a^b (distorsion) = f(b) - f(a) = f(b)
-                int_distortion += abs(f(left_endpoint))
-                bound_distortion = max(bound_distortion, abs(l_left).hi )
-            end
-            if right
-                # same reasoning as above but on the right endpoint
-                l_right = abs(g(right_endpoint)) 
-                int_distortion += abs(f(right_endpoint))
-                bound_distortion = max(bound_distortion, abs(l_right).hi )
-            end
-        end
+    @showprogress 1 "Computing infinite-derivative DFLY..."  for i in 3:15
+        results = [dfly_inf_der_auxiliary_quantities(br, i, tol) for br in D.branches]
+        max_expansivity = maximum(r[1] for r in results)
+        int_distortion = sum(r[2] for r in results)
+        bound_distortion = maximum(r[3] for r in results)
+
+
         candidate_A = 2*max_expansivity.hi ⊕₊ (int_distortion/2).hi 
-        candidate_B = bound_distortion ⊕₊ width_term
+        candidate_B = bound_distortion.hi ⊕₊ width_term.hi
         @debug "i=$i, A=$candidate_A, B=$candidate_B"
         
         if candidate_A<1.0 && candidate_B ⊘₊ (1.0 ⊖₋ candidate_A) < est
