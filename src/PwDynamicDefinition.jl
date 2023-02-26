@@ -29,7 +29,7 @@ struct MonotonicBranch{T<:Function, S<:Interval}
     increasing::Bool
 end
 
-MonotonicBranch(f::Function, X, Y=(f(Interval(X[1])), f(Interval(X[2]))), increasing=unique_increasing(Y[1], Y[2])) = MonotonicBranch{typeof(f), typeof(interval(X[1]))}(f, X, Y, increasing)
+MonotonicBranch(f::Function, X, Y=(f(X[1]), f(X[2])), increasing=unique_increasing(Y[1], Y[2])) = MonotonicBranch{typeof(f), typeof(interval(X[1]))}(f, X, Y, increasing)
 
 function equal_up_to_order(X, Y)
     @assert length(X)==2 && length(Y)==2
@@ -46,6 +46,7 @@ function equal_up_to_order(X, Y)
 end
 
 DynamicDefinition.is_full_branch(b::MonotonicBranch{T,S}, X) where {T,S} = equal_up_to_order(b.Y, X)
+DynamicDefinition.is_increasing(b::MonotonicBranch) = b.increasing
 
 import Base.reverse
 """
@@ -53,7 +54,7 @@ import Base.reverse
 
 "Reverses" the x-axis of a branch: given f:[a,b] -> R, creates a branch with the function g:[-b,-a] -> R defined as g(x) = f(-x)
 """
-Base.reverse(br::MonotonicBranch) = MonotonicBranch(x -> br.f(-x), (-br.X[2], -br.X[1]), (br.Y[2], br.Y[1]), !br.increasing)
+Base.reverse(br::MonotonicBranch) = MonotonicBranch(x -> br.f(-x), (-br.X[2], -br.X[1]), (br.Y[2], br.Y[1]), !is_increasing(br))
 
 """
 Dynamic based on a piecewise monotonic map.
@@ -69,7 +70,7 @@ the array `branches` is guaranteed to satisfy branches[i].X[end]==branches[i+1].
 struct PwMap <: Dynamic
 	branches::Array{MonotonicBranch, 1}
 	full_branch::Bool
-    function PwMap(branches::Array{MonotonicBranch, 1}; full_branch = false)
+    function PwMap(branches::Array{<:MonotonicBranch, 1}; full_branch = false)
         new(branches, full_branch)
     end
 end
@@ -78,8 +79,7 @@ function PwMap(Ts, endpoints, y_endpoints_in=hcat([Ts[k](Interval(endpoints[k]))
     branches = MonotonicBranch[]
     for k in 1:length(endpoints)-1
         y_endpoints = (y_endpoints_in[k,1], y_endpoints_in[k,2])
-        increasing  = unique_increasing(y_endpoints_in[k,1], y_endpoints_in[k,2])
-        push!(branches, MonotonicBranch(Ts[k], (endpoints[k], endpoints[k+1]), y_endpoints, increasing))
+        push!(branches, MonotonicBranch(Ts[k], (endpoints[k], endpoints[k+1]), y_endpoints))
     end
     X = (endpoints[begin], endpoints[end])
     full_branch_detected = full_branch || all(is_full_branch(b, X) for b in branches)
@@ -89,6 +89,17 @@ end
 Base.show(io::IO, D::PwMap) = print(io, "Piecewise-defined dynamic with $(nbranches(D)) branches")
 
 DynamicDefinition.domain(D::PwMap) =  (D.branches[1].X[1], D.branches[end].X[2])
+
+function DynamicDefinition.is_increasing(D::PwMap)
+    inc = DynamicDefinition.is_increasing.(D.branches)
+    if all(inc)
+        return true
+    elseif all(.!inc)
+        return false
+    else
+        error("The given dynamic has branches with different orientations")
+    end
+end
 
 Base.getindex(D::PwMap, k::Int64) = D.branches[k]
 
@@ -275,7 +286,7 @@ function mod1_dynamic(f::Function; ϵ = 0.0, max_iter = 100, full_branch = false
     # check monotonicity
     
     try 
-        @assert minimise(x -> derivative(f, x) * (br.increasing ? 1 : -1), hull(Interval.(X)...))[1] > 0
+        @assert minimise(x -> derivative(f, x) * (is_increasing(br) ? 1 : -1), hull(Interval.(X)...))[1] > 0
     catch exc
         if isa(exc, MethodError)
             @warn "It probably is complaining that the result of derivative(f) is not an interval"
@@ -295,7 +306,7 @@ function mod1_dynamic(f::Function; ϵ = 0.0, max_iter = 100, full_branch = false
     Ts = [x->f(x)-k for k in integer_parts]
 
     n = Base.length(x)
-    if br.increasing
+    if is_increasing(br)
         y_endpoints::Matrix{Interval{Float64}} = hcat(fill(0., n), fill(1., n))
     else
         y_endpoints = hcat(fill(1., n), fill(0., n))
@@ -315,60 +326,22 @@ function mod1_dynamic(f::Function; ϵ = 0.0, max_iter = 100, full_branch = false
 end
 
 """
-    Create explicitly D1 ∘ D2 as a PwMap (list of MonotonicBranches)
+    Create explicitly D1 ∘ D2 as a PwMap
 """
 function composedPwMap(D1::PwDynamicDefinition.PwMap, D2::PwDynamicDefinition.PwMap)
-    # TODO: this could be rewritten using preimages()
-    new_branches =  MonotonicBranch[]
-    for br2 in branches(D2)
-        if br2.increasing
-            for br1 in branches(D1)
-                y_range = hull(br1.Y[1], br1.Y[2])
-                left  = preimage(br1.X[1], br2, hull(br2.X[1], br2.X[2]); ϵ = 10^-13, max_iter = 100)
-                right  = preimage(br1.X[2], br2, hull(br2.X[1], br2.X[2]); ϵ = 10^-13, max_iter = 100)
-                @debug left
-                @debug right
-                F = br1.f∘br2.f
-                F_increasing = br1.increasing
-                if left!=∅ && right!=∅
-                    y_endpoints = (F(left) ∩ y_range, F(right) ∩ y_range)
-                    push!(new_branches, MonotonicBranch(F, (left, right), y_endpoints, F_increasing))
-                elseif left == ∅ && right != ∅
-                    left = br2.X[1]
-                    y_endpoints = (F(left) ∩ y_range, F(right) ∩ y_range)
-                    push!(new_branches, MonotonicBranch(F, (left, right), y_endpoints, F_increasing))
-                elseif left !=∅ && right == ∅
-                    right = br2.X[2]
-                    y_endpoints = (F(left) ∩ y_range, F(right) ∩ y_range)
-                    push!(new_branches, MonotonicBranch(F, (left, right), y_endpoints, F_increasing))
-                end
-            end
-        else # br2.increasing == false
-            for br1 in Iterators.reverse(branches(D1))
-                y_range = hull(br1.Y[1], br1.Y[2])
-                left  = preimage(br1.X[2], br2, hull(br2.X[1], br2.X[2]); ϵ = 10^-13, max_iter = 100)
-                right  = preimage(br1.X[1], br2, hull(br2.X[1], br2.X[2]); ϵ = 10^-13, max_iter = 100)
-                F = br1.f∘br2.f
-                F_increasing = !br1.increasing
-                if left!=∅ && right!=∅
-                    y_endpoints = (F(left) ∩ y_range, F(right) ∩ y_range)
-                    push!(new_branches, MonotonicBranch(F, (left, right), y_endpoints, F_increasing))
-                elseif left == ∅ && right != ∅
-                    left = br2.X[1]
-                    y_endpoints = (F(left) ∩ y_range, F(right) ∩ y_range)
-                    push!(new_branches, MonotonicBranch(F, (left, right), y_endpoints, F_increasing))
-                elseif left !=∅ && right == ∅
-                    right = br2.X[2]
-                    y_endpoints = (F(left) ∩ y_range, F(right) ∩ y_range)
-                    push!(new_branches, MonotonicBranch(F, (left, right), y_endpoints, F_increasing))
-                end
-            end
-        end
-    end
-    # these are conservative in order to be generic, i.e., due to composition
-    # we could have a different behaviour, but the statement belows are conservatively true
-    full_branch = D1.full_branch && D2.full_branch
-    return PwMap(new_branches; full_branch = full_branch)
+    y_endpoints = endpoints(D1)
+    x, xlabel = preimages_and_branches(y_endpoints, D2; ϵ = 1e-13, max_iter=100)
+    push!(x, D2.branches[end].X[2])
+    branches = [MonotonicBranch(D1.branches[brid1].f ∘ D2.branches[brid2].f, 
+                                (x[i], x[i+1]), 
+                                D1.branches[brid1].Y) 
+                                for (i,(brid1, brid2)) in enumerate(xlabel)]
+
+    # full_branch is defined conservatively; it is possible that non-full-branch dynamics
+    # composed could yield a full-branch composed dynamic
+    full_branch = is_full_branch(D1) && is_full_branch(D2)
+
+    return PwMap(branches; full_branch = full_branch)
 end
 
 using ProgressMeter
@@ -457,7 +430,7 @@ end
 #  @info "aux_der", aux_der
     
 #    for br in branches(D)
-#        if br.increasing
+#        if is_increasing(br)
 #            rr = preimage(aux_der, x -> 1/(2*derivative(br.f, x)), hull(br.X[1], br.X[2]), 10^-13)
 #            @info rr
 #        else

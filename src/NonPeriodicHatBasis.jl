@@ -223,7 +223,7 @@ struct HatNPDual <: Dual
 end
 
 function HatNPDualBranch(y, br::MonotonicBranch, ylabel = 1:length(y), ϵ = 0.0)
-	if br.increasing
+	if is_increasing(br)
 		endpoint_X = br.X[2]
 		der = Contractors.derivative(br.f)(endpoint_X)
 		preim_der = preimages_and_derivatives(y, br, ylabel, ϵ)
