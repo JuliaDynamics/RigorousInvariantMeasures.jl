@@ -358,7 +358,9 @@ function dfly_inf_der(::Type{TotalVariation}, ::Type{L1}, D::PwDynamicDefinition
     leftrightsingularity = Tuple{Bool, Bool}[]
     A = +∞
     B = +∞
-    
+
+    width_term = maximum( 2 / (br.X[2] - br.X[1]) for br in D.branches).hi
+
     # for each branch, we check if the derivative is infinite at any of the endpoints:
     for br in branches(D)
         (left, right) = has_infinite_derivative_at_endpoints(br)
@@ -367,15 +369,14 @@ function dfly_inf_der(::Type{TotalVariation}, ::Type{L1}, D::PwDynamicDefinition
     end
     est = +∞
     @showprogress 1 "Computing infinite-derivative DFLY..." for i in 3:15
-        val = 0.0
-        val_summand = Interval(0.0)
-        l = 0.0
+        max_expansivity = Interval(0.0) # maximum of the expansivity outside the critical intervals
+        int_distortion = Interval(0.0) # integral of the distortion over the critical intervals
+        bound_distortion = 0.0 # lower bound to the distortion inside the critical intervals
 
         for (j, br) in enumerate(branches(D))
             rad = radius(hull(br.X[1], br.X[2]))
             tol = rad/2^(i+1)
             left, right = leftrightsingularity[j]
-            @debug "branch $j, left_singularity=$left, right_singularity=$right"
             f = inverse_derivative(br.f)
             g = distortion(br.f)
             left_endpoint = br.X[1]
@@ -387,44 +388,38 @@ function dfly_inf_der(::Type{TotalVariation}, ::Type{L1}, D::PwDynamicDefinition
                 right_endpoint-= rad/2^i
             end
             I = hull(left_endpoint, right_endpoint)
-            val_br = 2*maximise(x->abs(f(x)), I, tol=tol)[1]
-            @debug "maximise on $I: $val_br"
-            val = max(val, val_br.hi)
+            val_br = maximise(x->abs(f(x)), I, tol=tol)[1]
+            max_expansivity = max(max_expansivity, val_br)
             
             if left
                 # we work on the interval [br.X[1], left_endpoint] =: [a, b].
                 # we assume here that f(a) = 0, g(a)=∞, and that g is monotonically decreasing on [a,b]
                 l_left = abs(g(left_endpoint))
-                @debug "left endpoint: g($left_endpoint) = $l_left"
                 # we use the fact that the primitive of the distortion g is f=1/T', and compute
                 # int_a^b (distorsion) = f(b) - f(a) = f(b)
-                val_summand+= abs(f(left_endpoint)/2)
-                @debug "abs(f($left_endpoint)/2) = $val_summand"
-                l = max(l, abs(l_left).hi )
+                int_distortion += abs(f(left_endpoint))
+                bound_distortion = max(bound_distortion, abs(l_left).hi )
             end
             if right
                 # same reasoning as above but on the right endpoint
                 l_right = abs(g(right_endpoint)) 
-                @debug "right endpoint: g($right_endpoint) = $l_right"
-                val_summand+= abs(f(right_endpoint)/2)
-                @debug "abs(f($right_endpoint)/2) = $val_summand"
-                l = max(l, abs(l_right).hi )
+                int_distortion += abs(f(right_endpoint))
+                bound_distortion = max(bound_distortion, abs(l_right).hi )
             end
         end
-        val = val ⊕₊ val_summand.hi 
-        @debug "i=$i, A=$val, B=$l"
-
-        if val<1.0 && l⊘₊(1.0 ⊖₋val) < est
-            est = l⊘₊(1.0 ⊖₋val)
-            A = val
-            B = l
+        candidate_A = 2*max_expansivity.hi ⊕₊ (int_distortion/2).hi 
+        candidate_B = bound_distortion ⊕₊ width_term
+        @debug "i=$i, A=$candidate_A, B=$candidate_B"
+        
+        if candidate_A<1.0 && candidate_B ⊘₊ (1.0 ⊖₋ candidate_A) < est
+            est = candidate_B ⊘₊ (1.0 ⊖₋ candidate_A)
+            A = candidate_A
+            B = candidate_B
             @debug "improving on previous best"
         end
     end
-    endpts = endpoints(D)
-    min_width = minimum([endpts[i+1]-endpts[i] for i in 1:length(endpts)-1])
-        
-    return A, B⊕₊(2/min_width).hi 
+
+    return A, B 
 end
 #    aux_der = (1-max_exp)/2
 #  @info "aux_der", aux_der
