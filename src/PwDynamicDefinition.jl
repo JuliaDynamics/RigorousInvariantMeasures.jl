@@ -366,7 +366,6 @@ function dfly_inf_der_auxiliary_quantities(br::PwDynamicDefinition.MonotonicBran
     int_distortion = Interval(0.0) # integral of the distortion over the critical intervals
     bound_distortion = Interval(0.0) # lower bound to the distortion inside the critical intervals
     rad = radius(hull(br.X[1], br.X[2]))
-    tol = rad/2^(i+1)  # TODO: this ignores the passed `tol` at the moment, but I am just refactoring for now
     f = inverse_derivative(br.f)
     g = distortion(br.f)
     left_endpoint = br.X[1]
@@ -378,7 +377,9 @@ function dfly_inf_der_auxiliary_quantities(br::PwDynamicDefinition.MonotonicBran
         right_endpoint-= rad/2^i
     end
     I = hull(left_endpoint, right_endpoint)
-    max_expansivity = maximise(x->abs(f(x)), I, tol=tol)[1]
+    max_result = maximise(x->abs(f(x)), I, tol=tol)
+    @debug "max_result: $max_result"
+    max_expansivity = max_result[1]
     
     if left
         # we work on the interval [br.X[1], left_endpoint] =: [a, b].
@@ -398,6 +399,23 @@ function dfly_inf_der_auxiliary_quantities(br::PwDynamicDefinition.MonotonicBran
     return max_expansivity, int_distortion, bound_distortion
 end
 
+"""
+    candidate_A, candidate_B = dfly_inf_der_single_estimate(D, i, width_term, tol=1e-3)
+
+Computes dfly coefficients for a map with infinite derivatives, wtih a fixed width exponent i in the width of the problematic intervals.
+"""
+function dfly_inf_der_single_estimate(D, i; width_term=maximum( 2 / (br.X[2] - br.X[1]) for br in D.branches), tol=1e-3)
+    results = [dfly_inf_der_auxiliary_quantities(br, i, tol) for br in D.branches]
+    max_expansivity = maximum(r[1] for r in results)
+    int_distortion = sum(r[2] for r in results)
+    @debug "expansivities: $([r[1] for r in results]), int_distortion: $int_distortion"
+    bound_distortion = maximum(r[3] for r in results)
+
+    candidate_A = 2*max_expansivity.hi ⊕₊ (int_distortion/2).hi 
+    candidate_B = bound_distortion.hi ⊕₊ width_term.hi
+    return candidate_A, candidate_B
+end
+    
 using ProgressMeter
 """
 dfly inequality for maps with infinite derivatives. 
@@ -408,32 +426,28 @@ The strategy to compute it follows a variant of Lemma 9.1 in the GMNP paper:
 * we compute the dfly coefficients as in the lemma.
 * we repeat the computation replacing 2^3 with 2^4, 2^5, ... 2^15 and take the best estimate among these.
 """
-function dfly_inf_der(::Type{TotalVariation}, ::Type{L1}, D::PwDynamicDefinition.PwMap, tol=1e-3)
-    A = +∞
-    B = +∞
+function dfly_inf_der(::Type{TotalVariation}, ::Type{L1}, D::PwDynamicDefinition.PwMap; rough_tol=1e-4, fine_tol=1e-6)
     width_term = maximum( 2 / (br.X[2] - br.X[1]) for br in D.branches)
     est = +∞
+    best_i = 0;
 
-    @showprogress 1 "Computing infinite-derivative DFLY..."  for i in 3:15
-        results = [dfly_inf_der_auxiliary_quantities(br, i, tol) for br in D.branches]
-        max_expansivity = maximum(r[1] for r in results)
-        int_distortion = sum(r[2] for r in results)
-        bound_distortion = maximum(r[3] for r in results)
-
-
-        candidate_A = 2*max_expansivity.hi ⊕₊ (int_distortion/2).hi 
-        candidate_B = bound_distortion.hi ⊕₊ width_term.hi
+    @showprogress 1 "Checking candidate values for infinite-derivative DFLY..."  for i in 3:15
+        candidate_A, candidate_B = dfly_inf_der_single_estimate(D, i; width_term, tol=rough_tol)
         @debug "i=$i, A=$candidate_A, B=$candidate_B"
         
         if candidate_A<1.0 && candidate_B ⊘₊ (1.0 ⊖₋ candidate_A) < est
             est = candidate_B ⊘₊ (1.0 ⊖₋ candidate_A)
-            A = candidate_A
-            B = candidate_B
+            best_i = i
             @debug "improving on previous best"
         end
     end
-
-    return A, B 
+    if best_i == 0
+        error("Could not compute a dfly() inequality with A<1")
+    end
+    # recomputes the optimal value with a finer tolerance
+    A, B = dfly_inf_der_single_estimate(D, best_i; width_term, tol=fine_tol)
+    @info "Computed infinite-derivative dfly coefficients: A=$A, B=$B"
+    return A, B
 end
 #    aux_der = (1-max_exp)/2
 #  @info "aux_der", aux_der
