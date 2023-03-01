@@ -206,7 +206,7 @@ end
 
 function dfly(N1::Type{TotalVariation}, N2::Type{L1}, D::PwMap)
     if has_infinite_derivative_at_endpoints(D)
-        return dfly_inf_der(N1, N2, D, 10^-3)
+        return dfly_inf_der(N1, N2, D)
     end
     
     dist = max_distortion(D)
