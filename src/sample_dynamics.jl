@@ -1,4 +1,4 @@
-export BZ, Lorenz
+export BZ, Lorenz, FastLorenz
 
 function BZ()
     A_big = Interval{BigFloat}(BigFloat("0.5060735690368223513195993710530479569801417368282037493809901142182256388277772"))
@@ -24,6 +24,15 @@ function BZ()
 end
 
 Lorenz(θ=109/64, α=51/64) = PwMap([x->θ*(0.5-x)^α, x->1-θ*(x-0.5)^α],
+                    [@interval(0), @interval(0.5), @interval(1)],
+                    [θ*(Interval(0.5))^α Interval(0.0);
+                    Interval(1.0)  1-θ*(Interval(0.5))^α])
+
+"""
+Faster replacement for interval power
+"""
+fastpow(x, α) = iszero(x) ? x : exp(α * log(x))
+FastLorenz(θ=109/64, α=51/64) = PwMap([x->θ*fastpow(0.5-x, α), x->1-θ*fastpow(x-0.5, α)],
                     [@interval(0), @interval(0.5), @interval(1)],
                     [θ*(Interval(0.5))^α Interval(0.0);
                     Interval(1.0)  1-θ*(Interval(0.5))^α])
