@@ -18,7 +18,7 @@ using .Contractors
 
 include("DynamicDefinition.jl")
 using .DynamicDefinition
-export Dynamic, derivative, distortion, endpoints, nbranches, branch, expansivity, max_distortion
+export Dynamic, endpoints, nbranches, branch, max_inverse_derivative, max_distortion
 
 include("BasisDefinition.jl")
 using .BasisDefinition
@@ -99,5 +99,7 @@ export L2, Fourier1D, GaussianNoise
 
 include("FourierBasisBack.jl")
 include("BasisUlam2DSkewProduct.jl")
+
+include("sample_dynamics.jl")
 
 end

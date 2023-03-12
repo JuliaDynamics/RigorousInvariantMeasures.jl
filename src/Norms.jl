@@ -8,7 +8,6 @@ using TaylorSeries: Taylor1
 using SparseArrays: getcolptr
 using .DynamicDefinition
 
-using .DynamicDefinition: derivative
 
 """
 'Absolute value' definition that returns mag(I) for an interval and abs(x) for a real
@@ -187,7 +186,7 @@ dfly(::Type{<:NormKind}, ::Type{<:NormKind}, ::Dynamic) = @error "Not implemente
 # I don't think this is used in production anymore
 function dfly(N1::Type{TotalVariation}, N2::Type{L1}, D::Dynamic)
     dist = max_distortion(D)
-    lam = expansivity(D)
+    lam = max_inverse_derivative(D)
 
     if !(abs(lam) < 1) # these are intervals, so this is *not* equal to abs(lam) >= 1.
         @error "The function is not expanding"
@@ -206,12 +205,12 @@ function dfly(N1::Type{TotalVariation}, N2::Type{L1}, D::Dynamic)
 end
 
 function dfly(N1::Type{TotalVariation}, N2::Type{L1}, D::PwMap)
-    if D.infinite_derivative
+    if has_infinite_derivative_at_endpoints(D)
         return dfly_inf_der(N1, N2, D, 10^-3)
     end
     
     dist = max_distortion(D)
-    lam = expansivity(D)
+    lam = max_inverse_derivative(D)
     vec = endpoints(D)
     disc = maximum(2/abs(vec[i]-vec[i+1]) for i in 1:nbranches(D))
 
@@ -234,7 +233,7 @@ function dfly(::Type{Lipschitz}, ::Type{L1}, D::Dynamic)
 
     dist = max_distortion(D)
     #@info dist
-    lam = expansivity(D)
+    lam = max_inverse_derivative(D)
     #@info lam
 
     return ((lam*(2*dist+1)).hi, (dist*(dist+1)).hi)

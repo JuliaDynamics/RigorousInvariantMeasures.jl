@@ -47,7 +47,7 @@ range_estimate_monotone(f, X) = hull(f(Interval(X.lo)), f(Interval(X.hi)))
 """
 Compute the preimage f⁻¹(y), knowing that it lies inside `search_interval`.
 """
-function preimage(y, br::MonotonicBranch, search_interval; ϵ, max_iter)
+function preimage(y, br::MonotonicBranch, search_interval=hull(br.X...); ϵ, max_iter)
     # Since the branch is monotonic, we can compute the preimages of y.lo and y.hi separately
     # This should give slightly thinner intervals.
 
@@ -57,14 +57,14 @@ function preimage(y, br::MonotonicBranch, search_interval; ϵ, max_iter)
         return Interval(∅)
     end
 
-    xlo = preimage_monotonic(Y.lo, br.f, br.fprime, search_interval, br.Y; ϵ, max_iter)
+    xlo = preimage_monotonic(Y.lo, br.f, search_interval, br.Y; ϵ, max_iter)
 
     if isthin(Y)
         @debug "preimage of $y on $search_interval: $xlo"
         return xlo
     end
 
-    xhi = preimage_monotonic(Y.hi, br.f, br.fprime, search_interval, br.Y; ϵ, max_iter)
+    xhi = preimage_monotonic(Y.hi, br.f, search_interval, br.Y; ϵ, max_iter)
 
     @debug "preimage of $y on $search_interval: $(hull(xlo, xhi))"
     return hull(xlo, xhi) ∩ search_interval
@@ -185,7 +185,7 @@ We combine them in a single function because there are avenues to optimize by re
 """
 function preimages_and_derivatives(y, br::MonotonicBranch, ylabel = 1:length(y); ϵ, max_iter)
     x, xlabel = preimages(y, br, ylabel; ϵ, max_iter)
-    f′ = Contractors.derivative(br.f)
+    f′ = derivative(br.f)
     x′ = f′.(x)
     return x, xlabel, x′
 end
@@ -230,7 +230,7 @@ function preimages(z, Ds::ComposedDynamic, zlabel = 1:length(z); ϵ, max_iter)
     return z, zlabel
 end
 function preimages_and_derivatives(z, Ds::ComposedDynamic, zlabel = 1:length(z); ϵ, max_iter)   
-    derivatives = fill(1, length(z))
+    derivatives = fill(one(eltype(z)), length(z))
     for d in Ds.dyns
         z, zindex, z′ = preimages_and_derivatives(z, d, 1:length(z); ϵ, max_iter)
         zlabel = zlabel[zindex]
