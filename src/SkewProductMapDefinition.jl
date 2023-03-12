@@ -16,3 +16,7 @@ function FiberMap(D::SkewProductMap, x, y)
     @assert sum(intersection_x) == 1 "Intersects many branches, ambiguous" 
     return (D.G[intersection_x][1])(x, y)
 end
+
+function intersect_domain_bool(D::PwMap, x)
+    return [(x ∩ hull(br.X[1], br.X[2])) != ∅ for br in D.branches]
+end
