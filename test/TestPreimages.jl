@@ -1,5 +1,6 @@
 using Test
 using RigorousInvariantMeasures: preimages
+using RigorousInvariantMeasures.DynamicDefinition: is_increasing
 using IntervalArithmetic
 
 @testset "preimages" begin
@@ -111,7 +112,7 @@ for y = (a1, a2)
         @test length(x) == length(xlabel)
         z1 = filter(x->!isempty(x),intersect.(map(Interval,y), hull(b.Y[1], b.Y[2]+1e-15))) # the 1e-15 is there to simulate "disjoint intervals"
         z2 = f.(x)
-        if !b.increasing
+        if !is_increasing(b)
             z2 = reverse(z2)
         end
         
@@ -147,6 +148,8 @@ g = x -> (x+x^2)/2
 D1 = mod1_dynamic(f)
 D2 = mod1_dynamic(g)
 
+@test RigorousInvariantMeasures.DynamicDefinition.is_increasing(D1)
+
 y = 0:0.2:1
 x, xlabel = preimages(y, D1 ∘ D2; ϵ =  1e-13, max_iter = 100)
 
@@ -155,6 +158,8 @@ x, xlabel = preimages(y, D1 ∘ D2; ϵ =  1e-13, max_iter = 100)
 
 D1 = PwMap([x->2x, x->6x-3, x->3x-2], [0, 0.5, @interval(2/3), 1], [0 1; 0 1; 0 1])
 D2 = PwMap([x->2x, x->4x-2, x->4x-3], [0, 0.5, 0.75, 1], [0 1; 0 1; 0 1])
+
+@test RigorousInvariantMeasures.DynamicDefinition.is_increasing(D1)
 
 z = 0:0.3:1
 y, ylabel, y′ = RigorousInvariantMeasures.preimages_and_derivatives(z, D1; ϵ = 0.0, max_iter = 100)
@@ -167,6 +172,29 @@ x, xlabel, x′ = RigorousInvariantMeasures.preimages_and_derivatives(z, D1∘D2
 
 @test all(x .≈ vcat(y/2, 0.5 .+ y/4, 0.75 .+ y/4))
 @test x′ == kron([4,12,6,8,24,12,8,24,12], [1,1,1,1])
+
+f = x -> x^2;
+g = x -> 1-x^2
+Dinc = PwMap([f], [0..0, 1..1])
+Ddec = PwMap([g], [0..0, 1..1])
+
+@test is_increasing(Dinc)
+@test !is_increasing(Ddec)
+@test is_increasing(Ddec ∘ Ddec)
+@test !is_increasing(Dinc ∘ Ddec)
+@test !is_increasing(Ddec ∘ Ddec ∘ Ddec)
+
+z = [0..0, 0.5..0.5, 1..1]
+x, xlabel, x′ = RigorousInvariantMeasures.preimages_and_derivatives(z, Dinc∘Ddec; ϵ = 0.0, max_iter = 100)
+
+@test all(isapprox(x, [0, sqrt(1 - 1/sqrt(2))]))
+@test all(xlabel .== [2,1])
+@test all(isapprox.(x′, [0, -2*sqrt(2-sqrt(2))]))
+
+x, xlabel, x′ = RigorousInvariantMeasures.preimages_and_derivatives(z, Ddec∘Ddec; ϵ = 0.0, max_iter = 100)
+@test all(isapprox(x, [0, sqrt(1 - 1/sqrt(2))]))
+@test all(xlabel .== [1,2])
+@test all(isapprox.(x′, [0, 2*sqrt(2-sqrt(2))]))
 
 D = PwMap([x->17*x/5, 
 	x->(34*((17*x-5)/17)/25+3)*((17*x-5)/17), 
