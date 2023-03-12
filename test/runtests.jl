@@ -1,6 +1,8 @@
 using RigorousInvariantMeasures, IntervalArithmetic
 using Test, Documenter
 
+DocMeta.setdocmeta!(RigorousInvariantMeasures, :DocTestSetup, :(using RigorousInvariantMeasures); recursive=true, warn=false)
+
 @testset "RigorousInvariantMeasures.jl" begin
 
     # include("TestDifferentiation.jl")
@@ -23,8 +25,6 @@ using Test, Documenter
     include("TestSkewProductMap.jl")
     include("TestUlam2DSP.jl")
     #include("TestHigherDFLY.jl")
-
-    DocMeta.setdocmeta!(RigorousInvariantMeasures, :DocTestSetup, :(using RigorousInvariantMeasures); recursive=true)
 
     @testset "Doctests" begin 
         if Base.VERSION >= v"1.8"

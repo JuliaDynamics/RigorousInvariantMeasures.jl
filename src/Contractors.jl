@@ -1,6 +1,6 @@
 module Contractors
 using IntervalArithmetic
-
+using RigorousInvariantMeasures: derivative, value_and_derivative
 
 export preimage_monotonic, range_estimate, ShootingMethod, preimage, unique_increasing
 
@@ -29,14 +29,8 @@ function unique_increasing(a, b) # Fallback for Float64
 	end
 end
 
-# this seems slower
-using TaylorSeries
-derivative(f) = x-> f(Taylor1([x,1.],1))[1]
 
-#using DualNumbers
-#derivative(f) = x->f(Dual(x, 1..1)).epsilon
-
-
+# TODO: after the last refactoring, we actually only need preimage_increasing; this could be simplified.
 """
 Compute the guaranteed interval preimage f⁻¹(y) of a point y ∈ R according to the function f: [a,b] → R. 
 This preimage is guaranteed to lie inside the real interval `x = hull(a,b)`.
@@ -49,8 +43,7 @@ This preimage is guaranteed to lie inside the real interval `x = hull(a,b)`.
 Stops when the interval reaches a fixed point, when the diameter is smaller than ε,
 or when max_iter iterations are reached (with an error)
 """
-preimage_monotonic(y, f::Function, x::Interval, (y1, y2); ϵ, max_iter) = preimage_monotonic(y, f::Function, derivative(f), x::Interval, (y1, y2); ϵ, max_iter)
-function preimage_monotonic(y, f::Function, f′, x::Interval, (y1, y2) = (f(Interval(x.lo)), f(Interval(x.hi))); ϵ, max_iter)
+function preimage_monotonic(y, f::Function, x::Interval, (y1, y2) = (f(Interval(x.lo)), f(Interval(x.hi))); ϵ, max_iter)
 	x_old::typeof(x) = ∅
 	for i in 1:max_iter
 
@@ -62,7 +55,7 @@ function preimage_monotonic(y, f::Function, f′, x::Interval, (y1, y2) = (f(Int
 		x_mid = Interval(mid(x))
 
 		fm::typeof(x) = ∅  # both Newton and Krawczyk will compute f(x_mid) as a byproduct; we save it here.
-		enc_der = f′(x)
+		enc_der = derivative(f, x)
 		if 0 ∉ enc_der
 			# Interval Newton step on x -> f(x) - y
 			@debug "Step $i, Newton method:
@@ -83,8 +76,7 @@ function preimage_monotonic(y, f::Function, f′, x::Interval, (y1, y2) = (f(Int
 			- the value at the midpoint $(f(x_mid))
 			- the value $(f(x))"
 
-			fm = f(x_mid) # TODO: merge this line and the next into a single call
-			der_mid = f′(x_mid)
+			fm, der_mid = value_and_derivative(f, x_mid)
 
 			Nx = x_mid - der_mid \ (fm - y) + (1 - der_mid \ enc_der)*(x-x_mid)
 

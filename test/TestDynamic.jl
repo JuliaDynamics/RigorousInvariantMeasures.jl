@@ -8,7 +8,7 @@ using IntervalArithmetic
 D = mod1_dynamic(x->2*x)
 
 @test D.branches[1].f(0.1) == 0.2
-@test derivative(D.branches[1])(0.1) == 2.0
+@test derivative(D.branches[1].f)(0.1) == 2.0
 
 @test RigorousInvariantMeasures.intersect_domain(D, Interval(0.0)) == [Interval(0.0); ∅]
 @test RigorousInvariantMeasures.intersect_domain(D, Interval(0.4, 0.6)) == [Interval(0.4, 0.5); Interval(0.5, 0.6)]
@@ -22,20 +22,10 @@ D = mod1_dynamic(x->2*x)
 
 D = PwMap([ x-> x^2+0.25, x -> 4*x-2, x -> 4*x-3], [0, 0.5, 0.75, 1])
 
-@test RigorousInvariantMeasures.DynamicDefinition.derivative(D, 0.1..0.1) ≈ 0.2
-@test RigorousInvariantMeasures.DynamicDefinition.derivative(D, 0.2..0.3) ≈ 0.4..0.6
-@test RigorousInvariantMeasures.DynamicDefinition.derivative(D, 0.4..0.6) ≈ 0.8..4
-@test RigorousInvariantMeasures.DynamicDefinition.derivative(D, 0.7..0.8) ≈ 4
-
-D = PwMap([ x-> 4*x, x -> 2*x-0.5, x -> 4*x-3], [0, 0.25, 0.75, 1])
-
-@test RigorousInvariantMeasures.DynamicDefinition.derivative(D, 0.1..0.3) ≈ 2..4
-@test RigorousInvariantMeasures.DynamicDefinition.derivative(D, 0.1..0.2) ≈ 4..4
-
 D = PwMap([x->2*x, x->2-2*x], [@interval(0), @interval(0.5), @interval(1)])
 
-@test RigorousInvariantMeasures.orientation(D, 1) == 1
-@test RigorousInvariantMeasures.orientation(D, 2) == -1
+@test D.branches[1].increasing == true
+@test D.branches[2].increasing == false
 
 D = mod1_dynamic(x -> 3.5x)
 
@@ -124,8 +114,8 @@ D = mod1_dynamic(x->2*x)
 @test D.full_branch == true
 @test D.branches[1].f(0.125) == 0.25
 @test D.branches[2].f(0.5+0.125) == 0.25
-@test D.branches[1].fprime(0.1) == 2.0
-@test D.branches[2].fprime(0.1) == 2.0
+@test derivative(D.branches[1].f, 0.1) == 2.0
+@test derivative(D.branches[2].f, 0.1) == 2.0
 
 @test 0 ∈ D.branches[1].X[1]
 @test 0 ∈ D.branches[1].Y[1]
@@ -133,7 +123,7 @@ D = mod1_dynamic(x->2*x)
 @test 0.5 ∈ D.branches[1].X[2]
 @test 1 ∈ D.branches[1].Y[2]
 
-@test 0.5 ∈ expansivity(D)
+@test 0.5 ∈ max_inverse_derivative(D)
 @test 0 <= max_distortion(D)
 
 
