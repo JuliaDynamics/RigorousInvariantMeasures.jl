@@ -26,7 +26,7 @@ T = ContractingLorenz1D(α = α , s = s)
 # this is the map on [0, 1], incredibly it works!!!
 D = ψ∘T∘ϕ
 
-
+"""
 This map is represented as a MonotonicBranch object, where we pass the function, the value of the ``y``-derivative
 (which is a constant depending on ``x``)
 """
