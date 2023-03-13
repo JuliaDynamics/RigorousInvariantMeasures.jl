@@ -178,7 +178,7 @@ function preimage_fixed_x(D, x, y_min, y_max; ϵ, max_iter)
     if preim_y_max == ∅
         preim_y_max = Interval(1)
     end
-    
+
     return (preim_y_min, preim_y_max)
 end
 
@@ -280,7 +280,7 @@ end
 function check_image(B::Ulam2DSP, G, x_l, x_r)
     x = hull(x_l, x_r)
     im_bound = hull(G(x, 0), G(x, 1))
-    @info im_bound
+    @debug im_bound
     y = im_bound*length(B.p_y)
     y_ceil = Int64(ceil(y.hi))
     y_floor = Int64(floor(y.lo))
