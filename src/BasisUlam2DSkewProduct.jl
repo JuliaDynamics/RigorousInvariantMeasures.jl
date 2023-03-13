@@ -158,6 +158,62 @@ function assemble(B::Ulam2DSP, D::SkewProductMap; ϵ, max_iter, T)
     return sum(BranchOperator)
 end
 
+function preimage_fixed_x(D, x, y_min, y_max; ϵ, max_iter)
+    intersection_x = intersect_domain_bool(D.T, x)
+    @assert sum(intersection_x) == 1 "Intersects many branches, ambiguous"
+    g(y) = (D.G[intersection_x][1])(x, y)
+        
+    H = MonotonicBranch(g, (Interval(0), Interval(1)))
+        
+    preim_y_min = preimage(y_min, H; ϵ, max_iter)
+    preim_y_max = preimage(y_max, H; ϵ, max_iter)
+    
+    if !H.increasing
+        preim_y_min, preim_y_max = preim_y_max, preim_y_min 
+    end
+
+    if preim_y_min == ∅
+        preim_y_min = Interval(0)
+    end
+    if preim_y_max == ∅
+        preim_y_max = Interval(1)
+    end
+    
+    return (preim_y_min, preim_y_max)
+end
+
+function rectangle_preimage(D::SkewProductMap, x_min, x_max, y_min, y_max, k)
+    preim_x = [preim_x_left+(preim_x_right-preim_x_left)/k*i for i in 0:k]
+    err_y = 0.0
+
+    for x in preim_x
+        
+        #preim_y_low = min(max(G_inv(y_lower), -1), 1)
+        #preim_y_up = max(min(G_inv(y_upper), 1), -1)
+        
+        err_y = maximum([err_y, IntervalArithmetic.radius(preim_y_low), IntervalArithmetic.radius(preim_y_up)])
+        push!(y_s, (preim_y_low, preim_y_up))
+    end
+    n = length(preim_x)
+    A = Matrix{Float64}(undef, 2*n, 2)
+    for (i, x) in enumerate(preim_x)
+        A[i, :] = [mid(x) mid(y_s[i][1])]
+    end
+    
+    for (i, x) in enumerate(reverse(preim_x))
+        A[n+i, :] = [mid(x) mid(y_s[end-i+1][2])]
+    end
+    
+    P = PH.polyhedron(PH.vrep(A), lib)
+    return P, max(err_x, err_y)
+    # for i in 0:k    
+    #    x = x_min+k*dx
+    #    
+       
+    # end
+end
+
+
 function _assemble_branch(B::Ulam2DSP, D::SkewProductMap, k; ϵ, max_iter, type)
     I = Int64[]
 	J = Int64[]
@@ -210,15 +266,15 @@ function _assemble_branch(B::Ulam2DSP, D::SkewProductMap, k; ϵ, max_iter, type)
             end
         end
 
+        # we need now to treat the case when we have nontrivial intersection
 
-
+        for ind_im_y in ind_im_y_lo:ind_im_y_hi
+            
+        end
 
 
 
     end
-
-
-
 end
 
 function check_image(B::Ulam2DSP, G, x_l, x_r)

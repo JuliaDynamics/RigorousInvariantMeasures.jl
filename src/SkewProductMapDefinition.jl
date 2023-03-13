@@ -18,5 +18,5 @@ function FiberMap(D::SkewProductMap, x, y)
 end
 
 function intersect_domain_bool(D::PwMap, x)
-    return [(x ∩ hull(br.X[1], br.X[2])) != ∅ for br in D.branches]
+    return [(Interval(x) ∩ hull(br.X[1], br.X[2]))!=∅ for br in D.branches]
 end
