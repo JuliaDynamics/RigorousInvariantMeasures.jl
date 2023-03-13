@@ -16,7 +16,7 @@ function unique_increasing(a::Interval, b::Interval)
 	elseif b.hi < a.lo
 		return false
 	else
-		error("Insufficient precision to check the sign of this function")
+		error("Insufficient precision to check the monotonicity of this function")
 	end
 end
 function unique_increasing(a, b) # Fallback for Float64

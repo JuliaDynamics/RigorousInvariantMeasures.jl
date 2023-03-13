@@ -158,10 +158,8 @@ function assemble(B::Ulam2DSP, D::SkewProductMap; ϵ, max_iter, T)
     return sum(BranchOperator)
 end
 
-function preimage_fixed_x(D, x, y_min, y_max; ϵ, max_iter)
-    intersection_x = intersect_domain_bool(D.T, x)
-    @assert sum(intersection_x) == 1 "Intersects many branches, ambiguous"
-    g(y) = (D.G[intersection_x][1])(x, y)
+function preimage_fixed_x(D::SkewProductMap, branch_idx, x, y_min, y_max; ϵ, max_iter)
+    g(y) = D.G[branch_idx](x, y)
         
     H = MonotonicBranch(g, (Interval(0), Interval(1)))
         
@@ -182,14 +180,19 @@ function preimage_fixed_x(D, x, y_min, y_max; ϵ, max_iter)
     return (preim_y_min, preim_y_max)
 end
 
-function rectangle_preimage(D::SkewProductMap, x_min, x_max, y_min, y_max, k)
-    preim_x = [preim_x_left+(preim_x_right-preim_x_left)/k*i for i in 0:k]
+import Polyhedra as PH
+import GLPK
+lib = PH.DefaultLibrary{Float64}(GLPK.Optimizer)
+
+function rectangle_preimage(D::SkewProductMap, branch_idx, x_min, x_max, y_min, y_max, k; ϵ, max_iter)
+    preim_x = [x_min+i*(x_max-x_min)/k for i in 0:k]
     err_y = 0.0
+    err_x = maximum(IntervalArithmetic.radius.(preim_x))
+    y_s = NTuple{2, Interval}[]
 
     for x in preim_x
         
-        #preim_y_low = min(max(G_inv(y_lower), -1), 1)
-        #preim_y_up = max(min(G_inv(y_upper), 1), -1)
+        preim_y_low, preim_y_up = preimage_fixed_x(D, branch_idx, x, y_min, y_max; ϵ, max_iter)
         
         err_y = maximum([err_y, IntervalArithmetic.radius(preim_y_low), IntervalArithmetic.radius(preim_y_up)])
         push!(y_s, (preim_y_low, preim_y_up))
@@ -206,11 +209,6 @@ function rectangle_preimage(D::SkewProductMap, x_min, x_max, y_min, y_max, k)
     
     P = PH.polyhedron(PH.vrep(A), lib)
     return P, max(err_x, err_y)
-    # for i in 0:k    
-    #    x = x_min+k*dx
-    #    
-       
-    # end
 end
 
 
