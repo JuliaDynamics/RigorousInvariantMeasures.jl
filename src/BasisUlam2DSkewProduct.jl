@@ -212,13 +212,13 @@ function rectangle_preimage(D::SkewProductMap, branch_idx, x_min, x_max, y_min, 
 end
 
 
-function _assemble_branch(B::Ulam2DSP, D::SkewProductMap, k; ϵ, max_iter, type)
+function _assemble_branch(B::Ulam2DSP, D::SkewProductMap, branch_idx; ϵ, max_iter, type)
     I = Int64[]
 	J = Int64[]
 	nzvals = Interval{type}[]
     
-    T = D.T.branches[k]
-    G = D.G[k]
+    T = D.T.branches[branch_idx]
+    G = D.G[branch_idx]
 
     # we first compute the preimages in the x direction
     preim_x, label_x = preimages(B.p_x, T; ϵ, max_iter)
@@ -266,12 +266,9 @@ function _assemble_branch(B::Ulam2DSP, D::SkewProductMap, k; ϵ, max_iter, type)
 
         # we need now to treat the case when we have nontrivial intersection
 
-        for ind_im_y in ind_im_y_lo:ind_im_y_hi
-            
+        for ind_im_y in ind_im_y_lo:ind_im_y_hi-1
+            P, err = rectangle_preimage(D, branch_idx, x_l, x_r, B.p_y[ind_im_y_lo], B.p_y[ind_im_y_lo+1], 10; ϵ, max_iter) 
         end
-
-
-
     end
 end
 
