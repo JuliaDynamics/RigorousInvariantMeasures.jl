@@ -11,6 +11,8 @@ end
 
 Base.getindex(D::SkewProductMap, i::Integer) = (D.T.branches[i], D.G[i])
 
+nbranches(D) = nbranches(D.T)
+
 function FiberMap(D::SkewProductMap, x, y)
     intersection_x = intersect_domain_bool(D.T, x)
     @assert sum(intersection_x) == 1 "Intersects many branches, ambiguous" 

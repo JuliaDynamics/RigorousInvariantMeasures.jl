@@ -6,15 +6,15 @@ export Ulam2DSP, length_x, length_y, square_indexes_to_linear, linear_indexes_to
 """
 	Ulam2DSP
 Ulam basis on [0,1]×[0,1] associated to the partition
-``p_x = \\{x_0 = 0, x_1, \\ldots, x_m=1\\}``
-and ``p_y = \\{y_0 = 0, y_1, \\ldots, y_n=1\\}``
+``part_x = \\{x_0 = 0, x_1, \\ldots, x_m=1\\}``
+and ``part_y = \\{y_0 = 0, y_1, \\ldots, y_n=1\\}``
 
 This version of the Ulam 2D basis uses the Skew Product structure 
 (x, y) → (F(x), G(x,y)) to compute the Ulam approximation
 """
 struct Ulam2DSP{T<:AbstractVector} <:Basis
-	p_x::T
-	p_y::T
+	part_x::T
+	part_y::T
 end
 
 """
@@ -36,17 +36,17 @@ Ulam2DSP(m::Integer, n::Integer) = Ulam2DSP(LinRange(0., 1., m+1), LinRange(0., 
 	Base.length(B::Ulam2DSP)
 Returns the size of the Ulam basis (the size of the underlying vector -1)
 """
-Base.length(B::Ulam2DSP) = (length(B.p_x) - 1)*(length(B.p_y) - 1)
+Base.length(B::Ulam2DSP) = (length(B.part_x) - 1)*(length(B.part_y) - 1)
 
-length_x(B::Ulam2DSP) = (length(B.p_x) - 1)
-length_y(B::Ulam2DSP) = (length(B.p_y) - 1)
+length_x(B::Ulam2DSP) = (length(B.part_x) - 1)
+length_y(B::Ulam2DSP) = (length(B.part_y) - 1)
 
 @doc raw"""
  	Base.getindex(B::Ulam2DSP, i::Int, j::Int)
     Returns the i-th element of the Ulam basis as a function.
 """
 function Base.getindex(B::Ulam2DSP, i::Int, j::Int)
-	return (x, y) -> (B.p_x[i]<= x < B.p_x[i+1] ? 1 : 0)*(B.p_y[j]<= y < B.p_y[j+1] ? 1 : 0)
+	return (x, y) -> (B.part_x[i]<= x < B.part_x[i+1] ? 1 : 0)*(B.part_y[j]<= y < B.part_y[j+1] ? 1 : 0)
 end
 
 """
@@ -131,7 +131,7 @@ struct UlamDual2DSP <: Dual
     lastpoint::Interval
     meshsize::Integer
 end
-Dual(B::Ulam2DSP, D::SkewProductMap; ϵ, max_iter, meshsize = 8) = UlamDual2DSP(B, D, preimages(B.p_x, D.T, 1:length(B.p_x)-1; ϵ, max_iter)..., domain(D.T)[end], meshsize)
+Dual(B::Ulam2DSP, D::SkewProductMap; ϵ, max_iter, meshsize = 8) = UlamDual2DSP(B, D, preimages(B.part_x, D.T, 1:length(B.part_x)-1; ϵ, max_iter)..., domain(D.T)[end], meshsize)
 
 
 # Due to the implementation details, it is not possible to estimate the length 
@@ -147,12 +147,12 @@ Base.eltype(dual::UlamDual2DSP) = Tuple{eltype(dual.xlabel), Array{Interval, 2}}
 
 # we define a specific assemble method for this basis, 
 # to avoid the somewhat confusing Dual+iterate code
-function assemble(B::Ulam2DSP, D::SkewProductMap; ϵ, max_iter, T)
+function assemble(B::Ulam2DSP, D::SkewProductMap; ϵ, max_iter, type=Float64)
     # we will break the assembly of the operator into 
     # sub-operators, one for each injectivity branch
     BranchOperator = SparseMatrixCSC[]
     for k in 1:length(branches(D.T))
-        push!(BranchOperator, _assemble_branch(B, D, k; ϵ, max_iter, T))
+        push!(BranchOperator, _assemble_branch(B, D, k; ϵ, max_iter, type))
     end
     # now we sum all the branch operators
     return sum(BranchOperator)
@@ -160,24 +160,26 @@ end
 
 function preimage_fixed_x(D::SkewProductMap, branch_idx, x, y_min, y_max; ϵ, max_iter)
     g(y) = D.G[branch_idx](x, y)
+    try  
+        H = MonotonicBranch(g, (Interval(0), Interval(1)))
+        preim_y_min = preimage(y_min, H; ϵ, max_iter)
+        preim_y_max = preimage(y_max, H; ϵ, max_iter)
         
-    H = MonotonicBranch(g, (Interval(0), Interval(1)))
-        
-    preim_y_min = preimage(y_min, H; ϵ, max_iter)
-    preim_y_max = preimage(y_max, H; ϵ, max_iter)
-    
-    if !H.increasing
-        preim_y_min, preim_y_max = preim_y_max, preim_y_min 
-    end
+        if !H.increasing
+            preim_y_min, preim_y_max = preim_y_max, preim_y_min 
+        end
 
-    if preim_y_min == ∅
-        preim_y_min = Interval(0)
-    end
-    if preim_y_max == ∅
-        preim_y_max = Interval(1)
-    end
+        if preim_y_min == ∅
+            preim_y_min = Interval(0)
+        end
+        if preim_y_max == ∅
+            preim_y_max = Interval(1)
+        end
 
-    return (preim_y_min, preim_y_max)
+        return (preim_y_min, preim_y_max)
+    catch 
+        return (Interval(0), Interval(1))
+    end
 end
 
 import Polyhedra as PH
@@ -211,6 +213,10 @@ function rectangle_preimage(D::SkewProductMap, branch_idx, x_min, x_max, y_min, 
     return P, max(err_x, err_y)
 end
 
+# function assemble(B::Ulam2DSP, D::SkewProductMap; ϵ, max_iter, type = Float64)
+#     P_branches = [_assemble_branch(B, D, i; ϵ, max_iter, type) for i in 1:nbranches(D)]
+#     return sum(P_branches)
+# end
 
 function _assemble_branch(B::Ulam2DSP, D::SkewProductMap, branch_idx; ϵ, max_iter, type)
     I = Int64[]
@@ -221,7 +227,7 @@ function _assemble_branch(B::Ulam2DSP, D::SkewProductMap, branch_idx; ϵ, max_it
     G = D.G[branch_idx]
 
     # we first compute the preimages in the x direction
-    preim_x, label_x = preimages(B.p_x, T; ϵ, max_iter)
+    preim_x, label_x = preimages(B.part_x, T; ϵ, max_iter)
     # it is important to remember to include the last endpoint
     if T.increasing
         preim_x = [preim_x; T.X[2]]
@@ -236,7 +242,7 @@ function _assemble_branch(B::Ulam2DSP, D::SkewProductMap, branch_idx; ϵ, max_it
 
     for i in 1:length(label_x)
         x_l, x_r = preim_x[i], preim_x[i+1]
-        ind_im_x = label[i]
+        ind_im_x = label_x[i]
         
         # we compute a bound in the indexes that are intersected 
         # in the vertical direction 
@@ -245,38 +251,66 @@ function _assemble_branch(B::Ulam2DSP, D::SkewProductMap, branch_idx; ϵ, max_it
         ind_im_y_lo, ind_im_y_hi = check_image(B, G, x_l, x_r)
         
         if (ind_im_y_hi-ind_im_y_lo)==1
+            @info ind_im_y_lo
             # in this case, the problem reduces to a one dimensional estimate, 
             # since the full vertical stripe is sent into 
             # a single vertical element, i.e., 
             # the stripe F([x_l, x_r]×[0, 1]) ⊂ I_{ind_im_x} × I_{ind_im_y_lo}
             ind_x_lo, ind_x_hi = nonzero_on_x(B, x_l, x_r)
             for i_x in ind_x_lo:ind_x_hi
-                mes = relative_measure((x_l, x_r), (Interval(B.p_x[i_x]), Interval(B.p_x[i_x+1])))
+                meas = relative_measure((x_l, x_r), (Interval(B.part_x[i_x]), Interval(B.part_x[i_x+1])))
                 # we now need to fill in this value into the matrix
-                for i_y in 1:length(B.part_y)
+                for i_y in 1:length(B.part_y)-1
+                    @info i_x, i_y
+                    @info ind_im_x, ind_im_y_lo
+
                     i = square_indexes_to_linear(B, i_x, i_y)
                     j = square_indexes_to_linear(B, ind_im_x, ind_im_y_lo)
 
                     push!(I, i)
                     push!(J, j)
-                    push!(nzvals, mes)
+                    push!(nzvals, meas)
                 end
             end
         end
 
-        # we need now to treat the case when we have nontrivial intersection
-
+        # we need now to treat the case when we have nontrivial intersection: 
+        # this method is not well behaved when the endpoint collapse to a point
+        # but this should be treated by the former function
         for ind_im_y in ind_im_y_lo:ind_im_y_hi-1
-            P, err = rectangle_preimage(D, branch_idx, x_l, x_r, B.p_y[ind_im_y_lo], B.p_y[ind_im_y_lo+1], 10; ϵ, max_iter) 
+            @info ind_im_y_lo, ind_im_y_hi
+            preimP, err = rectangle_preimage(D, branch_idx, x_l, x_r, B.part_y[ind_im_y], B.part_y[ind_im_y+1], 10; ϵ, max_iter) 
+            ind_x_lo, ind_x_hi = nonzero_on_x(B, x_l, x_r)
+            for i_x in ind_x_lo:ind_x_hi
+                for i_y in 1:length(B.part_y)-1
+                    # we now need to compute the intersection and fill it in into the matrix
+                    Q_x_l, Q_x_r = B.part_x[i_x], B.part_x[i_x+1] 
+                    Q_y_l, Q_y_u = B.part_y[i_y], B.part_y[i_y+1] 
+                    
+                    Q_vertices = [Q_x_l Q_y_l; Q_x_r Q_y_l; Q_x_r Q_y_u; Q_x_l Q_y_u]
+                    Q = PH.polyhedron(PH.vrep(Q_vertices), lib)
+                    preimPintersectQ = PH.intersect(preimP, Q)
+                    meas = PH.volume(preimPintersectQ)/PH.volume(Q)
+
+                    i = square_indexes_to_linear(B, i_x, i_y)
+                    j = square_indexes_to_linear(B, ind_im_x, ind_im_y_lo)
+
+                    push!(I, i)
+                    push!(J, j)
+                    push!(nzvals, meas)
+                end
+            end
         end
     end
+    n = length(B)
+    return sparse(I, J, nzvals, n, n)
 end
 
 function check_image(B::Ulam2DSP, G, x_l, x_r)
     x = hull(x_l, x_r)
     im_bound = hull(G(x, 0), G(x, 1))
     @debug im_bound
-    y = im_bound*length(B.p_y)
+    y = im_bound*length(B.part_y)
     y_ceil = Int64(ceil(y.hi))
     y_floor = Int64(floor(y.lo))
     return y_floor, y_ceil
@@ -288,12 +322,12 @@ function nonzero_on_x(B::Ulam2DSP, a, b)
     y = hull(a, b)
 
 	# finds in which semi-open interval [p[k], p[k+1]) y.lo and y.hi fall
-	lo = searchsortedlast(B.p_x, y.lo)
-	hi = searchsortedlast(B.p_x, y.hi)
+	lo = searchsortedlast(B.part_x, y.lo)
+	hi = searchsortedlast(B.part_x, y.hi)
 
 	# they may be n+1 if y.hi==1
-	lo = clamp(lo, 1, length(B.p_x))
-	hi = clamp(hi, 1, length(B.p_x))
+	lo = clamp(lo, 1, length(B.part_x))
+	hi = clamp(hi, 1, length(B.part_x))
 
 	return (lo, hi)
 end

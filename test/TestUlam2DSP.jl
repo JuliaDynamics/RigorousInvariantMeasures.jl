@@ -67,4 +67,18 @@
     B = Ulam2DSP(4, 1024)
     @test RigorousInvariantMeasures.check_image(B, G, Interval(0.1), Interval(0.2)) == (256, 282)
 
+    P, err = RigorousInvariantMeasures.rectangle_preimage(D, 1, 0.1, 0.2, 0.25, 1, 2; ϵ, max_iter)
+
+    import Polyhedra as PH
+    import GLPK
+    lib = PH.DefaultLibrary{Float64}(GLPK.Optimizer)
+
+    A = [0.1 9.15934e-16; 
+        0.15 9.4369e-16; 
+        0.2 9.15934e-16; 
+        0.2 1.0; 
+        0.15 1.0; 
+        0.1 1.0]
+    @test sum(abs.(P.vrep.V-A))<=1e-10
+
 end
