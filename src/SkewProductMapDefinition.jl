@@ -11,7 +11,7 @@ end
 
 Base.getindex(D::SkewProductMap, i::Integer) = (D.T.branches[i], D.G[i])
 
-nbranches(D) = nbranches(D.T)
+nbranches(D::SkewProductMap) = nbranches(D.T)
 
 function FiberMap(D::SkewProductMap, x, y)
     intersection_x = intersect_domain_bool(D.T, x)

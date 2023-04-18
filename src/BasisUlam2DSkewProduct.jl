@@ -158,6 +158,7 @@ function assemble(B::Ulam2DSP, D::SkewProductMap; ϵ, max_iter, type=Float64)
     return sum(BranchOperator)
 end
 
+
 function preimage_fixed_x(D::SkewProductMap, branch_idx, x, y_min, y_max; ϵ, max_iter)
     g(y) = D.G[branch_idx](x, y)
     try  
@@ -178,7 +179,12 @@ function preimage_fixed_x(D::SkewProductMap, branch_idx, x, y_min, y_max; ϵ, ma
 
         return (preim_y_min, preim_y_max)
     catch 
-        return (Interval(0), Interval(1))
+        val = g(Interval(0, 1))
+        if val ∈ Interval(y_min, y_max)
+            return (Interval(0), Interval(1))
+        else
+            return Interval(∅)
+        end
     end
 end
 

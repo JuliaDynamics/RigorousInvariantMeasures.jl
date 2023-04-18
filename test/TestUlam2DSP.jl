@@ -67,6 +67,12 @@
     B = Ulam2DSP(4, 1024)
     @test RigorousInvariantMeasures.check_image(B, G, Interval(0.1), Interval(0.2)) == (256, 282)
 
+
+    @test RigorousInvariantMeasures.preimage_fixed_x(D, branch_idx, 0, 0.24, 0.26; ϵ, max_iter) == (Interval(0), Interval(1))
+    @test RigorousInvariantMeasures.preimage_fixed_x(D, branch_idx, 0, 0.24, 0.241; ϵ, max_iter) == Interval(∅)
+    @test RigorousInvariantMeasures.preimage_fixed_x(D, branch_idx, 0.125, 0.25, 0.275; ϵ, max_iter) == Interval(∅)
+
+
     P, err = RigorousInvariantMeasures.rectangle_preimage(D, 1, 0.1, 0.2, 0.25, 1, 2; ϵ, max_iter)
 
     import Polyhedra as PH
