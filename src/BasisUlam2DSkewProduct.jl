@@ -12,9 +12,9 @@ and ``part_y = \\{y_0 = 0, y_1, \\ldots, y_n=1\\}``
 This version of the Ulam 2D basis uses the Skew Product structure 
 (x, y) → (F(x), G(x,y)) to compute the Ulam approximation
 """
-struct Ulam2DSP{T<:AbstractVector} <:Basis
-	part_x::T
-	part_y::T
+struct Ulam2DSP{T<:AbstractVector} <: Basis
+    part_x::T
+    part_y::T
 end
 
 """
@@ -22,7 +22,7 @@ end
 	
 Equispaced Ulam basis on [0,1]×[0, 1] of size n
 """
-Ulam2DSP(n::Integer) = Ulam2DSP(LinRange(0., 1., n+1), LinRange(0., 1., n+1))
+Ulam2DSP(n::Integer) = Ulam2DSP(LinRange(0.0, 1.0, n + 1), LinRange(0.0, 1.0, n + 1))
 
 """
 	Ulam2DSP(m::Integer, n::Integer)
@@ -30,13 +30,13 @@ Ulam2DSP(n::Integer) = Ulam2DSP(LinRange(0., 1., n+1), LinRange(0., 1., n+1))
 Equispaced Ulam basis on [0,1]×[0, 1] of size m in the x direction 
 and size n in the y direction 
 """
-Ulam2DSP(m::Integer, n::Integer) = Ulam2DSP(LinRange(0., 1., m+1), LinRange(0., 1., n+1))
+Ulam2DSP(m::Integer, n::Integer) = Ulam2DSP(LinRange(0.0, 1.0, m + 1), LinRange(0.0, 1.0, n + 1))
 
 @doc raw"""
 	Base.length(B::Ulam2DSP)
 Returns the size of the Ulam basis (the size of the underlying vector -1)
 """
-Base.length(B::Ulam2DSP) = (length(B.part_x) - 1)*(length(B.part_y) - 1)
+Base.length(B::Ulam2DSP) = (length(B.part_x) - 1) * (length(B.part_y) - 1)
 
 length_x(B::Ulam2DSP) = (length(B.part_x) - 1)
 length_y(B::Ulam2DSP) = (length(B.part_y) - 1)
@@ -46,7 +46,7 @@ length_y(B::Ulam2DSP) = (length(B.part_y) - 1)
     Returns the i-th element of the Ulam basis as a function.
 """
 function Base.getindex(B::Ulam2DSP, i::Int, j::Int)
-	return (x, y) -> (B.part_x[i]<= x < B.part_x[i+1] ? 1 : 0)*(B.part_y[j]<= y < B.part_y[j+1] ? 1 : 0)
+    return (x, y) -> (B.part_x[i] <= x < B.part_x[i+1] ? 1 : 0) * (B.part_y[j] <= y < B.part_y[j+1] ? 1 : 0)
 end
 
 """
@@ -64,9 +64,9 @@ the rectangle
 is mapped to [(1, 1), (2, 1), (3, 1), (1, 2), (2, 2), (3, 2), (1, 3), (2, 3), (3, 3)]
 """
 function square_indexes_to_linear(ind_row, ind_col, size_row, size_col)
-    @assert ind_row<=size_row
-    @assert ind_col<=size_col
-    return ind_row+size_row*(ind_col-1)
+    @assert ind_row <= size_row
+    @assert ind_col <= size_col
+    return ind_row + size_row * (ind_col - 1)
 end
 
 """
@@ -97,14 +97,14 @@ It follows the reshape convention as in rectangular_indexes_to_linear
 """
 function linear_indexes_to_square(k, size_row, size_col)
     i_y, i_x = divrem(k, size_row)
-    
+
     # we need to treat the case k = l*size_row, with l integer
-    if i_x == 0 
+    if i_x == 0
         i_x = size_row
-        i_y-=1
+        i_y -= 1
     end
 
-    return (i_x, i_y+1)
+    return (i_x, i_y + 1)
 end
 
 function linear_indexes_to_square(B::Ulam2DSP, k)
@@ -131,7 +131,7 @@ struct UlamDual2DSP <: Dual
     lastpoint::Interval
     meshsize::Integer
 end
-Dual(B::Ulam2DSP, D::SkewProductMap; ϵ, max_iter, meshsize = 8) = UlamDual2DSP(B, D, preimages(B.part_x, D.T, 1:length(B.part_x)-1; ϵ, max_iter)..., domain(D.T)[end], meshsize)
+Dual(B::Ulam2DSP, D::SkewProductMap; ϵ, max_iter, meshsize=8) = UlamDual2DSP(B, D, preimages(B.part_x, D.T, 1:length(B.part_x)-1; ϵ, max_iter)..., domain(D.T)[end], meshsize)
 
 
 # Due to the implementation details, it is not possible to estimate the length 
@@ -143,7 +143,7 @@ import GLPK
 lib = PH.DefaultLibrary{Float64}(GLPK.Optimizer)
 
 # Iterating on UlamDual2DSP returns an index, a polyhedron and an error on the polyhedron
-Base.eltype(dual::UlamDual2DSP) = Tuple{eltype(dual.xlabel), Array{Interval, 2}}
+Base.eltype(dual::UlamDual2DSP) = Tuple{eltype(dual.xlabel),Array{Interval,2}}
 
 # we define a specific assemble method for this basis, 
 # to avoid the somewhat confusing Dual+iterate code
@@ -160,30 +160,60 @@ end
 
 
 function preimage_fixed_x(D::SkewProductMap, branch_idx, x, y_min, y_max; ϵ, max_iter)
+    @debug "Preimage_fixed_x"
+    @debug "x", x
+    @debug "y", y_min, y_max
+    
     g(y) = D.G[branch_idx](x, y)
-    try  
-        H = MonotonicBranch(g, (Interval(0), Interval(1)))
-        preim_y_min = preimage(y_min, H; ϵ, max_iter)
-        preim_y_max = preimage(y_max, H; ϵ, max_iter)
+    
+    try
+        # this try block is used to catch the non monotone branch 
+        # exception that occurs when the image collapses to a point
         
+        H = MonotonicBranch(g, (Interval(0), Interval(1)))
+        
+        if H.increasing
+            bound_Y = H.Y[1], H.Y[2]
+        else 
+            bound_Y = H.Y[2], H.Y[1]
+        end
+    
+        # disjoint
+        if y_max < bound_Y[1] || y_min > bound_Y[2]
+            @debug "disjoint"
+            return (Interval(∅), Interval(∅))
+        end
+
+        if y_min <= bound_Y[1] && y_max >= bound_Y[2]
+            @debug "contains"
+            return (Interval(0), Interval(1))
+        end
+
+        preim_y_min = preimage(y_min, H; ϵ, max_iter)        
+        preim_y_max = preimage(y_max, H; ϵ, max_iter)
+
+        @debug preim_y_min, preim_y_max
+
         if !H.increasing
-            preim_y_min, preim_y_max = preim_y_max, preim_y_min 
+            preim_y_min, preim_y_max = preim_y_max, preim_y_min
         end
 
         if preim_y_min == ∅
-            preim_y_min = Interval(0)
+             preim_y_min = Interval(0)
         end
         if preim_y_max == ∅
-            preim_y_max = Interval(1)
+             preim_y_max = Interval(1)
         end
 
         return (preim_y_min, preim_y_max)
-    catch 
+    catch e
+        @debug e
+        @debug "Collapse to a point"
         val = g(Interval(0, 1))
-        if val ∈ Interval(y_min, y_max)
+        if val ⊆ Interval(y_min, y_max)
             return (Interval(0), Interval(1))
         else
-            return Interval(∅)
+            return (Interval(∅), Interval(∅))
         end
     end
 end
@@ -193,28 +223,28 @@ import GLPK
 lib = PH.DefaultLibrary{Float64}(GLPK.Optimizer)
 
 function rectangle_preimage(D::SkewProductMap, branch_idx, x_min, x_max, y_min, y_max, k; ϵ, max_iter)
-    preim_x = [x_min+i*(x_max-x_min)/k for i in 0:k]
+    preim_x = [x_min + i * (x_max - x_min) / k for i in 0:k]
     err_y = 0.0
     err_x = maximum(IntervalArithmetic.radius.(preim_x))
-    y_s = NTuple{2, Interval}[]
+    y_s = NTuple{2,Interval}[]
 
     for x in preim_x
-        
+
         preim_y_low, preim_y_up = preimage_fixed_x(D, branch_idx, x, y_min, y_max; ϵ, max_iter)
-        
+
         err_y = maximum([err_y, IntervalArithmetic.radius(preim_y_low), IntervalArithmetic.radius(preim_y_up)])
         push!(y_s, (preim_y_low, preim_y_up))
     end
     n = length(preim_x)
-    A = Matrix{Float64}(undef, 2*n, 2)
+    A = Matrix{Float64}(undef, 2 * n, 2)
     for (i, x) in enumerate(preim_x)
         A[i, :] = [mid(x) mid(y_s[i][1])]
     end
-    
+
     for (i, x) in enumerate(reverse(preim_x))
         A[n+i, :] = [mid(x) mid(y_s[end-i+1][2])]
     end
-    
+
     P = PH.polyhedron(PH.vrep(A), lib)
     return P, max(err_x, err_y)
 end
@@ -226,9 +256,9 @@ end
 
 function _assemble_branch(B::Ulam2DSP, D::SkewProductMap, branch_idx; ϵ, max_iter, type)
     I = Int64[]
-	J = Int64[]
-	nzvals = Interval{type}[]
-    
+    J = Int64[]
+    nzvals = Interval{type}[]
+
     T = D.T.branches[branch_idx]
     G = D.G[branch_idx]
 
@@ -237,7 +267,7 @@ function _assemble_branch(B::Ulam2DSP, D::SkewProductMap, branch_idx; ϵ, max_it
     # it is important to remember to include the last endpoint
     if T.increasing
         preim_x = [preim_x; T.X[2]]
-    else 
+    else
         preim_x = [preim_x; T.X[1]]
     end
 
@@ -249,14 +279,14 @@ function _assemble_branch(B::Ulam2DSP, D::SkewProductMap, branch_idx; ϵ, max_it
     for i in 1:length(label_x)
         x_l, x_r = preim_x[i], preim_x[i+1]
         ind_im_x = label_x[i]
-        
+
         # we compute a bound in the indexes that are intersected 
         # in the vertical direction 
         # is sent into a unique vertical interval
         # if this is true, we do not need to worry about polygon intersections
         ind_im_y_lo, ind_im_y_hi = check_image(B, G, x_l, x_r)
-        
-        if (ind_im_y_hi-ind_im_y_lo)==1
+
+        if (ind_im_y_hi - ind_im_y_lo) == 1
             @info ind_im_y_lo
             # in this case, the problem reduces to a one dimensional estimate, 
             # since the full vertical stripe is sent into 
@@ -285,18 +315,18 @@ function _assemble_branch(B::Ulam2DSP, D::SkewProductMap, branch_idx; ϵ, max_it
         # but this should be treated by the former function
         for ind_im_y in ind_im_y_lo:ind_im_y_hi-1
             @info ind_im_y_lo, ind_im_y_hi
-            preimP, err = rectangle_preimage(D, branch_idx, x_l, x_r, B.part_y[ind_im_y], B.part_y[ind_im_y+1], 10; ϵ, max_iter) 
+            preimP, err = rectangle_preimage(D, branch_idx, x_l, x_r, B.part_y[ind_im_y], B.part_y[ind_im_y+1], 10; ϵ, max_iter)
             ind_x_lo, ind_x_hi = nonzero_on_x(B, x_l, x_r)
             for i_x in ind_x_lo:ind_x_hi
                 for i_y in 1:length(B.part_y)-1
                     # we now need to compute the intersection and fill it in into the matrix
-                    Q_x_l, Q_x_r = B.part_x[i_x], B.part_x[i_x+1] 
-                    Q_y_l, Q_y_u = B.part_y[i_y], B.part_y[i_y+1] 
-                    
+                    Q_x_l, Q_x_r = B.part_x[i_x], B.part_x[i_x+1]
+                    Q_y_l, Q_y_u = B.part_y[i_y], B.part_y[i_y+1]
+
                     Q_vertices = [Q_x_l Q_y_l; Q_x_r Q_y_l; Q_x_r Q_y_u; Q_x_l Q_y_u]
                     Q = PH.polyhedron(PH.vrep(Q_vertices), lib)
                     preimPintersectQ = PH.intersect(preimP, Q)
-                    meas = PH.volume(preimPintersectQ)/PH.volume(Q)
+                    meas = PH.volume(preimPintersectQ) / PH.volume(Q)
 
                     i = square_indexes_to_linear(B, i_x, i_y)
                     j = square_indexes_to_linear(B, ind_im_x, ind_im_y_lo)
@@ -316,7 +346,7 @@ function check_image(B::Ulam2DSP, G, x_l, x_r)
     x = hull(x_l, x_r)
     im_bound = hull(G(x, 0), G(x, 1))
     @debug im_bound
-    y = im_bound*length(B.part_y)
+    y = im_bound * length(B.part_y)
     y_ceil = Int64(ceil(y.hi))
     y_floor = Int64(floor(y.lo))
     return y_floor, y_ceil
@@ -327,15 +357,15 @@ end
 function nonzero_on_x(B::Ulam2DSP, a, b)
     y = hull(a, b)
 
-	# finds in which semi-open interval [p[k], p[k+1]) y.lo and y.hi fall
-	lo = searchsortedlast(B.part_x, y.lo)
-	hi = searchsortedlast(B.part_x, y.hi)
+    # finds in which semi-open interval [p[k], p[k+1]) y.lo and y.hi fall
+    lo = searchsortedlast(B.part_x, y.lo)
+    hi = searchsortedlast(B.part_x, y.hi)
 
-	# they may be n+1 if y.hi==1
-	lo = clamp(lo, 1, length(B.part_x))
-	hi = clamp(hi, 1, length(B.part_x))
+    # they may be n+1 if y.hi==1
+    lo = clamp(lo, 1, length(B.part_x))
+    hi = clamp(hi, 1, length(B.part_x))
 
-	return (lo, hi)
+    return (lo, hi)
 end
 
 # the state variable is an implementation detail of the iterator, we use it to pass 
@@ -347,7 +377,7 @@ end
 #     B = dual.B
 #     D = dual.D
 #     meshsize = dual.meshsize
-    
+
 #     n = length(dual.x)
 #     len_y = length_y(B)
 
@@ -367,7 +397,7 @@ end
 #         im_a = hull(D.G(a, 0), D.G(a, 1)) 
 #         im_b = hull(D.G(b, 0), D.G(b, 1))
 #         im_y = hull(im_a, im_b)
-        
+
 #         # TODO, here it needs a cast to integer
 #         lowerbound_y, upperbound_y = len_y*(im_y)
 
@@ -396,11 +426,11 @@ end
 #             preim_y_low = min(max(G_inv(y_lower), 0), 1)
 #             preim_y_up = max(min(G_inv(y_upper), 1), 0)
 #         end
-        
+
 #         for (i, x) in enumerate(preim_x)
 #             A[i, :] = [mid(x) mid(y_s[i][1])]
 #         end
-        
+
 #         for (i, x) in enumerate(reverse(preim_x))
 #             A[n+i, :] = [mid(x) mid(y_s[end-i+1][2])]
 #         end
