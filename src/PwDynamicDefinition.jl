@@ -176,7 +176,8 @@ Compute a rigorous bound for the inverse_derivative of a branch
 """
 function branch_inverse_derivative(br::MonotonicBranch, tol = 0.01)
     I = hull(br.X[1], br.X[2])
-    val, listofboxes = maximise(inverse_derivative(br.f), I, tol=tol)
+    h = x -> abs(inverse_derivative(br.f, x))
+    val, listofboxes = maximise(h, I, tol=tol)
     @debug val, listofboxes
     return val
 end

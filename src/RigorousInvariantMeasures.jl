@@ -104,4 +104,6 @@ include("BasisUlam2DSkewProduct.jl")
 
 include("sample_dynamics.jl")
 
+include("FourierToby.jl")
+
 end
