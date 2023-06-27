@@ -1,7 +1,12 @@
+module FourierBackward
+
+
 using ..BasisDefinition, ..DynamicDefinition, ..Contractors, ..PwDynamicDefinition
-IntervalArithmetic, LinearAlgebra
+using IntervalArithmetic, LinearAlgebra
 import Base: iterate
 import ..BasisDefinition: one_vector, integral_covector, is_integral_preserving, strong_norm, weak_norm, aux_norm
+
+using ..RigorousInvariantMeasures: DiscretizedOperator, L1, L2, NoiseKernel, Dual
 
 struct Fourier1DBackward <: Basis
     N::Int64
@@ -534,3 +539,5 @@ end
 
 # 	return better_norms
 #end
+
+end

@@ -1,5 +1,5 @@
 using ..BasisDefinition, ..DynamicDefinition, ..Contractors, ..PwDynamicDefinition
-IntervalArithmetic, LinearAlgebra
+using IntervalArithmetic, LinearAlgebra
 import Base: iterate
 import ..BasisDefinition: one_vector, integral_covector, is_integral_preserving, strong_norm, weak_norm, aux_norm
 
@@ -185,6 +185,8 @@ returns the matrix of the (periodic) convolution operator with a Gaussian of ave
 and variance σ in the Fourier basis, truncated at frequence B.N 
 """
 
+using ..RigorousInvariantMeasures: NoiseKernel
+
 struct GaussianNoise <: NoiseKernel
     B::Basis
     σ
@@ -264,6 +266,8 @@ function rigorous_norm(M::Matrix{Interval}; k = 20)
    return norms, rescale*norms #check to make it rigorous
 end
 
+using ..RigorousInvariantMeasures: L2
+
 """
 This function bounds the L2 operator norm of M (complex floating point matrix)
 """
@@ -279,6 +283,10 @@ function opnormbound(B::Fourier1D, N::Type{L2}, M::Array{Complex{Interval{T}}, 2
     rad_bound = opnormbound(B, N, Rad; n_it = n_it) 
     return mid_bound ⊕₊ rad_bound
 end
+
+using ProgressMeter: @showprogress
+
+using ..RigorousInvariantMeasures: DiscretizedOperator
 
 function norms_of_powers_noise_interval( B::Fourier1D,
     N::Type{L2}, 
@@ -377,6 +385,8 @@ function norms_of_powers_trivial_noise(B::Fourier1D,
     end
     return norms
 end
+
+using ..RigorousInvariantMeasures: L1
 
 function norms_of_powers_trivial_noise(B::Fourier1D,
                                        ::Type{L1}, 
@@ -494,3 +504,4 @@ function powernormboundsnoise(B::Fourier1D; Q=DiscretizedOperator(B, D), NK = NK
 	return better_norms
 
 end
+

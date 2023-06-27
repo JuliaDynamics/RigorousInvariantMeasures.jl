@@ -1,5 +1,12 @@
+module FourierToby
+
 using ..BasisDefinition
 using ..DynamicDefinition
+
+using IntervalArithmetic
+using ..RigorousInvariantMeasures: MonotonicBranch, PwMap, Dual, C1, NormCacher
+using LinearAlgebra
+
 
 #struct C1 <: NormKind end
 #struct W{k, l} <:NormKind end
@@ -186,11 +193,14 @@ function Base.iterate(S::AverageZero{T}, state = 1) where T<:Fourier
 	return v, state+1
 end
 
-# struct FourierDual <: Dual
-#     x::Vector{Interval} #TODO: a more generic type may be needed in future
-#     xlabel::Vector{Int}
-#     xp::Vector{Interval}
-# end
+struct FourierDual <: Dual
+     x::Vector{Interval} #TODO: a more generic type may be needed in future
+     xlabel::Vector{Int}
+     xp::Vector{Interval}
+end
+
+using ..Contractors
+using ..RigorousInvariantMeasures: preimages_and_derivatives
 
 function FourierDualBranch(y, br::MonotonicBranch, ylabel = 1:length(y), ϵ = 0.0)
 	if br.increasing
@@ -364,23 +374,25 @@ end
 
 BasisDefinition.normbound(B::Fourier{T}, N::Type{C1}, v) where {T} = Float64((infnormoffunction(B,v)+infnormofderivative(B,v)).hi, RoundUp)
 
-mutable struct NormCacherC1 <: NormCacher{C1}
-	B::Basis
-    C::Float64
-    function NormCacherC1(B, n)
-        new(B, 0.0)
-    end
-end
-NormCacher{C1}(B, n) = NormCacherC1(B, n)
+# mutable struct NormCacherC1 <: NormCacher{C1}
+# 	B::Basis
+#     C::Float64
+#     function NormCacherC1(B, n)
+#         new(B, 0.0)
+#     end
+# end
+# NormCacher{C1}(B, n) = NormCacherC1(B, n)
 
-function add_column!(Cacher::NormCacherC1, v::AbstractVector, ε::Float64)
-    Cacher.C = max(Cacher.C, opnormbound(Cacher.B, C1, v) ⊕₊ ε)
-end
+# function add_column!(Cacher::NormCacherC1, v::AbstractVector, ε::Float64)
+#     Cacher.C = max(Cacher.C, opnormbound(Cacher.B, C1, v) ⊕₊ ε)
+# end
 
-"""
-Return the norm of the matrix the NormCacher is working on.
-"""
-function get_norm(Cacher::NormCacherC1)
-    n = length(Cacher.B)
-	return Cacher.C ⊗₊ log(n+2)
+# """
+# Return the norm of the matrix the NormCacher is working on.
+# """
+# function get_norm(Cacher::NormCacherC1)
+#     n = length(Cacher.B)
+# 	return Cacher.C ⊗₊ log(n+2)
+# end
+
 end
