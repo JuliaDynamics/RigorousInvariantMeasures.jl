@@ -86,6 +86,10 @@ export ApproxInducedLSV
 
 include("NoiseKernel.jl")
 export UniformNoiseUlam
+
+include("NoiseKernel2.jl")
+export UniformNoiseUlam2
+
 include("NormsOfPowersNoise.jl")
 export powernormboundsnoise, finepowernormboundsnoise, abstractpowernormboundsnoise, invariant_vector_noise, distance_from_invariant_noise
 

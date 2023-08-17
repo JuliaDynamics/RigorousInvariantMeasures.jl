@@ -24,6 +24,7 @@ DocMeta.setdocmeta!(RigorousInvariantMeasures, :DocTestSetup, :(using RigorousIn
     include("TestObservables.jl")
     include("TestLorenz2DUlam.jl")
     include("TestHigherDFLY.jl")
+    include("TestNoise2.jl")
 
     @testset "Doctests" begin 
         if Base.VERSION >= v"1.8"
