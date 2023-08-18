@@ -37,6 +37,7 @@ TaylorSeries = "6aa5eb33-94cf-58f4-a9d0-e4b2c4fc25ea"
 
 [compat]
 AbstractFFTs = "1"
+Adapt = "3"
 Arpack = "0.4.0, 0.5"
 CRlibm = "1"
 CUDA = "3, 4"
