@@ -1,5 +1,3 @@
-
-
 function IntervalArithmetic.midpoint_radius(v::Vector{Complex{Interval{T}}}) where {T}
     n = length(v)
     mid_vector = zeros(Complex{T}, n)
@@ -32,7 +30,7 @@ function interval_fft(P::AbstractFFTs.Plan{Complex{T}}, v::Vector{Complex{Interv
     norm_obs = BasisDefinition.opnormbound(L2, vector_mid)
     norm_rad = BasisDefinition.opnormbound(L2, vector_radius)
     err_fft = norm_FFT_normalized_2⊗₊(rel_err_fft ⊗₊ norm_obs)⊕₊ norm_FFT_normalized_2⊗₊norm_rad
-    mid_fft = P*vector_mid
+    mid_fft = (P*vector_mid)/n
     w = [Interval(real(z))+im*Interval(imag(z)) for z in mid_fft]
     return w.+(Interval(-err_fft, err_fft)+im*Interval(-err_fft, err_fft))
 end
