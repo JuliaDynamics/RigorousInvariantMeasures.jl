@@ -1,54 +1,37 @@
-module AnalyticFourierBasis
+module AdjointFourierBasis
 
 using ..BasisDefinition
 using ..DynamicDefinition
+using ..FourierCommon
 
 using IntervalArithmetic
 using ..RigorousInvariantMeasures: MonotonicBranch, PwMap, Dual, C1, NormCacher
-import ..RigorousInvariantMeasures: NormKind, derivative, interval_fft
+import ..RigorousInvariantMeasures: NormKind
 using LinearAlgebra
 
 
 struct Cω <: NormKind end
 struct L2 <: NormKind end
-#struct W{k, l} <:NormKind end
-#order(::Type{W{k, l}}) where {k, l} = k
-#regularity(::Type{W{k, l}}) where {k, l} = l
-
 
 # we will store the Fourier expansion in the following way,
 # to make it as coherent possible as the output of the FFT
 # [0:N; -N:-1]
 
-struct FourierAnalytic{T<:AbstractVector} <: Basis
+struct FourierAdjoint{T<:AbstractVector} <: Fourier
     p::T
     k::Integer
 end
 
-FourierPoints(n, T) = [Interval{T}(i) / (n) for i = 0:n-1]
-
-function FourierAnalytic(k::Integer, n::Integer; T=Float64)
-    return FourierAnalytic(FourierPoints(n, T), k)
+function FourierAdjoint(k::Integer, n::Integer; T=Float64)
+    return FourierAdjoint(FourierPoints(n, T), k)
 end
-Base.show(io::IO, B::FourierAnalytic) = print(io, "FFT on $(length(B.p)) points restricted to highest frequency $(B.k)")
+Base.show(io::IO, B::FourierAdjoint) = print(io, "FFT on $(length(B.p)) points restricted to highest frequency $(B.k)")
 
 """
 Return the size of the Fourier basis
 """
-Base.length(B::FourierAnalytic) = 2 * B.k + 1
-Base.lastindex(B::FourierAnalytic) = length(B)
-
-
-function evalFourier(coeff, x::Interval{T}) where {T}
-    @assert length(coeff) % 2 == 1
-
-    K = length(coeff)
-    N = (K - 1) ÷ 2
-    pos_coeff = coeff[1:N+1]
-    neg_coeff = [Interval{T}(0.0); reverse(coeff[N+2:K])]
-
-    return evalpoly(exp(2 * pi * im * x), pos_coeff) + evalpoly(exp(-2 * pi * im * x), neg_coeff)
-end
+Base.length(B::FourierAdjoint) = 2 * B.k + 1
+Base.lastindex(B::FourierAdjoint) = length(B)
 
 ###############################################################################
 ###############################################################################
@@ -69,12 +52,12 @@ end
 #     return 2.0 ⊘₊ den
 # end
 
-"""
-	BasisDefinition.strong_weak_bound(B::Chebyshev)
+# """
+# 	BasisDefinition.strong_weak_bound(B::Chebyshev)
 
-V.A. Markov estimate from GRADIMIR MILOVANOVIC EXTREMAL PROBLEMS AND 
-INEQUALITIES OF MARKOV-BERNSTEIN TYPE FOR POLYNOMIALS
-"""
+# V.A. Markov estimate from GRADIMIR MILOVANOVIC EXTREMAL PROBLEMS AND 
+# INEQUALITIES OF MARKOV-BERNSTEIN TYPE FOR POLYNOMIALS
+# """
 # TODO: Check the indexes
 
 # function BasisDefinition.strong_weak_bound(B::Fourier)
@@ -101,83 +84,103 @@ INEQUALITIES OF MARKOV-BERNSTEIN TYPE FOR POLYNOMIALS
 # BasisDefinition.aux_norm(B::Fourier) = L1
 # BasisDefinition.strong_norm(B::Fourier) = W{B.k,1}
 
-"""
-Make so that B[j] returns the basis function of coordinate j
-"""
-function Base.getindex(B::FourierAnalytic, i::Int)
+# """
+# Make so that B[j] returns the basis function of coordinate j
+# """
+# function Base.getindex(B::FourierAdjoint, i::Int)
 
-    K = length(B)
-    @boundscheck 1 <= i <= K || throw(BoundsError(B, i))
+#     K = length(B)
+#     @boundscheck 1 <= i <= K || throw(BoundsError(B, i))
 
-    N = (K - 1) ÷ 2
+#     N = (K - 1) ÷ 2
 
-    if i == 1
-        return x -> 1
-    end
+#     if i == 1
+#         return x -> Interval(1.0)
+#     end
 
-    if 1 < i <= N + 1
-        return x -> exp(2 * pi * im * (i - 1) * x)
-    end
+#     if 1 < i <= N + 1
+#         return x -> exp(2 * pi * im * (i - 1) * x)
+#     end
 
-    if N + 2 <= i <= K
-        L = i + (-2 * N - 2)
-        return x -> exp(2 * pi * im * L * x)
-    end
-end
+#     if N + 2 <= i <= K
+#         L = i + (-2 * N - 2)
+#         return x -> exp(2 * pi * im * L * x)
+#     end
+# end
 
 
-BasisDefinition.is_refinement(Bc::FourierAnalytic, Bf::FourierAnalytic) = length(Bc) < length(Bf)
-BasisDefinition.integral_covector(B::FourierAnalytic; T=Float64) = [Interval{T}(1); zeros(length(B) - 1)]'
-BasisDefinition.one_vector(B::FourierAnalytic) = [1; zeros(length(B) - 1)]
+# BasisDefinition.is_refinement(Bc::FourierAdjoint, Bf::FourierAdjoint) = length(Bc) < length(Bf)
+# BasisDefinition.integral_covector(B::FourierAdjoint; T=Float64) = [Interval{T}(1); zeros(length(B) - 1)]'
+# BasisDefinition.one_vector(B::FourierAdjoint) = [1; zeros(length(B) - 1)]
 
-Base.length(S::AverageZero{T}) where {T<:FourierAnalytic} = length(S.basis) - 1
+# Base.length(S::AverageZero{T}) where {T<:FourierAdjoint} = length(S.basis) - 1
 
-function Base.iterate(S::AverageZero{T}, state=1) where {T<:FourierAnalytic}
-    B = S.basis
-    i = state
-    if i == length(B)
-        return nothing
-    end
-    v = zeros(length(B))
-    v[i+1] = 1
-    return v, state + 1
-end
+# function Base.iterate(S::AverageZero{T}, state=1) where {T<:FourierAdjoint}
+#     B = S.basis
+#     i = state
+#     if i == length(B)
+#         return nothing
+#     end
+#     v = zeros(length(B))
+#     v[i+1] = 1
+#     return v, state + 1
+# end
 
-struct FourierAnalyticDual <: Dual
+struct FourierAdjointDual <: Dual
     x::Vector{Interval} #TODO: a more generic type may be needed in future
-    xlabel::Vector{Int}
-    xp::Vector{Interval}
 end
 
-using ..Contractors
-using ..RigorousInvariantMeasures: preimages_and_derivatives
-
-function FourierAnalyticDualBranch(y, br::MonotonicBranch, ylabel=1:length(y); ϵ, max_iter)
-    if br.increasing
-        endpoint_X = br.X[2]
-        der = derivative(br.f, endpoint_X)
-        preim_der = preimages_and_derivatives(y, br, ylabel; ϵ, max_iter)
-        return [preim_der[1];],#endpoint_X is calculated in preimages
-        [preim_der[2];],
-        [preim_der[3];]#same as previous comment
-    else
-        endpoint_X = br.X[2]
-        der = derivative(br.f, endpoint_X)
-        preim_der = preimages_and_derivatives(y, br, 1:length(y)-1; ϵ, max_iter)
-        return [preim_der[1]; endpoint_X],
-        [preim_der[2]; length(preim_der[2]) + 1],
-        [preim_der[3]; der]
-    end
+function FourierAdjointDualBranch(y, br::MonotonicBranch, ylabel=1:length(y); ϵ, max_iter)
+    
+    mask = [br.X[1]<= x < br.X[2] for x in y]
+    
+    return [br.f(p) for p in y[mask]]
 end
 
-function Dual(B::FourierAnalytic, D::PwMap; ϵ, max_iter)
+function Dual(B::FourierAdjoint, D::PwMap; ϵ, max_iter)
     #@assert is_full_branch(D)
-    results = collect(FourierAnalyticDualBranch(B.p, b, 1:length(B.p); ϵ, max_iter) for b in branches(D))
-    x = vcat((result[1] for result in results)...)
-    xlabel = vcat((result[2] for result in results)...)
-    xp = vcat((result[3] for result in results)...)
-    return FourierAnalyticDual(x, xlabel, xp)
+
+    #T = eltype(B.p)
+    #x = []
+    
+    results = collect(FourierAdjointDualBranch(B.p, b, 1:length(B.p); ϵ, max_iter) for b in branches(D))
+
+    @info typeof(results)
+
+    #@info results
+
+    x = vcat((result for result in results)...)
+
+    #for b in branches(D)
+    #    x = vcat(x, )
+    #end
+    
+    #@info typeof(x)
+    return FourierAdjointDual(x)
 end
+
+function Dual(B::FourierAdjoint, T::Function; ϵ, max_iter)
+    #@assert is_full_branch(D)
+
+    #T = eltype(B.p)
+    #x = []
+    
+    #results = collect(FourierAdjointDualBranch(B.p, b, 1:length(B.p); ϵ, max_iter) for b in branches(D))
+
+    #@info typeof(results)
+
+    #@info results
+
+    x = T.(B.p)
+
+    #for b in branches(D)
+    #    x = vcat(x, )
+    #end
+    
+    #@info typeof(x)
+    return FourierAdjointDual(x)
+end
+
 
 # Base.length(dual::FourierDual) = length(dual.x)
 # Base.eltype(dual::FourierDual) = Tuple{eltype(dual.xlabel),Tuple{eltype(dual.x),eltype(dual.x')}}
@@ -198,55 +201,42 @@ end
 #     return z#Interval.(t)
 # end
 
-function eval_on_dual(B::FourierAnalytic, computed_dual::FourierAnalyticDual, ϕ)
+function FourierCommon.eval_on_dual(B::FourierAdjoint, computed_dual::FourierAdjointDual, ϕ)
     
-    x, labels, xp = computed_dual.x, computed_dual.xlabel, computed_dual.xp
+    x = computed_dual.x
 
     #@info x, maximum(diam.(x))
-    w = zeros(Complex{Interval{Float64}}, length(B.p))
-    for j in 1:length(x)
-        C = ϕ(x[j]) / abs(xp[j])
-        if real(C) != ∅ && imag(C) != ∅
-            w[labels[j]] += C
-        end
-    end
-
-    return w
-
+    
+    return   ϕ.(Interval.(x))
 end
 
-
-
-using ProgressMeter
-function assemble_standard(B::FourierAnalytic, D::Dynamic; ϵ=0.0, max_iter=100, T=Float64)
-    n = length(B)
-
-    @info n
-
-    k = (n - 1) ÷ 2
-
-    @info k
-
-    M = zeros(Complex{Interval{Float64}}, (n, n))
-    computed_dual = Dual(B, D; ϵ, max_iter)
-    @showprogress for i in 1:n
-        ϕ = B[i]
-        w = eval_on_dual(B, computed_dual, ϕ)
-        
-        # zeros(Complex{Interval{Float64}}, length(B.p))
-        # for j in 1:length(x)
-        #     C = ϕ(x[j]) / abs(xp[j])
-        #     if real(C) != ∅ && imag(C) != ∅
-        #         w[labels[j]] += C
-        #     end
-        # end
-        # #@info w
-        FFTw = interval_fft(w)
-        
-        M[:, i] = [FFTw[1:k+1]; FFTw[end-k+1:end]]
-    end
-    return M
+function assemble_standard(B::FourierAdjoint, D; ϵ=0.0, max_iter=100, T=Float64)
+    return FourierCommon.assemble_common(B, D; ϵ=0.0, max_iter=100, T=Float64)'
 end
+
+# using ProgressMeter
+# function assemble_standard(B::FourierAdjoint, D::Dynamic; ϵ=0.0, max_iter=100, T=Float64)
+#     n = length(B)
+
+#     @info n
+
+#     k = (n - 1) ÷ 2
+
+#     @info k
+
+#     M = zeros(Complex{Interval{Float64}}, (n, n))
+#     computed_dual = Dual(B, D; ϵ, max_iter)
+#     @showprogress for i in 1:n
+#         ϕ = B[i]
+#         w = eval_on_dual(B, computed_dual, ϕ)
+#         #@info w
+        
+#         FFTw = interval_fft(w)
+        
+#         M[:, i] = [FFTw[1:k+1]; FFTw[end-k+1:end]]
+#     end
+#     return M'
+# end
 
 # function assemble(B::Fourier, D::Dynamic, ϵ=0.0; T=Float64)
 #     n = length(B)

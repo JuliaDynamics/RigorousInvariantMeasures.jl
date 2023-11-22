@@ -2,27 +2,27 @@ module BasisDefinition
 using ..DynamicDefinition
 
 export Basis, DualComposedWithDynamic, ProjectDualElement, AverageZero, assemble,
-		integral_covector, one_vector, is_integral_preserving, strong_norm,
-		weak_norm, aux_norm, is_dual_element_empty, nonzero_on, is_refinement,
-		opnormbound, normbound, bound_weak_norm_abstract
+    integral_covector, one_vector, is_integral_preserving, strong_norm,
+    weak_norm, aux_norm, is_dual_element_empty, nonzero_on, is_refinement,
+    opnormbound, normbound, bound_weak_norm_abstract, Dual
 
 abstract type Basis end
 
 Base.length(B::Basis) = @error "Not Implemented"
 
-struct DualComposedWithDynamic{B<:Basis, D<:Dynamic}
-	basis::B
-	dynamic::D
-	ϵ::Float64
+struct DualComposedWithDynamic{B<:Basis,D<:Dynamic}
+    basis::B
+    dynamic::D
+    ϵ::Float64
 end
 
 #Base.iterate(S::DualComposedWithDynamic{B, D}, state) where {B<:Basis, D<:Dynamic} = @error "Not implemented"
 
-struct ProjectDualElement{B<:Basis, DT}
-	basis::B
-	j_min::Int64
-	j_max::Int64
-	dual_element::DT
+struct ProjectDualElement{B<:Basis,DT}
+    basis::B
+    j_min::Int64
+    j_max::Int64
+    dual_element::DT
 end
 ProjectDualElement(basis::B, j_min, j_max, y::DT) where {B,DT} = ProjectDualElement{B,DT}(basis, j_min, j_max, y)
 Base.length(S::ProjectDualElement{B,DT}) where {B,DT} = S.j_max - S.j_min + 1
@@ -31,8 +31,8 @@ is_dual_element_empty(B::Basis, I) = @error "Not Implemented"
 nonzero_on(B::Basis, I) = @error "Not Implemented"
 
 function ProjectDualElement(B::Basis, y)
- 	j_min, j_max = nonzero_on(B, y)
- 	return ProjectDualElement(B, j_min, j_max, y)
+    j_min, j_max = nonzero_on(B, y)
+    return ProjectDualElement(B, j_min, j_max, y)
 end
 
 # Base.iterate(S::ProjectDualElement, state) = @error "Not Implemented"
@@ -49,7 +49,7 @@ evaluate(B::Basis, i, x) = @error "Not Implemented"
 
 Value of the integral on [0,1] of the i-th basis element
 """
-evaluate_integral(B::Basis, i; T = Float64) = @error "Not Implemented"
+evaluate_integral(B::Basis, i; T=Float64) = @error "Not Implemented"
 
 """
 	strong_norm(B::Basis)
@@ -143,8 +143,8 @@ is_integral_preserving(B::Basis) = false
 
 Return the integral of the function with coefficients v in the basis B 
 """
-function integral(B::Basis, v; T = Float64)
-	return sum([T(v[i])*evaluate_integral(B, i, T) for i in 1:length(B)])
+function integral(B::Basis, v; T=Float64)
+    return sum([T(v[i]) * evaluate_integral(B, i, T) for i in 1:length(B)])
 end
 
 """
@@ -153,11 +153,11 @@ end
 Yield a basis of the space of average zero vectors
 """
 struct AverageZero{B<:Basis}
-	basis::B
+    basis::B
 end
 
 Base.iterate(S::AverageZero{B}, state) where {B} = @error "Not Implemented"
-Base.length(S::AverageZero{T}) where {T} = length(S.basis)-1
+Base.length(S::AverageZero{T}) where {T} = length(S.basis) - 1
 
 """
 	weak_projection_error(B::Basis)
@@ -261,6 +261,8 @@ opnormbound(B::Basis, N::Type{<:NormKind}, M::AbstractVecOrMat{S}) where {S} = @
 normbound(B::Basis, N::Type{<:NormKind}, v) = @error "Must be specialized"
 
 end
+
+# careful, this is defined outside the module!!!
 
 """
 Replacement of DualComposedWithDynamic.
