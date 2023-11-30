@@ -69,7 +69,7 @@ function BasisDefinition.strong_weak_bound(B::FourierAnalytic)
 
     return 2*(1-exp(λ*(k+1))/(1-exp(λ))) 
 end
-BasisDefinition.aux_weak_bound(B::FourierAnalytuc) = 1.0
+BasisDefinition.aux_weak_bound(B::FourierAnalytic) = 1.0
 
 # Check this!!!
 # function BasisDefinition.weak_by_strong_and_aux_bound(B::Fourier)
