@@ -5,9 +5,10 @@ using ..DynamicDefinition
 
 using IntervalArithmetic
 using ..RigorousInvariantMeasures: MonotonicBranch, PwMap, Dual, C1, NormCacher
-import ..RigorousInvariantMeasures: NormKind, derivative, interval_fft
+import ..RigorousInvariantMeasures: NormKind, derivative, interval_fft, assemble
 using LinearAlgebra
 
+export FourierAnalytic
 
 struct Aη <: NormKind 
     η
@@ -201,15 +202,11 @@ end
 
 
 using ProgressMeter
-function assemble_standard(B::FourierAnalytic, D::Dynamic; ϵ=0.0, max_iter=100, T=Float64)
+function assemble(B::FourierAnalytic, D::Dynamic; ϵ=0.0, max_iter=100, T=Float64)
     n = length(B)
 
-    @info n
-
     k = (n - 1) ÷ 2
-
-    @info k
-
+    
     M = zeros(Complex{Interval{Float64}}, (n, n))
     computed_dual = Dual(B, D; ϵ, max_iter)
     @showprogress for i in 1:n

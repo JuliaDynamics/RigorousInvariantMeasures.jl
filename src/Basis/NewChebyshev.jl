@@ -1,6 +1,5 @@
 using ..BasisDefinition, ..DynamicDefinition
 
-
 struct C1 <: NormKind end
 struct W{k, l} <:NormKind end
 order(::Type{W{k, l}}) where {k, l} = k

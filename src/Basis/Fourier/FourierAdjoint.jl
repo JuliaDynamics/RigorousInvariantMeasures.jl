@@ -6,9 +6,10 @@ using ..FourierCommon
 
 using IntervalArithmetic
 using ..RigorousInvariantMeasures: MonotonicBranch, PwMap, Dual, C1, NormCacher
-import ..RigorousInvariantMeasures: NormKind
+import ..RigorousInvariantMeasures: NormKind, assemble
 using LinearAlgebra
 
+export FourierAdjoint
 
 struct Cω <: NormKind end
 struct L2 <: NormKind end
@@ -23,6 +24,8 @@ struct FourierAdjoint{T<:AbstractVector} <: Fourier
 end
 
 function FourierAdjoint(k::Integer, n::Integer; T=Float64)
+    @warn "This basis breaks the usual interface of the package, i.e., 
+    the dynamic is input as a function instead than a PwMap"
     return FourierAdjoint(FourierPoints(n, T), k)
 end
 Base.show(io::IO, B::FourierAdjoint) = print(io, "FFT on $(length(B.p)) points restricted to highest frequency $(B.k)")
@@ -210,7 +213,7 @@ function FourierCommon.eval_on_dual(B::FourierAdjoint, computed_dual::FourierAdj
     return   ϕ.(Interval.(x))
 end
 
-function assemble_standard(B::FourierAdjoint, D; ϵ=0.0, max_iter=100, T=Float64)
+function assemble(B::FourierAdjoint, D; ϵ=0.0, max_iter=100, T=Float64)
     return FourierCommon.assemble_common(B, D; ϵ=0.0, max_iter=100, T=Float64)'
 end
 
