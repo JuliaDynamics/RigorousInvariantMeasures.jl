@@ -20,6 +20,14 @@ function get_experiment(prefix)
             Q = DiscretizedOperator(B, D)
             return B, D, Q    
         end
+    elseif prefix=="FastLorenz3"
+        f = n-> begin
+            D0 = FastLorenz()
+            D = D0 ∘ D0 ∘ D0
+            B = Ulam(n)
+            Q = DiscretizedOperator(B, D)
+            return B, D, Q    
+        end
     elseif prefix=="Lorenz2"
         f = n-> begin
             D0 = Lorenz()

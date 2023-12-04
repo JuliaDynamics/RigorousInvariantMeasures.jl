@@ -344,6 +344,78 @@ function composedPwMap(D1::PwDynamicDefinition.PwMap, D2::PwDynamicDefinition.Pw
     return PwMap(branches; full_branch = full_branch)
 end
 
+"""
+max_expansivity, int_distortion, bound_distortion = dfly_inf_der_auxiliary_quantities(br::PwDynamicDefinition.MonotonicBranch, radratio, tol=1e-3)
+
+Return three auxiliary quantities used in dfly_inf_der:
+
+* max_expansivity: maximum of the expansivity outside the critical intervals
+* int_distortion: integral of the distortion over the critical intervals
+* bound_distortion: lower bound to the distortion inside the critical intervals
+
+The "critical intervals" for a branch defined on `(a,b) = br.X` are:
+* [a, a+rad], if the branch has infinite derivative in a
+* [b-rad, b], if the branch has infinite derivative in b
+
+If the branch does not have infinite derivatives, int_distortion = 0 and bound_distortion = 0.
+
+Three intervals are returned; it is up to the caller to take their .hi.
+"""
+function dfly_inf_der_auxiliary_quantities(br::PwDynamicDefinition.MonotonicBranch, i, tol=1e-3)
+    left, right = has_infinite_derivative_at_endpoints(br) # this could be cached along calls with different values of `rad`, but it is cheap anyway
+    int_distortion = Interval(0.0) # integral of the distortion over the critical intervals
+    bound_distortion = Interval(0.0) # lower bound to the distortion inside the critical intervals
+    rad = radius(hull(br.X[1], br.X[2]))
+    f = inverse_derivative(br.f)
+    g = distortion(br.f)
+    left_endpoint = br.X[1]
+    right_endpoint = br.X[2]
+    if left
+        left_endpoint += rad/2^i
+    end
+    if right
+        right_endpoint-= rad/2^i
+    end
+    I = hull(left_endpoint, right_endpoint)
+    max_result = maximise(x->abs(f(x)), I, tol=tol)
+    @debug "max_result: $max_result"
+    max_expansivity = max_result[1]
+    
+    if left
+        # we work on the interval [br.X[1], left_endpoint] =: [a, b].
+        # we assume here that f(a) = 0, g(a)=∞, and that g is monotonically decreasing on [a,b]
+        l_left = abs(g(left_endpoint))
+        # we use the fact that the primitive of the distortion g is f=1/T', and compute
+        # int_a^b (distorsion) = f(b) - f(a) = f(b)
+        int_distortion += abs(f(left_endpoint))
+        bound_distortion = max(bound_distortion, abs(l_left))
+    end
+    if right
+        # same reasoning as above but on the right endpoint
+        l_right = abs(g(right_endpoint)) 
+        int_distortion += abs(f(right_endpoint))
+        bound_distortion = max(bound_distortion, abs(l_right))
+    end
+    return max_expansivity, int_distortion, bound_distortion
+end
+
+"""
+    candidate_A, candidate_B = dfly_inf_der_single_estimate(D, i, width_term, tol=1e-3)
+
+Computes dfly coefficients for a map with infinite derivatives, wtih a fixed width exponent i in the width of the problematic intervals.
+"""
+function dfly_inf_der_single_estimate(D, i; width_term=maximum( 2 / (br.X[2] - br.X[1]) for br in D.branches), tol=1e-3)
+    results = [dfly_inf_der_auxiliary_quantities(br, i, tol) for br in D.branches]
+    max_expansivity = maximum(r[1] for r in results)
+    int_distortion = sum(r[2] for r in results)
+    @debug "expansivities: $([r[1] for r in results]), int_distortion: $int_distortion"
+    bound_distortion = maximum(r[3] for r in results)
+
+    candidate_A = 2*max_expansivity.hi ⊕₊ (int_distortion/2).hi 
+    candidate_B = bound_distortion.hi ⊕₊ width_term.hi
+    return candidate_A, candidate_B
+end
+    
 using ProgressMeter
 """
 dfly inequality for maps with infinite derivatives. 
@@ -354,77 +426,28 @@ The strategy to compute it follows a variant of Lemma 9.1 in the GMNP paper:
 * we compute the dfly coefficients as in the lemma.
 * we repeat the computation replacing 2^3 with 2^4, 2^5, ... 2^15 and take the best estimate among these.
 """
-function dfly_inf_der(::Type{TotalVariation}, ::Type{L1}, D::PwDynamicDefinition.PwMap, tol=1e-3)
-    leftrightsingularity = Tuple{Bool, Bool}[]
-    A = +∞
-    B = +∞
-    
-    # for each branch, we check if the derivative is infinite at any of the endpoints:
-    for br in branches(D)
-        (left, right) = has_infinite_derivative_at_endpoints(br)
-
-        push!(leftrightsingularity, (left, right))
-    end
+function dfly_inf_der(::Type{TotalVariation}, ::Type{L1}, D::PwDynamicDefinition.PwMap; rough_tol=1e-4, fine_tol=1e-6)
+    width_term = maximum( 2 / (br.X[2] - br.X[1]) for br in D.branches)
     est = +∞
-    @showprogress 1 "Computing infinite-derivative DFLY..." for i in 3:15
-        val = 0.0
-        val_summand = Interval(0.0)
-        l = 0.0
+    best_i = 0;
 
-        for (j, br) in enumerate(branches(D))
-            rad = radius(hull(br.X[1], br.X[2]))
-            tol = rad/2^(i+1)
-            left, right = leftrightsingularity[j]
-            @debug "branch $j, left_singularity=$left, right_singularity=$right"
-            f = inverse_derivative(br.f)
-            g = distortion(br.f)
-            left_endpoint = br.X[1]
-            right_endpoint = br.X[2]
-            if left
-                left_endpoint += rad/2^i
-            end
-            if right
-                right_endpoint-= rad/2^i
-            end
-            I = hull(left_endpoint, right_endpoint)
-            val_br = 2*maximise(x->abs(f(x)), I, tol=tol)[1]
-            @debug "maximise on $I: $val_br"
-            val = max(val, val_br.hi)
-            
-            if left
-                # we work on the interval [br.X[1], left_endpoint] =: [a, b].
-                # we assume here that f(a) = 0, g(a)=∞, and that g is monotonically decreasing on [a,b]
-                l_left = abs(g(left_endpoint))
-                @debug "left endpoint: g($left_endpoint) = $l_left"
-                # we use the fact that the primitive of the distortion g is f=1/T', and compute
-                # int_a^b (distorsion) = f(b) - f(a) = f(b)
-                val_summand+= abs(f(left_endpoint)/2)
-                @debug "abs(f($left_endpoint)/2) = $val_summand"
-                l = max(l, abs(l_left).hi )
-            end
-            if right
-                # same reasoning as above but on the right endpoint
-                l_right = abs(g(right_endpoint)) 
-                @debug "right endpoint: g($right_endpoint) = $l_right"
-                val_summand+= abs(f(right_endpoint)/2)
-                @debug "abs(f($right_endpoint)/2) = $val_summand"
-                l = max(l, abs(l_right).hi )
-            end
-        end
-        val = val ⊕₊ val_summand.hi 
-        @debug "i=$i, A=$val, B=$l"
-
-        if val<1.0 && l⊘₊(1.0 ⊖₋val) < est
-            est = l⊘₊(1.0 ⊖₋val)
-            A = val
-            B = l
+    @showprogress 1 "Checking candidate values for infinite-derivative DFLY..."  for i in 3:15
+        candidate_A, candidate_B = dfly_inf_der_single_estimate(D, i; width_term, tol=rough_tol)
+        @debug "i=$i, A=$candidate_A, B=$candidate_B"
+        
+        if candidate_A<1.0 && candidate_B ⊘₊ (1.0 ⊖₋ candidate_A) < est
+            est = candidate_B ⊘₊ (1.0 ⊖₋ candidate_A)
+            best_i = i
             @debug "improving on previous best"
         end
     end
-    endpts = endpoints(D)
-    min_width = minimum([endpts[i+1]-endpts[i] for i in 1:length(endpts)-1])
-        
-    return A, B⊕₊(2/min_width).hi 
+    if best_i == 0
+        error("Could not compute a dfly() inequality with A<1")
+    end
+    # recomputes the optimal value with a finer tolerance
+    A, B = dfly_inf_der_single_estimate(D, best_i; width_term, tol=fine_tol)
+    @info "Computed infinite-derivative dfly coefficients: A=$A, B=$B"
+    return A, B
 end
 #    aux_der = (1-max_exp)/2
 #  @info "aux_der", aux_der

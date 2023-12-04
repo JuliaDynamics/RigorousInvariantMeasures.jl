@@ -60,7 +60,7 @@ function preimage_monotonic(y, f::Function, x::Interval, (y1, y2) = (f(Interval(
 			# Interval Newton step on x -> f(x) - y
 			@debug "Step $i, Newton method:
 			- the interval $x, 
-			- the derivative $(f′(x)),
+			- the derivative $enc_der,
 			- the value at the midpoint $(f(x_mid))
 			- the value $(f(x))"
 
@@ -72,7 +72,7 @@ function preimage_monotonic(y, f::Function, x::Interval, (y1, y2) = (f(Interval(
 			# Krawczyk step on x -> f(x) - y
 			@debug "Step $i, Krawczyk method:
 			- the interval $x, 
-			- the derivative $(f′(x)),
+			- the derivative $enc_der,
 			- the value at the midpoint $(f(x_mid))
 			- the value $(f(x))"
 
