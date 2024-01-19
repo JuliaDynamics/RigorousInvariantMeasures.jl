@@ -9,7 +9,7 @@ using IntervalArithmetic
 
     T(x) = 2*x
 
-    P = RigorousInvariantMeasures.AdjointFourierBasis.assemble_standard(B, T)
+    P = RigorousInvariantMeasures.AdjointFourierBasis.assemble(B, T)
 
     real_P = real.(P)
 
