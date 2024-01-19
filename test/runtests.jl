@@ -30,6 +30,7 @@ DocMeta.setdocmeta!(RigorousInvariantMeasures, :DocTestSetup, :(using RigorousIn
 
     
 
+
     @testset "Doctests" begin 
         if Base.VERSION >= v"1.8"
             # It seems that some output formats have changed from 1.7 to 1.8
