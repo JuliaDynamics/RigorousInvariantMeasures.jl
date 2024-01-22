@@ -364,4 +364,3 @@ end
 # #     n = length(Cacher.B)
 # # 	return Cacher.C ⊗₊ log(n+2)
 # # end
-
