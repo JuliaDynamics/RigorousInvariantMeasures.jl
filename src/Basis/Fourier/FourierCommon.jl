@@ -47,8 +47,7 @@ function Base.getindex(B::Fourier, i::Int)
 end
 
 is_refinement(Bc::Fourier, Bf::Fourier) = length(Bc) < length(Bf)
-integral_covector(B::Fourier; T = Float64) =
-    [Interval{T}(1); zeros(length(B) - 1)]'
+integral_covector(B::Fourier; T = Float64) = [Interval{T}(1); zeros(length(B) - 1)]'
 one_vector(B::Fourier) = [1; zeros(length(B) - 1)]
 
 Base.length(S::AverageZero{T}) where {T<:Fourier} = length(S.basis) - 1
