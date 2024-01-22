@@ -29,21 +29,21 @@ since the latter are defined generically in terms of the former.
 
 Remark: tricky point that can cause subtle bugs: functions created in the same line-of-code
 will often have the same type; so for instance
-```jldoctest
-julia> fs = [x -> k*x for k in 1:3];  # the three elements here have the same type
+# ```jldoctest
+# julia> fs = [x -> k*x for k in 1:3];  # the three elements here have the same type
 
-julia> typeof(fs[1]) == typeof(fs[3])
-true
+# julia> typeof(fs[1]) == typeof(fs[3])
+# true
 
-julia> derivative(f::typeof(fs[1]), x) = 1;
+# julia> RigorousInvariantMeasures.derivative(f::typeof(fs[1]), x) = 1;
 
-julia> derivative(f::typeof(fs[2]), x) = 2;
+# julia> RigorousInvariantMeasures.derivative(f::typeof(fs[2]), x) = 2;
 
-julia> derivative(f::typeof(fs[3]), x) = 3;
+# julia> RigorousInvariantMeasures.derivative(f::typeof(fs[3]), x) = 3;
 
-julia> derivative(fs[1], 0.5)  # this returns 3, not 1
-3
-```
+# julia> RigorousInvariantMeasures.derivative(fs[1], 0.5)  # this returns 3, not 1
+# 3
+# ```
 """
 function value_and_derivative(f, x)
     y = f(Taylor1([x, one(x)]))
