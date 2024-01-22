@@ -5,12 +5,10 @@ DocMeta.setdocmeta!(RigorousInvariantMeasures, :DocTestSetup, :(using RigorousIn
 
 makedocs(;
     modules=[RigorousInvariantMeasures],
-    authors="Isaia Nisoli nisoli@im.ufrj.br and contributors",
-    repo="https://github.com/JuliaDynamics/RigorousInvariantMeasures.jl/blob/{commit}{path}#{line}",
+    authors="Isaia Nisoli <nisoli@im.ufrj.br> and contributors",
     sitename="RigorousInvariantMeasures.jl",
     format=Documenter.HTML(;
-        prettyurls=get(ENV, "CI", "false") == "true",
-        canonical="https://github.com/JuliaDynamics/RigorousInvariantMeasures.jl",
+        canonical="https://juliadynamics.github.io/RigorousInvariantMeasures.jl",
         edit_link="main",
         assets=String[],
     ),
@@ -28,6 +26,6 @@ makedocs(;
 
 deploydocs(;
     repo="github.com/JuliaDynamics/RigorousInvariantMeasures.jl",
-    versions = ["stable" => "v^", "v#.#", devurl => devurl],
-    devbranch="master",
+    #versions = ["stable" => "v^", "v#.#", devurl => devurl],
+    devbranch="main",
 )
