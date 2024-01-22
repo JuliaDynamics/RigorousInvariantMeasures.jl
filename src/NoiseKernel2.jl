@@ -183,7 +183,7 @@ function Base.:*(N::NoiseUlam, v::Vector{Float64})
     return w
 end
 
-BasisDefinition.opnormbound(B::Ulam, ::Type{L1}, M::NoiseUlam) = 1.0
+opnormbound(B::Ulam, ::Type{L1}, M::NoiseUlam) = 1.0
 opradius(::Type{L1}, N::NoiseUlam) = N.k * Interval(radius(Interval(1) / N.k)).hi
 nonzero_per_row(N::NoiseUlam) = N.k
 dfly(::Type{TotalVariation}, ::Type{L1}, N::NoiseUlam) = (0.0, (1 / (2 * N.ξ)).hi)
@@ -321,7 +321,7 @@ if has_cuda() && has_cuda_gpu()
         return w
     end
 
-    BasisDefinition.opnormbound(B::Ulam, ::Type{L1}, M::NoiseUlamCuda) = 1.0
+    opnormbound(B::Ulam, ::Type{L1}, M::NoiseUlamCuda) = 1.0
     opradius(::Type{L1}, N::NoiseUlamCuda) = N.k * Interval(radius(Interval(1) / N.k)).hi
     nonzero_per_row(N::NoiseUlamCuda) = N.k
     dfly(::Type{TotalVariation}, ::Type{L1}, N::NoiseUlamCuda) = (0.0, (1 / (2 * N.ξ)).hi)

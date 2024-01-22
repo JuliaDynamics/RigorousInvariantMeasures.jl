@@ -1,5 +1,4 @@
 # COV_EXCL_START
-using ..BasisDefinition, ..DynamicDefinition, ..PwDynamicDefinition
 using IntervalArithmetic, LinearAlgebra
 import Base: iterate
 import ..BasisDefinition:
@@ -35,7 +34,7 @@ evaluate(B::Fourier1D, i, x) = ϕ(i, x)
 strong_norm(B::Fourier1D) = L2
 weak_norm(B::Fourier1D) = L1
 aux_norm(B::Fourier1D) = L1
-BasisDefinition.is_refinement(Bfine::Fourier1D, Bcoarse::Fourier1D) =
+is_refinement(Bfine::Fourier1D, Bcoarse::Fourier1D) =
     Bfine.N > Bcoarse.N ? true : false
 
 is_integral_preserving(B::Fourier1D) = false
@@ -443,9 +442,9 @@ weak_by_strong_and_aux_bound(B::Fourier1D) = (0.0, 1.0)
 function norms_of_powers_abstract_noise(Bas::Fourier1D, N::NoiseKernel, m)
     A, B = dfly(strong_norm(Bas), aux_norm(Bas), N)
     Eh = noise_projection_error(Bas, N)
-    M₁n = BasisDefinition.strong_weak_bound(Bas)
-    M₂ = BasisDefinition.aux_weak_bound(Bas)
-    S₁, S₂ = BasisDefinition.weak_by_strong_and_aux_bound(Bas)
+    M₁n = strong_weak_bound(Bas)
+    M₂ = aux_weak_bound(Bas)
+    S₁, S₂ = weak_by_strong_and_aux_bound(Bas)
 
     norms = fill(NaN, m)
     strongs = fill(NaN, m)
@@ -476,7 +475,7 @@ function norms_of_powers_from_coarser_grid_noise(
 )
 
     ####Check this!!!!
-    #if !(BasisDefinition.is_refinement(fine_basis, coarse_basis))
+    #if !(is_refinement(fine_basis, coarse_basis))
     #    @error "The fine basis is not a refinement of the coarse basis"
     #end
     m = length(coarse_norms)

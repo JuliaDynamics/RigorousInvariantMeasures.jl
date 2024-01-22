@@ -3,7 +3,7 @@ Compute preimages of monotonic sequences
 """
 
 using IntervalArithmetic
-using .DynamicDefinition: is_increasing
+
 
 ## Moved the definition of MonotonicBranch in PwDynamicDefinition, with the objective
 ## of transforming PwMap into an Array of MonotonicBranch
@@ -273,8 +273,8 @@ dfly(
 ) = dfly(N1, N2, D.E)
 
 
-DynamicDefinition.domain(D::ComposedDynamic) = DynamicDefinition.domain(D.dyns[end])
-DynamicDefinition.is_increasing(D::ComposedDynamic) = iseven(sum(.!is_increasing.(D.dyns)))
+domain(D::ComposedDynamic) = domain(D.dyns[end])
+is_increasing(D::ComposedDynamic) = iseven(sum(.!is_increasing.(D.dyns)))
 
 function preimages(z, Ds::ComposedDynamic, zlabel = 1:length(z); ϵ, max_iter)
     @assert length(Ds.dyns) == 2
@@ -299,7 +299,7 @@ function preimages_and_derivatives(
 
     @assert is_full_branch(f) && is_full_branch(g)
 
-    if DynamicDefinition.is_increasing(g)
+    if is_increasing(g)
         f_left = left
     else
         f_left = !left
@@ -320,7 +320,7 @@ function (D::ComposedDynamic)(x::Taylor1)
     return x
 end
 
-function DynamicDefinition.endpoints(D::ComposedDynamic)
+function endpoints(D::ComposedDynamic)
     v = endpoints(D.dyns[1])
     auxDyn = D.dyns[2]
     x, xlabel = preimages(v, auxDyn; ϵ = 10^-14, max_iter = 100)
@@ -328,12 +328,12 @@ function DynamicDefinition.endpoints(D::ComposedDynamic)
     return sort!(x)
 end
 
-DynamicDefinition.nbranches(D::ComposedDynamic) = length(endpoints(D)) - 1
+nbranches(D::ComposedDynamic) = length(endpoints(D)) - 1
 
 
 # We need a better way to explicit this, at the moment we suppose everything 
 # is full branch
-DynamicDefinition.is_full_branch(D::ComposedDynamic) =
+is_full_branch(D::ComposedDynamic) =
     all([is_full_branch(D.dyns[1]); is_full_branch(D.dyns[2])])
 
 ## Moved the definition of the abstract type Dual to BasisDefinition.jl

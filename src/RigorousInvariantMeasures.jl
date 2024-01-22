@@ -9,11 +9,9 @@ include("differentiation_interface.jl")
 include("Contractors.jl")
 
 include("DynamicDefinition.jl")
-using .DynamicDefinition
 export Dynamic, endpoints, nbranches, branch, max_inverse_derivative, max_distortion
 
 include("Basis/BasisDefinition.jl")
-using .BasisDefinition
 export opnormbound, weak_norm, strong_norm, aux_norm, integral_covector
 include("NormBounds.jl")
 include("NormCacher.jl")
@@ -37,8 +35,6 @@ export Hat
 include("Basis/NonPeriodicHatBasis.jl")
 export HatNP
 
-
-#using .Mod1DynamicDefinition, .PwDynamicDefinition
 
 include("pitrig.jl")
 include("NormsOfPowers.jl")
@@ -73,7 +69,6 @@ using IntervalArithmetic
 export Interval
 
 include("Basis/C2Basis.jl")
-using .C2BasisDefinition
 export C2Basis
 
 
@@ -86,7 +81,6 @@ include("HigherDFLY.jl")
 
 # a special example, the induced map for the LSV map
 include("InducedLSV.jl")
-using .InducedLSVMapDefinition
 export ApproxInducedLSV
 
 include("NoiseKernel.jl")

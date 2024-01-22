@@ -1,5 +1,3 @@
-using .DynamicDefinition
-using .PwDynamicDefinition
 
 """
 (A, B) = dfly(strongnorm, auxnorm, dynamic)

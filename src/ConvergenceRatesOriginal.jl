@@ -18,7 +18,7 @@ comparetrinormweak(Bas::Ulam) = WeakStrongerTrinorm
 #    A, B = dfly(strong_norm(Bas), aux_norm(Bas), D)
 #    m = length(coarse_norms)
 #    
-#    Kh =  BasisDefinition.weak_projection_error(coarse_basis)
+#    Kh =  weak_projection_error(coarse_basis)
 #    
 #    strong_norms = fill(NaN, m+1) 
 #    weak_norms = fill(NaN, m+1) 
@@ -73,11 +73,11 @@ Stefano Galatolo, Isaia Nisoli, Benoît Saussol. An elementary way to rigorously
 """
 
 function convergencerateabstract(Bas::Ulam, D::Dynamic, norms)
-    boundL = BasisDefinition.bound_weak_norm_abstract(Bas)
+    boundL = bound_weak_norm_abstract(Bas)
     A, B = dfly(strong_norm(Bas), aux_norm(Bas), D)
     #@info A, B
     m = length(norms)
-    Kh = BasisDefinition.weak_projection_error(Bas)
+    Kh = weak_projection_error(Bas)
 
     C = (A ⊕₊ 1.0) / (1.0 ⊖₋ A)
     D = B ⊗₊ (A ⊕₊ 2.0)

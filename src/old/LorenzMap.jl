@@ -1,7 +1,6 @@
 # COV_EXCL_START
 module LorenzMapDefinition
 
-using ..PwDynamicDefinition: PwMap
 
 
 

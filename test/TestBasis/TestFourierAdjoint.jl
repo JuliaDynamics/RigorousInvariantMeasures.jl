@@ -2,14 +2,14 @@ using RigorousInvariantMeasures
 using IntervalArithmetic
 
 @testset "Fourier assembler: Adjoint" begin
-    B = RigorousInvariantMeasures.AdjointFourierBasis.FourierAdjoint(128, 1024)
+    B = RigorousInvariantMeasures.FourierAdjoint(128, 1024)
     length(B) == 128
 
     v = zeros(128)
 
     T(x) = 2 * x
 
-    P = RigorousInvariantMeasures.AdjointFourierBasis.assemble(B, T)
+    P = RigorousInvariantMeasures.assemble(B, T)
 
     real_P = real.(P)
 

@@ -1,7 +1,7 @@
 """
 Certified upper bound to ||A|| (of specified NormKind)
 """
-function BasisDefinition.opnormbound(::Type{L1}, A::AbstractVecOrMat{T}) where {T}
+function opnormbound(::Type{L1}, A::AbstractVecOrMat{T}) where {T}
     # partly taken from JuliaLang's LinearAlgebra/src/generic.jl
     Tnorm = typeof(abs_or_mag(float(real(zero(T)))))
     Tsum = promote_type(Float64, Tnorm)
@@ -18,7 +18,7 @@ function BasisDefinition.opnormbound(::Type{L1}, A::AbstractVecOrMat{T}) where {
     return convert(Tnorm, nrm)
 end
 
-function BasisDefinition.opnormbound(::Type{Linf}, A::AbstractVecOrMat{T}) where {T}
+function opnormbound(::Type{Linf}, A::AbstractVecOrMat{T}) where {T}
     # partly taken from JuliaLang's LinearAlgebra/src/generic.jl
     Tnorm = typeof(abs_or_mag(float(real(zero(T)))))
     Tsum = promote_type(Float64, Tnorm)
@@ -40,7 +40,7 @@ These functions compute a rigorous upper bound for the 2-norm of a vector;
 we have a specialized version for complex numbers to avoid taking
 the sqrt root and squaring again 
 """
-function BasisDefinition.opnormbound(::Type{L2}, v::Vector{T}) where {T<:Real}
+function opnormbound(::Type{L2}, v::Vector{T}) where {T<:Real}
     # partly taken from JuliaLang's LinearAlgebra/src/generic.jl
     Tnorm = typeof(abs_or_mag(float(real(zero(T)))))
     Tsum = promote_type(Float64, Tnorm)
@@ -53,7 +53,7 @@ function BasisDefinition.opnormbound(::Type{L2}, v::Vector{T}) where {T<:Real}
     return convert(Tnorm, sqrt_round(nrm, RoundUp))
 end
 
-function BasisDefinition.opnormbound(::Type{L2}, v::Vector{T}) where {T<:Complex}
+function opnormbound(::Type{L2}, v::Vector{T}) where {T<:Complex}
     # partly taken from JuliaLang's LinearAlgebra/src/generic.jl
     Tnorm = typeof(abs_or_mag(float(real(zero(T)))))
     Tsum = promote_type(Float64, Tnorm)
@@ -68,7 +68,7 @@ end
 
 import SparseArrays
 
-function BasisDefinition.opnormbound(::Type{L1}, A::SparseArrays.SparseMatrixCSC)
+function opnormbound(::Type{L1}, A::SparseArrays.SparseMatrixCSC)
     # partly taken from JuliaLang's Sparsearray/src/linalg.jl
     m, n = size(A)
     Tnorm = typeof(abs_or_mag(float(real(zero(eltype(A))))))
@@ -86,7 +86,7 @@ function BasisDefinition.opnormbound(::Type{L1}, A::SparseArrays.SparseMatrixCSC
     return convert(Tnorm, nA)
 end
 
-function BasisDefinition.opnormbound(::Type{Linf}, A::SparseArrays.SparseMatrixCSC)
+function opnormbound(::Type{Linf}, A::SparseArrays.SparseMatrixCSC)
     # partly taken from JuliaLang's Sparsearray/src/linalg.jl
     m, n = size(A)
     Tnorm = typeof(abs_or_mag(float(real(zero(eltype(A))))))
@@ -103,6 +103,6 @@ end
 """
 Rigorous upper bound on a vector norm. Note that Linf, L1 are the "analyst's" norms
 """
-BasisDefinition.normbound(N::Type{L1}, v::AbstractVector) =
+normbound(N::Type{L1}, v::AbstractVector) =
     opnormbound(L1, v) ⊘₊ Float64(length(v), RoundDown)
-BasisDefinition.normbound(N::Type{Linf}, v::AbstractVector) = opnormbound(Linf, v)
+normbound(N::Type{Linf}, v::AbstractVector) = opnormbound(Linf, v)

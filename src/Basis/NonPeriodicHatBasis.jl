@@ -2,10 +2,6 @@
 Hat basis on the Torus [0,1]
 """
 
-using ..BasisDefinition, ..DynamicDefinition
-
-import ..BasisDefinition: one_vector, integral_covector, is_integral_preserving
-
 struct HatNP{T<:AbstractVector} <: Basis
     p::T
     # TODO: check in constructor that p is sorted, starts with 0 and ends with 1
@@ -76,19 +72,19 @@ function Base.getindex(B::HatNP, i::Int)
 end
 
 
-function BasisDefinition.is_dual_element_empty(::HatNP, d)
+function is_dual_element_empty(::HatNP, d)
     # TODO: the preim() may indeed be empty, so there could be an additional check here
     return false
 end
 
-BasisDefinition.is_refinement(Bf::HatNP, Bc::HatNP) = Bc.p ⊆ Bf.p
+is_refinement(Bf::HatNP, Bc::HatNP) = Bc.p ⊆ Bf.p
 
-function BasisDefinition.integral_covector(B::HatNP)
+function integral_covector(B::HatNP)
     n = length(B)
     return 1 / n * ones(Interval{Float64}, n)'
 end
 
-function BasisDefinition.one_vector(B::HatNP)
+function one_vector(B::HatNP)
     return ones(length(B))
 end
 
@@ -100,7 +96,7 @@ The range may end with length(B)+1; this must be interpreted "mod length(B)":
 it means that it intersects with the hat function peaked in 0 as well
 (think for instance y = 0.9999).
 """
-function BasisDefinition.nonzero_on(B::HatNP, dual_element)
+function nonzero_on(B::HatNP, dual_element)
     #@info typeof(dual_element)
     y, absT′ = dual_element
     # Note that this cannot rely on arithmetic unless it is verified
@@ -137,11 +133,11 @@ function Base.iterate(S::ProjectDualElement{T,DT}, state = S.j_min) where {T<:Ha
     return ((j, S.basis[mod(j, 1:n)](y) / absT′), state + 1)
 end
 
-BasisDefinition.strong_norm(B::HatNP) = Lipschitz
-BasisDefinition.weak_norm(B::HatNP) = Linf
-BasisDefinition.aux_norm(B::HatNP) = L1
+strong_norm(B::HatNP) = Lipschitz
+weak_norm(B::HatNP) = Linf
+aux_norm(B::HatNP) = L1
 
-BasisDefinition.evaluate_integral(B::HatNP, i, T) = T(i) / (length(B) - 1)
+evaluate_integral(B::HatNP, i, T) = T(i) / (length(B) - 1)
 
 function Base.iterate(S::AverageZero{HatNP{T}}, state = 1) where {T}
     n = length(S.basis)
@@ -156,23 +152,23 @@ end
 
 Base.length(S::AverageZero{HatNP{T}}) where {T} = length(S.basis) - 1
 
-BasisDefinition.weak_projection_error(B::HatNP) = 0.5 ⊘₊ Float64(length(B), RoundDown)
-BasisDefinition.aux_normalized_projection_error(B::HatNP) =
+weak_projection_error(B::HatNP) = 0.5 ⊘₊ Float64(length(B), RoundDown)
+aux_normalized_projection_error(B::HatNP) =
     0.5 ⊘₊ Float64(length(B), RoundDown)
-BasisDefinition.strong_weak_bound(B::HatNP) = 2.0 ⊗₊ Float64(length(B), RoundDown)
-BasisDefinition.aux_weak_bound(B::HatNP) = 1.0
-BasisDefinition.weak_by_strong_and_aux_bound(B::HatNP) = (1.0, 1.0)
-BasisDefinition.bound_weak_norm_from_linalg_norm(B::HatNP) = @error "TODO"
-BasisDefinition.bound_linalg_norm_L1_from_weak(B::HatNP) = @error "TODO"
-BasisDefinition.bound_linalg_norm_L∞_from_weak(B::HatNP) = @error "TODO"
-BasisDefinition.opnormbound(
+strong_weak_bound(B::HatNP) = 2.0 ⊗₊ Float64(length(B), RoundDown)
+aux_weak_bound(B::HatNP) = 1.0
+weak_by_strong_and_aux_bound(B::HatNP) = (1.0, 1.0)
+bound_weak_norm_from_linalg_norm(B::HatNP) = @error "TODO"
+bound_linalg_norm_L1_from_weak(B::HatNP) = @error "TODO"
+bound_linalg_norm_L∞_from_weak(B::HatNP) = @error "TODO"
+opnormbound(
     B::HatNP{T},
     N::Type{Linf},
     A::AbstractVecOrMat{S},
 ) where {S,T} = opnormbound(N, A)
-BasisDefinition.normbound(B::HatNP{T}, N::Type{Linf}, v) where {T} = normbound(N, v)
+normbound(B::HatNP{T}, N::Type{Linf}, v) where {T} = normbound(N, v)
 
-function BasisDefinition.invariant_measure_strong_norm_bound(B::HatNP, D::Dynamic)
+function invariant_measure_strong_norm_bound(B::HatNP, D::Dynamic)
     A, B = dfly(strong_norm(B), aux_norm(B), D)
     @assert A < 1.0
     return B ⊘₊ (1.0 ⊖₋ A)

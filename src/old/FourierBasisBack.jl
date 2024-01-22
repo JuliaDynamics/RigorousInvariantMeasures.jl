@@ -1,8 +1,4 @@
 # COV_EXCL_START
-module FourierBackward
-
-
-using ..BasisDefinition, ..DynamicDefinition, ..PwDynamicDefinition
 using IntervalArithmetic, LinearAlgebra
 import Base: iterate
 import ..BasisDefinition:
@@ -544,5 +540,4 @@ end
 # 	return better_norms
 #end
 
-end
 # COV_EXCL_STOP

@@ -1,6 +1,4 @@
-using ..BasisDefinition, ..DynamicDefinition, ..PwDynamicDefinition
-IntervalArithmetic, LinearAlgebra
-#import ..BasisDefinition: one_vector, integral_covector, is_integral_preserving, strong_norm, weak_norm, aux_norm
+using IntervalArithmetic, LinearAlgebra
 
 """
 	Ulam
@@ -49,7 +47,7 @@ function Base.getindex(B::Ulam, i::Int)
     return x -> (B.p[i] <= x < B.p[i+1] ? 1 : 0)
 end
 
-function BasisDefinition.is_dual_element_empty(::Ulam, d)
+function is_dual_element_empty(::Ulam, d)
     return isempty(d[1]) || isempty(d[2])
 end
 
@@ -109,7 +107,7 @@ the preimages are computed with very low accuracy.
 We assume, though, that y comes from the (possibly inexact) numerical approximation
 of an interval in ``[0,1]``, i.e., we restrict to ``y \\cap [0,1]``
 """
-function BasisDefinition.nonzero_on(B::Ulam, (a, b))
+function nonzero_on(B::Ulam, (a, b))
     y = hull(a, b)
 
     # finds in which semi-open interval [p[k], p[k+1]) y.lo and y.hi fall
@@ -158,10 +156,10 @@ function Base.iterate(S::ProjectDualElement{BT,DT}, state = S.j_min) where {BT<:
 end
 Base.eltype(f::ProjectDualElement{<:Ulam,DT}) where {DT} = Tuple{Int64,Interval{Float64}}
 
-BasisDefinition.evaluate(B::Ulam{T}, i, x) where {T} =
+evaluate(B::Ulam{T}, i, x) where {T} =
     (x > (i - 1) / n) && (x < i / n) ? 1 : 0
 
-BasisDefinition.evaluate_integral(B::Ulam{S}, i, T::Type) where {S} = T(i) / length(B)
+evaluate_integral(B::Ulam{S}, i, T::Type) where {S} = T(i) / length(B)
 
 """
 	iterate(S::AverageZero{Ulam{T}}, state = 1) where{T}
@@ -187,46 +185,46 @@ Return the size of the Average Zero space
 """
 Base.length(S::AverageZero{Ulam{T}}) where {T} = length(S.basis) - 1
 
-BasisDefinition.is_refinement(Bf::Ulam, Bc::Ulam) = Bc.p ⊆ Bf.p
+is_refinement(Bf::Ulam, Bc::Ulam) = Bc.p ⊆ Bf.p
 
-function BasisDefinition.integral_covector(B::Ulam{T}) where {T}
+function integral_covector(B::Ulam{T}) where {T}
     n = length(B)
     return 1 / n * ones(Interval{Float64}, n)'
 end
 
-BasisDefinition.is_integral_preserving(B::Ulam{T}) where {T} = true
+is_integral_preserving(B::Ulam{T}) where {T} = true
 
-function BasisDefinition.one_vector(B::Ulam)
+function one_vector(B::Ulam)
     return ones(length(B))
 end
 
-BasisDefinition.strong_norm(B::Ulam) = TotalVariation
-BasisDefinition.weak_norm(B::Ulam) = L1
-BasisDefinition.aux_norm(B::Ulam) = L1
+strong_norm(B::Ulam) = TotalVariation
+weak_norm(B::Ulam) = L1
+aux_norm(B::Ulam) = L1
 
 # See BasisDefinition for docs on these constants
 # These must be rounded up correctly!
 
-BasisDefinition.weak_projection_error(B::Ulam) = 0.5 ⊘₊ Float64(length(B), RoundDown)
-BasisDefinition.aux_normalized_projection_error(B::Ulam) = 0.0
-BasisDefinition.strong_weak_bound(B::Ulam) = Float64(length(B), RoundUp)
-BasisDefinition.aux_weak_bound(B::Ulam) = 1.0
-BasisDefinition.weak_by_strong_and_aux_bound(B::Ulam) = (0.0, 1.0)
-BasisDefinition.bound_weak_norm_from_linalg_norm(B::Ulam) = (1.0, 0.0)
-BasisDefinition.bound_linalg_norm_L1_from_weak(B::Ulam) = 1.0
-BasisDefinition.bound_linalg_norm_L∞_from_weak(B::Ulam) = Float64(length(B), RoundUp)
-BasisDefinition.bound_weak_norm_abstract(
+weak_projection_error(B::Ulam) = 0.5 ⊘₊ Float64(length(B), RoundDown)
+aux_normalized_projection_error(B::Ulam) = 0.0
+strong_weak_bound(B::Ulam) = Float64(length(B), RoundUp)
+aux_weak_bound(B::Ulam) = 1.0
+weak_by_strong_and_aux_bound(B::Ulam) = (0.0, 1.0)
+bound_weak_norm_from_linalg_norm(B::Ulam) = (1.0, 0.0)
+bound_linalg_norm_L1_from_weak(B::Ulam) = 1.0
+bound_linalg_norm_L∞_from_weak(B::Ulam) = Float64(length(B), RoundUp)
+bound_weak_norm_abstract(
     B::Ulam,
     D = nothing;
     dfly_coefficients = nothing,
 ) = 1.0
 
-BasisDefinition.opnormbound(B::Ulam{T}, N::Type{L1}, A::AbstractVecOrMat{S}) where {T,S} =
+opnormbound(B::Ulam{T}, N::Type{L1}, A::AbstractVecOrMat{S}) where {T,S} =
     opnormbound(N, A)
-#BasisDefinition.opnormbound(B::Ulam{T}, N::Type{L1}, Q::IntegralPreservingDiscretizedOperator) where {T} = opnormbound(N, Q.L)
-BasisDefinition.normbound(B::Ulam{T}, N::Type{L1}, v) where {T} = normbound(N, v)
+#opnormbound(B::Ulam{T}, N::Type{L1}, Q::IntegralPreservingDiscretizedOperator) where {T} = opnormbound(N, Q.L)
+normbound(B::Ulam{T}, N::Type{L1}, v) where {T} = normbound(N, v)
 
-function BasisDefinition.invariant_measure_strong_norm_bound(
+function invariant_measure_strong_norm_bound(
     B::Ulam,
     D::Dynamic;
     dfly_coefficients = dfly(strong_norm(B), aux_norm(B), D),

@@ -1,13 +1,11 @@
-module C2BasisDefinition
+
 
 """
 C2 basis on [0,1]
 """
 
-using ..BasisDefinition, ..DynamicDefinition, IntervalArithmetic
+using IntervalArithmetic
 import Base: iterate, length
-import ..BasisDefinition: one_vector, integral_covector, is_integral_preserving
-import ...RigorousInvariantMeasures: NormKind, Linf
 
 export C2Basis, dual_val, dual_der, C1, C2
 
@@ -120,7 +118,7 @@ function basis_element_with_der(B::C2Basis, i::Int)
     #return x->κ(x) for i in 1:N+1 
 end
 
-function BasisDefinition.is_dual_element_empty(::C2Basis, d)
+function is_dual_element_empty(::C2Basis, d)
     # TODO: the preim() may indeed be empty, so there could be an additional check here
     return false
 end
@@ -169,7 +167,7 @@ function Base.iterate(
     #end
 end
 
-BasisDefinition.is_refinement(Bf::C2Basis, Bc::C2Basis) = Bc.p ⊆ Bf.p
+is_refinement(Bf::C2Basis, Bc::C2Basis) = Bc.p ⊆ Bf.p
 
 function integral_covector(B::C2Basis)
     n = length(B.p)
@@ -192,7 +190,7 @@ end
 Return the range of indices of the elements of the basis whose support intersects
 with the given dual element (i.e., a pair (y, absT', derder)).
 """
-function BasisDefinition.nonzero_on(B::C2Basis, dual_element)
+function nonzero_on(B::C2Basis, dual_element)
     y = dual_element[1]
     # Note that this cannot rely on arithmetic unless it is verified
     # searchsortedfirst(a, x) return the index of the first value in a greater than or equal to x
@@ -291,8 +289,6 @@ function Base.iterate(S::AverageZero{T}, state = 1) where {T<:C2Basis}
     return v, state + 1
 end
 
-
-end
 
 using RecipesBase
 

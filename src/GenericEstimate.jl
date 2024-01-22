@@ -1,5 +1,4 @@
 using LinearAlgebra, Arpack, FastRounding, IntervalArithmetic
-using ..DynamicDefinition, ..BasisDefinition
 
 export invariant_vector,
     finepowernormbounds,
@@ -60,15 +59,15 @@ function distance_from_invariant(
     if ε₂ > 1e-8
         @error "w does not seem normalized correctly"
     end
-    us = BasisDefinition.invariant_measure_strong_norm_bound(
+    us = invariant_measure_strong_norm_bound(
         B,
         D;
         dfly_coefficients = dfly_coefficients,
     )
     Cs = infinite_sum_norms(norms)
-    Kh = BasisDefinition.weak_projection_error(B)
+    Kh = weak_projection_error(B)
     normw = normbound(B, weak_norm(B), w)
-    normL = BasisDefinition.bound_weak_norm_abstract(
+    normL = bound_weak_norm_abstract(
         B,
         D;
         dfly_coefficients = dfly_coefficients,
@@ -118,9 +117,9 @@ end
 This function returns the bound on the weak norm of the discretized operator
 """
 function boundnorm(B::Basis, P::AbstractMatrix{Interval{T}}, m) where {T}
-    W₁, W₂ = BasisDefinition.bound_weak_norm_from_linalg_norm(B)
-    α₁ = BasisDefinition.bound_linalg_norm_L1_from_weak(B)
-    α₂ = BasisDefinition.bound_linalg_norm_L∞_from_weak(B)
+    W₁, W₂ = bound_weak_norm_from_linalg_norm(B)
+    α₁ = bound_linalg_norm_L1_from_weak(B)
+    α₂ = bound_linalg_norm_L∞_from_weak(B)
     C, tilde_C = contractmatrix(B, P, m)
     return (W₁ / α₁) * C + (W₂ / α₂) * tilde_C
 end

@@ -1,14 +1,14 @@
 using RigorousInvariantMeasures
 using IntervalArithmetic
 @testset "Fourier assembler: Analytic" begin
-    B = RigorousInvariantMeasures.AnalyticFourierBasis.FourierAnalytic(128, 1024)
+    B = RigorousInvariantMeasures.FourierAnalytic(128, 1024)
     length(B) == 128
 
     v = zeros(128)
 
     D = mod1_dynamic(x -> 2 * x)
 
-    P = RigorousInvariantMeasures.AnalyticFourierBasis.assemble(B, D)
+    P = RigorousInvariantMeasures.assemble(B, D)
 
     real_P = real.(P)
 

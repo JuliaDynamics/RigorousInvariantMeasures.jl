@@ -1,6 +1,5 @@
 using Test
-using RigorousInvariantMeasures: preimages
-using RigorousInvariantMeasures.DynamicDefinition: is_increasing
+using RigorousInvariantMeasures: preimages, is_increasing
 using IntervalArithmetic
 
 @testset "preimages" begin
@@ -185,7 +184,7 @@ using IntervalArithmetic
     D1 = mod1_dynamic(f)
     D2 = mod1_dynamic(g)
 
-    @test RigorousInvariantMeasures.DynamicDefinition.is_increasing(D1)
+    @test RigorousInvariantMeasures.is_increasing(D1)
 
     y = 0:0.2:1
     x, xlabel = preimages(y, D1 ∘ D2; ϵ = 1e-13, max_iter = 100)
@@ -200,7 +199,7 @@ using IntervalArithmetic
     )
     D2 = PwMap([x -> 2x, x -> 4x - 2, x -> 4x - 3], [0, 0.5, 0.75, 1], [0 1; 0 1; 0 1])
 
-    @test RigorousInvariantMeasures.DynamicDefinition.is_increasing(D1)
+    @test RigorousInvariantMeasures.is_increasing(D1)
 
     z = 0:0.3:1
     y, ylabel, y′ =
