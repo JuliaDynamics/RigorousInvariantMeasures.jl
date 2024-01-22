@@ -1,3 +1,6 @@
+import Pkg;
+Pkg.activate("../")
+
 using RigorousInvariantMeasures
 using IntervalArithmetic
 

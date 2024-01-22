@@ -11,6 +11,13 @@ D = mod1_dynamic(x->2*x)
 @test D.branches[1].f(0.1) == 0.2
 @test derivative(D.branches[1].f)(0.1) == 2.0
 
+@test RigorousInvariantMeasures.intersect_domain(D, Interval(0.0)) == [Interval(0.0); ∅]
+@test RigorousInvariantMeasures.intersect_domain(D, Interval(0.4, 0.6)) == [Interval(0.4, 0.5); Interval(0.5, 0.6)]
+
+@test RigorousInvariantMeasures.intersect_domain_bool(D, Interval(0.0)) == [true; false]
+@test RigorousInvariantMeasures.intersect_domain_bool(D, Interval(0.4, 0.6)) == [true; true]
+
+
 @test RigorousInvariantMeasures.dfly(RigorousInvariantMeasures.Lipschitz, RigorousInvariantMeasures.L1, D) == (0.5, 0.0)
 @test RigorousInvariantMeasures.dfly(RigorousInvariantMeasures.TotalVariation, RigorousInvariantMeasures.L1, D) == (0.5, 0.0)
 

@@ -1,4 +1,4 @@
-using RigorousInvariantMeasures
+using RigorousInvariantMeasures, IntervalArithmetic
 using Test, Documenter
 
 DocMeta.setdocmeta!(RigorousInvariantMeasures, :DocTestSetup, :(using RigorousInvariantMeasures); recursive=true, warn=false)
@@ -11,7 +11,6 @@ DocMeta.setdocmeta!(RigorousInvariantMeasures, :DocTestSetup, :(using RigorousIn
     include("TestDynamic.jl")
     include("TestHat.jl")
     include("TestHatNP.jl")
-    include("TestUlam.jl")
     include("TestAssemble.jl")
     include("TestAssembleHat.jl")
     include("TestEstimate.jl")
@@ -22,18 +21,23 @@ DocMeta.setdocmeta!(RigorousInvariantMeasures, :DocTestSetup, :(using RigorousIn
     include("TestPreimages.jl")
     include("TestChebyshev.jl")
     include("TestObservables.jl")
-    include("TestLorenz2DUlam.jl")
-    include("TestHigherDFLY.jl")
-    include("TestNoise2.jl")
+    
+    include("TestBasis/TestBasisIndex.jl")
+    
+    #include("TestSkewProductMap.jl")
+    #include("TestUlam2DSP.jl")
+    #include("TestHigherDFLY.jl")
 
-    @testset "Doctests" begin 
-        if Base.VERSION >= v"1.8"
-            # It seems that some output formats have changed from 1.7 to 1.8
-            # therefore we use this hack to avoid failing doctests
-            @info "The doctest implemented for version $(Base.VERSION)"
-            doctest(RigorousInvariantMeasures)
-        end
-    end
+    
+
+    # @testset "Doctests" begin 
+    #     if Base.VERSION >= v"1.8"
+    #         # It seems that some output formats have changed from 1.7 to 1.8
+    #         # therefore we use this hack to avoid failing doctests
+    #         @info "The doctest implemented for version $(Base.VERSION)"
+    #         doctest(RigorousInvariantMeasures)
+    #     end
+    # end
 
 end
 

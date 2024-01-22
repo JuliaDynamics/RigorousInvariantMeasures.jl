@@ -10,7 +10,7 @@ using ..RigorousInvariantMeasures: derivative, distortion, inverse_derivative
 using TaylorSeries: Taylor1
 using IntervalArithmetic, IntervalOptimisation
 
-export PwMap, preim, nbranches, plottable, branches, MonotonicBranch, mod1_dynamic, dfly_inf_der, composedPwMap, equal_up_to_order, has_infinite_derivative_at_endpoints
+export PwMap, preim, nbranches, plottable, branches, MonotonicBranch, mod1_dynamic, dfly_inf_der, composedPwMap, equal_up_to_order, has_infinite_derivative_at_endpoints, intersect_domain, intersect_domain_bool
 
 """
 Type used to represent a "branch" of a dynamic. The branch is represented by a map `f` with domain `X=(a,b)`. X[1] and X[2] are interval enclosures of a,b.
@@ -86,9 +86,20 @@ function PwMap(Ts, endpoints, y_endpoints_in=hcat([Ts[k](Interval(endpoints[k]))
     return PwMap(branches; full_branch = full_branch_detected)
 end
 
+function intersect_domain(D::PwMap, x)
+    return [(Interval(x) ∩ hull(br.X[1], br.X[2])) for br in D.branches]
+end
+
+function intersect_domain_bool(D::PwMap, x)
+    return [y!=∅ for y in intersect_domain(D, x)]
+end
+
 Base.show(io::IO, D::PwMap) = print(io, "Piecewise-defined dynamic with $(nbranches(D)) branches")
 
 DynamicDefinition.domain(D::PwMap) =  (D.branches[1].X[1], D.branches[end].X[2])
+#intersect_domain(T::PwMap, x) = [Interval(x) ∩ hull(br.X[1], br.X[2]) for br in T.branches]
+#intersect_domain_bool(T::PwMap, x) = [!(∅ == y) for y in intersect_domain(T, x)]
+
 
 function DynamicDefinition.is_increasing(D::PwMap)
     inc = DynamicDefinition.is_increasing.(D.branches)
@@ -165,7 +176,8 @@ Compute a rigorous bound for the inverse_derivative of a branch
 """
 function branch_inverse_derivative(br::MonotonicBranch, tol = 0.01)
     I = hull(br.X[1], br.X[2])
-    val, listofboxes = maximise(inverse_derivative(br.f), I, tol=tol)
+    h = x -> abs(inverse_derivative(br.f, x))
+    val, listofboxes = maximise(h, I, tol=tol)
     @debug val, listofboxes
     return val
 end
