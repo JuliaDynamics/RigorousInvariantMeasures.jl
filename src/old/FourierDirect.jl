@@ -202,20 +202,19 @@ struct FourierDual <: Dual
     xp::Vector{Interval}
 end
 
-using ..Contractors
 using ..RigorousInvariantMeasures: preimages_and_derivatives
 
 function FourierDualBranch(y, br::MonotonicBranch, ylabel = 1:length(y), ϵ = 0.0)
     if br.increasing
         endpoint_X = br.X[2]
-        der = Contractors.derivative(br.f)(endpoint_X)
+        der = derivative(br.f)(endpoint_X)
         preim_der = preimages_and_derivatives(y, br, ylabel, ϵ)
         return [preim_der[1];],#endpoint_X is calculated in preimages
         [preim_der[2];],
         [preim_der[3];]#same as previous comment
     else
         endpoint_X = br.X[2]
-        der = Contractors.derivative(br.f)(endpoint_X)
+        der = derivative(br.f)(endpoint_X)
         preim_der = preimages_and_derivatives(y, br, 1:length(y)-1, ϵ)
         return [preim_der[1]; endpoint_X],
         [preim_der[2]; length(preim_der[2]) + 1],

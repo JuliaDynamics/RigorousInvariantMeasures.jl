@@ -3,7 +3,6 @@ Compute preimages of monotonic sequences
 """
 
 using IntervalArithmetic
-using .Contractors
 using .DynamicDefinition: is_increasing
 
 ## Moved the definition of MonotonicBranch in PwDynamicDefinition, with the objective

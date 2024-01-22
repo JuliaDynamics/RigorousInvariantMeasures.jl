@@ -104,14 +104,14 @@ end
 function ChebDualBranch(y, br::MonotonicBranch, ylabel = 1:length(y), ϵ = 0.0)
     if is_increasing(br)
         endpoint_X = br.X[2]
-        der = Contractors.derivative(br.f)(endpoint_X)
+        der = derivative(br.f)(endpoint_X)
         preim_der = preimages_and_derivatives(y, br, ylabel, ϵ)
         return [preim_der[1]; endpoint_X],
         [preim_der[2]; length(preim_der[2]) + 1],
         [preim_der[3]; der]
     else
         endpoint_X = br.X[2]
-        der = Contractors.derivative(br.f)(endpoint_X)
+        der = derivative(br.f)(endpoint_X)
         preim_der = preimages_and_derivatives(B.p, D, 1:length(B.p)-1, ϵ)
         return [preim_der[1]; endpoint_X],
         [preim_der[2]; length(preim_with_der[2]) + 1],

@@ -1,5 +1,5 @@
 # COV_EXCL_START
-using ..BasisDefinition, ..DynamicDefinition, ..Contractors, ..PwDynamicDefinition
+using ..BasisDefinition, ..DynamicDefinition, ..PwDynamicDefinition
 using IntervalArithmetic, LinearAlgebra
 import Base: iterate
 import ..BasisDefinition:

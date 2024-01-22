@@ -1,4 +1,4 @@
-using ..BasisDefinition, ..DynamicDefinition, ..Contractors, ..PwDynamicDefinition
+using ..BasisDefinition, ..DynamicDefinition, ..PwDynamicDefinition
 IntervalArithmetic, LinearAlgebra
 import Base: iterate
 import ..BasisDefinition:

@@ -1,4 +1,4 @@
-using ..BasisDefinition, ..DynamicDefinition, ..Contractors, ..PwDynamicDefinition
+using ..BasisDefinition, ..DynamicDefinition, ..PwDynamicDefinition
 IntervalArithmetic, LinearAlgebra
 
 export Ulam2DSP,

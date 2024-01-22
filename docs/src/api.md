@@ -10,8 +10,7 @@ CurrentModule = RigorousInvariantMeasures
 These are interval contractors implemented here; in the future they may be substituted by established libraries, as [IntervalRootFinding.jl]()
 ```@autodocs
 Modules = [Base, 
-            RigorousInvariantMeasures, 
-            RigorousInvariantMeasures.Contractors]
+            RigorousInvariantMeasures]
 Pages = ["Contractors.jl"]
 ```
 

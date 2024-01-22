@@ -1,6 +1,6 @@
 module InducedLSVMapDefinition
 
-using ..DynamicDefinition, ..Contractors
+using ..DynamicDefinition
 import ..Hat
 import ..HatNP
 import ..BasisDefinition: DualComposedWithDynamic

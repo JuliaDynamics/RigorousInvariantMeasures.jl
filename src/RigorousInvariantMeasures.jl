@@ -6,9 +6,7 @@ using IntervalArithmetic: range_atan
 include("Norms.jl")
 include("differentiation_interface.jl")
 
-# the module Contractors does not depend on any submodule
 include("Contractors.jl")
-using .Contractors
 
 include("DynamicDefinition.jl")
 using .DynamicDefinition
@@ -40,7 +38,7 @@ include("Basis/NonPeriodicHatBasis.jl")
 export HatNP
 
 
-#using .Mod1DynamicDefinition, .Contractors, .PwDynamicDefinition
+#using .Mod1DynamicDefinition, .PwDynamicDefinition
 
 include("pitrig.jl")
 include("NormsOfPowers.jl")

@@ -136,7 +136,6 @@ struct FourierAnalyticDual <: Dual
     xp::Vector{Interval}
 end
 
-using ..Contractors
 using ..RigorousInvariantMeasures: preimages_and_derivatives
 
 function FourierAnalyticDualBranch(

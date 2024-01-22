@@ -5,8 +5,7 @@
 module PwDynamicDefinition
 
 using ..DynamicDefinition
-using ..Contractors
-using ..RigorousInvariantMeasures: derivative, distortion, inverse_derivative
+using ..RigorousInvariantMeasures: derivative, distortion, inverse_derivative, unique_increasing
 using TaylorSeries: Taylor1
 using IntervalArithmetic, IntervalOptimisation
 

@@ -2,7 +2,7 @@
 module FourierBackward
 
 
-using ..BasisDefinition, ..DynamicDefinition, ..Contractors, ..PwDynamicDefinition
+using ..BasisDefinition, ..DynamicDefinition, ..PwDynamicDefinition
 using IntervalArithmetic, LinearAlgebra
 import Base: iterate
 import ..BasisDefinition:
