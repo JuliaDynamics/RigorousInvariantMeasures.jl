@@ -2,6 +2,8 @@
 
 A [Julia](http://julialang.org) package which implements a implements a flexible scheme to approximate rigorously invariant measures of dynamical systems.
 
+The package is under active development, with periodic releases.
+
 ```@contents
 ```
 
