@@ -10,9 +10,9 @@ function BasisDefinition.opnormbound(::Type{L1}, A::AbstractVecOrMat{T}) where {
         for j = 1:size(A, 2)
             nrmj::Tsum = 0
             for i = 1:size(A, 1)
-                nrmj = nrmj ⊕₊ abs_or_mag(A[i,j])
+                nrmj = nrmj ⊕₊ abs_or_mag(A[i, j])
             end
-            nrm = max(nrm,nrmj)
+            nrm = max(nrm, nrmj)
         end
     end
     return convert(Tnorm, nrm)
@@ -27,9 +27,9 @@ function BasisDefinition.opnormbound(::Type{Linf}, A::AbstractVecOrMat{T}) where
         for i = 1:size(A, 1)
             nrmi::Tsum = 0
             for j = 1:size(A, 2)
-                nrmi = nrmi ⊕₊ abs_or_mag(A[i,j])
+                nrmi = nrmi ⊕₊ abs_or_mag(A[i, j])
             end
-            nrm = max(nrm,nrmi)
+            nrm = max(nrm, nrmi)
         end
     end
     return convert(Tnorm, nrm)
@@ -72,10 +72,10 @@ function BasisDefinition.opnormbound(::Type{L1}, A::SparseArrays.SparseMatrixCSC
     # partly taken from JuliaLang's Sparsearray/src/linalg.jl
     m, n = size(A)
     Tnorm = typeof(abs_or_mag(float(real(zero(eltype(A))))))
-    Tsum = promote_type(Float64,Tnorm)
+    Tsum = promote_type(Float64, Tnorm)
     nA::Tsum = 0
     @inbounds begin
-        for j=1:n
+        for j = 1:n
             colSum::Tsum = 0
             for i = getcolptr(A)[j]:getcolptr(A)[j+1]-1
                 colSum = colSum ⊕₊ abs_or_mag(nonzeros(A)[i])
@@ -90,10 +90,10 @@ function BasisDefinition.opnormbound(::Type{Linf}, A::SparseArrays.SparseMatrixC
     # partly taken from JuliaLang's Sparsearray/src/linalg.jl
     m, n = size(A)
     Tnorm = typeof(abs_or_mag(float(real(zero(eltype(A))))))
-    Tsum = promote_type(Float64,Tnorm)
-    rowSum = zeros(Tsum,m)
+    Tsum = promote_type(Float64, Tnorm)
+    rowSum = zeros(Tsum, m)
     @inbounds begin
-        for i=1:length(nonzeros(A))
+        for i = 1:length(nonzeros(A))
             rowSum[rowvals(A)[i]] = rowSum[rowvals(A)[i]] ⊕₊ abs_or_mag(nonzeros(A)[i])
         end
     end
@@ -103,5 +103,6 @@ end
 """
 Rigorous upper bound on a vector norm. Note that Linf, L1 are the "analyst's" norms
 """
-BasisDefinition.normbound(N::Type{L1}, v::AbstractVector) = opnormbound(L1, v) ⊘₊ Float64(length(v), RoundDown)
+BasisDefinition.normbound(N::Type{L1}, v::AbstractVector) =
+    opnormbound(L1, v) ⊘₊ Float64(length(v), RoundDown)
 BasisDefinition.normbound(N::Type{Linf}, v::AbstractVector) = opnormbound(Linf, v)

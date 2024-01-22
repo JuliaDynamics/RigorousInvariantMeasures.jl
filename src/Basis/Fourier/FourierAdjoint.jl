@@ -23,12 +23,13 @@ struct FourierAdjoint{T<:AbstractVector} <: Fourier
     k::Integer
 end
 
-function FourierAdjoint(k::Integer, n::Integer; T=Float64)
+function FourierAdjoint(k::Integer, n::Integer; T = Float64)
     @warn "This basis breaks the usual interface of the package, i.e., 
     the dynamic is input as a function instead than a PwMap"
     return FourierAdjoint(FourierPoints(n, T), k)
 end
-Base.show(io::IO, B::FourierAdjoint) = print(io, "FFT on $(length(B.p)) points restricted to highest frequency $(B.k)")
+Base.show(io::IO, B::FourierAdjoint) =
+    print(io, "FFT on $(length(B.p)) points restricted to highest frequency $(B.k)")
 
 """
 Return the size of the Fourier basis
@@ -133,10 +134,10 @@ struct FourierAdjointDual <: Dual
     x::Vector{Interval} #TODO: a more generic type may be needed in future
 end
 
-function FourierAdjointDualBranch(y, br::MonotonicBranch, ylabel=1:length(y); ϵ, max_iter)
-    
-    mask = [br.X[1]<= x < br.X[2] for x in y]
-    
+function FourierAdjointDualBranch(y, br::MonotonicBranch, ylabel = 1:length(y); ϵ, max_iter)
+
+    mask = [br.X[1] <= x < br.X[2] for x in y]
+
     return [br.f(p) for p in y[mask]]
 end
 
@@ -145,8 +146,10 @@ function Dual(B::FourierAdjoint, D::PwMap; ϵ, max_iter)
 
     #T = eltype(B.p)
     #x = []
-    
-    results = collect(FourierAdjointDualBranch(B.p, b, 1:length(B.p); ϵ, max_iter) for b in branches(D))
+
+    results = collect(
+        FourierAdjointDualBranch(B.p, b, 1:length(B.p); ϵ, max_iter) for b in branches(D)
+    )
 
     @info typeof(results)
 
@@ -157,7 +160,7 @@ function Dual(B::FourierAdjoint, D::PwMap; ϵ, max_iter)
     #for b in branches(D)
     #    x = vcat(x, )
     #end
-    
+
     #@info typeof(x)
     return FourierAdjointDual(x)
 end
@@ -167,7 +170,7 @@ function Dual(B::FourierAdjoint, T::Function; ϵ, max_iter)
 
     #T = eltype(B.p)
     #x = []
-    
+
     #results = collect(FourierAdjointDualBranch(B.p, b, 1:length(B.p); ϵ, max_iter) for b in branches(D))
 
     #@info typeof(results)
@@ -179,7 +182,7 @@ function Dual(B::FourierAdjoint, T::Function; ϵ, max_iter)
     #for b in branches(D)
     #    x = vcat(x, )
     #end
-    
+
     #@info typeof(x)
     return FourierAdjointDual(x)
 end
@@ -205,16 +208,16 @@ end
 # end
 
 function FourierCommon.eval_on_dual(B::FourierAdjoint, computed_dual::FourierAdjointDual, ϕ)
-    
+
     x = computed_dual.x
 
     #@info x, maximum(diam.(x))
-    
-    return   ϕ.(Interval.(x))
+
+    return ϕ.(Interval.(x))
 end
 
-function assemble(B::FourierAdjoint, D; ϵ=0.0, max_iter=100, T=Float64)
-    return FourierCommon.assemble_common(B, D; ϵ=0.0, max_iter=100, T=Float64)'
+function assemble(B::FourierAdjoint, D; ϵ = 0.0, max_iter = 100, T = Float64)
+    return FourierCommon.assemble_common(B, D; ϵ = 0.0, max_iter = 100, T = Float64)'
 end
 
 # using ProgressMeter
@@ -233,9 +236,9 @@ end
 #         ϕ = B[i]
 #         w = eval_on_dual(B, computed_dual, ϕ)
 #         #@info w
-        
+
 #         FFTw = interval_fft(w)
-        
+
 #         M[:, i] = [FFTw[1:k+1]; FFTw[end-k+1:end]]
 #     end
 #     return M'

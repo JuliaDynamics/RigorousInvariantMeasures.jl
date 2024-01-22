@@ -2,8 +2,15 @@ using TaylorSeries
 
 # TODO: explore if ForwardDiff(), DualNumbers() or other packages work better than TaylorSeries
 
-export value_and_derivative, value_derivative_and_second_derivative, derivative, 
-        derivative_and_second_derivative, second_derivative, distortion, inverse_derivative, @define_with_derivatives, check_derivatives
+export value_and_derivative,
+    value_derivative_and_second_derivative,
+    derivative,
+    derivative_and_second_derivative,
+    second_derivative,
+    distortion,
+    inverse_derivative,
+    @define_with_derivatives,
+    check_derivatives
 
 
 """
@@ -130,10 +137,12 @@ macro define_with_derivatives(f, df, ddf)
     return quote
         local g = $f
         RigorousInvariantMeasures.value_and_derivative(::typeof(g), x) = ($f(x), $df(x))
-        RigorousInvariantMeasures.value_derivative_and_second_derivative(::typeof(g), x) = ($f(x), $df(x), $ddf(x))
+        RigorousInvariantMeasures.value_derivative_and_second_derivative(::typeof(g), x) =
+            ($f(x), $df(x), $ddf(x))
         RigorousInvariantMeasures.derivative(::typeof(g), x) = $df(x)
         RigorousInvariantMeasures.second_derivative(::typeof(g), x) = $ddf(x)
-        RigorousInvariantMeasures.derivative_and_second_derivative(::typeof(g), x) = ($df(x), $ddf(x))
+        RigorousInvariantMeasures.derivative_and_second_derivative(::typeof(g), x) =
+            ($df(x), $ddf(x))
         g
     end
 end
@@ -161,7 +170,7 @@ julia> check_derivatives(g, 0.2)
 ERROR: AssertionError: all(value_derivative_and_second_derivative(f, x) .≈ (fx, dfx, ddfx))
 ```
 """
-function check_derivatives(f, x=rand())
+function check_derivatives(f, x = rand())
     y = f(Taylor1([x, one(x), zero(x)]))
     fx, dfx, ddfx = y[0], y[1], 2y[2]
 
@@ -170,6 +179,6 @@ function check_derivatives(f, x=rand())
     @assert derivative(f, x) ≈ dfx
     @assert second_derivative(f, x) ≈ ddfx
     @assert all(derivative_and_second_derivative(f, x) .≈ (dfx, ddfx))
-    @assert inverse_derivative(f, x) ≈ 1/dfx 
+    @assert inverse_derivative(f, x) ≈ 1 / dfx
     @assert distortion(f, x) ≈ ddfx / dfx^2
 end

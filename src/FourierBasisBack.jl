@@ -1,17 +1,18 @@
 using ..BasisDefinition, ..DynamicDefinition, ..Contractors, ..PwDynamicDefinition
 IntervalArithmetic, LinearAlgebra
 import Base: iterate
-import ..BasisDefinition: one_vector, integral_covector, is_integral_preserving, strong_norm, weak_norm, aux_norm
+import ..BasisDefinition:
+    one_vector, integral_covector, is_integral_preserving, strong_norm, weak_norm, aux_norm
 
 struct Fourier1DBackward <: Basis
     N::Int64
     FFTNx::Int64
-    p
+    p::Any
 end
 
 # TODO, maybe add type here
-Fourier1DBackward(N, FFTNx) = Fourier1DBackward(N, FFTNx, LinRange(0., 1., FFTNx+1))
-Fourier1DBackward(N::Integer) = Fourier1DBackward(N, 2^Int64(ceil(log2(N))+2))
+Fourier1DBackward(N, FFTNx) = Fourier1DBackward(N, FFTNx, LinRange(0.0, 1.0, FFTNx + 1))
+Fourier1DBackward(N::Integer) = Fourier1DBackward(N, 2^Int64(ceil(log2(N)) + 2))
 
 struct FourierDual <: Dual
     x::Vector{Interval} #TODO: a more generic type may be needed in future
@@ -19,12 +20,14 @@ struct FourierDual <: Dual
     x′::Vector{Interval}
 end
 
-Dual(B::Fourier1DBackward, D, ϵ) = FourierDual(preimages_and_derivatives(B.p, D, 1:length(B.p)-1, ϵ)...)
+Dual(B::Fourier1DBackward, D, ϵ) =
+    FourierDual(preimages_and_derivatives(B.p, D, 1:length(B.p)-1, ϵ)...)
 Base.length(dual::FourierDual) = length(dual.x)
-Base.eltype(dual::FourierDual) = Tuple{eltype(dual.xlabel), Tuple{eltype(dual.x), eltype(dual.x′)}}
-function Base.iterate(dual::FourierDual, state=1)
+Base.eltype(dual::FourierDual) =
+    Tuple{eltype(dual.xlabel),Tuple{eltype(dual.x),eltype(dual.x′)}}
+function Base.iterate(dual::FourierDual, state = 1)
     if state <= length(dual.x)
-        return ((dual.xlabel[state], (dual.x[state], abs(dual.x′[state]))), state+1)
+        return ((dual.xlabel[state], (dual.x[state], abs(dual.x′[state]))), state + 1)
     else
         return nothing
     end
@@ -32,9 +35,9 @@ end
 
 function valϕ(B::Fourier1DBackward, DD::FourierDual, k::Integer)
     val = zeros(Complex{Interval{Float64}}, length(B.p))
-    ϕ(x) = exp(im*2*pi*x*k)
+    ϕ(x) = exp(im * 2 * pi * x * k)
     for (label, (y, der)) in DD
-        val[label]+=ϕ(y)/der
+        val[label] += ϕ(y) / der
     end
     return val[1:end-1]
 end
@@ -42,7 +45,7 @@ end
 function fftvalϕ(B::Fourier1DBackward, DD::FourierDual, k::Integer)
     v = valϕ(B, DD, k)
     return interval_fft(v)
-end 
+end
 
 # struct Fourier1D <: Basis
 #     N::Int64
@@ -146,22 +149,22 @@ end
 
 #     I = Interval{T}
 #     dx = make_dx(B.FFTNx, T)
-    
+
 #     Lx = T(1)
 #     #@info dx
 #     one = [T(1) for x in dx]
 #     P = plan_fft(one)
 #     # we take the adjoint since we are computing the adjoint operator
-  
+
 #     Dx = [D(x) for x in dx]
 
 #     N = (2*Nx+1) # we are taking Nx positive and negative frequencies and the 0 frequency
-    
+
 #     M = zeros(Complex{T},(2*Nx+1, 2*Nx+1))
-    
+
 #     observablevalue = zeros(Complex{T}, FFTNx) 
 #     observablerad = zeros(Float64, FFTNx) 
-    
+
 #     onedtransform = zeros(Complex{T}, FFTNx)
 #     new = zeros(Complex{T}, 2*Nx+1)
 #     l2error = 0.0
@@ -187,10 +190,10 @@ end
 #     rel_err_fft = (t ⊗₊ η) ⊘₊(1.0 ⊖₋ η)
 #     f_FFTNx = Float64(FFTNx)
 #     norm_FFT_normalized_2 = 1.0 ⊘₊(sqrt(f_FFTNx, RoundUp))
-    
+
 #     for i in 1:2*Nx+1    
 #         l = inverse_unidimensional_index(i, Nx) # the index in the form [0, ..., Nx, -Nx, ..., -1]
-        
+
 #         for (ind, val) in pairs(Dx)
 #             obsval = ϕ(l, val; L=Lx)
 #             real_m, real_r = midpoint_radius(real(obsval))
@@ -202,10 +205,10 @@ end
 #         norm_rad = Float64(norm_2_upper_bound(observablerad), RoundUp)
 #         err_fft = norm_FFT_normalized_2⊗₊(rel_err_fft ⊗₊ norm_obs)⊕₊ norm_FFT_normalized_2⊗₊norm_rad
 #         l2error= max(l2error, err_fft)        
-        
+
 #         mul!(onedtransform, P, observablevalue)
 #         restrictfft!(new, onedtransform, Nx)
-            
+
 #         for (ind, val) in pairs(new)
 #                 if abs(val)!= 0
 #                     # this is the adjoint matrix of the Koopman operator
@@ -243,7 +246,7 @@ end
 #     n, m = size(M)
 #     @assert n==m
 #     v = ones(m)
- 
+
 #     for i in 1:n_it
 #         v = M'*(M*v)
 #         v/=norm(v,2)
@@ -367,9 +370,9 @@ end
 
 
 
-    
+
 #     P = NK.NK*Q.L
-    
+
 #     Prestricted = P[2:end, 2:end]
 
 #     M = mid.(real(Prestricted))+im*mid.(imag(Prestricted))
@@ -378,13 +381,13 @@ end
 
 #     R = radius.(real(Prestricted))+im*radius.(imag(Prestricted))
 #     δ = opnormbound(B, N, R)
-    
+
 #     γz = gamma(T, n)
-    
+
 #     ϵ = zero(T)
 
 #     nrmM = opnormbound(B, N, M)
-    
+
 #     norms = zeros(Float64, m)
 
 #     A = copy(M)
@@ -411,7 +414,7 @@ end
 
 #     norms = fill(NaN, m)
 #     P = MK.MK*Q.L
-                                   
+
 #     norms[1] = opnormbound(B, N, P)
 #     for i = 2:m
 #         norms[i] = norms[i-1] ⊗₊ norms[1]
@@ -480,7 +483,7 @@ end
 #                                             Q::DiscretizedOperator,
 #                                             NK::NoiseKernel, 
 #                                             coarse_norms::Vector)
-    
+
 #     ####Check this!!!!
 #     #if !(BasisDefinition.is_refinement(fine_basis, coarse_basis))
 #     #    @error "The fine basis is not a refinement of the coarse basis"
@@ -496,7 +499,7 @@ end
 #     coarse_norms0(k::Integer) = k==0 ? 1. : coarse_norms[k]
 
 #     Kh =  noise_projection_error(coarse_basis, NK)
-    
+
 #     fine_norms[1] = trivial_norms0(1)
 
 #     for k in 1:m

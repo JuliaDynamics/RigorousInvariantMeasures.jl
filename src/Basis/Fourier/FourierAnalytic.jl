@@ -10,8 +10,8 @@ using LinearAlgebra
 
 export FourierAnalytic
 
-struct Aη <: NormKind 
-    η
+struct Aη <: NormKind
+    η::Any
 end
 struct L2 <: NormKind end
 
@@ -26,10 +26,11 @@ end
 
 FourierPoints(n, T) = [Interval{T}(i) / (n) for i = 0:n-1]
 
-function FourierAnalytic(k::Integer, n::Integer; T=Float64)
+function FourierAnalytic(k::Integer, n::Integer; T = Float64)
     return FourierAnalytic(FourierPoints(n, T), k)
 end
-Base.show(io::IO, B::FourierAnalytic) = print(io, "FFT on $(length(B.p)) points restricted to highest frequency $(B.k)")
+Base.show(io::IO, B::FourierAnalytic) =
+    print(io, "FFT on $(length(B.p)) points restricted to highest frequency $(B.k)")
 
 """
 Return the size of the Fourier basis
@@ -44,17 +45,17 @@ Base.lastindex(B::FourierAnalytic) = length(B)
 function BasisDefinition.weak_projection_error(B::FourierAnalytic)
     N = B.k
     η = Interval(strong_norm(B).η)
-    λ = -2*Interval(pi)*N*η
+    λ = -2 * Interval(pi) * N * η
 
-    return exp(-λ).hi 
+    return exp(-λ).hi
 end
 
 function BasisDefinition.aux_normalized_projection_error(B::FourierAnalytic)
     N = B.k
     η = Interval(strong_norm(B).η)
-    λ = -2*Interval(pi)*N*η
+    λ = -2 * Interval(pi) * N * η
 
-    return exp(-λ).hi 
+    return exp(-λ).hi
 end
 
 @doc raw"""
@@ -66,9 +67,9 @@ We use here
 function BasisDefinition.strong_weak_bound(B::FourierAnalytic)
     k = B.k
     η = Interval(strong_norm(B).η)
-    λ = 2*2*Interval(pi)*η
+    λ = 2 * 2 * Interval(pi) * η
 
-    return 2*(1-exp(λ*(k+1))/(1-exp(λ))) 
+    return 2 * (1 - exp(λ * (k + 1)) / (1 - exp(λ)))
 end
 BasisDefinition.aux_weak_bound(B::FourierAnalytic) = 1.0
 
@@ -110,13 +111,15 @@ function Base.getindex(B::FourierAnalytic, i::Int)
 end
 
 
-BasisDefinition.is_refinement(Bc::FourierAnalytic, Bf::FourierAnalytic) = length(Bc) < length(Bf)
-BasisDefinition.integral_covector(B::FourierAnalytic; T=Float64) = [Interval{T}(1); zeros(length(B) - 1)]'
+BasisDefinition.is_refinement(Bc::FourierAnalytic, Bf::FourierAnalytic) =
+    length(Bc) < length(Bf)
+BasisDefinition.integral_covector(B::FourierAnalytic; T = Float64) =
+    [Interval{T}(1); zeros(length(B) - 1)]'
 BasisDefinition.one_vector(B::FourierAnalytic) = [1; zeros(length(B) - 1)]
 
 Base.length(S::AverageZero{T}) where {T<:FourierAnalytic} = length(S.basis) - 1
 
-function Base.iterate(S::AverageZero{T}, state=1) where {T<:FourierAnalytic}
+function Base.iterate(S::AverageZero{T}, state = 1) where {T<:FourierAnalytic}
     B = S.basis
     i = state
     if i == length(B)
@@ -136,7 +139,13 @@ end
 using ..Contractors
 using ..RigorousInvariantMeasures: preimages_and_derivatives
 
-function FourierAnalyticDualBranch(y, br::MonotonicBranch, ylabel=1:length(y); ϵ, max_iter)
+function FourierAnalyticDualBranch(
+    y,
+    br::MonotonicBranch,
+    ylabel = 1:length(y);
+    ϵ,
+    max_iter,
+)
     if br.increasing
         endpoint_X = br.X[2]
         der = derivative(br.f, endpoint_X)
@@ -156,7 +165,9 @@ end
 
 function Dual(B::FourierAnalytic, D::PwMap; ϵ, max_iter)
     #@assert is_full_branch(D)
-    results = collect(FourierAnalyticDualBranch(B.p, b, 1:length(B.p); ϵ, max_iter) for b in branches(D))
+    results = collect(
+        FourierAnalyticDualBranch(B.p, b, 1:length(B.p); ϵ, max_iter) for b in branches(D)
+    )
     x = vcat((result[1] for result in results)...)
     xlabel = vcat((result[2] for result in results)...)
     xp = vcat((result[3] for result in results)...)
@@ -183,12 +194,12 @@ end
 # end
 
 function eval_on_dual(B::FourierAnalytic, computed_dual::FourierAnalyticDual, ϕ)
-    
+
     x, labels, xp = computed_dual.x, computed_dual.xlabel, computed_dual.xp
 
     #@info x, maximum(diam.(x))
     w = zeros(Complex{Interval{Float64}}, length(B.p))
-    for j in 1:length(x)
+    for j = 1:length(x)
         C = ϕ(x[j]) / abs(xp[j])
         if real(C) != ∅ && imag(C) != ∅
             w[labels[j]] += C
@@ -202,17 +213,17 @@ end
 
 
 using ProgressMeter
-function assemble(B::FourierAnalytic, D::Dynamic; ϵ=0.0, max_iter=100, T=Float64)
+function assemble(B::FourierAnalytic, D::Dynamic; ϵ = 0.0, max_iter = 100, T = Float64)
     n = length(B)
 
     k = (n - 1) ÷ 2
-    
+
     M = zeros(Complex{Interval{Float64}}, (n, n))
     computed_dual = Dual(B, D; ϵ, max_iter)
-    @showprogress for i in 1:n
+    @showprogress for i = 1:n
         ϕ = B[i]
         w = eval_on_dual(B, computed_dual, ϕ)
-        
+
         # zeros(Complex{Interval{Float64}}, length(B.p))
         # for j in 1:length(x)
         #     C = ϕ(x[j]) / abs(xp[j])
@@ -222,7 +233,7 @@ function assemble(B::FourierAnalytic, D::Dynamic; ϵ=0.0, max_iter=100, T=Float6
         # end
         # #@info w
         FFTw = interval_fft(w)
-        
+
         M[:, i] = [FFTw[1:k+1]; FFTw[end-k+1:end]]
     end
     return M

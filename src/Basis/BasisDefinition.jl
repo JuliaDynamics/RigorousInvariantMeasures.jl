@@ -1,10 +1,24 @@
 module BasisDefinition
 using ..DynamicDefinition
 
-export Basis, DualComposedWithDynamic, ProjectDualElement, AverageZero, assemble,
-    integral_covector, one_vector, is_integral_preserving, strong_norm,
-    weak_norm, aux_norm, is_dual_element_empty, nonzero_on, is_refinement,
-    opnormbound, normbound, bound_weak_norm_abstract, Dual
+export Basis,
+    DualComposedWithDynamic,
+    ProjectDualElement,
+    AverageZero,
+    assemble,
+    integral_covector,
+    one_vector,
+    is_integral_preserving,
+    strong_norm,
+    weak_norm,
+    aux_norm,
+    is_dual_element_empty,
+    nonzero_on,
+    is_refinement,
+    opnormbound,
+    normbound,
+    bound_weak_norm_abstract,
+    Dual
 
 abstract type Basis end
 
@@ -24,7 +38,8 @@ struct ProjectDualElement{B<:Basis,DT}
     j_max::Int64
     dual_element::DT
 end
-ProjectDualElement(basis::B, j_min, j_max, y::DT) where {B,DT} = ProjectDualElement{B,DT}(basis, j_min, j_max, y)
+ProjectDualElement(basis::B, j_min, j_max, y::DT) where {B,DT} =
+    ProjectDualElement{B,DT}(basis, j_min, j_max, y)
 Base.length(S::ProjectDualElement{B,DT}) where {B,DT} = S.j_max - S.j_min + 1
 
 is_dual_element_empty(B::Basis, I) = @error "Not Implemented"
@@ -49,7 +64,7 @@ evaluate(B::Basis, i, x) = @error "Not Implemented"
 
 Value of the integral on [0,1] of the i-th basis element
 """
-evaluate_integral(B::Basis, i; T=Float64) = @error "Not Implemented"
+evaluate_integral(B::Basis, i; T = Float64) = @error "Not Implemented"
 
 """
 	strong_norm(B::Basis)
@@ -143,8 +158,8 @@ is_integral_preserving(B::Basis) = false
 
 Return the integral of the function with coefficients v in the basis B 
 """
-function integral(B::Basis, v; T=Float64)
-    return sum([T(v[i]) * evaluate_integral(B, i, T) for i in 1:length(B)])
+function integral(B::Basis, v; T = Float64)
+    return sum([T(v[i]) * evaluate_integral(B, i, T) for i = 1:length(B)])
 end
 
 """
@@ -254,10 +269,12 @@ invariant_measure_strong_norm_bound(B::Basis, D::Dynamic) = @error "Must be spec
 
 Returns an a priori bound on the weak norm of the abstract operator ``L``
 """
-bound_weak_norm_abstract(B::Basis, D=nothing; dfly_coefficients=nothing) = @error "Must be specialized"
+bound_weak_norm_abstract(B::Basis, D = nothing; dfly_coefficients = nothing) =
+    @error "Must be specialized"
 
 using ..RigorousInvariantMeasures: NormKind
-opnormbound(B::Basis, N::Type{<:NormKind}, M::AbstractVecOrMat{S}) where {S} = @error "Must be specialized"
+opnormbound(B::Basis, N::Type{<:NormKind}, M::AbstractVecOrMat{S}) where {S} =
+    @error "Must be specialized"
 normbound(B::Basis, N::Type{<:NormKind}, v) = @error "Must be specialized"
 
 end
@@ -268,4 +285,3 @@ end
 Replacement of DualComposedWithDynamic.
 """
 abstract type Dual end
-

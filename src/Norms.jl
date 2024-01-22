@@ -28,5 +28,6 @@ abs_or_mag(x::Interval) = Float64(mag(x), RoundUp)
 """
 Computes a rigorous upper bound for z*z'
 """
-z_times_conjz(z::Complex) = square_round(abs_or_mag(real(z)), RoundUp) ⊕₊ square_round(abs_or_mag(imag(z)), RoundUp)
+z_times_conjz(z::Complex) =
+    square_round(abs_or_mag(real(z)), RoundUp) ⊕₊ square_round(abs_or_mag(imag(z)), RoundUp)
 abs_or_mag(z::Complex) = sqrt_round(z_times_conjz(z), RoundUp)

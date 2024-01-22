@@ -1,7 +1,8 @@
 using ..BasisDefinition, ..DynamicDefinition, ..Contractors, ..PwDynamicDefinition
 IntervalArithmetic, LinearAlgebra
 
-export Ulam2DSP, length_x, length_y, square_indexes_to_linear, linear_indexes_to_square, getindex_linear
+export Ulam2DSP,
+    length_x, length_y, square_indexes_to_linear, linear_indexes_to_square, getindex_linear
 
 """
 	Ulam2DSP
@@ -30,7 +31,8 @@ Ulam2DSP(n::Integer) = Ulam2DSP(LinRange(0.0, 1.0, n + 1), LinRange(0.0, 1.0, n 
 Equispaced Ulam basis on [0,1]×[0, 1] of size m in the x direction 
 and size n in the y direction 
 """
-Ulam2DSP(m::Integer, n::Integer) = Ulam2DSP(LinRange(0.0, 1.0, m + 1), LinRange(0.0, 1.0, n + 1))
+Ulam2DSP(m::Integer, n::Integer) =
+    Ulam2DSP(LinRange(0.0, 1.0, m + 1), LinRange(0.0, 1.0, n + 1))
 
 @doc raw"""
 	Base.length(B::Ulam2DSP)
@@ -46,7 +48,9 @@ length_y(B::Ulam2DSP) = (length(B.part_y) - 1)
     Returns the i-th element of the Ulam basis as a function.
 """
 function Base.getindex(B::Ulam2DSP, i::Int, j::Int)
-    return (x, y) -> (B.part_x[i] <= x < B.part_x[i+1] ? 1 : 0) * (B.part_y[j] <= y < B.part_y[j+1] ? 1 : 0)
+    return (x, y) ->
+        (B.part_x[i] <= x < B.part_x[i+1] ? 1 : 0) *
+        (B.part_y[j] <= y < B.part_y[j+1] ? 1 : 0)
 end
 
 """
@@ -131,7 +135,13 @@ struct UlamDual2DSP <: Dual
     lastpoint::Interval
     meshsize::Integer
 end
-Dual(B::Ulam2DSP, D::SkewProductMap; ϵ, max_iter, meshsize=8) = UlamDual2DSP(B, D, preimages(B.part_x, D.T, 1:length(B.part_x)-1; ϵ, max_iter)..., domain(D.T)[end], meshsize)
+Dual(B::Ulam2DSP, D::SkewProductMap; ϵ, max_iter, meshsize = 8) = UlamDual2DSP(
+    B,
+    D,
+    preimages(B.part_x, D.T, 1:length(B.part_x)-1; ϵ, max_iter)...,
+    domain(D.T)[end],
+    meshsize,
+)
 
 
 # Due to the implementation details, it is not possible to estimate the length 
@@ -147,11 +157,11 @@ Base.eltype(dual::UlamDual2DSP) = Tuple{eltype(dual.xlabel),Array{Interval,2}}
 
 # we define a specific assemble method for this basis, 
 # to avoid the somewhat confusing Dual+iterate code
-function assemble(B::Ulam2DSP, D::SkewProductMap; ϵ, max_iter, type=Float64)
+function assemble(B::Ulam2DSP, D::SkewProductMap; ϵ, max_iter, type = Float64)
     # we will break the assembly of the operator into 
     # sub-operators, one for each injectivity branch
     BranchOperator = SparseMatrixCSC[]
-    for k in 1:length(branches(D.T))
+    for k = 1:length(branches(D.T))
         push!(BranchOperator, _assemble_branch(B, D, k; ϵ, max_iter, type))
     end
     # now we sum all the branch operators
@@ -163,21 +173,21 @@ function preimage_fixed_x(D::SkewProductMap, branch_idx, x, y_min, y_max; ϵ, ma
     @debug "Preimage_fixed_x"
     @debug "x", x
     @debug "y", y_min, y_max
-    
+
     g(y) = D.G[branch_idx](x, y)
-    
+
     try
         # this try block is used to catch the non monotone branch 
         # exception that occurs when the image collapses to a point
-        
+
         H = MonotonicBranch(g, (Interval(0), Interval(1)))
-        
+
         if H.increasing
             bound_Y = H.Y[1], H.Y[2]
-        else 
+        else
             bound_Y = H.Y[2], H.Y[1]
         end
-    
+
         # disjoint
         if y_max < bound_Y[1] || y_min > bound_Y[2]
             @debug "disjoint"
@@ -189,7 +199,7 @@ function preimage_fixed_x(D::SkewProductMap, branch_idx, x, y_min, y_max; ϵ, ma
             return (Interval(0), Interval(1))
         end
 
-        preim_y_min = preimage(y_min, H; ϵ, max_iter)        
+        preim_y_min = preimage(y_min, H; ϵ, max_iter)
         preim_y_max = preimage(y_max, H; ϵ, max_iter)
 
         @debug preim_y_min, preim_y_max
@@ -199,10 +209,10 @@ function preimage_fixed_x(D::SkewProductMap, branch_idx, x, y_min, y_max; ϵ, ma
         end
 
         if preim_y_min == ∅
-             preim_y_min = Interval(0)
+            preim_y_min = Interval(0)
         end
         if preim_y_max == ∅
-             preim_y_max = Interval(1)
+            preim_y_max = Interval(1)
         end
 
         return (preim_y_min, preim_y_max)
@@ -222,17 +232,32 @@ import Polyhedra as PH
 import GLPK
 lib = PH.DefaultLibrary{Float64}(GLPK.Optimizer)
 
-function rectangle_preimage(D::SkewProductMap, branch_idx, x_min, x_max, y_min, y_max, k; ϵ, max_iter)
-    preim_x = [x_min + i * (x_max - x_min) / k for i in 0:k]
+function rectangle_preimage(
+    D::SkewProductMap,
+    branch_idx,
+    x_min,
+    x_max,
+    y_min,
+    y_max,
+    k;
+    ϵ,
+    max_iter,
+)
+    preim_x = [x_min + i * (x_max - x_min) / k for i = 0:k]
     err_y = 0.0
     err_x = maximum(IntervalArithmetic.radius.(preim_x))
     y_s = NTuple{2,Interval}[]
 
     for x in preim_x
 
-        preim_y_low, preim_y_up = preimage_fixed_x(D, branch_idx, x, y_min, y_max; ϵ, max_iter)
+        preim_y_low, preim_y_up =
+            preimage_fixed_x(D, branch_idx, x, y_min, y_max; ϵ, max_iter)
 
-        err_y = maximum([err_y, IntervalArithmetic.radius(preim_y_low), IntervalArithmetic.radius(preim_y_up)])
+        err_y = maximum([
+            err_y,
+            IntervalArithmetic.radius(preim_y_low),
+            IntervalArithmetic.radius(preim_y_up),
+        ])
         push!(y_s, (preim_y_low, preim_y_up))
     end
     n = length(preim_x)
@@ -276,7 +301,7 @@ function _assemble_branch(B::Ulam2DSP, D::SkewProductMap, branch_idx; ϵ, max_it
     # the vector preim is ordered with respect to <
     # while the label vector may be in the reverse order
 
-    for i in 1:length(label_x)
+    for i = 1:length(label_x)
         x_l, x_r = preim_x[i], preim_x[i+1]
         ind_im_x = label_x[i]
 
@@ -293,10 +318,13 @@ function _assemble_branch(B::Ulam2DSP, D::SkewProductMap, branch_idx; ϵ, max_it
             # a single vertical element, i.e., 
             # the stripe F([x_l, x_r]×[0, 1]) ⊂ I_{ind_im_x} × I_{ind_im_y_lo}
             ind_x_lo, ind_x_hi = nonzero_on_x(B, x_l, x_r)
-            for i_x in ind_x_lo:ind_x_hi
-                meas = relative_measure((x_l, x_r), (Interval(B.part_x[i_x]), Interval(B.part_x[i_x+1])))
+            for i_x = ind_x_lo:ind_x_hi
+                meas = relative_measure(
+                    (x_l, x_r),
+                    (Interval(B.part_x[i_x]), Interval(B.part_x[i_x+1])),
+                )
                 # we now need to fill in this value into the matrix
-                for i_y in 1:length(B.part_y)-1
+                for i_y = 1:length(B.part_y)-1
                     @info i_x, i_y
                     @info ind_im_x, ind_im_y_lo
 
@@ -313,12 +341,22 @@ function _assemble_branch(B::Ulam2DSP, D::SkewProductMap, branch_idx; ϵ, max_it
         # we need now to treat the case when we have nontrivial intersection: 
         # this method is not well behaved when the endpoint collapse to a point
         # but this should be treated by the former function
-        for ind_im_y in ind_im_y_lo:ind_im_y_hi-1
+        for ind_im_y = ind_im_y_lo:ind_im_y_hi-1
             @info ind_im_y_lo, ind_im_y_hi
-            preimP, err = rectangle_preimage(D, branch_idx, x_l, x_r, B.part_y[ind_im_y], B.part_y[ind_im_y+1], 10; ϵ, max_iter)
+            preimP, err = rectangle_preimage(
+                D,
+                branch_idx,
+                x_l,
+                x_r,
+                B.part_y[ind_im_y],
+                B.part_y[ind_im_y+1],
+                10;
+                ϵ,
+                max_iter,
+            )
             ind_x_lo, ind_x_hi = nonzero_on_x(B, x_l, x_r)
-            for i_x in ind_x_lo:ind_x_hi
-                for i_y in 1:length(B.part_y)-1
+            for i_x = ind_x_lo:ind_x_hi
+                for i_y = 1:length(B.part_y)-1
                     # we now need to compute the intersection and fill it in into the matrix
                     Q_x_l, Q_x_r = B.part_x[i_x], B.part_x[i_x+1]
                     Q_y_l, Q_y_u = B.part_y[i_y], B.part_y[i_y+1]

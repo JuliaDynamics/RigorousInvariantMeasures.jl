@@ -27,10 +27,13 @@ end
 
 FourierPoints(n, T) = [Interval{T}(i) / (n) for i = 0:n-1]
 
-function FourierAnalytic(n::Integer, k::Integer; T=Float64)
+function FourierAnalytic(n::Integer, k::Integer; T = Float64)
     return Fourier(FourierPoints(n, T), k)
 end
-Base.show(io::IO, B::FourierAnalytic) = print(io, "Fourier basis on $(length(B)) points, highest frequency $(Int64(floor((length(B)-1)/2)))")
+Base.show(io::IO, B::FourierAnalytic) = print(
+    io,
+    "Fourier basis on $(length(B)) points, highest frequency $(Int64(floor((length(B)-1)/2)))",
+)
 
 """
 Return the size of the Fourier basis
@@ -52,7 +55,7 @@ function _eval_Fourier_T(n, x::Array{T}) where {T}
     k = length(x)
     M = zeros(Complex, k, n + 1)
     M[:, 1] = ones(k)
-    for i in 1:Int64(floor(n / 2))
+    for i = 1:Int64(floor(n / 2))
         M[:, i+1] = exp.(i * 2im * pi * x)
         M[:, end-i+1] = exp.(-i * 2im * pi * x)
     end
@@ -63,7 +66,7 @@ function _eval_Fourier_T_derivative(n, x::Array{T}) where {T}
     k = length(x)
     M = zeros(Complex, k, n + 1)
 
-    for i in 1:Int64(floor(n / 2))
+    for i = 1:Int64(floor(n / 2))
         M[:, i+1] = i * 2im * pi * exp.(i * 2im * pi * x)
         M[:, end-i+1] = -i * 2im * pi * exp.(-i * 2im * pi * x)
     end
@@ -89,12 +92,15 @@ end
 #     return M
 # end
 
-evalFourierVector(coeff, B::FourierDirect) = real.(_eval_Fourier_T(length(coeff) - 1, B.p) * coeff)
-evalFourierDerivativeVector(coeff, B::FourierDirect) = real.(_eval_Fourier_T_derivative(length(coeff) - 1, B.p) * coeff)
+evalFourierVector(coeff, B::FourierDirect) =
+    real.(_eval_Fourier_T(length(coeff) - 1, B.p) * coeff)
+evalFourierDerivativeVector(coeff, B::FourierDirect) =
+    real.(_eval_Fourier_T_derivative(length(coeff) - 1, B.p) * coeff)
 
 evalFourier(coeff, x) = mid(real.(_eval_Fourier_T(length(coeff) - 1, [x]) * coeff)[1])
 evalFourierImag(coeff, x) = mid(imag.(_eval_Fourier_T(length(coeff) - 1, [x]) * coeff)[1])
-evalFourierDerivative(coeff, x) = mid(real.(_eval_Fourier_T_derivative(length(coeff) - 1, [x]) * coeff)[1])
+evalFourierDerivative(coeff, x) =
+    mid(real.(_eval_Fourier_T_derivative(length(coeff) - 1, [x]) * coeff)[1])
 
 """
 Maybe it is better to state that you want the mid of your interval in coding rather than here
@@ -115,7 +121,7 @@ function BasisDefinition.weak_projection_error(B::Fourier)
     n = Float64(length(B), RoundUp)
     ν = B.k
     νf = Float64(B.k, RoundUp)
-    den = n ⊗₋ (νf ⊖₋ 2.0) ⊗₋ π ⊗₋ reduce(⊗₋, [n - i for i in 2:ν-1])
+    den = n ⊗₋ (νf ⊖₋ 2.0) ⊗₋ π ⊗₋ reduce(⊗₋, [n - i for i = 2:ν-1])
     return (4.0 ⊗₊ (n + 1)) ⊘₊ den
 end
 
@@ -123,7 +129,7 @@ function BasisDefinition.aux_normalized_projection_error(B::Fourier)
     n = Float64(length(B), RoundUp)
     ν = B.k
     νf = Float64(B.k, RoundUp)
-    den = π ⊗₋ νf ⊗₋ n ⊗₋ reduce(⊗₋, [n - i for i in 1:ν-1])
+    den = π ⊗₋ νf ⊗₋ n ⊗₋ reduce(⊗₋, [n - i for i = 1:ν-1])
     return 2.0 ⊘₊ den
 end
 
@@ -140,8 +146,8 @@ function BasisDefinition.strong_weak_bound(B::Fourier)
     k = B.k - 1
     # we want to estimate the norm of f^(k) by the C1 norm of f, so we use Markov estimate
     # for derivative k-1
-    den = reduce(⊗₋, [Float64(2k - 1 - 2 * i, RoundDown) for i in 0:k-1])
-    num = reduce(⊗₊, [Float64(n^2 - i^2, RoundDown) for i in 0:k-1])
+    den = reduce(⊗₋, [Float64(2k - 1 - 2 * i, RoundDown) for i = 0:k-1])
+    num = reduce(⊗₊, [Float64(n^2 - i^2, RoundDown) for i = 0:k-1])
     return num ⊘₊ den ⊕₊ 1.0 # the 1.0 is to take into account the L1 norm of f
 end
 BasisDefinition.aux_weak_bound(B::Fourier) = 1.0
@@ -171,12 +177,13 @@ function Base.getindex(B::Fourier, i::Int)
 end
 
 BasisDefinition.is_refinement(Bc::Fourier, Bf::Fourier) = length(Bc) < length(Bf)
-BasisDefinition.integral_covector(B::Fourier; T=Float64) = [Interval{T}(1); zeros(length(B) - 1)]'
+BasisDefinition.integral_covector(B::Fourier; T = Float64) =
+    [Interval{T}(1); zeros(length(B) - 1)]'
 BasisDefinition.one_vector(B::Fourier) = [1; zeros(length(B) - 1)]
 
 Base.length(S::AverageZero{T}) where {T<:Fourier} = length(S.basis) - 1
 
-function Base.iterate(S::AverageZero{T}, state=1) where {T<:Fourier}
+function Base.iterate(S::AverageZero{T}, state = 1) where {T<:Fourier}
     B = S.basis
     i = state
     if i == length(B)
@@ -197,7 +204,7 @@ end
 using ..Contractors
 using ..RigorousInvariantMeasures: preimages_and_derivatives
 
-function FourierDualBranch(y, br::MonotonicBranch, ylabel=1:length(y), ϵ=0.0)
+function FourierDualBranch(y, br::MonotonicBranch, ylabel = 1:length(y), ϵ = 0.0)
     if br.increasing
         endpoint_X = br.X[2]
         der = Contractors.derivative(br.f)(endpoint_X)
@@ -225,8 +232,9 @@ function Dual(B::Fourier, D::PwMap, ϵ)
 end
 
 Base.length(dual::FourierDual) = length(dual.x)
-Base.eltype(dual::FourierDual) = Tuple{eltype(dual.xlabel),Tuple{eltype(dual.x),eltype(dual.x')}}
-function Base.iterate(dual::FourierDual, state=1)
+Base.eltype(dual::FourierDual) =
+    Tuple{eltype(dual.xlabel),Tuple{eltype(dual.x),eltype(dual.x')}}
+function Base.iterate(dual::FourierDual, state = 1)
     if state <= length(dual.x)
         return ((dual.xlabel[state], (dual.x[state], abs(dual.x'[state]))), state + 1)
     else
@@ -244,14 +252,14 @@ function FourierTransform(w)
 end
 
 using ProgressMeter
-function assemble_standard(B::Fourier, D::Dynamic, ϵ=0.0; T=Float64)
+function assemble_standard(B::Fourier, D::Dynamic, ϵ = 0.0; T = Float64)
     n = length(B.p)
     M = zeros(Complex{Interval{Float64}}, (n, n))
     x, labels, xp = Dual(B, D, ϵ)
-    @showprogress for i in 1:n
+    @showprogress for i = 1:n
         ϕ = B[i]
         w = zeros(Complex{Interval{Float64}}, n)
-        for j in 1:length(x)
+        for j = 1:length(x)
             C = ϕ(x[j]) / abs(xp[j])
             if real(C) != ∅ && imag(C) != ∅
                 w[labels[j]] += C
@@ -263,7 +271,7 @@ function assemble_standard(B::Fourier, D::Dynamic, ϵ=0.0; T=Float64)
     return M
 end
 
-function assemble(B::Fourier, D::Dynamic, ϵ=0.0; T=Float64)
+function assemble(B::Fourier, D::Dynamic, ϵ = 0.0; T = Float64)
     n = length(B)
     #n_odd = (n%2 == 1)
     #n_less = Int64(floor(n/2))
@@ -275,7 +283,7 @@ function assemble(B::Fourier, D::Dynamic, ϵ=0.0; T=Float64)
     return assemble_standard(B, D)
 end
 
-function ConvolutionMatrix(C, ϵ=0.0; T=Float64)
+function ConvolutionMatrix(C, ϵ = 0.0; T = Float64)
     c1 = fft(C)
     return diagm(c1 / c1[1])
 end
@@ -352,22 +360,30 @@ function BasisDefinition.opnormbound(B::Fourier, N::Type{C1}, v::Vector{S}) wher
     return normbound(B, N, v)
 end
 
-function BasisDefinition.opnormbound(B::Fourier, N::Type{C1}, w::LinearAlgebra.Adjoint) where {T,S}
+function BasisDefinition.opnormbound(
+    B::Fourier,
+    N::Type{C1},
+    w::LinearAlgebra.Adjoint,
+) where {T,S}
     return normbound(B, N, w')
 end
 
 function BasisDefinition.opnormbound(B::Fourier, N::Type{C1}, A::Matrix{S}) where {T,S}
     n, m = size(A)
     norm = 0.0
-    for i in 1:m
-        norm = max(norm, Float64(opnormbound(B, N, A[:, i]), RoundUp) ⊘₊ Float64(1 + i^2, RoundDown))
+    for i = 1:m
+        norm = max(
+            norm,
+            Float64(opnormbound(B, N, A[:, i]), RoundUp) ⊘₊ Float64(1 + i^2, RoundDown),
+        )
         # since these are the images of the basis elements, we can use the fact that
         # |Tₖ(x)|= 1, Tₖ' = k*U_{k-1}, |U_{k-1}|=k
     end
     return norm ⊗₊ log(m + 2)
 end
 
-BasisDefinition.normbound(B::Fourier{T}, N::Type{C1}, v) where {T} = Float64((infnormoffunction(B, v) + infnormofderivative(B, v)).hi, RoundUp)
+BasisDefinition.normbound(B::Fourier{T}, N::Type{C1}, v) where {T} =
+    Float64((infnormoffunction(B, v) + infnormofderivative(B, v)).hi, RoundUp)
 
 # mutable struct NormCacherC1 <: NormCacher{C1}
 # 	B::Basis

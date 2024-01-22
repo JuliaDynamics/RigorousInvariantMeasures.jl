@@ -3,8 +3,19 @@ defines generic Dynamic type
 """
 
 module DynamicDefinition
-export Dynamic, MarkovDynamic, preim, branches, nbranches, plottable, is_full_branch, 
-	domain, endpoints, branch, max_distortion, max_inverse_derivative, is_increasing
+export Dynamic,
+    MarkovDynamic,
+    preim,
+    branches,
+    nbranches,
+    plottable,
+    is_full_branch,
+    domain,
+    endpoints,
+    branch,
+    max_distortion,
+    max_inverse_derivative,
+    is_increasing
 
 abstract type Dynamic end
 abstract type MarkovDynamic <: Dynamic end
