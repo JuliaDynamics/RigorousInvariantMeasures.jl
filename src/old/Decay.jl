@@ -1,3 +1,4 @@
+# COV_EXCL_START
 """
 Generic function to estimate decay time on a single vector
 
@@ -55,3 +56,4 @@ function decay_time(
 
     return max(decay_times)
 end
+# COV_EXCL_STOP

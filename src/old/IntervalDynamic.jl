@@ -1,3 +1,4 @@
+# COV_EXCL_START
 struct IntervalDynamic <: Dynamic
     branches::Array{MonotonicBranch,1}
     full_branch::Bool
@@ -97,3 +98,4 @@ end
 
 using RecipesBase
 @recipe f(::Type{PM}, D::PM) where {PM<:IntervalDynamic} = x -> plottable(D, x)
+# COV_EXCL_STOP

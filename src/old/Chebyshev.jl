@@ -1,3 +1,4 @@
+# COV_EXCL_START
 """
 Chebyshev basis on the Interval [0,1]
 """
@@ -338,3 +339,4 @@ end
 # 		end
 # 	end
 # end
+# COV_EXCL_STOP

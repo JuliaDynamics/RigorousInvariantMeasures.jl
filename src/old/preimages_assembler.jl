@@ -1,3 +1,4 @@
+# COV_EXCL_START
 using IntervalArithmetic
 using .DynamicDefinition
 
@@ -107,3 +108,4 @@ function assemble2(B::Basis, D::Dynamic, ϵ = 0.0; T = Float64)
 
     return sparse(I, J, nzvals, n, n)
 end
+# COV_EXCL_STOP

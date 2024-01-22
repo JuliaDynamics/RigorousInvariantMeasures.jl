@@ -1,3 +1,4 @@
+# COV_EXCL_START
 module LorenzMapDefinition
 
 using ..PwDynamicDefinition: PwMap
@@ -31,3 +32,4 @@ end
 
 
 end
+# COV_EXCL_STOP
