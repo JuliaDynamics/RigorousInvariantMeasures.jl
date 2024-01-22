@@ -35,7 +35,7 @@ The code snippet above defines a dynamic obtained by reducing f(x) = 4x+0.01 sin
 Note the usage of `InvariantMeasures.sinpi(8*x)` rather than `Base.sinpi` or `Base.sin(8\pi*x)`. This detail is required to ensure that f(1) == 4 exactly.
 
 ```julia
-norms = norms = powernormbounds(B, D; Q=Q)
+norms = powernormbounds(B, D; Q=Q)
 ```
 
 This function computes the L¹ norm of Q^k, for k = 1,2,...,k_max (up to a sufficiently large number of powers to observe decay) when restricted to the space U of average-0 vectors. This gives us the a posteriori estimate for the mixing time of the Markov chain and is used in our rigorous estimate.

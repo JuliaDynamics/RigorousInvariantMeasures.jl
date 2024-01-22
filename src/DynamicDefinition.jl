@@ -2,7 +2,6 @@
 defines generic Dynamic type
 """
 
-module DynamicDefinition
 export Dynamic,
     MarkovDynamic,
     preim,
@@ -57,5 +56,3 @@ function max_inverse_derivative end
 Maximum of distortion(D, x) = |T''| / (T')^2, over all branches
 """
 function max_distortion end
-
-end

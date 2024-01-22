@@ -1,6 +1,3 @@
-module BasisDefinition
-using ..DynamicDefinition
-
 export Basis,
     DualComposedWithDynamic,
     ProjectDualElement,
@@ -190,7 +187,7 @@ julia> using RigorousInvariantMeasures;
 julia> B = Ulam(1024)
 Ulam{LinRange{Float64, Int64}}(range(0.0, stop=1.0, length=1025))
 
-julia> RigorousInvariantMeasures.BasisDefinition.weak_projection_error(B)
+julia> RigorousInvariantMeasures.weak_projection_error(B)
 
 0.00048828125
 ````
@@ -276,8 +273,6 @@ using ..RigorousInvariantMeasures: NormKind
 opnormbound(B::Basis, N::Type{<:NormKind}, M::AbstractVecOrMat{S}) where {S} =
     @error "Must be specialized"
 normbound(B::Basis, N::Type{<:NormKind}, v) = @error "Must be specialized"
-
-end
 
 # careful, this is defined outside the module!!!
 

@@ -1,8 +1,3 @@
-module AnalyticFourierBasis
-
-using ..BasisDefinition
-using ..DynamicDefinition
-
 using IntervalArithmetic
 using ..RigorousInvariantMeasures: MonotonicBranch, PwMap, Dual, C1, NormCacher
 import ..RigorousInvariantMeasures: NormKind, derivative, interval_fft, assemble
@@ -13,7 +8,7 @@ export FourierAnalytic
 struct Aη <: NormKind
     η::Any
 end
-struct L2 <: NormKind end
+#struct L2 <: NormKind end
 
 # we will store the Fourier expansion in the following way,
 # to make it as coherent possible as the output of the FFT
@@ -23,8 +18,6 @@ struct FourierAnalytic{T<:AbstractVector} <: Basis
     p::T
     k::Integer
 end
-
-FourierPoints(n, T) = [Interval{T}(i) / (n) for i = 0:n-1]
 
 function FourierAnalytic(k::Integer, n::Integer; T = Float64)
     return FourierAnalytic(FourierPoints(n, T), k)
@@ -42,7 +35,7 @@ Base.lastindex(B::FourierAnalytic) = length(B)
 ###############################################################################
 ###############################################################################
 
-function BasisDefinition.weak_projection_error(B::FourierAnalytic)
+function weak_projection_error(B::FourierAnalytic)
     N = B.k
     η = Interval(strong_norm(B).η)
     λ = -2 * Interval(pi) * N * η
@@ -50,7 +43,7 @@ function BasisDefinition.weak_projection_error(B::FourierAnalytic)
     return exp(-λ).hi
 end
 
-function BasisDefinition.aux_normalized_projection_error(B::FourierAnalytic)
+function aux_normalized_projection_error(B::FourierAnalytic)
     N = B.k
     η = Interval(strong_norm(B).η)
     λ = -2 * Interval(pi) * N * η
@@ -64,27 +57,27 @@ We use here
 `` \sum_{i=-K}^K (|g_i|\exp^{2\pi \eta |i|})^2 \leq \sum_{-K}^K |g_i|^2 \sum_{-K}^K \exp^{2(2\pi \eta |i|)}
 \leq ||g||_2 2\frac{1-\exp^{2K+2(2\pi \eta |i|)}}{1-\exp^{2(2\pi \eta |i|)}}`` 
 """
-function BasisDefinition.strong_weak_bound(B::FourierAnalytic)
+function strong_weak_bound(B::FourierAnalytic)
     k = B.k
     η = Interval(strong_norm(B).η)
     λ = 2 * 2 * Interval(pi) * η
 
     return 2 * (1 - exp(λ * (k + 1)) / (1 - exp(λ)))
 end
-BasisDefinition.aux_weak_bound(B::FourierAnalytic) = 1.0
+aux_weak_bound(B::FourierAnalytic) = 1.0
 
 # Check this!!!
-# function BasisDefinition.weak_by_strong_and_aux_bound(B::Fourier)
+# function weak_by_strong_and_aux_bound(B::Fourier)
 #     @error "TODO"
 #     ν = B.k
 #     return (ν, 1.0)
 # end
-# BasisDefinition.bound_weak_norm_from_linalg_norm(B::Fourier) = @error "TODO"
-# BasisDefinition.bound_linalg_norm_L1_from_weak(B::Fourier) = @error "TODO"
-# BasisDefinition.bound_linalg_norm_L∞_from_weak(B::Fourier) = @error "TODO"
-# BasisDefinition.weak_norm(B::Fourier) = C1
-# BasisDefinition.aux_norm(B::Fourier) = L1
-# BasisDefinition.strong_norm(B::Fourier) = W{B.k,1}
+# bound_weak_norm_from_linalg_norm(B::Fourier) = @error "TODO"
+# bound_linalg_norm_L1_from_weak(B::Fourier) = @error "TODO"
+# bound_linalg_norm_L∞_from_weak(B::Fourier) = @error "TODO"
+# weak_norm(B::Fourier) = C1
+# aux_norm(B::Fourier) = L1
+# strong_norm(B::Fourier) = W{B.k,1}
 
 """
 Make so that B[j] returns the basis function of coordinate j
@@ -111,11 +104,11 @@ function Base.getindex(B::FourierAnalytic, i::Int)
 end
 
 
-BasisDefinition.is_refinement(Bc::FourierAnalytic, Bf::FourierAnalytic) =
+is_refinement(Bc::FourierAnalytic, Bf::FourierAnalytic) =
     length(Bc) < length(Bf)
-BasisDefinition.integral_covector(B::FourierAnalytic; T = Float64) =
+integral_covector(B::FourierAnalytic; T = Float64) =
     [Interval{T}(1); zeros(length(B) - 1)]'
-BasisDefinition.one_vector(B::FourierAnalytic) = [1; zeros(length(B) - 1)]
+one_vector(B::FourierAnalytic) = [1; zeros(length(B) - 1)]
 
 Base.length(S::AverageZero{T}) where {T<:FourierAnalytic} = length(S.basis) - 1
 
@@ -136,7 +129,6 @@ struct FourierAnalyticDual <: Dual
     xp::Vector{Interval}
 end
 
-using ..Contractors
 using ..RigorousInvariantMeasures: preimages_and_derivatives
 
 function FourierAnalyticDualBranch(
@@ -323,16 +315,16 @@ end
 # end
 
 
-# BasisDefinition.is_integral_preserving(B::Fourier) = false
-# function BasisDefinition.opnormbound(B::Fourier, N::Type{C1}, v::Vector{S}) where {T,S}
+# is_integral_preserving(B::Fourier) = false
+# function opnormbound(B::Fourier, N::Type{C1}, v::Vector{S}) where {T,S}
 #     return normbound(B, N, v)
 # end
 
-# function BasisDefinition.opnormbound(B::Fourier, N::Type{C1}, w::LinearAlgebra.Adjoint) where {T,S}
+# function opnormbound(B::Fourier, N::Type{C1}, w::LinearAlgebra.Adjoint) where {T,S}
 #     return normbound(B, N, w')
 # end
 
-# function BasisDefinition.opnormbound(B::Fourier, N::Type{C1}, A::Matrix{S}) where {T,S}
+# function opnormbound(B::Fourier, N::Type{C1}, A::Matrix{S}) where {T,S}
 #     n, m = size(A)
 #     norm = 0.0
 #     for i in 1:m
@@ -343,7 +335,7 @@ end
 #     return norm ⊗₊ log(m + 2)
 # end
 
-# BasisDefinition.normbound(B::Fourier{T}, N::Type{C1}, v) where {T} = Float64((infnormoffunction(B, v) + infnormofderivative(B, v)).hi, RoundUp)
+# normbound(B::Fourier{T}, N::Type{C1}, v) where {T} = Float64((infnormoffunction(B, v) + infnormofderivative(B, v)).hi, RoundUp)
 
 # # mutable struct NormCacherC1 <: NormCacher{C1}
 # # 	B::Basis
@@ -365,5 +357,3 @@ end
 # #     n = length(Cacher.B)
 # # 	return Cacher.C ⊗₊ log(n+2)
 # # end
-
-end

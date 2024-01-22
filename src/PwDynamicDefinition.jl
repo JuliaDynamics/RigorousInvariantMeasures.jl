@@ -1,12 +1,7 @@
 
 ## the function branches is after the module
 
-
-module PwDynamicDefinition
-
-using ..DynamicDefinition
-using ..Contractors
-using ..RigorousInvariantMeasures: derivative, distortion, inverse_derivative
+using ..RigorousInvariantMeasures: derivative, distortion, inverse_derivative, unique_increasing
 using TaylorSeries: Taylor1
 using IntervalArithmetic, IntervalOptimisation
 
@@ -62,9 +57,9 @@ function equal_up_to_order(X, Y)
     return false
 end
 
-DynamicDefinition.is_full_branch(b::MonotonicBranch{T,S}, X) where {T,S} =
+is_full_branch(b::MonotonicBranch{T,S}, X) where {T,S} =
     equal_up_to_order(b.Y, X)
-DynamicDefinition.is_increasing(b::MonotonicBranch) = b.increasing
+is_increasing(b::MonotonicBranch) = b.increasing
 
 import Base.reverse
 """
@@ -128,13 +123,13 @@ end
 Base.show(io::IO, D::PwMap) =
     print(io, "Piecewise-defined dynamic with $(nbranches(D)) branches")
 
-DynamicDefinition.domain(D::PwMap) = (D.branches[1].X[1], D.branches[end].X[2])
+domain(D::PwMap) = (D.branches[1].X[1], D.branches[end].X[2])
 #intersect_domain(T::PwMap, x) = [Interval(x) ∩ hull(br.X[1], br.X[2]) for br in T.branches]
 #intersect_domain_bool(T::PwMap, x) = [!(∅ == y) for y in intersect_domain(T, x)]
 
 
-function DynamicDefinition.is_increasing(D::PwMap)
-    inc = DynamicDefinition.is_increasing.(D.branches)
+function is_increasing(D::PwMap)
+    inc = is_increasing.(D.branches)
     if all(inc)
         return true
     elseif all(.!inc)
@@ -146,17 +141,17 @@ end
 
 Base.getindex(D::PwMap, k::Int64) = D.branches[k]
 
-DynamicDefinition.nbranches(D::PwMap) = length(D.branches)
-DynamicDefinition.endpoints(D::PwMap) =
+nbranches(D::PwMap) = length(D.branches)
+endpoints(D::PwMap) =
     [[br.X[1] for br in branches(D)]; branches(D)[end].X[2]]
-DynamicDefinition.branches(D::PwMap) = D.branches
+branches(D::PwMap) = D.branches
 
-DynamicDefinition.is_full_branch(D::PwMap) = D.full_branch
+is_full_branch(D::PwMap) = D.full_branch
 
 """
 Deprecated, but still used in C2Basis
 """
-function DynamicDefinition.preim(D::PwMap, k, y, ϵ = 1e-15)
+function preim(D::PwMap, k, y, ϵ = 1e-15)
     return preimage(y, D.branches[k]; ϵ = ϵ, max_iter = 100)
 end
 
@@ -170,7 +165,7 @@ restrict(I, x::Taylor1) = Taylor1([I ∩ x[0]; x[1:end]], x.order)
 function that evaluates the k-th branch of a dynamic on a point x
 	(assuming it's in its domain, otherwise ∅)
 """
-function DynamicDefinition.branch(D::PwMap, k)
+function branch(D::PwMap, k)
     return x -> D[k].f(restrict(hull(D[k].X[1], D[k].X[2]), x))
 end
 
@@ -182,7 +177,6 @@ end
 
 
 # Rather than defining derivatives of a PwMap, we define Taylor1 expansions directly
-# and let the generic functions in DynamicDefinition to the work
 """
 Function call, and Taylor expansion, of a PwMap.
 Note that this ignores discontinuities; users are free to shoot themselves
@@ -220,7 +214,7 @@ end
 
 Compute a rigorous bound for the inverse_derivative of a PwMap
 """
-function DynamicDefinition.max_inverse_derivative(D::PwDynamicDefinition.PwMap, tol = 1e-3)
+function max_inverse_derivative(D::PwMap, tol = 1e-3)
     #for br in branches(D)
     #    val = maximise(x -> abs(1/derivative(br.f, x)), hull(br.X[1], br.X[2]), tol=tol)[1]
     #        @info val
@@ -263,7 +257,7 @@ julia> max_distortion(D0)
 [0.444268, 0.444445]
 ```
 """
-function DynamicDefinition.max_distortion(D::PwDynamicDefinition.PwMap, tol = 1e-3)
+function max_distortion(D::PwMap, tol = 1e-3)
     # max_dist = Interval(0.0)
     # for br in branches(D)
     #     val = maximise(x -> abs(distortion(br.f, x)), hull(br.X[1], br.X[2]), tol=tol)[1]
@@ -273,7 +267,7 @@ function DynamicDefinition.max_distortion(D::PwDynamicDefinition.PwMap, tol = 1e
     return maximum([bound_branch_distortion(br; tol = tol) for br in D.branches])
 end
 
-function DynamicDefinition.plottable(D::PwMap, x)
+function plottable(D::PwMap, x)
     @assert 0 <= x <= 1
     for k = 1:nbranches(D)
         domain = hull(D[k].X[1], D[k].X[2])
@@ -282,7 +276,7 @@ function DynamicDefinition.plottable(D::PwMap, x)
         end
     end
 end
-DynamicDefinition.plottable(D::PwMap) = x -> DynamicDefinition.plottable(D, x)
+plottable(D::PwMap) = x -> plottable(D, x)
 
 """
     has_infinite_derivative_at_endpoints(b::MonotonicBranch)
@@ -310,7 +304,6 @@ end
 using RecipesBase
 @recipe f(::Type{PM}, D::PM) where {PM<:PwMap} = x -> plottable(D, x)
 
-end #module
 
 """
     mod1_dynamic(f::Function, ε = 0.0; full_branch = false)
@@ -381,7 +374,7 @@ end
 """
     Create explicitly D1 ∘ D2 as a PwMap
 """
-function composedPwMap(D1::PwDynamicDefinition.PwMap, D2::PwDynamicDefinition.PwMap)
+function composedPwMap(D1::PwMap, D2::PwMap)
     y_endpoints = endpoints(D1)
     x, xlabel = preimages_and_branches(y_endpoints, D2; ϵ = 1e-13, max_iter = 100)
     push!(x, D2.branches[end].X[2])
@@ -413,7 +406,7 @@ The strategy to compute it follows a variant of Lemma 9.1 in the GMNP paper:
 function dfly_inf_der(
     ::Type{TotalVariation},
     ::Type{L1},
-    D::PwDynamicDefinition.PwMap,
+    D::PwMap,
     tol = 1e-3,
 )
     leftrightsingularity = Tuple{Bool,Bool}[]

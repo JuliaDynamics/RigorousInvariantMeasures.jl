@@ -1,5 +1,4 @@
-using ..BasisDefinition, ..DynamicDefinition, ..Contractors, ..PwDynamicDefinition
-IntervalArithmetic, LinearAlgebra
+using IntervalArithmetic, LinearAlgebra
 
 export Ulam2DSP,
     length_x, length_y, square_indexes_to_linear, linear_indexes_to_square, getindex_linear

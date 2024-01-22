@@ -1,7 +1,4 @@
-module FourierCommon
-using ..BasisDefinition
-using ..DynamicDefinition
-using ..RigorousInvariantMeasures: Dual, interval_fft
+using .RigorousInvariantMeasures: Dual, interval_fft
 
 export Fourier, evalFourier, FourierPoints, assemble_common, eval_on_dual
 
@@ -49,10 +46,9 @@ function Base.getindex(B::Fourier, i::Int)
     end
 end
 
-BasisDefinition.is_refinement(Bc::Fourier, Bf::Fourier) = length(Bc) < length(Bf)
-BasisDefinition.integral_covector(B::Fourier; T = Float64) =
-    [Interval{T}(1); zeros(length(B) - 1)]'
-BasisDefinition.one_vector(B::Fourier) = [1; zeros(length(B) - 1)]
+is_refinement(Bc::Fourier, Bf::Fourier) = length(Bc) < length(Bf)
+integral_covector(B::Fourier; T = Float64) = [Interval{T}(1); zeros(length(B) - 1)]'
+one_vector(B::Fourier) = [1; zeros(length(B) - 1)]
 
 Base.length(S::AverageZero{T}) where {T<:Fourier} = length(S.basis) - 1
 
@@ -95,4 +91,3 @@ function assemble_common(B::Fourier, D; ϵ = 0.0, max_iter = 100, T = Float64)
     return M
 end
 
-end

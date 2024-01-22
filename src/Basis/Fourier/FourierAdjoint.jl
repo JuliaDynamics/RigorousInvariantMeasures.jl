@@ -1,8 +1,3 @@
-module AdjointFourierBasis
-
-using ..BasisDefinition
-using ..DynamicDefinition
-using ..FourierCommon
 
 using IntervalArithmetic
 using ..RigorousInvariantMeasures: MonotonicBranch, PwMap, Dual, C1, NormCacher
@@ -12,7 +7,6 @@ using LinearAlgebra
 export FourierAdjoint
 
 struct Cω <: NormKind end
-struct L2 <: NormKind end
 
 # we will store the Fourier expansion in the following way,
 # to make it as coherent possible as the output of the FFT
@@ -40,7 +34,7 @@ Base.lastindex(B::FourierAdjoint) = length(B)
 ###############################################################################
 ###############################################################################
 
-# function BasisDefinition.weak_projection_error(B::Fourier)
+# function weak_projection_error(B::Fourier)
 #     n = Float64(length(B), RoundUp)
 #     ν = B.k
 #     νf = Float64(B.k, RoundUp)
@@ -48,7 +42,7 @@ Base.lastindex(B::FourierAdjoint) = length(B)
 #     return (4.0 ⊗₊ (n + 1)) ⊘₊ den
 # end
 
-# function BasisDefinition.aux_normalized_projection_error(B::Fourier)
+# function aux_normalized_projection_error(B::Fourier)
 #     n = Float64(length(B), RoundUp)
 #     ν = B.k
 #     νf = Float64(B.k, RoundUp)
@@ -57,14 +51,14 @@ Base.lastindex(B::FourierAdjoint) = length(B)
 # end
 
 # """
-# 	BasisDefinition.strong_weak_bound(B::Chebyshev)
+# 	strong_weak_bound(B::Chebyshev)
 
 # V.A. Markov estimate from GRADIMIR MILOVANOVIC EXTREMAL PROBLEMS AND 
 # INEQUALITIES OF MARKOV-BERNSTEIN TYPE FOR POLYNOMIALS
 # """
 # TODO: Check the indexes
 
-# function BasisDefinition.strong_weak_bound(B::Fourier)
+# function strong_weak_bound(B::Fourier)
 #     n = length(B) - 1
 #     k = B.k - 1
 #     # we want to estimate the norm of f^(k) by the C1 norm of f, so we use Markov estimate
@@ -73,20 +67,20 @@ Base.lastindex(B::FourierAdjoint) = length(B)
 #     num = reduce(⊗₊, [Float64(n^2 - i^2, RoundDown) for i in 0:k-1])
 #     return num ⊘₊ den ⊕₊ 1.0 # the 1.0 is to take into account the L1 norm of f
 # end
-# BasisDefinition.aux_weak_bound(B::Fourier) = 1.0
+# aux_weak_bound(B::Fourier) = 1.0
 
 # Check this!!!
-# function BasisDefinition.weak_by_strong_and_aux_bound(B::Fourier)
+# function weak_by_strong_and_aux_bound(B::Fourier)
 #     @error "TODO"
 #     ν = B.k
 #     return (ν, 1.0)
 # end
-# BasisDefinition.bound_weak_norm_from_linalg_norm(B::Fourier) = @error "TODO"
-# BasisDefinition.bound_linalg_norm_L1_from_weak(B::Fourier) = @error "TODO"
-# BasisDefinition.bound_linalg_norm_L∞_from_weak(B::Fourier) = @error "TODO"
-# BasisDefinition.weak_norm(B::Fourier) = C1
-# BasisDefinition.aux_norm(B::Fourier) = L1
-# BasisDefinition.strong_norm(B::Fourier) = W{B.k,1}
+# bound_weak_norm_from_linalg_norm(B::Fourier) = @error "TODO"
+# bound_linalg_norm_L1_from_weak(B::Fourier) = @error "TODO"
+# bound_linalg_norm_L∞_from_weak(B::Fourier) = @error "TODO"
+# weak_norm(B::Fourier) = C1
+# aux_norm(B::Fourier) = L1
+# strong_norm(B::Fourier) = W{B.k,1}
 
 # """
 # Make so that B[j] returns the basis function of coordinate j
@@ -113,9 +107,9 @@ Base.lastindex(B::FourierAdjoint) = length(B)
 # end
 
 
-# BasisDefinition.is_refinement(Bc::FourierAdjoint, Bf::FourierAdjoint) = length(Bc) < length(Bf)
-# BasisDefinition.integral_covector(B::FourierAdjoint; T=Float64) = [Interval{T}(1); zeros(length(B) - 1)]'
-# BasisDefinition.one_vector(B::FourierAdjoint) = [1; zeros(length(B) - 1)]
+# is_refinement(Bc::FourierAdjoint, Bf::FourierAdjoint) = length(Bc) < length(Bf)
+# integral_covector(B::FourierAdjoint; T=Float64) = [Interval{T}(1); zeros(length(B) - 1)]'
+# one_vector(B::FourierAdjoint) = [1; zeros(length(B) - 1)]
 
 # Base.length(S::AverageZero{T}) where {T<:FourierAdjoint} = length(S.basis) - 1
 
@@ -207,7 +201,7 @@ end
 #     return z#Interval.(t)
 # end
 
-function FourierCommon.eval_on_dual(B::FourierAdjoint, computed_dual::FourierAdjointDual, ϕ)
+function eval_on_dual(B::FourierAdjoint, computed_dual::FourierAdjointDual, ϕ)
 
     x = computed_dual.x
 
@@ -217,7 +211,7 @@ function FourierCommon.eval_on_dual(B::FourierAdjoint, computed_dual::FourierAdj
 end
 
 function assemble(B::FourierAdjoint, D; ϵ = 0.0, max_iter = 100, T = Float64)
-    return FourierCommon.assemble_common(B, D; ϵ = 0.0, max_iter = 100, T = Float64)'
+    return assemble_common(B, D; ϵ = 0.0, max_iter = 100, T = Float64)'
 end
 
 # using ProgressMeter
@@ -328,16 +322,16 @@ end
 # end
 
 
-# BasisDefinition.is_integral_preserving(B::Fourier) = false
-# function BasisDefinition.opnormbound(B::Fourier, N::Type{C1}, v::Vector{S}) where {T,S}
+# is_integral_preserving(B::Fourier) = false
+# function opnormbound(B::Fourier, N::Type{C1}, v::Vector{S}) where {T,S}
 #     return normbound(B, N, v)
 # end
 
-# function BasisDefinition.opnormbound(B::Fourier, N::Type{C1}, w::LinearAlgebra.Adjoint) where {T,S}
+# function opnormbound(B::Fourier, N::Type{C1}, w::LinearAlgebra.Adjoint) where {T,S}
 #     return normbound(B, N, w')
 # end
 
-# function BasisDefinition.opnormbound(B::Fourier, N::Type{C1}, A::Matrix{S}) where {T,S}
+# function opnormbound(B::Fourier, N::Type{C1}, A::Matrix{S}) where {T,S}
 #     n, m = size(A)
 #     norm = 0.0
 #     for i in 1:m
@@ -348,7 +342,7 @@ end
 #     return norm ⊗₊ log(m + 2)
 # end
 
-# BasisDefinition.normbound(B::Fourier{T}, N::Type{C1}, v) where {T} = Float64((infnormoffunction(B, v) + infnormofderivative(B, v)).hi, RoundUp)
+# normbound(B::Fourier{T}, N::Type{C1}, v) where {T} = Float64((infnormoffunction(B, v) + infnormofderivative(B, v)).hi, RoundUp)
 
 # # mutable struct NormCacherC1 <: NormCacher{C1}
 # # 	B::Basis
@@ -370,5 +364,3 @@ end
 # #     n = length(Cacher.B)
 # # 	return Cacher.C ⊗₊ log(n+2)
 # # end
-
-end

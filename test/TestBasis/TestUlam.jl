@@ -2,7 +2,6 @@
 
 
     using RigorousInvariantMeasures
-    using RigorousInvariantMeasures.BasisDefinition
     using IntervalArithmetic
 
     B = Ulam(4)

@@ -1,7 +1,4 @@
-module AnalyticFourierBasis
-
-using ..BasisDefinition
-using ..DynamicDefinition
+# COV_EXCL_START
 
 using IntervalArithmetic
 using ..RigorousInvariantMeasures: MonotonicBranch, PwMap, Dual, C1, NormCacher
@@ -117,7 +114,7 @@ end
 ###############################################################################
 ###############################################################################
 
-function BasisDefinition.weak_projection_error(B::Fourier)
+function weak_projection_error(B::Fourier)
     n = Float64(length(B), RoundUp)
     ν = B.k
     νf = Float64(B.k, RoundUp)
@@ -125,7 +122,7 @@ function BasisDefinition.weak_projection_error(B::Fourier)
     return (4.0 ⊗₊ (n + 1)) ⊘₊ den
 end
 
-function BasisDefinition.aux_normalized_projection_error(B::Fourier)
+function aux_normalized_projection_error(B::Fourier)
     n = Float64(length(B), RoundUp)
     ν = B.k
     νf = Float64(B.k, RoundUp)
@@ -134,14 +131,14 @@ function BasisDefinition.aux_normalized_projection_error(B::Fourier)
 end
 
 """
-	BasisDefinition.strong_weak_bound(B::Chebyshev)
+	strong_weak_bound(B::Chebyshev)
 
 V.A. Markov estimate from GRADIMIR MILOVANOVIC EXTREMAL PROBLEMS AND 
 INEQUALITIES OF MARKOV-BERNSTEIN TYPE FOR POLYNOMIALS
 """
 # TODO: Check the indexes
 
-function BasisDefinition.strong_weak_bound(B::Fourier)
+function strong_weak_bound(B::Fourier)
     n = length(B) - 1
     k = B.k - 1
     # we want to estimate the norm of f^(k) by the C1 norm of f, so we use Markov estimate
@@ -150,20 +147,20 @@ function BasisDefinition.strong_weak_bound(B::Fourier)
     num = reduce(⊗₊, [Float64(n^2 - i^2, RoundDown) for i = 0:k-1])
     return num ⊘₊ den ⊕₊ 1.0 # the 1.0 is to take into account the L1 norm of f
 end
-BasisDefinition.aux_weak_bound(B::Fourier) = 1.0
+aux_weak_bound(B::Fourier) = 1.0
 
 # Check this!!!
-function BasisDefinition.weak_by_strong_and_aux_bound(B::Fourier)
+function weak_by_strong_and_aux_bound(B::Fourier)
     @error "TODO"
     ν = B.k
     return (ν, 1.0)
 end
-BasisDefinition.bound_weak_norm_from_linalg_norm(B::Fourier) = @error "TODO"
-BasisDefinition.bound_linalg_norm_L1_from_weak(B::Fourier) = @error "TODO"
-BasisDefinition.bound_linalg_norm_L∞_from_weak(B::Fourier) = @error "TODO"
-BasisDefinition.weak_norm(B::Fourier) = C1
-BasisDefinition.aux_norm(B::Fourier) = L1
-BasisDefinition.strong_norm(B::Fourier) = W{B.k,1}
+bound_weak_norm_from_linalg_norm(B::Fourier) = @error "TODO"
+bound_linalg_norm_L1_from_weak(B::Fourier) = @error "TODO"
+bound_linalg_norm_L∞_from_weak(B::Fourier) = @error "TODO"
+weak_norm(B::Fourier) = C1
+aux_norm(B::Fourier) = L1
+strong_norm(B::Fourier) = W{B.k,1}
 
 """
 Make so that B[j] returns the basis function of coordinate j
@@ -176,10 +173,10 @@ function Base.getindex(B::Fourier, i::Int)
     return x -> evalFourier(v, x)
 end
 
-BasisDefinition.is_refinement(Bc::Fourier, Bf::Fourier) = length(Bc) < length(Bf)
-BasisDefinition.integral_covector(B::Fourier; T = Float64) =
+is_refinement(Bc::Fourier, Bf::Fourier) = length(Bc) < length(Bf)
+integral_covector(B::Fourier; T = Float64) =
     [Interval{T}(1); zeros(length(B) - 1)]'
-BasisDefinition.one_vector(B::Fourier) = [1; zeros(length(B) - 1)]
+one_vector(B::Fourier) = [1; zeros(length(B) - 1)]
 
 Base.length(S::AverageZero{T}) where {T<:Fourier} = length(S.basis) - 1
 
@@ -201,20 +198,19 @@ struct FourierDual <: Dual
     xp::Vector{Interval}
 end
 
-using ..Contractors
 using ..RigorousInvariantMeasures: preimages_and_derivatives
 
 function FourierDualBranch(y, br::MonotonicBranch, ylabel = 1:length(y), ϵ = 0.0)
     if br.increasing
         endpoint_X = br.X[2]
-        der = Contractors.derivative(br.f)(endpoint_X)
+        der = derivative(br.f)(endpoint_X)
         preim_der = preimages_and_derivatives(y, br, ylabel, ϵ)
         return [preim_der[1];],#endpoint_X is calculated in preimages
         [preim_der[2];],
         [preim_der[3];]#same as previous comment
     else
         endpoint_X = br.X[2]
-        der = Contractors.derivative(br.f)(endpoint_X)
+        der = derivative(br.f)(endpoint_X)
         preim_der = preimages_and_derivatives(y, br, 1:length(y)-1, ϵ)
         return [preim_der[1]; endpoint_X],
         [preim_der[2]; length(preim_der[2]) + 1],
@@ -355,12 +351,12 @@ function infnormofderivative(B::Fourier, v)
 end
 
 
-BasisDefinition.is_integral_preserving(B::Fourier) = false
-function BasisDefinition.opnormbound(B::Fourier, N::Type{C1}, v::Vector{S}) where {T,S}
+is_integral_preserving(B::Fourier) = false
+function opnormbound(B::Fourier, N::Type{C1}, v::Vector{S}) where {T,S}
     return normbound(B, N, v)
 end
 
-function BasisDefinition.opnormbound(
+function opnormbound(
     B::Fourier,
     N::Type{C1},
     w::LinearAlgebra.Adjoint,
@@ -368,7 +364,7 @@ function BasisDefinition.opnormbound(
     return normbound(B, N, w')
 end
 
-function BasisDefinition.opnormbound(B::Fourier, N::Type{C1}, A::Matrix{S}) where {T,S}
+function opnormbound(B::Fourier, N::Type{C1}, A::Matrix{S}) where {T,S}
     n, m = size(A)
     norm = 0.0
     for i = 1:m
@@ -382,7 +378,7 @@ function BasisDefinition.opnormbound(B::Fourier, N::Type{C1}, A::Matrix{S}) wher
     return norm ⊗₊ log(m + 2)
 end
 
-BasisDefinition.normbound(B::Fourier{T}, N::Type{C1}, v) where {T} =
+normbound(B::Fourier{T}, N::Type{C1}, v) where {T} =
     Float64((infnormoffunction(B, v) + infnormofderivative(B, v)).hi, RoundUp)
 
 # mutable struct NormCacherC1 <: NormCacher{C1}
@@ -406,4 +402,4 @@ BasisDefinition.normbound(B::Fourier{T}, N::Type{C1}, v) where {T} =
 # 	return Cacher.C ⊗₊ log(n+2)
 # end
 
-end
+# COV_EXCL_STOP

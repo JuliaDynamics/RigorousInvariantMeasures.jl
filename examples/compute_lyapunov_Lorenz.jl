@@ -64,7 +64,7 @@ error_fine = distance_from_invariant(
 
 @info "The fine error is $error_fine"
 
-Bound = RigorousInvariantMeasures.BasisDefinition.invariant_measure_strong_norm_bound(
+Bound = RigorousInvariantMeasures.invariant_measure_strong_norm_bound(
     B,
     D;
     dfly_coefficients = dfly_coefficients,

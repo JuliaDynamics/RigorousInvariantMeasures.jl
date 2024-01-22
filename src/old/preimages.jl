@@ -1,9 +1,10 @@
+# COV_EXCL_START
 """
 Compute preimages of monotonic sequences
 """
 
 using IntervalArithmetic
-using .Contractors
+
 
 
 """
@@ -107,3 +108,4 @@ function preimages(seq, branch, ϵ = 0.0)
     end
     return PointSequence(v, seq.skip + skip, v_increasing)
 end
+# COV_EXCL_STOP

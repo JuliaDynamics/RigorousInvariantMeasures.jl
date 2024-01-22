@@ -1,7 +1,6 @@
 using Test
 using IntervalArithmetic
-using RigorousInvariantMeasures: is_full_branch
-using RigorousInvariantMeasures.DynamicDefinition: is_increasing
+using RigorousInvariantMeasures: is_full_branch, is_increasing
 
 @testset "Dynamics" begin
     using IntervalArithmetic
@@ -74,7 +73,7 @@ using RigorousInvariantMeasures.DynamicDefinition: is_increasing
 
     @test is_full_branch(D0) == true
     @test is_full_branch(D) == true
-    @test RigorousInvariantMeasures.DynamicDefinition.domain(D) ==
+    @test RigorousInvariantMeasures.domain(D) ==
           (Interval(0), Interval(1))
 
     A, B, C = RigorousInvariantMeasures.preimages_and_derivatives(

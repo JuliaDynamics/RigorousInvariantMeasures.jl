@@ -1,4 +1,3 @@
-module Contractors
 using IntervalArithmetic
 using RigorousInvariantMeasures: derivative, value_and_derivative
 
@@ -125,7 +124,7 @@ function preimage_monotonic(
         end
     end
     @warn "Maximum iterates reached:" max_iter, x, f(x), diam(x)
-    @warn "This should not happen normally, consider debugging Contractors.preimage_monotonic."
+    @warn "This should not happen normally, consider debugging preimage_monotonic."
     return x
 end
 
@@ -178,4 +177,3 @@ function ShootingMethod(f, fprime, n, x, y, rigstep = 10)
     return x
 end
 
-end #module
