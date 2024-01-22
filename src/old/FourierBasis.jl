@@ -1,3 +1,4 @@
+# COV_EXCL_START
 using ..BasisDefinition, ..DynamicDefinition, ..Contractors, ..PwDynamicDefinition
 using IntervalArithmetic, LinearAlgebra
 import Base: iterate
@@ -536,3 +537,4 @@ function powernormboundsnoise(
     return better_norms
 
 end
+# COV_EXCL_STOP

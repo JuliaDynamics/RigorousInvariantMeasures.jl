@@ -1,3 +1,4 @@
+# COV_EXCL_START
 module AnalyticFourierBasis
 
 using ..BasisDefinition
@@ -407,3 +408,4 @@ BasisDefinition.normbound(B::Fourier{T}, N::Type{C1}, v) where {T} =
 # end
 
 end
+# COV_EXCL_STOP

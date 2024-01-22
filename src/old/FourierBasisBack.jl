@@ -1,3 +1,4 @@
+# COV_EXCL_START
 module FourierBackward
 
 
@@ -544,3 +545,4 @@ end
 #end
 
 end
+# COV_EXCL_STOP
