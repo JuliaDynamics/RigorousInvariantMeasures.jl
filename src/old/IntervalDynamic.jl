@@ -33,8 +33,7 @@ end
 branches(D::IntervalDynamic) = D.branches
 
 nbranches(D::IntervalDynamic) = length(D.branches)
-endpoints(D::IntervalDynamic) =
-    [[br.X[1] for br in branches(D)]; branches(D)[end].X[2]]
+endpoints(D::IntervalDynamic) = [[br.X[1] for br in branches(D)]; branches(D)[end].X[2]]
 
 orientation(D::IntervalDynamic, k) = D.branches[k].increasing ? 1.0 : -1.0
 domain(D::IntervalDynamic) = (D.branches[1].X[1], D.branches[end].X[2])
