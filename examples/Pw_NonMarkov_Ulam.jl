@@ -4,16 +4,21 @@ using IntervalArithmetic
 m = 30
 m_extend = 100
 
-D = PwMap([x->17*x/5, 
-	x->(34*((17*x-5)/17)/25+3)*((17*x-5)/17), 
-	x->(34*((17*x-10)/17)/25+3)*((17*x-10)/17), 
-	x->17*((17*x-15)/17)/5], 
-	[Interval(0), Interval(5)/17, Interval(10)/17, Interval(15)/17, Interval(1)],
-	[Interval(0) Interval(1);
-	 Interval(0) Interval(1);
-	 Interval(0) Interval(1);
-	 Interval(0) @interval(0.4)]
-	)
+D = PwMap(
+    [
+        x -> 17 * x / 5,
+        x -> (34 * ((17 * x - 5) / 17) / 25 + 3) * ((17 * x - 5) / 17),
+        x -> (34 * ((17 * x - 10) / 17) / 25 + 3) * ((17 * x - 10) / 17),
+        x -> 17 * ((17 * x - 15) / 17) / 5,
+    ],
+    [Interval(0), Interval(5) / 17, Interval(10) / 17, Interval(15) / 17, Interval(1)],
+    [
+        Interval(0) Interval(1)
+        Interval(0) Interval(1)
+        Interval(0) Interval(1)
+        Interval(0) @interval(0.4)
+    ],
+)
 B = Ulam(1024)
 Q = DiscretizedOperator(B, D)
 
@@ -36,7 +41,8 @@ Q_fine = DiscretizedOperator(B_fine, D)
 norm_Q_fine = opnormbound(B_fine, weak_norm(B_fine), Q_fine)
 
 trivial_norms_fine = norms_of_powers_trivial(norm_Q_fine, m_extend)
-twogrid_norms_fine = norms_of_powers_from_coarser_grid(B_fine, B, D, better_norms, norm_Q_fine)
+twogrid_norms_fine =
+    norms_of_powers_from_coarser_grid(B_fine, B, D, better_norms, norm_Q_fine)
 
 (dfly_strongs_fine, dfly_norms_fine) = norms_of_powers_dfly(B_fine, D, m_extend)
 

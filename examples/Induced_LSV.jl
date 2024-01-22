@@ -28,7 +28,8 @@ Q_fine = DiscretizedOperator(B_fine, D)
 norm_Q_fine = opnormbound(B_fine, weak_norm(B_fine), Q_fine)
 
 trivial_norms_fine = norms_of_powers_trivial(norm_Q_fine, m_extend)
-twogrid_norms_fine = norms_of_powers_from_coarser_grid(B_fine, B, D, better_norms, norm_Q_fine)
+twogrid_norms_fine =
+    norms_of_powers_from_coarser_grid(B_fine, B, D, better_norms, norm_Q_fine)
 
 (dfly_strongs_fine, dfly_norms_fine) = norms_of_powers_dfly(B_fine, D, m_extend)
 

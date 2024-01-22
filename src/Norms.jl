@@ -18,7 +18,8 @@ abs_or_mag(x::Interval) = Float64(mag(x), RoundUp)
 """
 Computes a rigorous upper bound for z*z'
 """
-z_times_conjz(z::Complex) = square_round(abs_or_mag(real(z)), RoundUp) ⊕₊ square_round(abs_or_mag(imag(z)), RoundUp)
+z_times_conjz(z::Complex) =
+    square_round(abs_or_mag(real(z)), RoundUp) ⊕₊ square_round(abs_or_mag(imag(z)), RoundUp)
 abs_or_mag(z::Complex) = sqrt_round(z_times_conjz(z), RoundUp)
 
 """
@@ -33,9 +34,9 @@ function BasisDefinition.opnormbound(::Type{L1}, A::AbstractVecOrMat{T}) where {
         for j = 1:size(A, 2)
             nrmj::Tsum = 0
             for i = 1:size(A, 1)
-                nrmj = nrmj ⊕₊ abs_or_mag(A[i,j])
+                nrmj = nrmj ⊕₊ abs_or_mag(A[i, j])
             end
-            nrm = max(nrm,nrmj)
+            nrm = max(nrm, nrmj)
         end
     end
     return convert(Tnorm, nrm)
@@ -50,9 +51,9 @@ function BasisDefinition.opnormbound(::Type{Linf}, A::AbstractVecOrMat{T}) where
         for i = 1:size(A, 1)
             nrmi::Tsum = 0
             for j = 1:size(A, 2)
-                nrmi = nrmi ⊕₊ abs_or_mag(A[i,j])
+                nrmi = nrmi ⊕₊ abs_or_mag(A[i, j])
             end
-            nrm = max(nrm,nrmi)
+            nrm = max(nrm, nrmi)
         end
     end
     return convert(Tnorm, nrm)
@@ -93,10 +94,10 @@ function BasisDefinition.opnormbound(::Type{L1}, A::SparseMatrixCSC)
     # partly taken from JuliaLang's Sparsearray/src/linalg.jl
     m, n = size(A)
     Tnorm = typeof(abs_or_mag(float(real(zero(eltype(A))))))
-    Tsum = promote_type(Float64,Tnorm)
+    Tsum = promote_type(Float64, Tnorm)
     nA::Tsum = 0
     @inbounds begin
-        for j=1:n
+        for j = 1:n
             colSum::Tsum = 0
             for i = getcolptr(A)[j]:getcolptr(A)[j+1]-1
                 colSum = colSum ⊕₊ abs_or_mag(nonzeros(A)[i])
@@ -111,10 +112,10 @@ function BasisDefinition.opnormbound(::Type{Linf}, A::SparseMatrixCSC)
     # partly taken from JuliaLang's Sparsearray/src/linalg.jl
     m, n = size(A)
     Tnorm = typeof(abs_or_mag(float(real(zero(eltype(A))))))
-    Tsum = promote_type(Float64,Tnorm)
-    rowSum = zeros(Tsum,m)
+    Tsum = promote_type(Float64, Tnorm)
+    rowSum = zeros(Tsum, m)
     @inbounds begin
-        for i=1:length(nonzeros(A))
+        for i = 1:length(nonzeros(A))
             rowSum[rowvals(A)[i]] = rowSum[rowvals(A)[i]] ⊕₊ abs_or_mag(nonzeros(A)[i])
         end
     end
@@ -124,7 +125,8 @@ end
 """
 Rigorous upper bound on a vector norm. Note that Linf, L1 are the "analyst's" norms
 """
-BasisDefinition.normbound(N::Type{L1}, v::AbstractVector) = opnormbound(L1, v) ⊘₊ Float64(length(v), RoundDown)
+BasisDefinition.normbound(N::Type{L1}, v::AbstractVector) =
+    opnormbound(L1, v) ⊘₊ Float64(length(v), RoundDown)
 BasisDefinition.normbound(N::Type{Linf}, v::AbstractVector) = opnormbound(Linf, v)
 
 """
@@ -199,8 +201,8 @@ function dfly(N1::Type{TotalVariation}, N2::Type{L1}, D::Dynamic)
             @error "Expansivity is insufficient to prove a DFLY. Try with an iterate."
         end
         endpts = endpoints(D)
-        min_width = minimum([endpts[i+1]-endpts[i] for i in 1:length(endpts)-1])
-        return lam.hi, dist.hi⊕₊(2/min_width).hi
+        min_width = minimum([endpts[i+1] - endpts[i] for i = 1:length(endpts)-1])
+        return lam.hi, dist.hi ⊕₊ (2 / min_width).hi
     end
 end
 
@@ -208,11 +210,11 @@ function dfly(N1::Type{TotalVariation}, N2::Type{L1}, D::PwMap)
     if D.infinite_derivative
         return dfly_inf_der(N1, N2, D, 10^-3)
     end
-    
+
     dist = max_distortion(D)
     lam = max_inverse_derivative(D)
     vec = endpoints(D)
-    disc = maximum(2/abs(vec[i]-vec[i+1]) for i in 1:nbranches(D))
+    disc = maximum(2 / abs(vec[i] - vec[i+1]) for i = 1:nbranches(D))
 
     if is_full_branch(D)
         if !(abs(lam) < 1) # these are intervals, so this is *not* equal to abs(lam) >= 1.
@@ -220,10 +222,10 @@ function dfly(N1::Type{TotalVariation}, N2::Type{L1}, D::PwMap)
         end
         return lam.hi, dist.hi
     else
-        if !(abs(2*lam) < 1)
+        if !(abs(2 * lam) < 1)
             @error "Expansivity is insufficient to prove a DFLY. Try with an iterate."
         end
-        return (2*lam).hi, (dist + disc).hi
+        return (2 * lam).hi, (dist + disc).hi
     end
 end
 
@@ -236,5 +238,5 @@ function dfly(::Type{Lipschitz}, ::Type{L1}, D::Dynamic)
     lam = max_inverse_derivative(D)
     #@info lam
 
-    return ((lam*(2*dist+1)).hi, (dist*(dist+1)).hi)
+    return ((lam * (2 * dist + 1)).hi, (dist * (dist + 1)).hi)
 end

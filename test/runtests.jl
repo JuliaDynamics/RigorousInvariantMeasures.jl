@@ -1,11 +1,17 @@
 using RigorousInvariantMeasures
 using Test, Documenter
 
-DocMeta.setdocmeta!(RigorousInvariantMeasures, :DocTestSetup, :(using RigorousInvariantMeasures); recursive=true, warn=false)
+DocMeta.setdocmeta!(
+    RigorousInvariantMeasures,
+    :DocTestSetup,
+    :(using RigorousInvariantMeasures);
+    recursive = true,
+    warn = false,
+)
 
 @testset "RigorousInvariantMeasures.jl" begin
 
-    
+
     include("TestDifferentiation.jl")
     include("TestBasisDefinition.jl")
     include("TestContractors.jl")
@@ -27,7 +33,7 @@ DocMeta.setdocmeta!(RigorousInvariantMeasures, :DocTestSetup, :(using RigorousIn
     include("TestHigherDFLY.jl")
     include("TestTrig.jl")
 
-    @testset "Doctests" begin 
+    @testset "Doctests" begin
         if Base.VERSION >= v"1.8"
             # It seems that some output formats have changed from 1.7 to 1.8
             # therefore we use this hack to avoid failing doctests
@@ -37,5 +43,3 @@ DocMeta.setdocmeta!(RigorousInvariantMeasures, :DocTestSetup, :(using RigorousIn
     end
 
 end
-
-

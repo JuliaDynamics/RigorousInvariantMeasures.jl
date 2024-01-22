@@ -25,7 +25,8 @@ using .BasisDefinition
 export opnormbound, weak_norm, strong_norm, aux_norm, integral_covector
 
 include("GenericAssembler.jl")
-export DiscretizedOperator, IntegralPreservingDiscretizedOperator, NonIntegralPreservingDiscretizedOperator
+export DiscretizedOperator,
+    IntegralPreservingDiscretizedOperator, NonIntegralPreservingDiscretizedOperator
 
 include("GenericEstimate.jl")
 export invariant_vector, finepowernormbounds, powernormbounds, distance_from_invariant
@@ -58,10 +59,20 @@ include("precompile.jl")
 
 export NormKind, L1, Linf, Lipschitz, TotalVariation
 
-export PwMap, Basis, assemble, preim, Hat, Ulam,
-	EquispacedPartition, norms_of_powers, sinpi, cospi, dfly,
-	distance_from_invariant,
-	mod1_dynamic, is_refinement
+export PwMap,
+    Basis,
+    assemble,
+    preim,
+    Hat,
+    Ulam,
+    EquispacedPartition,
+    norms_of_powers,
+    sinpi,
+    cospi,
+    dfly,
+    distance_from_invariant,
+    mod1_dynamic,
+    is_refinement
 
 import IntervalArithmetic: Interval, @interval, @biginterval, midpoint_radius
 using IntervalArithmetic
@@ -87,7 +98,11 @@ export ApproxInducedLSV
 include("NoiseKernel.jl")
 export UniformNoiseUlam
 include("NormsOfPowersNoise.jl")
-export powernormboundsnoise, finepowernormboundsnoise, abstractpowernormboundsnoise, invariant_vector_noise, distance_from_invariant_noise
+export powernormboundsnoise,
+    finepowernormboundsnoise,
+    abstractpowernormboundsnoise,
+    invariant_vector_noise,
+    distance_from_invariant_noise
 
 include("Observables.jl")
 export Observable, discretizationlogder, integrateobservable

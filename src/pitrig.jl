@@ -15,7 +15,7 @@ end
 
 sinpi(a...) = Base.Math.sinpi(a...)
 
-function sinpi(a::Interval{T}) where T
+function sinpi(a::Interval{T}) where {T}
     isempty(a) && return a
 
     whole_range = Interval{T}(-1, 1)
@@ -41,17 +41,17 @@ function sinpi(a::Interval{T}) where T
         hi = @round(sinpi(a.hi), sinpi(a.hi)) # Interval(sin(a.hi, RoundDown), sin(a.hi, RoundUp))
         return hull(lo, hi)
 
-    elseif lo_quadrant==3 && hi_quadrant==0
+    elseif lo_quadrant == 3 && hi_quadrant == 0
         return @round(sinpi(a.lo), sinpi(a.hi)) # Interval(sin(a.lo, RoundDown), sin(a.hi, RoundUp))
 
-    elseif lo_quadrant==1 && hi_quadrant==2
+    elseif lo_quadrant == 1 && hi_quadrant == 2
         return @round(sinpi(a.hi), sinpi(a.lo)) # Interval(sin(a.hi, RoundDown), sin(a.lo, RoundUp))
 
-    elseif ( lo_quadrant == 0 || lo_quadrant==3 ) && ( hi_quadrant==1 || hi_quadrant==2 )
+    elseif (lo_quadrant == 0 || lo_quadrant == 3) && (hi_quadrant == 1 || hi_quadrant == 2)
         return @round(min(sinpi(a.lo), sinpi(a.hi)), 1)
         # Interval(min(sin(a.lo, RoundDown), sin(a.hi, RoundDown)), one(T))
 
-    elseif ( lo_quadrant == 1 || lo_quadrant==2 ) && ( hi_quadrant==3 || hi_quadrant==0 )
+    elseif (lo_quadrant == 1 || lo_quadrant == 2) && (hi_quadrant == 3 || hi_quadrant == 0)
         return @round(-1, max(sinpi(a.lo), sinpi(a.hi)))
         # Interval(-one(T), max(sin(a.lo, RoundUp), sin(a.hi, RoundUp)))
 
@@ -62,7 +62,7 @@ end
 
 cospi(a...) = Base.Math.cospi(a...)
 
-function cospi(a::Interval{T}) where T
+function cospi(a::Interval{T}) where {T}
     isempty(a) && return a
 
     whole_range = Interval(-one(T), one(T))
@@ -86,16 +86,16 @@ function cospi(a::Interval{T}) where T
         hi = @round(cospi(a.hi), cospi(a.hi))
         return hull(lo, hi)
 
-    elseif lo_quadrant == 2 && hi_quadrant==3
+    elseif lo_quadrant == 2 && hi_quadrant == 3
         return @round(cospi(a.lo), cospi(a.hi))
 
-    elseif lo_quadrant == 0 && hi_quadrant==1
+    elseif lo_quadrant == 0 && hi_quadrant == 1
         return @round(cospi(a.hi), cospi(a.lo))
 
-    elseif ( lo_quadrant == 2 || lo_quadrant==3 ) && ( hi_quadrant==0 || hi_quadrant==1 )
+    elseif (lo_quadrant == 2 || lo_quadrant == 3) && (hi_quadrant == 0 || hi_quadrant == 1)
         return @round(min(cospi(a.lo), cospi(a.hi)), 1)
 
-    elseif ( lo_quadrant == 0 || lo_quadrant==1 ) && ( hi_quadrant==2 || hi_quadrant==3 )
+    elseif (lo_quadrant == 0 || lo_quadrant == 1) && (hi_quadrant == 2 || hi_quadrant == 3)
         return @round(-1, max(cospi(a.lo), cospi(a.hi)))
 
     else#if ( lo_quadrant == 3 && hi_quadrant==2 ) || ( lo_quadrant == 1 && hi_quadrant==0 )
@@ -107,5 +107,5 @@ end
 
 using TaylorSeries: Taylor1
 
-sinpi(x::Taylor1) = sin(x*π)
-cospi(x::Taylor1) = cos(x*π)
+sinpi(x::Taylor1) = sin(x * π)
+cospi(x::Taylor1) = cos(x * π)

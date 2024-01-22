@@ -3,7 +3,13 @@
 
 precompile(DiscretizedOperator, (Ulam, PwMap))
 precompile(DiscretizedOperator, (Hat, PwMap))
-precompile(powernormbounds, (Ulam, PwMap, Int64, Int64, IntegralPreservingDiscretizedOperator))
-precompile(powernormbounds, (Hat, PwMap, Int64, Int64, NonIntegralPreservingDiscretizedOperator))
+precompile(
+    powernormbounds,
+    (Ulam, PwMap, Int64, Int64, IntegralPreservingDiscretizedOperator),
+)
+precompile(
+    powernormbounds,
+    (Hat, PwMap, Int64, Int64, NonIntegralPreservingDiscretizedOperator),
+)
 precompile(invariant_vector, (Ulam, IntegralPreservingDiscretizedOperator))
 precompile(invariant_vector, (Hat, NonIntegralPreservingDiscretizedOperator))
