@@ -90,4 +90,3 @@ function assemble_common(B::Fourier, D; ϵ = 0.0, max_iter = 100, T = Float64)
     end
     return M
 end
-

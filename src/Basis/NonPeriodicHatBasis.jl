@@ -153,19 +153,15 @@ end
 Base.length(S::AverageZero{HatNP{T}}) where {T} = length(S.basis) - 1
 
 weak_projection_error(B::HatNP) = 0.5 ⊘₊ Float64(length(B), RoundDown)
-aux_normalized_projection_error(B::HatNP) =
-    0.5 ⊘₊ Float64(length(B), RoundDown)
+aux_normalized_projection_error(B::HatNP) = 0.5 ⊘₊ Float64(length(B), RoundDown)
 strong_weak_bound(B::HatNP) = 2.0 ⊗₊ Float64(length(B), RoundDown)
 aux_weak_bound(B::HatNP) = 1.0
 weak_by_strong_and_aux_bound(B::HatNP) = (1.0, 1.0)
 bound_weak_norm_from_linalg_norm(B::HatNP) = @error "TODO"
 bound_linalg_norm_L1_from_weak(B::HatNP) = @error "TODO"
 bound_linalg_norm_L∞_from_weak(B::HatNP) = @error "TODO"
-opnormbound(
-    B::HatNP{T},
-    N::Type{Linf},
-    A::AbstractVecOrMat{S},
-) where {S,T} = opnormbound(N, A)
+opnormbound(B::HatNP{T}, N::Type{Linf}, A::AbstractVecOrMat{S}) where {S,T} =
+    opnormbound(N, A)
 normbound(B::HatNP{T}, N::Type{Linf}, v) where {T} = normbound(N, v)
 
 function invariant_measure_strong_norm_bound(B::HatNP, D::Dynamic)

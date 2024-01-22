@@ -39,11 +39,8 @@ LinearAlgebra.issymmetric(Q::NonIntegralPreservingDiscretizedOperator) =
 
 # name clash 
 # be careful !!!
-opnormbound(
-    B::Basis,
-    N::Type{<:NormKind},
-    Q::IntegralPreservingDiscretizedOperator,
-) = opnormbound(B, N, Q.L)
+opnormbound(B::Basis, N::Type{<:NormKind}, Q::IntegralPreservingDiscretizedOperator) =
+    opnormbound(B, N, Q.L)
 
 function opnormbound(
     B::Basis,

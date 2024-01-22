@@ -73,8 +73,7 @@ using RigorousInvariantMeasures: is_full_branch, is_increasing
 
     @test is_full_branch(D0) == true
     @test is_full_branch(D) == true
-    @test RigorousInvariantMeasures.domain(D) ==
-          (Interval(0), Interval(1))
+    @test RigorousInvariantMeasures.domain(D) == (Interval(0), Interval(1))
 
     A, B, C = RigorousInvariantMeasures.preimages_and_derivatives(
         [0.0, 0.1],

@@ -156,8 +156,7 @@ function Base.iterate(S::ProjectDualElement{BT,DT}, state = S.j_min) where {BT<:
 end
 Base.eltype(f::ProjectDualElement{<:Ulam,DT}) where {DT} = Tuple{Int64,Interval{Float64}}
 
-evaluate(B::Ulam{T}, i, x) where {T} =
-    (x > (i - 1) / n) && (x < i / n) ? 1 : 0
+evaluate(B::Ulam{T}, i, x) where {T} = (x > (i - 1) / n) && (x < i / n) ? 1 : 0
 
 evaluate_integral(B::Ulam{S}, i, T::Type) where {S} = T(i) / length(B)
 
@@ -213,14 +212,9 @@ weak_by_strong_and_aux_bound(B::Ulam) = (0.0, 1.0)
 bound_weak_norm_from_linalg_norm(B::Ulam) = (1.0, 0.0)
 bound_linalg_norm_L1_from_weak(B::Ulam) = 1.0
 bound_linalg_norm_L∞_from_weak(B::Ulam) = Float64(length(B), RoundUp)
-bound_weak_norm_abstract(
-    B::Ulam,
-    D = nothing;
-    dfly_coefficients = nothing,
-) = 1.0
+bound_weak_norm_abstract(B::Ulam, D = nothing; dfly_coefficients = nothing) = 1.0
 
-opnormbound(B::Ulam{T}, N::Type{L1}, A::AbstractVecOrMat{S}) where {T,S} =
-    opnormbound(N, A)
+opnormbound(B::Ulam{T}, N::Type{L1}, A::AbstractVecOrMat{S}) where {T,S} = opnormbound(N, A)
 #opnormbound(B::Ulam{T}, N::Type{L1}, Q::IntegralPreservingDiscretizedOperator) where {T} = opnormbound(N, Q.L)
 normbound(B::Ulam{T}, N::Type{L1}, v) where {T} = normbound(N, v)
 

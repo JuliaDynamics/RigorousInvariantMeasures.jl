@@ -59,19 +59,11 @@ function distance_from_invariant(
     if ε₂ > 1e-8
         @error "w does not seem normalized correctly"
     end
-    us = invariant_measure_strong_norm_bound(
-        B,
-        D;
-        dfly_coefficients = dfly_coefficients,
-    )
+    us = invariant_measure_strong_norm_bound(B, D; dfly_coefficients = dfly_coefficients)
     Cs = infinite_sum_norms(norms)
     Kh = weak_projection_error(B)
     normw = normbound(B, weak_norm(B), w)
-    normL = bound_weak_norm_abstract(
-        B,
-        D;
-        dfly_coefficients = dfly_coefficients,
-    )
+    normL = bound_weak_norm_abstract(B, D; dfly_coefficients = dfly_coefficients)
 
     return Cs ⊗₊ (2.0 ⊗₊ Kh ⊗₊ (1.0 ⊕₊ normL) ⊗₊ us ⊕₊ ε₁ ⊘₊ (1.0 ⊖₋ ε₂)) ⊕₊
            ε₂ ⊘₊ (1.0 ⊖₋ ε₂) ⊗₊ normw

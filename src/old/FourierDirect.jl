@@ -174,8 +174,7 @@ function Base.getindex(B::Fourier, i::Int)
 end
 
 is_refinement(Bc::Fourier, Bf::Fourier) = length(Bc) < length(Bf)
-integral_covector(B::Fourier; T = Float64) =
-    [Interval{T}(1); zeros(length(B) - 1)]'
+integral_covector(B::Fourier; T = Float64) = [Interval{T}(1); zeros(length(B) - 1)]'
 one_vector(B::Fourier) = [1; zeros(length(B) - 1)]
 
 Base.length(S::AverageZero{T}) where {T<:Fourier} = length(S.basis) - 1
@@ -356,11 +355,7 @@ function opnormbound(B::Fourier, N::Type{C1}, v::Vector{S}) where {T,S}
     return normbound(B, N, v)
 end
 
-function opnormbound(
-    B::Fourier,
-    N::Type{C1},
-    w::LinearAlgebra.Adjoint,
-) where {T,S}
+function opnormbound(B::Fourier, N::Type{C1}, w::LinearAlgebra.Adjoint) where {T,S}
     return normbound(B, N, w')
 end
 

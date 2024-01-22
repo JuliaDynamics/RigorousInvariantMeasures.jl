@@ -263,11 +263,8 @@ using RecipesBase
 
 ChebOrHatNP = Union{Chebyshev,HatNP}
 
-RigorousInvariantMeasures.Dual(
-    B::HatNP,
-    D::ApproxInducedLSV,
-    ϵ = 0.0,
-) = HatNPDual(RigorousInvariantMeasures.Dual(B, D, ϵ; T = Float64)...)
+RigorousInvariantMeasures.Dual(B::HatNP, D::ApproxInducedLSV, ϵ = 0.0) =
+    HatNPDual(RigorousInvariantMeasures.Dual(B, D, ϵ; T = Float64)...)
 function RigorousInvariantMeasures.Dual(
     B::ChebOrHatNP,
     D::ApproxInducedLSV,

@@ -104,10 +104,8 @@ function Base.getindex(B::FourierAnalytic, i::Int)
 end
 
 
-is_refinement(Bc::FourierAnalytic, Bf::FourierAnalytic) =
-    length(Bc) < length(Bf)
-integral_covector(B::FourierAnalytic; T = Float64) =
-    [Interval{T}(1); zeros(length(B) - 1)]'
+is_refinement(Bc::FourierAnalytic, Bf::FourierAnalytic) = length(Bc) < length(Bf)
+integral_covector(B::FourierAnalytic; T = Float64) = [Interval{T}(1); zeros(length(B) - 1)]'
 one_vector(B::FourierAnalytic) = [1; zeros(length(B) - 1)]
 
 Base.length(S::AverageZero{T}) where {T<:FourierAnalytic} = length(S.basis) - 1

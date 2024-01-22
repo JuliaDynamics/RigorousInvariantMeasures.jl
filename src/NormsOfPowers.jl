@@ -241,8 +241,7 @@ function norms_of_powers_from_coarser_grid(
         norms_of_powers_dfly(fine_basis, D, mmax; dfly_coefficients = dfly_coefficients)
 
     # adds a 0th element to strongs
-    strongs0(k::Integer) =
-        k == 0 ? strong_weak_bound(fine_basis) : strongs[k]
+    strongs0(k::Integer) = k == 0 ? strong_weak_bound(fine_basis) : strongs[k]
     coarse_norms0(k::Integer) = k == 0 ? 1.0 : coarse_norms[k]
 
     Kh = weak_projection_error(coarse_basis)

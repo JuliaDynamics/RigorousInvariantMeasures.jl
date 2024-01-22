@@ -166,11 +166,7 @@ end
 is_integral_preserving(B::Chebyshev) = false
 
 
-function opnormbound(
-    B::Hat{T},
-    N::Type{C1},
-    A::AbstractVecOrMat{S},
-) where {S,T}
+function opnormbound(B::Hat{T}, N::Type{C1}, A::AbstractVecOrMat{S}) where {S,T}
     return 0.5
 end
 

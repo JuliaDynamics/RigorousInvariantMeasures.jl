@@ -176,4 +176,3 @@ function ShootingMethod(f, fprime, n, x, y, rigstep = 10)
     end
     return x
 end
-

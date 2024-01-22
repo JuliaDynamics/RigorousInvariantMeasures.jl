@@ -1,7 +1,8 @@
 
 ## the function branches is after the module
 
-using ..RigorousInvariantMeasures: derivative, distortion, inverse_derivative, unique_increasing
+using ..RigorousInvariantMeasures:
+    derivative, distortion, inverse_derivative, unique_increasing
 using TaylorSeries: Taylor1
 using IntervalArithmetic, IntervalOptimisation
 
@@ -57,8 +58,7 @@ function equal_up_to_order(X, Y)
     return false
 end
 
-is_full_branch(b::MonotonicBranch{T,S}, X) where {T,S} =
-    equal_up_to_order(b.Y, X)
+is_full_branch(b::MonotonicBranch{T,S}, X) where {T,S} = equal_up_to_order(b.Y, X)
 is_increasing(b::MonotonicBranch) = b.increasing
 
 import Base.reverse
@@ -142,8 +142,7 @@ end
 Base.getindex(D::PwMap, k::Int64) = D.branches[k]
 
 nbranches(D::PwMap) = length(D.branches)
-endpoints(D::PwMap) =
-    [[br.X[1] for br in branches(D)]; branches(D)[end].X[2]]
+endpoints(D::PwMap) = [[br.X[1] for br in branches(D)]; branches(D)[end].X[2]]
 branches(D::PwMap) = D.branches
 
 is_full_branch(D::PwMap) = D.full_branch
@@ -403,12 +402,7 @@ The strategy to compute it follows a variant of Lemma 9.1 in the GMNP paper:
 * we compute the dfly coefficients as in the lemma.
 * we repeat the computation replacing 2^3 with 2^4, 2^5, ... 2^15 and take the best estimate among these.
 """
-function dfly_inf_der(
-    ::Type{TotalVariation},
-    ::Type{L1},
-    D::PwMap,
-    tol = 1e-3,
-)
+function dfly_inf_der(::Type{TotalVariation}, ::Type{L1}, D::PwMap, tol = 1e-3)
     leftrightsingularity = Tuple{Bool,Bool}[]
     A = +∞
     B = +∞

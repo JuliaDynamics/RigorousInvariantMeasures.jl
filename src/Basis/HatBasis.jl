@@ -229,8 +229,7 @@ end
 Base.length(S::AverageZero{Hat{T}}) where {T} = length(S.basis) - 1
 
 weak_projection_error(B::Hat) = 0.5 ⊘₊ Float64(length(B), RoundDown)
-aux_normalized_projection_error(B::Hat) =
-    0.5 ⊘₊ Float64(length(B), RoundDown)
+aux_normalized_projection_error(B::Hat) = 0.5 ⊘₊ Float64(length(B), RoundDown)
 strong_weak_bound(B::Hat) = 2.0 ⊗₊ Float64(length(B), RoundDown)
 aux_weak_bound(B::Hat) = 1.0
 weak_by_strong_and_aux_bound(B::Hat) = (1.0, 1.0)
