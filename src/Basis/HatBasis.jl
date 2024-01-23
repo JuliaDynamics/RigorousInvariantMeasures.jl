@@ -256,7 +256,7 @@ function invariant_measure_strong_norm_bound(
     return B ⊘₊ (1.0 ⊖₋ A)
 end
 
-
+#COV_EXCL_START
 using RecipesBase
 
 """
@@ -297,6 +297,7 @@ Displays error on a function in the Hat basis
         end
     end
 end
+#COV_EXCL_STOP
 
 struct HatDual <: Dual
     x::Vector{Interval} #TODO: a more generic type may be needed in future

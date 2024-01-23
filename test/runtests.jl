@@ -11,6 +11,7 @@ DocMeta.setdocmeta!(
 
 @testset "RigorousInvariantMeasures.jl" begin
 
+
     include("TestDifferentiation.jl")
     include("TestBasisDefinition.jl")
     include("TestContractors.jl")
@@ -29,6 +30,7 @@ DocMeta.setdocmeta!(
     include("TestObservables.jl")
 
     include("TestBasis/TestBasisIndex.jl")
+    include("TestTrig.jl")
 
     #include("TestSkewProductMap.jl")
     #include("TestUlam2DSP.jl")

@@ -204,7 +204,24 @@ Must be rounded up correctly!
 aux_normalized_projection_error(B::Basis) = @error "Not Implemented"
 
 """
-	strong_weak_bound(B::Basis)
+	strong_weak_bound(Bstruct HatDual <: Dual
+    x::Vector{Interval} #TODO: a more generic type may be needed in future
+    xlabel::Vector{Int}
+    x′::Vector{Interval}
+end
+
+Dual(B::Hat, D; ϵ, max_iter) =
+    HatDual(preimages_and_derivatives(B.p, D, 1:length(B.p)-1; ϵ, max_iter)...)
+Base.length(dual::HatDual) = length(dual.x)
+Base.eltype(dual::HatDual) =
+    Tuple{eltype(dual.xlabel),Tuple{eltype(dual.x),eltype(dual.x′)}}
+function Base.iterate(dual::HatDual, state = 1)
+    if state <= length(dual.x)
+        return ((dual.xlabel[state], (dual.x[state], abs(dual.x′[state]))), state + 1)
+    else
+        return nothing
+    end
+end::Basis)
 Return a constant ``M₁n`` such that for a vector ``v ∈ Uₕ`` 
 ```||v||_s\\leq M1n*||v||```
 Must be rounded up correctly!

@@ -7,6 +7,14 @@ The package is under active development, with periodic releases.
 ```@contents
 ```
 
+## Index
+
+```@index
+Pages = ["basis.md", "api.md", "dynamic.md"]
+Modules = [RigorousInvariantMeasures]
+Order = [:type, :function]
+```
+
 ---
 
 ### Citing
@@ -24,7 +32,7 @@ measures SIAM J. Appl Dyn Sys.13 pp. 958-985 (2014)
 ### License
 
 RigorousInvariantMeasures is licensed under the MIT license; see
-[LICENSE](https://github.com/JuliaDynamics/RigorousInvariantMeasures.jl/blob/master/LICENSE.md) for the full license text.
+[LICENSE](https://github.com/JuliaDynamics/RigorousInvariantMeasures.jl/blob/main/LICENSE.md) for the full license text.
 
 ### Installation
 
