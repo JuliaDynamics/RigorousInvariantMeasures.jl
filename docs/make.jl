@@ -26,6 +26,7 @@ makedocs(;
         ],
         "Basis" => "basis.md",
         "Dynamic" => "dynamic.md",
+        "Assembler" => "assembler.md",
         "Norms Of Powers" => "normsofpowers.md",
         "Examples" => "examples.md",
         "API" => "api.md",

@@ -31,8 +31,7 @@ Pages = ["NonPeriodicHatBasis.jl"]
 # The C2 basis
 ```@autodocs
 Modules = [Base, 
-            RigorousInvariantMeasures,
-            RigorousInvariantMeasures.C2BasisDefinition]
+            RigorousInvariantMeasures]
 Pages = ["C2Basis.jl"]
 ```
 

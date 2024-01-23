@@ -1,5 +1,6 @@
 [deps]
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+RigorousInvariantMeasures = "6103b61f-200f-420b-b397-2cbeef157920"
 
 [compat]
 Documenter = "1"
