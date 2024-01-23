@@ -1,7 +1,7 @@
 name = "RigorousInvariantMeasures"
 uuid = "6103b61f-200f-420b-b397-2cbeef157920"
 authors = ["Isaia Nisoli <nisoli@im.ufrj.br>, Federico Poloni <federico.poloni@unipi.it> and contributors"]
-version = "0.2.1"
+version = "0.2.2"
 
 [deps]
 AbstractFFTs = "621f4979-c628-5d54-868e-fcf4e3e8185c"
