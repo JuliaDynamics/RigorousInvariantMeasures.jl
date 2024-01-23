@@ -1,10 +1,5 @@
-module InducedLSVMapDefinition
-
-using ..DynamicDefinition, ..Contractors
 import ..Hat
 import ..HatNP
-import ..BasisDefinition: DualComposedWithDynamic
-import ..C2BasisDefinition: C2Basis, dual_val, dual_der
 
 export ApproxInducedLSV, preim, nbranches, plottable
 using IntervalArithmetic
@@ -101,9 +96,9 @@ domains(D::ApproxInducedLSV) = CoordinateChange.(D.domains)
 
 
 
-DynamicDefinition.nbranches(S::ApproxInducedLSV) = S.nbranches
+nbranches(S::ApproxInducedLSV) = S.nbranches
 
-DynamicDefinition.is_full_branch(S::ApproxInducedLSV) = true
+is_full_branch(S::ApproxInducedLSV) = true
 
 function _T(x, domains, TnList)
     @assert 0 ≤ x ≤ 1
@@ -116,9 +111,9 @@ function _T(x, domains, TnList)
     return 0
 end
 
-DynamicDefinition.plottable(D::ApproxInducedLSV, x) = _T(x, D.domains, D.TnListPlottable)
+plottable(D::ApproxInducedLSV, x) = _T(x, D.domains, D.TnListPlottable)
 
-function DynamicDefinition.preim(D::ApproxInducedLSV, k, y, ϵ)
+function preim(D::ApproxInducedLSV, k, y, ϵ)
     @assert 1 <= k <= D.nbranches
     _y = InvCoordinateChange(y)
     if k == 1
@@ -266,18 +261,13 @@ end
 using RecipesBase
 @recipe f(::Type{ApproxInducedLSV}, D::ApproxInducedLSV) = x -> plottable(D, x)
 
-end
-
 ChebOrHatNP = Union{Chebyshev,HatNP}
 
-RigorousInvariantMeasures.Dual(
-    B::HatNP,
-    D::InducedLSVMapDefinition.ApproxInducedLSV,
-    ϵ = 0.0,
-) = HatNPDual(RigorousInvariantMeasures.Dual(B, D, ϵ; T = Float64)...)
+RigorousInvariantMeasures.Dual(B::HatNP, D::ApproxInducedLSV, ϵ = 0.0) =
+    HatNPDual(RigorousInvariantMeasures.Dual(B, D, ϵ; T = Float64)...)
 function RigorousInvariantMeasures.Dual(
     B::ChebOrHatNP,
-    D::InducedLSVMapDefinition.ApproxInducedLSV,
+    D::ApproxInducedLSV,
     ϵ = 0.0;
     T = Float64,
 )
@@ -287,7 +277,7 @@ function RigorousInvariantMeasures.Dual(
     for k = 1:D.nbranches
         @info "$k-th branch"
         for i = 1:length(B.p)
-            x_i, x_i_prime = InducedLSVMapDefinition.preimwithder(D, k, B.p[i], ϵ)
+            x_i, x_i_prime = preimwithder(D, k, B.p[i], ϵ)
             append!(labels, i)
             append!(x, x_i)
             append!(x′, x_i_prime)
@@ -304,20 +294,20 @@ using TaylorSeries: Taylor1
 function dfly(
     ::Type{TotalVariation},
     ::Type{L1},
-    D::RigorousInvariantMeasures.InducedLSVMapDefinition.ApproxInducedLSV,
+    D::RigorousInvariantMeasures.ApproxInducedLSV,
 )
     dist = @interval(0.0)
     lam = @interval(0.0)
     for i = 1:D.nbranches
         if i == 1
-            right = InducedLSVMapDefinition.ShootingLSV(D.nbranches - 1, 0.5, D.α)[1]
+            right = ShootingLSV(D.nbranches - 1, 0.5, D.α)[1]
             lam = max(lam, 2 * (right - 0.5).hi)
             dist = max(dist, 0)
         elseif i == D.nbranches
             lam = max(lam, 0.5)
             dist = max(dist, 0)
         else
-            f(x) = InducedLSVMapDefinition.iterate_LSV(x, D.nbranches - i + 1, D.α)
+            f(x) = iterate_LSV(x, D.nbranches - i + 1, D.α)
             fprime(x) = f(Taylor1([x, 1], 1))[1]
             fsecond(x) = f(Taylor1([x, 1], 2))[2] / 2
             distortion(x) = abs(fsecond(x) / (fprime(x)^2))
@@ -337,9 +327,9 @@ function derivatives_D(α, k, l; T = Float64)
     right = Interval(1.0)
     for i = 1:k
         @info i
-        left = InducedLSVMapDefinition.ShootingLSV(i, 0.5, α; T = T)[1]
+        left = ShootingLSV(i, 0.5, α; T = T)[1]
         dom = hull(left, right)
-        f(x) = InducedLSVMapDefinition.iterate_LSV(x, i, α)
+        f(x) = iterate_LSV(x, i, α)
         g(x) = 1 / (TaylorSeries.derivative(f(Taylor1([x, 1], l))))
 
         dom = Interval(left.lo, right.hi)
@@ -362,9 +352,9 @@ end
 #	right = Interval(1.0)
 #	for i in 1:k
 #		@info i
-#		left = InducedLSVMapDefinition.ShootingLSV(i, 0.5, α; T = T)[1]
+#		left = ShootingLSV(i, 0.5, α; T = T)[1]
 #		dom = hull(left, right)
-#		f(α, x) = InducedLSVMapDefinition.iterate_LSV(x, i, α)
+#		f(α, x) = iterate_LSV(x, i, α)
 #		f_prime_α(x) = f(DualNumbers.Dual(α, 1), x).epsilon
 #		f_prime_x(x) = f(α, DualNumbers.Dual(x, 1)).epsilon
 #		h(x) = -f_prime_α(x)/f_prime_x(x)

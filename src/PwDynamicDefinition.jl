@@ -1,12 +1,8 @@
 
 ## the function branches is after the module
 
-
-module PwDynamicDefinition
-
-using ..DynamicDefinition
-using ..Contractors
-using ..RigorousInvariantMeasures: derivative, distortion, inverse_derivative
+using ..RigorousInvariantMeasures:
+    derivative, distortion, inverse_derivative, unique_increasing
 using TaylorSeries: Taylor1
 using IntervalArithmetic, IntervalOptimisation
 
@@ -20,8 +16,9 @@ export PwMap,
     dfly_inf_der,
     composedPwMap,
     equal_up_to_order,
-    distortion,
-    inverse_derivative
+    has_infinite_derivative_at_endpoints,
+    intersect_domain,
+    intersect_domain_bool
 
 """
 Type used to represent a "branch" of a dynamic. The branch is represented by a map `f` with domain `X=(a,b)`. X[1] and X[2] are interval enclosures of a,b.
@@ -43,7 +40,7 @@ end
 MonotonicBranch(
     f::Function,
     X,
-    Y = (f(Interval(X[1])), f(Interval(X[2]))),
+    Y = (f(X[1]), f(X[2])),
     increasing = unique_increasing(Y[1], Y[2]),
 ) = MonotonicBranch{typeof(f),typeof(interval(X[1]))}(f, X, Y, increasing)
 
@@ -61,8 +58,8 @@ function equal_up_to_order(X, Y)
     return false
 end
 
-DynamicDefinition.is_full_branch(b::MonotonicBranch{T,S}, X) where {T,S} =
-    equal_up_to_order(b.Y, X)
+is_full_branch(b::MonotonicBranch{T,S}, X) where {T,S} = equal_up_to_order(b.Y, X)
+is_increasing(b::MonotonicBranch) = b.increasing
 
 import Base.reverse
 """
@@ -70,8 +67,12 @@ import Base.reverse
 
 "Reverses" the x-axis of a branch: given f:[a,b] -> R, creates a branch with the function g:[-b,-a] -> R defined as g(x) = f(-x)
 """
-Base.reverse(br::MonotonicBranch) =
-    MonotonicBranch(x -> br.f(-x), (-br.X[2], -br.X[1]), (br.Y[2], br.Y[1]), !br.increasing)
+Base.reverse(br::MonotonicBranch) = MonotonicBranch(
+    x -> br.f(-x),
+    (-br.X[2], -br.X[1]),
+    (br.Y[2], br.Y[1]),
+    !is_increasing(br),
+)
 
 """
 Dynamic based on a piecewise monotonic map.
@@ -87,13 +88,8 @@ the array `branches` is guaranteed to satisfy branches[i].X[end]==branches[i+1].
 struct PwMap <: Dynamic
     branches::Array{MonotonicBranch,1}
     full_branch::Bool
-    infinite_derivative::Bool
-    function PwMap(
-        branches::Array{MonotonicBranch,1};
-        full_branch = false,
-        infinite_derivative = false,
-    )
-        new(branches, full_branch, infinite_derivative)
+    function PwMap(branches::Array{<:MonotonicBranch,1}; full_branch = false)
+        new(branches, full_branch)
     end
 end
 
@@ -105,44 +101,56 @@ function PwMap(
         [Ts[k](Interval(endpoints[k+1])) for k = 1:length(Ts)],
     );
     full_branch = false,
-    infinite_derivative = false,
 )
     branches = MonotonicBranch[]
     for k = 1:length(endpoints)-1
         y_endpoints = (y_endpoints_in[k, 1], y_endpoints_in[k, 2])
-        increasing = unique_increasing(y_endpoints_in[k, 1], y_endpoints_in[k, 2])
-        push!(
-            branches,
-            MonotonicBranch(Ts[k], (endpoints[k], endpoints[k+1]), y_endpoints, increasing),
-        )
+        push!(branches, MonotonicBranch(Ts[k], (endpoints[k], endpoints[k+1]), y_endpoints))
     end
     X = (endpoints[begin], endpoints[end])
     full_branch_detected = full_branch || all(is_full_branch(b, X) for b in branches)
-    return PwMap(
-        branches;
-        full_branch = full_branch_detected,
-        infinite_derivative = infinite_derivative,
-    )
+    return PwMap(branches; full_branch = full_branch_detected)
+end
+
+function intersect_domain(D::PwMap, x)
+    return [(Interval(x) ∩ hull(br.X[1], br.X[2])) for br in D.branches]
+end
+
+function intersect_domain_bool(D::PwMap, x)
+    return [y != ∅ for y in intersect_domain(D, x)]
 end
 
 Base.show(io::IO, D::PwMap) =
     print(io, "Piecewise-defined dynamic with $(nbranches(D)) branches")
 
-DynamicDefinition.domain(D::PwMap) = (D.branches[1].X[1], D.branches[end].X[2])
+domain(D::PwMap) = (D.branches[1].X[1], D.branches[end].X[2])
+#intersect_domain(T::PwMap, x) = [Interval(x) ∩ hull(br.X[1], br.X[2]) for br in T.branches]
+#intersect_domain_bool(T::PwMap, x) = [!(∅ == y) for y in intersect_domain(T, x)]
+
+
+function is_increasing(D::PwMap)
+    inc = is_increasing.(D.branches)
+    if all(inc)
+        return true
+    elseif all(.!inc)
+        return false
+    else
+        error("The given dynamic has branches with different orientations")
+    end
+end
 
 Base.getindex(D::PwMap, k::Int64) = D.branches[k]
 
-DynamicDefinition.nbranches(D::PwMap) = length(D.branches)
-DynamicDefinition.endpoints(D::PwMap) =
-    [[br.X[1] for br in branches(D)]; branches(D)[end].X[2]]
-DynamicDefinition.branches(D::PwMap) = D.branches
+nbranches(D::PwMap) = length(D.branches)
+endpoints(D::PwMap) = [[br.X[1] for br in branches(D)]; branches(D)[end].X[2]]
+branches(D::PwMap) = D.branches
 
-DynamicDefinition.is_full_branch(D::PwMap) = D.full_branch
+is_full_branch(D::PwMap) = D.full_branch
 
 """
 Deprecated, but still used in C2Basis
 """
-function DynamicDefinition.preim(D::PwMap, k, y, ϵ = 1e-15)
+function preim(D::PwMap, k, y, ϵ = 1e-15)
     return preimage(y, D.branches[k]; ϵ = ϵ, max_iter = 100)
 end
 
@@ -156,7 +164,7 @@ restrict(I, x::Taylor1) = Taylor1([I ∩ x[0]; x[1:end]], x.order)
 function that evaluates the k-th branch of a dynamic on a point x
 	(assuming it's in its domain, otherwise ∅)
 """
-function DynamicDefinition.branch(D::PwMap, k)
+function branch(D::PwMap, k)
     return x -> D[k].f(restrict(hull(D[k].X[1], D[k].X[2]), x))
 end
 
@@ -168,7 +176,6 @@ end
 
 
 # Rather than defining derivatives of a PwMap, we define Taylor1 expansions directly
-# and let the generic functions in DynamicDefinition to the work
 """
 Function call, and Taylor expansion, of a PwMap.
 Note that this ignores discontinuities; users are free to shoot themselves
@@ -195,7 +202,8 @@ Compute a rigorous bound for the inverse_derivative of a branch
 """
 function branch_inverse_derivative(br::MonotonicBranch, tol = 0.01)
     I = hull(br.X[1], br.X[2])
-    val, listofboxes = maximise(inverse_derivative(br.f), I, tol = tol)
+    h = x -> abs(inverse_derivative(br.f, x))
+    val, listofboxes = maximise(h, I, tol = tol)
     @debug val, listofboxes
     return val
 end
@@ -205,7 +213,7 @@ end
 
 Compute a rigorous bound for the inverse_derivative of a PwMap
 """
-function DynamicDefinition.max_inverse_derivative(D::PwDynamicDefinition.PwMap, tol = 1e-3)
+function max_inverse_derivative(D::PwMap, tol = 1e-3)
     #for br in branches(D)
     #    val = maximise(x -> abs(1/derivative(br.f, x)), hull(br.X[1], br.X[2]), tol=tol)[1]
     #        @info val
@@ -248,7 +256,7 @@ julia> max_distortion(D0)
 [0.444268, 0.444445]
 ```
 """
-function DynamicDefinition.max_distortion(D::PwDynamicDefinition.PwMap, tol = 1e-3)
+function max_distortion(D::PwMap, tol = 1e-3)
     # max_dist = Interval(0.0)
     # for br in branches(D)
     #     val = maximise(x -> abs(distortion(br.f, x)), hull(br.X[1], br.X[2]), tol=tol)[1]
@@ -258,7 +266,7 @@ function DynamicDefinition.max_distortion(D::PwDynamicDefinition.PwMap, tol = 1e
     return maximum([bound_branch_distortion(br; tol = tol) for br in D.branches])
 end
 
-function DynamicDefinition.plottable(D::PwMap, x)
+function plottable(D::PwMap, x)
     @assert 0 <= x <= 1
     for k = 1:nbranches(D)
         domain = hull(D[k].X[1], D[k].X[2])
@@ -267,12 +275,34 @@ function DynamicDefinition.plottable(D::PwMap, x)
         end
     end
 end
-DynamicDefinition.plottable(D::PwMap) = x -> DynamicDefinition.plottable(D, x)
+plottable(D::PwMap) = x -> plottable(D, x)
+
+"""
+    has_infinite_derivative_at_endpoints(b::MonotonicBranch)
+
+Returns a pair (left::Bool, right::Bool) that tells if a branch has infinite derivative at any of its endpoints
+
+    has_infinite_derivative_at_endpoints(D::PwMap)
+
+Returns a single bool to tell whether the dynamic has infinite derivative at any of its endpoint
+"""
+function has_infinite_derivative_at_endpoints(branch::MonotonicBranch)
+    # the Interval(0, 1e-15) summand is there because for some reason TaylorSeries fails on point intervals of singularity but not on larger intervals containing them:
+    # derivative(x->x^(6/10), 0..0) # fails
+    # derivative(x->x^(6/10), 0..1e-15) # succeeds
+
+    left = !isfinite(derivative(branch.f, branch.X[1] + Interval(0, 1e-15)))
+    right = !isfinite(derivative(branch.f, branch.X[2] - Interval(0, 1e-15)))
+    return (left, right)
+end
+
+function has_infinite_derivative_at_endpoints(D::PwMap)
+    return any(any(has_infinite_derivative_at_endpoints(b)) for b in D.branches)
+end
 
 using RecipesBase
 @recipe f(::Type{PM}, D::PM) where {PM<:PwMap} = x -> plottable(D, x)
 
-end #module
 
 """
     mod1_dynamic(f::Function, ε = 0.0; full_branch = false)
@@ -298,7 +328,7 @@ function mod1_dynamic(f::Function; ϵ = 0.0, max_iter = 100, full_branch = false
 
     try
         @assert minimise(
-            x -> derivative(f, x) * (br.increasing ? 1 : -1),
+            x -> derivative(f, x) * (is_increasing(br) ? 1 : -1),
             hull(Interval.(X)...),
         )[1] > 0
     catch exc
@@ -321,7 +351,7 @@ function mod1_dynamic(f::Function; ϵ = 0.0, max_iter = 100, full_branch = false
     Ts = [x -> f(x) - k for k in integer_parts]
 
     n = Base.length(x)
-    if br.increasing
+    if is_increasing(br)
         y_endpoints::Matrix{Interval{Float64}} = hcat(fill(0.0, n), fill(1.0, n))
     else
         y_endpoints = hcat(fill(1.0, n), fill(0.0, n))
@@ -341,120 +371,25 @@ function mod1_dynamic(f::Function; ϵ = 0.0, max_iter = 100, full_branch = false
 end
 
 """
-    Create explicitly D1 ∘ D2 as a PwMap (list of MonotonicBranches)
+    Create explicitly D1 ∘ D2 as a PwMap
 """
-function composedPwMap(D1::PwDynamicDefinition.PwMap, D2::PwDynamicDefinition.PwMap)
-    # TODO: this could be rewritten using preimages()
-    new_branches = MonotonicBranch[]
-    for br2 in branches(D2)
-        if br2.increasing
-            for br1 in branches(D1)
-                y_range = hull(br1.Y[1], br1.Y[2])
-                left = preimage(
-                    br1.X[1],
-                    br2,
-                    hull(br2.X[1], br2.X[2]);
-                    ϵ = 10^-13,
-                    max_iter = 100,
-                )
-                right = preimage(
-                    br1.X[2],
-                    br2,
-                    hull(br2.X[1], br2.X[2]);
-                    ϵ = 10^-13,
-                    max_iter = 100,
-                )
-                @debug left
-                @debug right
-                F = br1.f ∘ br2.f
-                F_increasing = br1.increasing
-                if left != ∅ && right != ∅
-                    y_endpoints = (F(left) ∩ y_range, F(right) ∩ y_range)
-                    push!(
-                        new_branches,
-                        MonotonicBranch(F, (left, right), y_endpoints, F_increasing),
-                    )
-                elseif left == ∅ && right != ∅
-                    left = br2.X[1]
-                    y_endpoints = (F(left) ∩ y_range, F(right) ∩ y_range)
-                    push!(
-                        new_branches,
-                        MonotonicBranch(F, (left, right), y_endpoints, F_increasing),
-                    )
-                elseif left != ∅ && right == ∅
-                    right = br2.X[2]
-                    y_endpoints = (F(left) ∩ y_range, F(right) ∩ y_range)
-                    push!(
-                        new_branches,
-                        MonotonicBranch(F, (left, right), y_endpoints, F_increasing),
-                    )
-                end
-            end
-        else # br2.increasing == false
-            for br1 in Iterators.reverse(branches(D1))
-                y_range = hull(br1.Y[1], br1.Y[2])
-                left = preimage(
-                    br1.X[2],
-                    br2,
-                    hull(br2.X[1], br2.X[2]);
-                    ϵ = 10^-13,
-                    max_iter = 100,
-                )
-                right = preimage(
-                    br1.X[1],
-                    br2,
-                    hull(br2.X[1], br2.X[2]);
-                    ϵ = 10^-13,
-                    max_iter = 100,
-                )
-                F = br1.f ∘ br2.f
-                F_increasing = !br1.increasing
-                if left != ∅ && right != ∅
-                    y_endpoints = (F(left) ∩ y_range, F(right) ∩ y_range)
-                    push!(
-                        new_branches,
-                        MonotonicBranch(F, (left, right), y_endpoints, F_increasing),
-                    )
-                elseif left == ∅ && right != ∅
-                    left = br2.X[1]
-                    y_endpoints = (F(left) ∩ y_range, F(right) ∩ y_range)
-                    push!(
-                        new_branches,
-                        MonotonicBranch(F, (left, right), y_endpoints, F_increasing),
-                    )
-                elseif left != ∅ && right == ∅
-                    right = br2.X[2]
-                    y_endpoints = (F(left) ∩ y_range, F(right) ∩ y_range)
-                    push!(
-                        new_branches,
-                        MonotonicBranch(F, (left, right), y_endpoints, F_increasing),
-                    )
-                end
-            end
-        end
-    end
-    # these are conservative in order to be generic, i.e., due to composition
-    # we could have a different behaviour, but the statement belows are conservatively true
-    full_branch = D1.full_branch && D2.full_branch
-    infinite_derivative = D1.infinite_derivative || D2.infinite_derivative
-    return PwMap(
-        new_branches;
-        full_branch = full_branch,
-        infinite_derivative = infinite_derivative,
-    )
-end
+function composedPwMap(D1::PwMap, D2::PwMap)
+    y_endpoints = endpoints(D1)
+    x, xlabel = preimages_and_branches(y_endpoints, D2; ϵ = 1e-13, max_iter = 100)
+    push!(x, D2.branches[end].X[2])
+    branches = [
+        MonotonicBranch(
+            D1.branches[brid1].f ∘ D2.branches[brid2].f,
+            (x[i], x[i+1]),
+            D1.branches[brid1].Y,
+        ) for (i, (brid1, brid2)) in enumerate(xlabel)
+    ]
 
-"""
-Returns a pair (left::Bool, right::Bool) that tells if a branch has infinite derivative at any of its endpoints
-"""
-function has_infinite_derivative_at_endpoints(branch)
-    # the Interval(0, 1e-15) summand is there because for some reason TaylorSeries fails on point intervals of singularity but not on larger intervals containing them:
-    # derivative(x->x^(6/10), 0..0) # fails
-    # derivative(x->x^(6/10), 0..1e-15) # succeeds
+    # full_branch is defined conservatively; it is possible that non-full-branch dynamics
+    # composed could yield a full-branch composed dynamic
+    full_branch = is_full_branch(D1) && is_full_branch(D2)
 
-    left = !isfinite(derivative(branch.f, branch.X[1] + Interval(0, 1e-15)))
-    right = !isfinite(derivative(branch.f, branch.X[2] - Interval(0, 1e-15)))
-    return (left, right)
+    return PwMap(branches; full_branch = full_branch)
 end
 
 using ProgressMeter
@@ -467,12 +402,7 @@ The strategy to compute it follows a variant of Lemma 9.1 in the GMNP paper:
 * we compute the dfly coefficients as in the lemma.
 * we repeat the computation replacing 2^3 with 2^4, 2^5, ... 2^15 and take the best estimate among these.
 """
-function dfly_inf_der(
-    ::Type{TotalVariation},
-    ::Type{L1},
-    D::PwDynamicDefinition.PwMap,
-    tol = 1e-3,
-)
+function dfly_inf_der(::Type{TotalVariation}, ::Type{L1}, D::PwMap, tol = 1e-3)
     leftrightsingularity = Tuple{Bool,Bool}[]
     A = +∞
     B = +∞
@@ -548,7 +478,7 @@ end
 #  @info "aux_der", aux_der
 
 #    for br in branches(D)
-#        if br.increasing
+#        if is_increasing(br)
 #            rr = preimage(aux_der, x -> 1/(2*derivative(br.f, x)), hull(br.X[1], br.X[2]), 10^-13)
 #            @info rr
 #        else

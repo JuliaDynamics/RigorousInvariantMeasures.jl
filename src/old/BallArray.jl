@@ -1,3 +1,4 @@
+# COV_EXCL_START
 """
 Implement some ball matrix arithmetic, i.e., verified matrix operations
 for (abstract) interval matrices stored in midpoint-radius format.
@@ -154,3 +155,4 @@ function matvec_roundup(A, v)
         end
     end
 end
+# COV_EXCL_STOP

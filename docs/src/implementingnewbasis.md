@@ -72,13 +72,11 @@ that correspond to our approximation scheme.
 struct StrongNormNewBasis <: NormKind end
 struct WeakNormNewBasis <: NormKind end
 ```
-They must be specialized to our new basis, by first importing `BasisDefinition` and then specializing them.
+They must be specialized to our new basis.
 
 ```julia
-import BasisDefinition
-
-BasisDefinition.strong_norm(B::NewBasis) = StrongNormNewBasis
-BasisDefinition.weak_projection_error(B::NewBasis)
+strong_norm(B::NewBasis) = StrongNormNewBasis
+weak_projection_error(B::NewBasis)
 ```
 
 The needed constants and functions are listed there.

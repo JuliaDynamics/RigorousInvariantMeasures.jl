@@ -1,6 +1,6 @@
 using Test
 using IntervalArithmetic
-using RigorousInvariantMeasures: is_full_branch
+using RigorousInvariantMeasures: is_full_branch, is_increasing
 
 @testset "Dynamics" begin
     using IntervalArithmetic
@@ -9,6 +9,15 @@ using RigorousInvariantMeasures: is_full_branch
 
     @test D.branches[1].f(0.1) == 0.2
     @test derivative(D.branches[1].f)(0.1) == 2.0
+
+    @test RigorousInvariantMeasures.intersect_domain(D, Interval(0.0)) == [Interval(0.0); ∅]
+    @test RigorousInvariantMeasures.intersect_domain(D, Interval(0.4, 0.6)) ==
+          [Interval(0.4, 0.5); Interval(0.5, 0.6)]
+
+    @test RigorousInvariantMeasures.intersect_domain_bool(D, Interval(0.0)) == [true; false]
+    @test RigorousInvariantMeasures.intersect_domain_bool(D, Interval(0.4, 0.6)) ==
+          [true; true]
+
 
     @test RigorousInvariantMeasures.dfly(
         RigorousInvariantMeasures.Lipschitz,
@@ -25,8 +34,8 @@ using RigorousInvariantMeasures: is_full_branch
 
     D = PwMap([x -> 2 * x, x -> 2 - 2 * x], [@interval(0), @interval(0.5), @interval(1)])
 
-    @test D.branches[1].increasing == true
-    @test D.branches[2].increasing == false
+    @test is_increasing(D.branches[1]) == true
+    @test is_increasing(D.branches[2]) == false
 
     D = mod1_dynamic(x -> 3.5x)
 
@@ -37,7 +46,7 @@ using RigorousInvariantMeasures: is_full_branch
     @test [D.branches[i].Y[1] for i = 1:4] == [0, 0, 0, 0]
     @test [D.branches[i].Y[2] for i = 1:4] == [1, 1, 1, 0.5]
 
-    @test [D.branches[i].increasing for i = 1:4] == [1, 1, 1, 1]
+    @test [is_increasing(D.branches[i]) for i = 1:4] == [1, 1, 1, 1]
 
     @test is_full_branch(D) == false
 
@@ -47,7 +56,7 @@ using RigorousInvariantMeasures: is_full_branch
     @test D.branches[end].f(1) == 1
     @test [D.branches[i].Y[1] for i = 1:4] == [0.5, 0, 0, 0]
     @test [D.branches[i].Y[2] for i = 1:4] == [1, 1, 1, 1]
-    @test [D.branches[i].increasing for i = 1:4] == [1, 1, 1, 1]
+    @test [is_increasing(D.branches[i]) for i = 1:4] == [1, 1, 1, 1]
 
     @test is_full_branch(D) == false
 
@@ -57,15 +66,14 @@ using RigorousInvariantMeasures: is_full_branch
     @test D.branches[end].f(5 / 7) == 1
     @test [D.branches[i].Y[1] for i = 1:4] == [0.5, 1, 1, 1]
     @test [D.branches[i].Y[2] for i = 1:4] == [0, 0, 0, 0]
-    @test [D.branches[i].increasing for i = 1:4] == [0, 0, 0, 0]
+    @test [is_increasing(D.branches[i]) for i = 1:4] == [0, 0, 0, 0]
 
     D0 = mod1_dynamic(x -> 2 * x)
     D = D0 ∘ D0
 
     @test is_full_branch(D0) == true
     @test is_full_branch(D) == true
-    @test RigorousInvariantMeasures.DynamicDefinition.domain(D) ==
-          (Interval(0), Interval(1))
+    @test RigorousInvariantMeasures.domain(D) == (Interval(0), Interval(1))
 
     A, B, C = RigorousInvariantMeasures.preimages_and_derivatives(
         [0.0, 0.1],
@@ -153,5 +161,27 @@ using RigorousInvariantMeasures: is_full_branch
     @test 0.5 ∈ max_inverse_derivative(D)
     @test 0 <= max_distortion(D)
 
+    # Testing composedPwMap
 
+    D1 = mod1_dynamic(x -> 2x)
+    D2 = mod1_dynamic(x -> 3x)
+
+    E = RigorousInvariantMeasures.composedPwMap(D1, D2)
+
+    @test all(endpoints(E) .≈ 0:1/6:1)
+    @test all(b.Y == (0, 1) for b in E.branches)
+    @test E.branches[4].f(0.5) == 0
+    @test E.branches[4].f(2 / 3) == 1
+
+    D3 = mod1_dynamic(x -> (1 - x)^2 + (1 - x))
+
+    E = RigorousInvariantMeasures.composedPwMap(D1, D3)
+    @test all([b.f(b.X[1]) ≈ 1.0 for b in E.branches])
+    @test all([isapprox(b.f(b.X[2]), 0.0, atol = 1e-8) for b in E.branches])
+
+    x = 0.3
+    @test E.branches[1].f(x) == 2 * ((1 - x)^2 + (1 - x) - 1) - 1
+    @test E.branches[2].f(x) == 2 * ((1 - x)^2 + (1 - x) - 1)
+    @test E.branches[3].f(x) == 2 * ((1 - x)^2 + (1 - x)) - 1
+    @test E.branches[4].f(x) == 2 * ((1 - x)^2 + (1 - x))
 end

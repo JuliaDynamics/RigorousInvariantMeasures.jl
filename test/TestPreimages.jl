@@ -1,5 +1,5 @@
 using Test
-using RigorousInvariantMeasures: preimages
+using RigorousInvariantMeasures: preimages, is_increasing
 using IntervalArithmetic
 
 @testset "preimages" begin
@@ -136,7 +136,7 @@ using IntervalArithmetic
                 intersect.(map(Interval, y), hull(b.Y[1], b.Y[2] + 1e-15)),
             ) # the 1e-15 is there to simulate "disjoint intervals"
             z2 = f.(x)
-            if !b.increasing
+            if !is_increasing(b)
                 z2 = reverse(z2)
             end
 
@@ -184,6 +184,8 @@ using IntervalArithmetic
     D1 = mod1_dynamic(f)
     D2 = mod1_dynamic(g)
 
+    @test RigorousInvariantMeasures.is_increasing(D1)
+
     y = 0:0.2:1
     x, xlabel = preimages(y, D1 ∘ D2; ϵ = 1e-13, max_iter = 100)
 
@@ -196,6 +198,8 @@ using IntervalArithmetic
         [0 1; 0 1; 0 1],
     )
     D2 = PwMap([x -> 2x, x -> 4x - 2, x -> 4x - 3], [0, 0.5, 0.75, 1], [0 1; 0 1; 0 1])
+
+    @test RigorousInvariantMeasures.is_increasing(D1)
 
     z = 0:0.3:1
     y, ylabel, y′ =
@@ -227,6 +231,39 @@ using IntervalArithmetic
 
     @test all(x .≈ vcat(y / 2, 0.5 .+ y / 4, 0.75 .+ y / 4))
     @test x′ == kron([4, 12, 6, 8, 24, 12, 8, 24, 12], [1, 1, 1, 1])
+
+    f = x -> x^2
+    g = x -> 1 - x^2
+    Dinc = PwMap([f], [0 .. 0, 1 .. 1])
+    Ddec = PwMap([g], [0 .. 0, 1 .. 1])
+
+    @test is_increasing(Dinc)
+    @test !is_increasing(Ddec)
+    @test is_increasing(Ddec ∘ Ddec)
+    @test !is_increasing(Dinc ∘ Ddec)
+    @test !is_increasing(Ddec ∘ Ddec ∘ Ddec)
+
+    z = [0 .. 0, 0.5 .. 0.5, 1 .. 1]
+    x, xlabel, x′ = RigorousInvariantMeasures.preimages_and_derivatives(
+        z,
+        Dinc ∘ Ddec;
+        ϵ = 0.0,
+        max_iter = 100,
+    )
+
+    @test all(isapprox(x, [0, sqrt(1 - 1 / sqrt(2))]))
+    @test all(xlabel .== [2, 1])
+    @test all(isapprox.(x′, [0, -2 * sqrt(2 - sqrt(2))]))
+
+    x, xlabel, x′ = RigorousInvariantMeasures.preimages_and_derivatives(
+        z,
+        Ddec ∘ Ddec;
+        ϵ = 0.0,
+        max_iter = 100,
+    )
+    @test all(isapprox(x, [0, sqrt(1 - 1 / sqrt(2))]))
+    @test all(xlabel .== [1, 2])
+    @test all(isapprox.(x′, [0, 2 * sqrt(2 - sqrt(2))]))
 
     D = PwMap(
         [
@@ -269,6 +306,7 @@ using IntervalArithmetic
     for i = 1:length(D.branches)
         @test has_infinite_derivative_at_endpoints(D.branches[i]) == (false, false)
     end
+    @test !has_infinite_derivative_at_endpoints(D)
 
     D0 = Lorenz()
     D = D0 ∘ D0 ∘ D0
@@ -278,5 +316,10 @@ using IntervalArithmetic
         @test has_infinite_derivative_at_endpoints(D.E.branches[i]) == (true, true)
     end
     @test has_infinite_derivative_at_endpoints(D.E.branches[end]) == (true, false)
+
+    @test has_infinite_derivative_at_endpoints(D.E)
+
+    D = BZ()
+    # @test has_infinite_derivative_at_endpoints(D)
 
 end #testset

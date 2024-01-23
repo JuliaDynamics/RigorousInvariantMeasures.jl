@@ -1,4 +1,3 @@
-module Contractors
 using IntervalArithmetic
 using RigorousInvariantMeasures: derivative, value_and_derivative
 
@@ -16,7 +15,7 @@ function unique_increasing(a::Interval, b::Interval)
     elseif b.hi < a.lo
         return false
     else
-        error("Insufficient precision to check the sign of this function")
+        error("Insufficient precision to check the monotonicity of this function")
     end
 end
 function unique_increasing(a, b) # Fallback for Float64
@@ -125,7 +124,7 @@ function preimage_monotonic(
         end
     end
     @warn "Maximum iterates reached:" max_iter, x, f(x), diam(x)
-    @warn "This should not happen normally, consider debugging Contractors.preimage_monotonic."
+    @warn "This should not happen normally, consider debugging preimage_monotonic."
     return x
 end
 
@@ -177,5 +176,3 @@ function ShootingMethod(f, fprime, n, x, y, rigstep = 10)
     end
     return x
 end
-
-end #module

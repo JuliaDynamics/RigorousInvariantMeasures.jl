@@ -179,10 +179,10 @@ strongs[k] bounds ||Q^k f||_s, norms[k] bounds ||Q^k f||)
 """
 function norms_of_powers_abstract_noise(Bas::Basis, N::NoiseKernel, m)
     A, B = dfly(strong_norm(Bas), aux_norm(Bas), N)
-    Eh = BasisDefinition.aux_normalized_projection_error(Bas)
-    M₁n = BasisDefinition.strong_weak_bound(Bas)
-    M₂ = BasisDefinition.aux_weak_bound(Bas)
-    S₁, S₂ = BasisDefinition.weak_by_strong_and_aux_bound(Bas)
+    Eh = aux_normalized_projection_error(Bas)
+    M₁n = strong_weak_bound(Bas)
+    M₂ = aux_weak_bound(Bas)
+    S₁, S₂ = weak_by_strong_and_aux_bound(Bas)
 
     norms = fill(NaN, m)
     strongs = fill(NaN, m)
@@ -211,7 +211,7 @@ function norms_of_powers_from_coarser_grid_noise(
     NK::NoiseKernel,
     coarse_norms::Vector,
 )
-    if !BasisDefinition.is_refinement(fine_basis, coarse_basis)
+    if !is_refinement(fine_basis, coarse_basis)
         @error "The fine basis is not a refinement of the coarse basis"
     end
     m = length(coarse_norms)
@@ -225,7 +225,7 @@ function norms_of_powers_from_coarser_grid_noise(
     trivial_norms0(k::Integer) = k == 0 ? 1.0 : trivial_norms[k]
     coarse_norms0(k::Integer) = k == 0 ? 1.0 : coarse_norms[k]
 
-    Kh = BasisDefinition.weak_projection_error(coarse_basis)
+    Kh = weak_projection_error(coarse_basis)
 
     fine_norms[1] = trivial_norms0(1)
 
@@ -257,7 +257,7 @@ function norms_of_powers_from_coarser_grid_noise_abstract(
     trivial_norms0(k::Integer) = k == 0 ? 1.0 : trivial_norms[k]
     coarse_norms0(k::Integer) = k == 0 ? 1.0 : coarse_norms[k]
 
-    Kh = BasisDefinition.weak_projection_error(coarse_basis)
+    Kh = weak_projection_error(coarse_basis)
 
     fine_norms = fill(NaN, m + 1)
     fine_norms[1] = trivial_norms0(1)
@@ -394,7 +394,7 @@ function distance_from_invariant_noise(
     end
     _, us = dfly(strong_norm(B), aux_norm(B), NK)
     Cs = infinite_sum_norms(norms)
-    Kh = BasisDefinition.weak_projection_error(B)
+    Kh = weak_projection_error(B)
     normw = normbound(B, weak_norm(B), w)
 
     return Cs ⊗₊ (2.0 ⊗₊ Kh ⊗₊ (1.0 ⊕₊ normQ) ⊗₊ us ⊕₊ ε₁ ⊘₊ (1.0 ⊖₋ ε₂)) ⊕₊

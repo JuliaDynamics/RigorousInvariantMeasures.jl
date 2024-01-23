@@ -179,10 +179,10 @@ function norms_of_powers_dfly(
     dfly_coefficients = dfly(strong_norm(Bas), aux_norm(Bas), D),
 )
     A, B = dfly_coefficients
-    Eh = BasisDefinition.aux_normalized_projection_error(Bas)
-    M₁n = BasisDefinition.strong_weak_bound(Bas)
-    M₂ = BasisDefinition.aux_weak_bound(Bas)
-    S₁, S₂ = BasisDefinition.weak_by_strong_and_aux_bound(Bas)
+    Eh = aux_normalized_projection_error(Bas)
+    M₁n = strong_weak_bound(Bas)
+    M₂ = aux_weak_bound(Bas)
+    S₁, S₂ = weak_by_strong_and_aux_bound(Bas)
 
     norms = fill(NaN, m)
     strongs = fill(NaN, m)
@@ -232,7 +232,7 @@ function norms_of_powers_from_coarser_grid(
     normQ::Real;
     dfly_coefficients = dfly(strong_norm(fine_basis), aux_norm(fine_basis), D),
 )
-    if !BasisDefinition.is_refinement(fine_basis, coarse_basis)
+    if !is_refinement(fine_basis, coarse_basis)
         @error "The fine basis is not a refinement of the coarse basis"
     end
     mmax = length(coarse_norms)
@@ -241,11 +241,10 @@ function norms_of_powers_from_coarser_grid(
         norms_of_powers_dfly(fine_basis, D, mmax; dfly_coefficients = dfly_coefficients)
 
     # adds a 0th element to strongs
-    strongs0(k::Integer) =
-        k == 0 ? BasisDefinition.strong_weak_bound(fine_basis) : strongs[k]
+    strongs0(k::Integer) = k == 0 ? strong_weak_bound(fine_basis) : strongs[k]
     coarse_norms0(k::Integer) = k == 0 ? 1.0 : coarse_norms[k]
 
-    Kh = BasisDefinition.weak_projection_error(coarse_basis)
+    Kh = weak_projection_error(coarse_basis)
     for m = 1:mmax
         temp = 0.0
         for k = 0:m-1

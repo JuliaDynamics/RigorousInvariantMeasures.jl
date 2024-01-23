@@ -4,8 +4,7 @@ These are some implemented methods for building dynamics
 
 ```@autodocs
 Modules = [Base, 
-        RigorousInvariantMeasures, 
-        RigorousInvariantMeasures.DynamicDefinition]
+        RigorousInvariantMeasures]
 Pages = ["DynamicDefinition.jl"]
 ```
 
@@ -13,8 +12,6 @@ Pages = ["DynamicDefinition.jl"]
 
 ```@autodocs
 Modules = [Base, 
-        RigorousInvariantMeasures, 
-        RigorousInvariantMeasures.DynamicDefinition,
-        RigorousInvariantMeasures.PwDynamicDefinition]
+        RigorousInvariantMeasures]
 Pages = ["PwDynamicDefinition.jl"]
 ```

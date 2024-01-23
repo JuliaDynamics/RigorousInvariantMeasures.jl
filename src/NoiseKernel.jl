@@ -8,7 +8,7 @@ function Base.:*(M::NoiseKernel, v)
     @error "Not implemented"
 end
 
-BasisDefinition.opnormbound(N::NormKind, M::NoiseKernel) = @error "Not Implemented"
+opnormbound(N::NormKind, M::NoiseKernel) = @error "Not Implemented"
 opradius(N::NormKind, M::NoiseKernel) = @error "Not Implemented"
 nonzero_per_row(M::NoiseKernel) = @error "Not Implemented"
 
@@ -94,7 +94,7 @@ function UniformNoiseUlam(ξ, B::Ulam, boundarycondition = :periodic)
 end
 
 #TODO, but at the moment this is fine, it is a Markov operator
-BasisDefinition.opnormbound(B::Ulam, ::Type{L1}, M::DiscretizedNoiseKernelUlam) = 1.0
+opnormbound(B::Ulam, ::Type{L1}, M::DiscretizedNoiseKernelUlam) = 1.0
 opradius(::Type{L1}, M::DiscretizedNoiseKernelUlam) = M.rad
 nonzero_per_row(M::DiscretizedNoiseKernelUlam) = length(M.v)
 dfly(::Type{TotalVariation}, ::Type{L1}, N::DiscretizedNoiseKernelUlam) =

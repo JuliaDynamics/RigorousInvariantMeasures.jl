@@ -23,8 +23,8 @@ function BZ()
     )
     BZC = Interval{Float64}(C_big)
 
-    T_left_leq_1_8(x) = (BZA - (Interval(1) / 8 - x)^(1 // 3)) * exp(-x) + BZB
-    T_left_geq_1_8(x) = (BZA + (x - Interval(1) / 8)^(1 // 3)) * exp(-x) + BZB
+    T_left_leq_1_8(x) = (BZA - (Interval(1.0) / 8 - x)^(Interval(1.0) / 3)) * exp(-x) + BZB
+    T_left_geq_1_8(x) = (BZA + (x - Interval(1.0) / 8)^(Interval(1.0) / 3)) * exp(-x) + BZB
     T_right(x) = BZC * (10x * exp(-Interval(10) / 3 * x))^(19) + BZB
 
     return PwMap(
@@ -44,6 +44,5 @@ Lorenz(θ = 109 / 64, α = 51 / 64) = PwMap(
     [
         θ*(Interval(0.5))^α Interval(0.0)
         Interval(1.0) 1-θ*(Interval(0.5))^α
-    ];
-    infinite_derivative = true,
+    ],
 )

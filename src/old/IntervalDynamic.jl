@@ -1,3 +1,4 @@
+# COV_EXCL_START
 struct IntervalDynamic <: Dynamic
     branches::Array{MonotonicBranch,1}
     full_branch::Bool
@@ -31,14 +32,13 @@ end
 
 branches(D::IntervalDynamic) = D.branches
 
-DynamicDefinition.nbranches(D::IntervalDynamic) = length(D.branches)
-DynamicDefinition.endpoints(D::IntervalDynamic) =
-    [[br.X[1] for br in branches(D)]; branches(D)[end].X[2]]
+nbranches(D::IntervalDynamic) = length(D.branches)
+endpoints(D::IntervalDynamic) = [[br.X[1] for br in branches(D)]; branches(D)[end].X[2]]
 
-DynamicDefinition.orientation(D::IntervalDynamic, k) = D.branches[k].increasing ? 1.0 : -1.0
+orientation(D::IntervalDynamic, k) = D.branches[k].increasing ? 1.0 : -1.0
 domain(D::IntervalDynamic) = (D.branches[1].X[1], D.branches[end].X[2])
 
-#DynamicDefinition.is_full_branch(D::IntervalDynamic) = all(r == [0.,1.] || r == [1.,0.] for r in eachrow(D.y_endpoints))  # TODO: this assumes domain == [0,1] unnecessarily
+#is_full_branch(D::IntervalDynamic) = all(r == [0.,1.] || r == [1.,0.] for r in eachrow(D.y_endpoints))  # TODO: this assumes domain == [0,1] unnecessarily
 
 """
 Intersect an Interval or TaylorSeries with I
@@ -50,12 +50,12 @@ restrict(I, x::Taylor1) = Taylor1([I ∩ x[0]; x[1:end]], x.order)
 function that evaluates the k-th branch of a dynamic on a point x
 	(assuming it's in its domain, otherwise ∅)
 """
-function DynamicDefinition.branch(D::IntervalDynamic, k)
+function branch(D::IntervalDynamic, k)
     return x -> D[k].f(restrict(hull(D[k].X[1], D[k].X[2]), x))
 end
 
 ### This needs to be better implemented...
-BasisDefinition.is_full_branch(D::IntervalDynamic) = D.full_branch
+is_full_branch(D::IntervalDynamic) = D.full_branch
 
 # Unused as of now
 # """
@@ -65,7 +65,6 @@ BasisDefinition.is_full_branch(D::IntervalDynamic) = D.full_branch
 
 
 # Rather than defining derivatives of an IntervalDynamic, we define Taylor1 expansions directly
-# and let the generic functions in DynamicDefinition to the work
 """
 Function call, and Taylor expansion, of a IntervalDynamic.
 Note that this ignores discontinuities; users are free to shoot themselves
@@ -85,7 +84,7 @@ function (D::IntervalDynamic)(x::Taylor1)
     return Taylor1(fx, x.order)
 end
 
-function DynamicDefinition.plottable(D::IntervalDynamic, x)
+function plottable(D::IntervalDynamic, x)
     @assert 0 <= x <= 1
     for k = 1:nbranches(D)
         domain = hull(D[k].X[1], D[k].X[2])
@@ -97,3 +96,4 @@ end
 
 using RecipesBase
 @recipe f(::Type{PM}, D::PM) where {PM<:IntervalDynamic} = x -> plottable(D, x)
+# COV_EXCL_STOP

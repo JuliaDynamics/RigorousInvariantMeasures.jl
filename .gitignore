@@ -4,3 +4,4 @@ docs/build/*
 .vscode/
 examples/*.jld
 *.png
+/regressions_*.txt

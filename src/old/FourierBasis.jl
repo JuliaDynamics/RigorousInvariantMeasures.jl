@@ -1,5 +1,5 @@
-using ..BasisDefinition, ..DynamicDefinition, ..Contractors, ..PwDynamicDefinition
-IntervalArithmetic, LinearAlgebra
+# COV_EXCL_START
+using IntervalArithmetic, LinearAlgebra
 import Base: iterate
 import ..BasisDefinition:
     one_vector, integral_covector, is_integral_preserving, strong_norm, weak_norm, aux_norm
@@ -34,8 +34,7 @@ evaluate(B::Fourier1D, i, x) = ϕ(i, x)
 strong_norm(B::Fourier1D) = L2
 weak_norm(B::Fourier1D) = L1
 aux_norm(B::Fourier1D) = L1
-BasisDefinition.is_refinement(Bfine::Fourier1D, Bcoarse::Fourier1D) =
-    Bfine.N > Bcoarse.N ? true : false
+is_refinement(Bfine::Fourier1D, Bcoarse::Fourier1D) = Bfine.N > Bcoarse.N ? true : false
 
 is_integral_preserving(B::Fourier1D) = false
 function integral_covector(B::Fourier1D; T = Float64)
@@ -189,6 +188,8 @@ returns the matrix of the (periodic) convolution operator with a Gaussian of ave
 and variance σ in the Fourier basis, truncated at frequence B.N 
 """
 
+using ..RigorousInvariantMeasures: NoiseKernel
+
 struct GaussianNoise <: NoiseKernel
     B::Basis
     σ::Any
@@ -198,9 +199,7 @@ end
 GaussianNoise(B::Fourier1D, σ) = GaussianNoise(
     B,
     σ,
-    Diagonal(
-        [[exp(-(k * σ)^2 / 2) for k = 0:B.N]; [exp(-(k * σ)^2 / 2) for k = -B.N:-1]],
-    ),
+    Diagonal([[exp(-(k * σ)^2 / 2) for k = 0:B.N]; [exp(-(k * σ)^2 / 2) for k = -B.N:-1]]),
 )
 
 
@@ -274,6 +273,8 @@ function rigorous_norm(M::Matrix{Interval}; k = 20)
     return norms, rescale * norms #check to make it rigorous
 end
 
+using ..RigorousInvariantMeasures: L2
+
 """
 This function bounds the L2 operator norm of M (complex floating point matrix)
 """
@@ -294,6 +295,10 @@ function opnormbound(
     rad_bound = opnormbound(B, N, Rad; n_it = n_it)
     return mid_bound ⊕₊ rad_bound
 end
+
+using ProgressMeter: @showprogress
+
+using ..RigorousInvariantMeasures: DiscretizedOperator
 
 function norms_of_powers_noise_interval(
     B::Fourier1D,
@@ -399,6 +404,8 @@ function norms_of_powers_trivial_noise(
     return norms
 end
 
+using ..RigorousInvariantMeasures: L1
+
 function norms_of_powers_trivial_noise(
     B::Fourier1D,
     ::Type{L1},
@@ -434,9 +441,9 @@ weak_by_strong_and_aux_bound(B::Fourier1D) = (0.0, 1.0)
 function norms_of_powers_abstract_noise(Bas::Fourier1D, N::NoiseKernel, m)
     A, B = dfly(strong_norm(Bas), aux_norm(Bas), N)
     Eh = noise_projection_error(Bas, N)
-    M₁n = BasisDefinition.strong_weak_bound(Bas)
-    M₂ = BasisDefinition.aux_weak_bound(Bas)
-    S₁, S₂ = BasisDefinition.weak_by_strong_and_aux_bound(Bas)
+    M₁n = strong_weak_bound(Bas)
+    M₂ = aux_weak_bound(Bas)
+    S₁, S₂ = weak_by_strong_and_aux_bound(Bas)
 
     norms = fill(NaN, m)
     strongs = fill(NaN, m)
@@ -467,7 +474,7 @@ function norms_of_powers_from_coarser_grid_noise(
 )
 
     ####Check this!!!!
-    #if !(BasisDefinition.is_refinement(fine_basis, coarse_basis))
+    #if !(is_refinement(fine_basis, coarse_basis))
     #    @error "The fine basis is not a refinement of the coarse basis"
     #end
     m = length(coarse_norms)
@@ -528,3 +535,4 @@ function powernormboundsnoise(
     return better_norms
 
 end
+# COV_EXCL_STOP

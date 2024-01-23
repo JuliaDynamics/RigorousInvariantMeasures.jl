@@ -1,5 +1,3 @@
-using ..BasisDefinition, ..DynamicDefinition
-
 
 struct C1 <: NormKind end
 struct W{k,l} <: NormKind end
@@ -165,14 +163,14 @@ end
 ###############################################################################
 ###############################################################################
 
-function BasisDefinition.weak_projection_error(B::Chebyshev)
+function weak_projection_error(B::Chebyshev)
     n = Float64(length(B), RoundUp)
     ν = B.k
     νf = Float64(B.k, RoundUp)
     den = n ⊗₋ (νf ⊖₋ 2.0) ⊗₋ π ⊗₋ reduce(⊗₋, [n - i for i = 2:ν-1])
     return (4.0 ⊗₊ (n + 1)) ⊘₊ den
 end
-function BasisDefinition.aux_normalized_projection_error(B::Chebyshev)
+function aux_normalized_projection_error(B::Chebyshev)
     n = Float64(length(B), RoundUp)
     ν = B.k
     νf = Float64(B.k, RoundUp)
@@ -181,14 +179,14 @@ function BasisDefinition.aux_normalized_projection_error(B::Chebyshev)
 end
 
 """
-	BasisDefinition.strong_weak_bound(B::Chebyshev)
+	strong_weak_bound(B::Chebyshev)
 
 V.A. Markov estimate from GRADIMIR MILOVANOVIC EXTREMAL PROBLEMS AND 
 INEQUALITIES OF MARKOV-BERNSTEIN TYPE FOR POLYNOMIALS
 """
 # TODO: Check the indexes
 
-function BasisDefinition.strong_weak_bound(B::Chebyshev)
+function strong_weak_bound(B::Chebyshev)
     n = length(B) - 1
     k = B.k - 1
     # we want to estimate the norm of f^(k) by the C1 norm of f, so we use Markov estimate
@@ -197,20 +195,20 @@ function BasisDefinition.strong_weak_bound(B::Chebyshev)
     num = reduce(⊗₊, [Float64(n^2 - i^2, RoundDown) for i = 0:k-1])
     return num ⊘₊ den ⊕₊ 1.0 # the 1.0 is to take into account the L1 norm of f
 end
-BasisDefinition.aux_weak_bound(B::Chebyshev) = 1.0
+aux_weak_bound(B::Chebyshev) = 1.0
 
 # Check this!!!
-function BasisDefinition.weak_by_strong_and_aux_bound(B::Chebyshev)
+function weak_by_strong_and_aux_bound(B::Chebyshev)
     @error "TODO"
     ν = B.k
     return (ν, 1.0)
 end
-BasisDefinition.bound_weak_norm_from_linalg_norm(B::Chebyshev) = @error "TODO"
-BasisDefinition.bound_linalg_norm_L1_from_weak(B::Chebyshev) = @error "TODO"
-BasisDefinition.bound_linalg_norm_L∞_from_weak(B::Chebyshev) = @error "TODO"
-BasisDefinition.weak_norm(B::Chebyshev) = C1
-BasisDefinition.aux_norm(B::Chebyshev) = L1
-BasisDefinition.strong_norm(B::Chebyshev) = W{B.k,1}
+bound_weak_norm_from_linalg_norm(B::Chebyshev) = @error "TODO"
+bound_linalg_norm_L1_from_weak(B::Chebyshev) = @error "TODO"
+bound_linalg_norm_L∞_from_weak(B::Chebyshev) = @error "TODO"
+weak_norm(B::Chebyshev) = C1
+aux_norm(B::Chebyshev) = L1
+strong_norm(B::Chebyshev) = W{B.k,1}
 
 """
 	Base.getindex(B::Chebyshev, i::Int)
@@ -225,10 +223,10 @@ function Base.getindex(B::Chebyshev, i::Int)
     return x -> evalChebyshev(v, x)
 end
 
-BasisDefinition.is_refinement(Bc::Chebyshev, Bf::Chebyshev) = length(Bc) < length(Bf)
-BasisDefinition.integral_covector(B::Chebyshev; T = Float64) =
+is_refinement(Bc::Chebyshev, Bf::Chebyshev) = length(Bc) < length(Bf)
+integral_covector(B::Chebyshev; T = Float64) =
     [Interval{T}(1); 0; [0.5 * Interval{T}((-1)^n + 1) / (1 - n^2) for n = 2:length(B)-1]]'
-BasisDefinition.one_vector(B::Chebyshev) = [1; zeros(length(B) - 1)]
+one_vector(B::Chebyshev) = [1; zeros(length(B) - 1)]
 
 Base.length(S::AverageZero{T}) where {T<:Chebyshev} = length(S.basis) - 1
 
@@ -251,16 +249,16 @@ struct ChebyshevDual <: Dual
 end
 
 function ChebDualBranch(y, br::MonotonicBranch, ylabel = 1:length(y); ϵ, max_iter)
-    if br.increasing
+    if is_increasing(br)
         endpoint_X = br.X[2]
-        der = Contractors.derivative(br.f)(endpoint_X)
+        der = derivative(br.f)(endpoint_X)
         preim_der = preimages_and_derivatives(y, br, ylabel; ϵ, max_iter)
         return [preim_der[1]; endpoint_X],
         [preim_der[2]; length(preim_der[2]) + 1],
         [preim_der[3]; der]
     else
         endpoint_X = br.X[2]
-        der = Contractors.derivative(br.f)(endpoint_X)
+        der = derivative(br.f)(endpoint_X)
         preim_der = preimages_and_derivatives(B.p, D, 1:length(B.p)-1; ϵ, max_iter)
         return [preim_der[1]; endpoint_X],
         [preim_der[2]; length(preim_with_der[2]) + 1],
@@ -345,16 +343,16 @@ function infnormofderivative(B::Chebyshev, v)
 end
 
 
-BasisDefinition.is_integral_preserving(B::Chebyshev) = false
-function BasisDefinition.opnormbound(B::Chebyshev, N::Type{C1}, v::Vector{S}) where {S}
+is_integral_preserving(B::Chebyshev) = false
+function opnormbound(B::Chebyshev, N::Type{C1}, v::Vector{S}) where {S}
     return normbound(B, N, v)
 end
 
-function BasisDefinition.opnormbound(B::Chebyshev, N::Type{C1}, w::LinearAlgebra.Adjoint)
+function opnormbound(B::Chebyshev, N::Type{C1}, w::LinearAlgebra.Adjoint)
     return normbound(B, N, w')
 end
 
-function BasisDefinition.opnormbound(B::Chebyshev, N::Type{C1}, A::Matrix{S}) where {S}
+function opnormbound(B::Chebyshev, N::Type{C1}, A::Matrix{S}) where {S}
     n, m = size(A)
     norm = 0.0
     for i = 1:m
@@ -368,7 +366,7 @@ function BasisDefinition.opnormbound(B::Chebyshev, N::Type{C1}, A::Matrix{S}) wh
     return norm ⊗₊ log(m + 2)
 end
 
-BasisDefinition.normbound(B::Chebyshev{T}, N::Type{C1}, v) where {T} =
+normbound(B::Chebyshev{T}, N::Type{C1}, v) where {T} =
     Float64((infnormoffunction(B, v) + infnormofderivative(B, v)).hi, RoundUp)
 
 mutable struct NormCacherC1 <: NormCacher{C1}

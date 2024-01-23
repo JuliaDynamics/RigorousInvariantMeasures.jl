@@ -1,10 +1,8 @@
+# COV_EXCL_START
 """
 Chebyshev basis on the Interval [0,1]
 """
 
-using ..BasisDefinition, ..DynamicDefinition
-
-import ..BasisDefinition: one_vector, integral_covector, is_integral_preserving
 
 struct Chebyshev{T<:AbstractVector} <: Basis
     p::T
@@ -101,16 +99,16 @@ struct ChebyshevDual <: Dual
 end
 
 function ChebDualBranch(y, br::MonotonicBranch, ylabel = 1:length(y), ϵ = 0.0)
-    if br.increasing
+    if is_increasing(br)
         endpoint_X = br.X[2]
-        der = Contractors.derivative(br.f)(endpoint_X)
+        der = derivative(br.f)(endpoint_X)
         preim_der = preimages_and_derivatives(y, br, ylabel, ϵ)
         return [preim_der[1]; endpoint_X],
         [preim_der[2]; length(preim_der[2]) + 1],
         [preim_der[3]; der]
     else
         endpoint_X = br.X[2]
-        der = Contractors.derivative(br.f)(endpoint_X)
+        der = derivative(br.f)(endpoint_X)
         preim_der = preimages_and_derivatives(B.p, D, 1:length(B.p)-1, ϵ)
         return [preim_der[1]; endpoint_X],
         [preim_der[2]; length(preim_with_der[2]) + 1],
@@ -168,15 +166,11 @@ end
 is_integral_preserving(B::Chebyshev) = false
 
 
-function BasisDefinition.opnormbound(
-    B::Hat{T},
-    N::Type{C1},
-    A::AbstractVecOrMat{S},
-) where {S,T}
+function opnormbound(B::Hat{T}, N::Type{C1}, A::AbstractVecOrMat{S}) where {S,T}
     return 0.5
 end
 
-function BasisDefinition.normbound(B::Hat{T}, N::Type{Linf}, v) where {T}
+function normbound(B::Hat{T}, N::Type{Linf}, v) where {T}
     return 0.5
 end
 
@@ -203,12 +197,12 @@ end
 # 	end
 # end
 
-# function BasisDefinition.is_dual_element_empty(::Hat, d)
+# function is_dual_element_empty(::Hat, d)
 # 	# TODO: the preim() may indeed be empty, so there could be an additional check here
 # 	return false
 # end
 
-# BasisDefinition.is_refinement(Bf::Hat, Bc::Hat) = Bc.p ⊆ Bf.p
+# is_refinement(Bf::Hat, Bc::Hat) = Bc.p ⊆ Bf.p
 
 # function integral_covector(B::Hat)
 # 	n = length(B)
@@ -227,7 +221,7 @@ end
 # it means that it intersects with the hat function peaked in 0 as well
 # (think for instance y = 0.9999).
 # """
-# function BasisDefinition.nonzero_on(B::Hat, dual_element)
+# function nonzero_on(B::Hat, dual_element)
 # 	y, absT′ = dual_element
 # 	# Note that this cannot rely on arithmetic unless it is verified
 
@@ -265,9 +259,9 @@ end
 # 		    state+1)
 # end
 
-# BasisDefinition.strong_norm(B::Hat) = Lipschitz
-# BasisDefinition.weak_norm(B::Hat) = Linf
-# BasisDefinition.aux_norm(B::Hat) = L1
+# strong_norm(B::Hat) = Lipschitz
+# weak_norm(B::Hat) = Linf
+# aux_norm(B::Hat) = L1
 
 # evaluate_integral(B::Hat, i, T) = T(i)/length(B)
 
@@ -282,16 +276,16 @@ end
 # 	return (v, state+1)
 # end
 
-# BasisDefinition.weak_projection_error(B::Hat) = 0.5 ⊘₊ Float64(length(B), RoundDown)
-# BasisDefinition.aux_normalized_projection_error(B::Hat) = 0.5 ⊘₊ Float64(length(B), RoundDown)
-# BasisDefinition.strong_weak_bound(B::Hat) = 2. ⊗₊ Float64(length(B), RoundDown)
-# BasisDefinition.aux_weak_bound(B::Hat) = 1.
-# BasisDefinition.weak_by_strong_and_aux_bound(B::Hat) = (1., 1.)
-# BasisDefinition.bound_weak_norm_from_linalg_norm(B::Hat) = @error "TODO"
-# BasisDefinition.bound_linalg_norm_L1_from_weak(B::Hat) = @error "TODO"
-# BasisDefinition.bound_linalg_norm_L∞_from_weak(B::Hat) = @error "TODO"
+# weak_projection_error(B::Hat) = 0.5 ⊘₊ Float64(length(B), RoundDown)
+# aux_normalized_projection_error(B::Hat) = 0.5 ⊘₊ Float64(length(B), RoundDown)
+# strong_weak_bound(B::Hat) = 2. ⊗₊ Float64(length(B), RoundDown)
+# aux_weak_bound(B::Hat) = 1.
+# weak_by_strong_and_aux_bound(B::Hat) = (1., 1.)
+# bound_weak_norm_from_linalg_norm(B::Hat) = @error "TODO"
+# bound_linalg_norm_L1_from_weak(B::Hat) = @error "TODO"
+# bound_linalg_norm_L∞_from_weak(B::Hat) = @error "TODO"
 
-# function BasisDefinition.invariant_measure_strong_norm_bound(B::Hat, D::Dynamic)
+# function invariant_measure_strong_norm_bound(B::Hat, D::Dynamic)
 # 	A, B = dfly(strong_norm(B), aux_norm(B), D)
 # 	@assert A < 1.
 # 	return B ⊘₊ (1. ⊖₋ A)
@@ -338,3 +332,4 @@ end
 # 		end
 # 	end
 # end
+# COV_EXCL_STOP

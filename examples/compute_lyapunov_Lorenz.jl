@@ -3,24 +3,10 @@ Pkg.activate("../")
 
 using RigorousInvariantMeasures, IntervalArithmetic
 
-#LorenzMap(θ, α) = PwMap([x->θ*(0.5-x)^α, x->1-θ*(x-0.5)^α],
-#                    [@interval(0), @interval(0.5), @interval(1)]; infinite_derivative=true)
-
-LorenzMap(θ, α) = PwMap(
-    [x -> θ * (0.5 - x)^α, x -> 1 - θ * (x - 0.5)^α],
-    [x -> -1 * θ * α * (0.5 - x)^(α - 1), x -> -θ * α * (x - 0.5)^(α - 1)],
-    [@interval(0), @interval(0.5), @interval(1)],
-    [
-        θ*(Interval(0.5))^α Interval(0.0)
-        Interval(1.0) 1-θ*(Interval(0.5))^α
-    ];
-    infinite_derivative = true,
-)
-
 θ = 109 / 64
 α = 51 / 64
 
-D0 = LorenzMap(θ, α)
+D0 = Lorenz(θ, α)
 D = D0 ∘ D0 ∘ D0
 
 G(x) = (x - 0.5) * log(x - 0.5) - (x - 0.5)
@@ -78,7 +64,7 @@ error_fine = distance_from_invariant(
 
 @info "The fine error is $error_fine"
 
-Bound = RigorousInvariantMeasures.BasisDefinition.invariant_measure_strong_norm_bound(
+Bound = RigorousInvariantMeasures.invariant_measure_strong_norm_bound(
     B,
     D;
     dfly_coefficients = dfly_coefficients,

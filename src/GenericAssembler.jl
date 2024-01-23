@@ -1,5 +1,4 @@
 using SparseArrays
-using ..DynamicDefinition, ..BasisDefinition
 
 using LinearAlgebra
 
@@ -40,13 +39,10 @@ LinearAlgebra.issymmetric(Q::NonIntegralPreservingDiscretizedOperator) =
 
 # name clash 
 # be careful !!!
-BasisDefinition.opnormbound(
-    B::Basis,
-    N::Type{<:NormKind},
-    Q::IntegralPreservingDiscretizedOperator,
-) = opnormbound(B, N, Q.L)
+opnormbound(B::Basis, N::Type{<:NormKind}, Q::IntegralPreservingDiscretizedOperator) =
+    opnormbound(B, N, Q.L)
 
-function BasisDefinition.opnormbound(
+function opnormbound(
     B::Basis,
     N::Type{<:NormKind},
     Q::NonIntegralPreservingDiscretizedOperator,
@@ -98,8 +94,8 @@ function Base.:*(Q::NonIntegralPreservingDiscretizedOperator, v::Array)
     return Q.L * v + convert(Array{T}, Q.e) * (Q.w * v)
 end
 
-BasisDefinition.is_integral_preserving(Q::NonIntegralPreservingDiscretizedOperator) = false
-BasisDefinition.is_integral_preserving(Q::IntegralPreservingDiscretizedOperator) = true
+is_integral_preserving(Q::NonIntegralPreservingDiscretizedOperator) = false
+is_integral_preserving(Q::IntegralPreservingDiscretizedOperator) = true
 
 # Variants of assemble and DiscretizedOperator; the code is repeated here for easier comparison with the older algorithm
 function assemble(B, D; ϵ, max_iter, T)
