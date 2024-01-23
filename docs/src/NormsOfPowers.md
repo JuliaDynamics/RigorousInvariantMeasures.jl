@@ -27,3 +27,10 @@ Modules = [Base,
             RigorousInvariantMeasures]
 Pages = ["NormsOfPowers.jl"]
 ```
+
+The methods for systems with noise are the following
+```@autodocs
+Modules = [Base, 
+            RigorousInvariantMeasures]
+Pages = ["NormsOfPowersNoise.jl"]
+```

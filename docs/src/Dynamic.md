@@ -5,13 +5,13 @@ These are some implemented methods for building dynamics
 ```@autodocs
 Modules = [Base, 
         RigorousInvariantMeasures]
-Pages = ["DynamicDefinition.jl"]
+Pages = ["AbstractDynamicDefinition.jl"]
 ```
 
-# Piecewise-Map Definition
+# One dimensional piecewise monotone map definition
 
 ```@autodocs
 Modules = [Base, 
         RigorousInvariantMeasures]
-Pages = ["PwDynamicDefinition.jl"]
+Pages = ["PwDynamic.jl"]
 ```

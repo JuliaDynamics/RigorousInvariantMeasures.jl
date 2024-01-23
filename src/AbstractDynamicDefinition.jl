@@ -1,7 +1,3 @@
-"""
-defines generic Dynamic type
-"""
-
 export Dynamic,
     MarkovDynamic,
     preim,
@@ -18,7 +14,6 @@ export Dynamic,
 
 abstract type Dynamic end
 abstract type MarkovDynamic <: Dynamic end
-using IntervalArithmetic, IntervalOptimisation
 
 function domain end
 function nbranches end
@@ -31,7 +26,7 @@ Return a non-interval version of the map as a function. This can be used, for in
 """
 function plottable end
 
-"""
+@doc raw"""
 	preim(S::Dynamic, k, y, ϵ)
 
 Computes the preim of y in branch k of a dynamic, with accuracy ϵ
@@ -47,12 +42,12 @@ Endpoints of the branches, in increasing order (returned as a vector of interval
 """
 function endpoints end
 
-"""
-Maximum of |1/T'|
+@doc raw"""
+Maximum of ``|1/T'|``
 """
 function max_inverse_derivative end
 
-"""
-Maximum of distortion(D, x) = |T''| / (T')^2, over all branches
+@doc raw"""
+Maximum of distortion(D, x) = ``|T''| / (T')^2``, over all branches
 """
 function max_distortion end

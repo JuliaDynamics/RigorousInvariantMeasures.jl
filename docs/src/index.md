@@ -7,11 +7,6 @@ The package is under active development, with periodic releases.
 ```@contents
 ```
 
-## All docs
-
-```@autodocs
-    Modules = [RigorousInvariantMeasures]
-```
 ---
 
 ### Citing
@@ -38,4 +33,7 @@ simply installed by running
 
 ```julia
 pkg> add("RigorousInvariantMeasures")
+```
+
+```@index
 ```

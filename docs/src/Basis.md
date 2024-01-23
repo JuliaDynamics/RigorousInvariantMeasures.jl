@@ -18,14 +18,14 @@ Pages = ["UlamBasis.jl"]
 ```@autodocs
 Modules = [Base, 
             RigorousInvariantMeasures]
-Pages = ["HatBasis.jl"]
+Pages = ["CircleHatBasis.jl"]
 ```
 
 # The hat basis on ``[0,1]``
 ```@autodocs
 Modules = [Base, 
             RigorousInvariantMeasures]
-Pages = ["NonPeriodicHatBasis.jl"]
+Pages = ["IntervalHatBasis.jl"]
 ```
 
 # The C2 basis
