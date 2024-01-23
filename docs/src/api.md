@@ -24,11 +24,3 @@ Pages = ["preimages.jl"]
 ```
 
 
-
-## Index
-
-```@index
-Pages = ["basis.md", "api.md", "dynamic.md"]
-Modules = [RigorousInvariantMeasures]
-Order = [:type, :function]
-```
