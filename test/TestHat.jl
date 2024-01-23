@@ -40,5 +40,10 @@
     @test is_refinement(Hat(8), Hat(8))
     @test !is_refinement(Hat(4), Hat(8))
 
+    B8 = Hat(8)
+    @test RigorousInvariantMeasures.aux_normalized_projection_error(B8) == 1/16
+    @test RigorousInvariantMeasures.strong_weak_bound(B8) == Float64(16)
+    @test RigorousInvariantMeasures.aux_weak_bound(B8) == 1.0
+    @test weak_by_strong_and_aux_bound(B8) == (1.0, 1.0)
 
 end
