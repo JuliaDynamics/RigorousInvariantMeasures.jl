@@ -156,9 +156,10 @@ function Base.iterate(S::ProjectDualElement{BT,DT}, state = S.j_min) where {BT<:
 end
 Base.eltype(f::ProjectDualElement{<:Ulam,DT}) where {DT} = Tuple{Int64,Interval{Float64}}
 
-evaluate(B::Ulam{T}, i, x) where {T} = (x > (i - 1) / n) && (x < i / n) ? 1 : 0
+evaluate(B::Ulam{T}, i, x) where {T} =
+    (x > (i - 1) / length(B)) && (x < i / length(B)) ? 1 : 0
 
-evaluate_integral(B::Ulam{S}, i, T::Type) where {S} = T(i) / length(B)
+evaluate_integral(B::Ulam{S}, i, T::Type) where {S} = T(1) / length(B)
 
 """
 	iterate(S::AverageZero{Ulam{T}}, state = 1) where{T}
