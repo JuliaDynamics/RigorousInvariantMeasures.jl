@@ -222,7 +222,7 @@ Must be rounded up correctly!
 aux_weak_bound(B::Basis) = @error "Not Implemented"
 
 """
-	Return constants ``S₁, S₂`` such that for a vector ``v ∈ Uₕ`` 
+	Return constants ```S₁, S₂``` such that for a vector ``v ∈ Uₕ`` 
 	```||v||\\leq S_1||v||_s+S_2|||v|||```
 Must be rounded up correctly!
 """
