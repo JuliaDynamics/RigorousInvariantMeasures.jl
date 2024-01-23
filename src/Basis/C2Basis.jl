@@ -289,7 +289,7 @@ function Base.iterate(S::AverageZero{T}, state = 1) where {T<:C2Basis}
     return v, state + 1
 end
 
-
+#COV_EXCL_START
 using RecipesBase
 
 @userplot PlotC2
@@ -306,3 +306,4 @@ using RecipesBase
     seriestype := :path
     collect(B), mid.(w)
 end
+#COV_EXCL_STOP

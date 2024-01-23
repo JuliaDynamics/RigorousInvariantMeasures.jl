@@ -228,6 +228,7 @@ function invariant_measure_strong_norm_bound(
     return B ⊘₊ (1.0 ⊖₋ A)
 end
 
+#COV_EXCL_START
 using RecipesBase
 using LaTeXStrings
 
@@ -268,6 +269,7 @@ for different bases
         end
     end
 end
+#COV_EXCL_START
 
 struct UlamDual <: Dual
     x::Vector{Interval} #TODO: a more generic type may be needed in future

@@ -259,7 +259,9 @@ function iterate_LSV(x, i, α)
 end
 
 using RecipesBase
+#COV_EXCL_START
 @recipe f(::Type{ApproxInducedLSV}, D::ApproxInducedLSV) = x -> plottable(D, x)
+#COV_EXCL_STOP
 
 ChebOrHatNP = Union{Chebyshev,HatNP}
 
