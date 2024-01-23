@@ -10,7 +10,7 @@ The package is under active development, with periodic releases.
 ## All docs
 
 ```@autodocs
-    Modules = [Base, RigorousInvariantMeasures]
+    Modules = [RigorousInvariantMeasures]
 ```
 ---
 
