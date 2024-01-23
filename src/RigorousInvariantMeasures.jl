@@ -38,7 +38,7 @@ export HatNP
 include("pitrig.jl")
 include("NormsOfPowers.jl")
 
-include("preimages.jl")
+include("Preimages.jl")
 include("FFT.jl")
 include("Basis/NewChebyshev.jl")
 export Chebyshev
