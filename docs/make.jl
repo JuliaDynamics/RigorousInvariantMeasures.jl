@@ -16,6 +16,7 @@ makedocs(;
         canonical = "https://juliadynamics.github.io/RigorousInvariantMeasures.jl",
         edit_link = "main",
         assets = String[],
+        prettyurls = false,
     ),
     pages = [
         "Home" => "index.md",
@@ -34,8 +35,8 @@ makedocs(;
     ],
 )
 
-deploydocs(;
-    repo = "github.com/JuliaDynamics/RigorousInvariantMeasures.jl",
-    #versions = ["stable" => "v^", "v#.#", devurl => devurl],
-    devbranch = "main",
-)
+# deploydocs(;
+#     repo = "github.com/JuliaDynamics/RigorousInvariantMeasures.jl",
+#     #versions = ["stable" => "v^", "v#.#", devurl => devurl],
+#     devbranch = "main",
+# )
