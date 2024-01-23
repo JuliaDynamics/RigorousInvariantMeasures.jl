@@ -71,7 +71,7 @@ function preimage(y, br::MonotonicBranch, search_interval = hull(br.X...); ϵ, m
 end
 
 
-"""
+@doc raw"""
     preimages(y, br::MonotonicBranch, ylabel = 1:length(y); ϵ, max_iter)
 
 Construct preimages of a partition y under a monotonic branch defined on X = (a, b), propagating additional labels `ylabel`
@@ -95,7 +95,7 @@ i (or vice versa with orientations), and in this case we just return the 1-eleme
 x[begin] always coincides with branch.X[1], while branch.X[2] is "the point after x[end]", and is not stored explicitly in x, for easier composing.
 In this way x and xlabel have the same length.
 
-This function fills the array by using a bisection strategy to save computations: if y ∈ [a,b], then f⁻¹(y) ∈ [f⁻¹(a),f⁻¹(b)] (paying attention to orientation).
+This function fills the array by using a bisection strategy to save computations: if y ∈ [a,b], then ``f^{-1}(y) \\in [f^{-1}(a),f^{-1}(b)]`` (paying attention to orientation).
 So we can fill v by filling in first entries `v[k+1]` with higher dyadic valuation of k.
 
 For a dynamic with multiple branches, preimages(y, D) is simply the concatenation of x, xlabel for b in all branches. These values still form an increasing sequence that

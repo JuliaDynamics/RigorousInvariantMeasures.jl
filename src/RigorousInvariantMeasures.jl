@@ -8,7 +8,7 @@ include("differentiation_interface.jl")
 
 include("Contractors.jl")
 
-include("DynamicDefinition.jl")
+include("AbstractDynamicDefinition.jl")
 export Dynamic, endpoints, nbranches, branch, max_inverse_derivative, max_distortion
 
 include("Basis/BasisDefinition.jl")
@@ -24,22 +24,21 @@ export DiscretizedOperator,
 include("GenericEstimate.jl")
 export invariant_vector, finepowernormbounds, powernormbounds, distance_from_invariant
 
-include("PwDynamicDefinition.jl")
+include("PwDynamic.jl")
 export PwMap, mod1_dynamic
 include("DFLY.jl")
 
 include("Basis/UlamBasis.jl")
 export Ulam
-include("Basis/HatBasis.jl")
+include("Basis/CircleHatBasis.jl")
 export Hat
-include("Basis/NonPeriodicHatBasis.jl")
+include("Basis/IntervalHatBasis.jl")
 export HatNP
-
 
 include("pitrig.jl")
 include("NormsOfPowers.jl")
 
-include("preimages.jl")
+include("Preimages.jl")
 include("FFT.jl")
 include("Basis/NewChebyshev.jl")
 export Chebyshev

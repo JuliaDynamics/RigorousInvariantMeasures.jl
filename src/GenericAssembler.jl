@@ -7,8 +7,14 @@ import IntervalArithmetic
 import Base: size, eltype
 import LinearAlgebra: mul!
 
+"""
+    This is an abstract type representing a discretized operator
+"""
 abstract type DiscretizedOperator end
 
+"""
+    This type represents an operator that preserves the value of the integral
+"""
 struct IntegralPreservingDiscretizedOperator{T<:AbstractMatrix} <: DiscretizedOperator
     L::T
 end
@@ -16,7 +22,8 @@ IntegralPreservingDiscretizedOperator(L) =
     IntegralPreservingDiscretizedOperator{typeof(L)}(L)
 
 """
-An operator of the form Q = L + e*w (sparse plus rank-1).
+    An operator of the form Q = L + e*w (sparse plus rank-1); this 
+    is an operator that has been corrected to preserve the integral
 """
 struct NonIntegralPreservingDiscretizedOperator{
     T<:AbstractMatrix,
@@ -121,6 +128,19 @@ function assemble(B, D; ϵ, max_iter, T)
     return sparse(I, J, nzvals, n, n)
 end
 
+"""
+    DiscretizedOperator(B, D; ϵ = 10^(-14), max_iter = 100, T = Float64)
+
+Constructor of a discretized operator, it infers if the operator 
+is integral preserving or not from the basis `B`
+
+Arguments:
+    B Basis
+    D Dynamic 
+    ϵ stopping condition for the Newton method
+    max_iter maximum number of Newton method iterate
+    T type of the elements stored in the matrix
+"""
 function DiscretizedOperator(B, D; ϵ = 10^(-14), max_iter = 100, T = Float64)
     @info "Assembling operator, the Newton stopping options are 
       ϵ = $ϵ, max_iter = $max_iter"

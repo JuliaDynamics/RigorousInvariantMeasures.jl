@@ -7,14 +7,6 @@ The package is under active development, with periodic releases.
 ```@contents
 ```
 
-## Index
-
-```@index
-Pages = ["basis.md", "api.md", "dynamic.md"]
-Modules = [RigorousInvariantMeasures]
-Order = [:type, :function]
-```
-
 ---
 
 ### Citing
@@ -41,4 +33,7 @@ simply installed by running
 
 ```julia
 pkg> add("RigorousInvariantMeasures")
+```
+
+```@index
 ```
