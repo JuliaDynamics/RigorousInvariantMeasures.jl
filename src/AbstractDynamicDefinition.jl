@@ -47,7 +47,7 @@ Maximum of ``|1/T'|``
 """
 function max_inverse_derivative end
 
-@doc raw"""
-Maximum of distortion(D, x) = ``|T''| / (T')^2``, over all branches
+"""
+    Maximum of distortion(D, x) = ``|T''| / (T')^2``, over all branches
 """
 function max_distortion end

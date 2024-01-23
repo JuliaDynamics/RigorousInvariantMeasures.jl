@@ -9,7 +9,7 @@ DocMeta.setdocmeta!(
 )
 
 makedocs(;
-    modules = [RigorousInvariantMeasures],
+    #modules = [RigorousInvariantMeasures],
     authors = "Isaia Nisoli <nisoli@im.ufrj.br> and contributors",
     sitename = "RigorousInvariantMeasures.jl",
     format = Documenter.HTML(;
@@ -30,7 +30,7 @@ makedocs(;
         "Generic estimate interface" => "GenericEstimate.md",      
         "Norms Of Powers" => "NormsOfPowers.md",
         # "Examples" => "examples.md",
-        # "API" => "api.md",
+        "API" => "api.md",
     ],
 )
 

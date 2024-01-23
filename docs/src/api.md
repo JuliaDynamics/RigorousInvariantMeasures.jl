@@ -20,7 +20,7 @@ Optimized methods to compute preimages of ``1`` dimensional maps.
 ```@autodocs
 Modules = [Base, 
             RigorousInvariantMeasures]
-Pages = ["preimages.jl"]
+Pages = ["Preimages.jl"]
 ```
 
 
