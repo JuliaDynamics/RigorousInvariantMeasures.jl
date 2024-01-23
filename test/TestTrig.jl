@@ -26,6 +26,8 @@
     @test RigorousInvariantMeasures.cospi(Interval(0, 0.5)) == Interval(0, 1)
     @test RigorousInvariantMeasures.cospi(Interval(0.5, 1)) == Interval(-1, 0)
 
+    using TaylorSeries
+
     x = Taylor1([0.0, 1.0], 1)
     y = Taylor1([0.0, π], 1)
 

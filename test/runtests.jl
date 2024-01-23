@@ -30,6 +30,7 @@ DocMeta.setdocmeta!(
     include("TestObservables.jl")
 
     include("TestBasis/TestBasisIndex.jl")
+    include("TestTrig.jl")
 
     #include("TestSkewProductMap.jl")
     #include("TestUlam2DSP.jl")
