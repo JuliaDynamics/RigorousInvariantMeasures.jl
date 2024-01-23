@@ -7,11 +7,11 @@ The package is under active development, with periodic releases.
 ```@contents
 ```
 
-## Index
+## All docs
 
-```@index
+```@autodocs
+    Modules = [Base, RigorousInvariantMeasures]
 ```
-
 ---
 
 ### Citing

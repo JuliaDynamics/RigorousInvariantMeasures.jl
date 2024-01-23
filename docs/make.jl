@@ -19,17 +19,17 @@ makedocs(;
     ),
     pages = [
         "Home" => "index.md",
-        "Background" => "background.md",
-        "User guide" => [
-            "General usage" => "userguide.md",
-            "Implementing a new basis" => "implementingnewbasis.md",
-        ],
-        "Basis" => "basis.md",
-        "Dynamic" => "dynamic.md",
-        "Assembler" => "assembler.md",
-        "Norms Of Powers" => "normsofpowers.md",
-        "Examples" => "examples.md",
-        "API" => "api.md",
+        # "Background" => "background.md",
+        # "User guide" => [
+        #     "General usage" => "userguide.md",
+        #     "Implementing a new basis" => "implementingnewbasis.md",
+        # ],
+        # "Basis" => "basis.md",
+        # "Dynamic" => "dynamic.md",
+        # "Assembler" => "assembler.md",
+        # "Norms Of Powers" => "normsofpowers.md",
+        # "Examples" => "examples.md",
+        # "API" => "api.md",
     ],
 )
 
