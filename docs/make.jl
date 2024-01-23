@@ -27,7 +27,7 @@ makedocs(;
         "Basis" => "Basis.md",
         "Dynamic" => "Dynamic.md",
         "Generic assembler interface" => "GenericAssembler.md",
-        "Generic estimate interface" => "GenericEstimate.md",      
+        "Generic estimate interface" => "GenericEstimate.md",
         "Norms Of Powers" => "NormsOfPowers.md",
         # "Examples" => "examples.md",
         "API" => "api.md",
