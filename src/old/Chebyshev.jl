@@ -1,22 +1,27 @@
+# COV_EXCL_START
 """
 Chebyshev basis on the Interval [0,1]
 """
 
-using ..BasisDefinition, ..DynamicDefinition
 
-import ..BasisDefinition: one_vector, integral_covector, is_integral_preserving
-
-struct Chebyshev{T<:AbstractVector} <:Basis
-	p::T
-	# TODO: check in constructor that p is sorted, starts with 0 and ends with 1
+struct Chebyshev{T<:AbstractVector} <: Basis
+    p::T
+    # TODO: check in constructor that p is sorted, starts with 0 and ends with 1
 end
 
 #we suppose IntervalArithmetic computes the Chebyshev points with adequate precision
 ChebCouples(n, T) = hcat(
-	[Interval{T}(pi); (reverse([Interval{T}(0.0); [j*Interval{T}(pi)/n for j in 1:n-1] ]))],
-	[Interval{T}(0.0) ; (reverse([Interval{T}(1.0); [cos(j*Interval{T}(pi)/n) for j in 1:n-1]]).+1)/2])
+    [
+        Interval{T}(pi)
+        (reverse([Interval{T}(0.0); [j * Interval{T}(pi) / n for j = 1:n-1]]))
+    ],
+    [
+        Interval{T}(0.0)
+        (reverse([Interval{T}(1.0); [cos(j * Interval{T}(pi) / n) for j = 1:n-1]]) .+ 1) / 2
+    ],
+)
 
-ChebPoints(n, T) = ChebCouples(n, T)[:, 2] 
+ChebPoints(n, T) = ChebCouples(n, T)[:, 2]
 
 Chebyshev(n::Integer; T = Float64) = Chebyshev(ChebPoints(n, T))
 
@@ -28,48 +33,48 @@ Base.length(B::Chebyshev) = length(B.p)
 using IntervalOptimisation
 
 function infnormoffunction(B::Chebyshev, v)
-	val = 0
-	try 
-		val = maximize(x->abs(evalChebyschevCentered(v, x)), Interval(0, 1))[1]
-	catch
-		print("Refining grid")
-		f(x) = abs(evalChebyshevCentered(v, x))
-		ran = range_estimate(f, Interval(0,1), 5)
-		Bval = union(val, ran)
-	end
-	return val
+    val = 0
+    try
+        val = maximize(x -> abs(evalChebyschevCentered(v, x)), Interval(0, 1))[1]
+    catch
+        print("Refining grid")
+        f(x) = abs(evalChebyshevCentered(v, x))
+        ran = range_estimate(f, Interval(0, 1), 5)
+        Bval = union(val, ran)
+    end
+    return val
 end
 
-function infnormofderivative(B::Chebyshev, v) 
-	val = Interval(0)
-	try 
-		val = maximize(x->abs(evalChebyshevDerivative(v, x)), Interval(0, 1))[1]
-	catch
-		print("Refining grid")
-		f(x) = abs(evalChebyshevDerivative(v, x))
-		ran = range_estimate(f, Interval(0,1), 5)
-		val = union(val, ran)
-	end
-	return val
+function infnormofderivative(B::Chebyshev, v)
+    val = Interval(0)
+    try
+        val = maximize(x -> abs(evalChebyshevDerivative(v, x)), Interval(0, 1))[1]
+    catch
+        print("Refining grid")
+        f(x) = abs(evalChebyshevDerivative(v, x))
+        ran = range_estimate(f, Interval(0, 1), 5)
+        val = union(val, ran)
+    end
+    return val
 end
 
 import .C2BasisDefinition: C1Norm
 
-C1Norm(B::Chebyshev, v) = infnormoffunction(B,v)+infnormofderivative(B,v)
-rescaling_factor(B::Chebyshev) = log(length(B)+1)
+C1Norm(B::Chebyshev, v) = infnormoffunction(B, v) + infnormofderivative(B, v)
+rescaling_factor(B::Chebyshev) = log(length(B) + 1)
 
-Base.length(S::AverageZero{T}) where T<:Chebyshev = length(S.basis)-1
+Base.length(S::AverageZero{T}) where {T<:Chebyshev} = length(S.basis) - 1
 
-function Base.iterate(S::AverageZero{T}, state = 1) where T<:Chebyshev
-	B = S.basis
-	i = state
-	if i == length(B)
-		return nothing
-	end
-	v = zeros(length(B))
-	v[i+1] = 1
-	v[1] = -mid.(integral_covector(B)[i+1])
-	return (v, 2*i*i), state+1
+function Base.iterate(S::AverageZero{T}, state = 1) where {T<:Chebyshev}
+    B = S.basis
+    i = state
+    if i == length(B)
+        return nothing
+    end
+    v = zeros(length(B))
+    v[i+1] = 1
+    v[1] = -mid.(integral_covector(B)[i+1])
+    return (v, 2 * i * i), state + 1
 end
 
 
@@ -80,11 +85,11 @@ Returns a function that computes the values of the (i-1)-th Chebyshev polynomial
 on [0, 1]
 """
 function Base.getindex(B::Chebyshev, i::Int)
- 	n = length(B)
- 	@boundscheck 1 <= i <= n+1 || throw(BoundsError(B, i))
- 	v = zeros(n+1)
-	v[i] = 1
-	return x-> Clenshaw(v, 2*x-1)
+    n = length(B)
+    @boundscheck 1 <= i <= n + 1 || throw(BoundsError(B, i))
+    v = zeros(n + 1)
+    v[i] = 1
+    return x -> Clenshaw(v, 2 * x - 1)
 end
 
 struct ChebyshevDual <: Dual
@@ -94,25 +99,25 @@ struct ChebyshevDual <: Dual
 end
 
 function ChebDualBranch(y, br::MonotonicBranch, ylabel = 1:length(y), ϵ = 0.0)
-	if is_increasing(br)
-		endpoint_X = br.X[2]
-		der = Contractors.derivative(br.f)(endpoint_X)
-		preim_der = preimages_and_derivatives(y, br, ylabel, ϵ)
-		return [preim_der[1]; endpoint_X],
-			[preim_der[2]; length(preim_der[2])+1], 
-			[preim_der[3]; der]
-	else
-		endpoint_X = br.X[2]
-		der = Contractors.derivative(br.f)(endpoint_X)
-		preim_der = preimages_and_derivatives(B.p, D, 1:length(B.p)-1, ϵ)
-		return [preim_der[1]; endpoint_X], 
-			[preim_der[2]; length(preim_with_der[2])+1], 
-			[preim_der[3]; der]
-	end
+    if is_increasing(br)
+        endpoint_X = br.X[2]
+        der = derivative(br.f)(endpoint_X)
+        preim_der = preimages_and_derivatives(y, br, ylabel, ϵ)
+        return [preim_der[1]; endpoint_X],
+        [preim_der[2]; length(preim_der[2]) + 1],
+        [preim_der[3]; der]
+    else
+        endpoint_X = br.X[2]
+        der = derivative(br.f)(endpoint_X)
+        preim_der = preimages_and_derivatives(B.p, D, 1:length(B.p)-1, ϵ)
+        return [preim_der[1]; endpoint_X],
+        [preim_der[2]; length(preim_with_der[2]) + 1],
+        [preim_der[3]; der]
+    end
 end
 
 function Dual(B::Chebyshev, D::PwMap, ϵ)
-	@assert is_full_branch(D)
+    @assert is_full_branch(D)
     results = collect(ChebDualBranch(B.p, b, 1:length(B.p)-1, ϵ) for b in branches(D))
     x = vcat((result[1] for result in results)...)
     xlabel = vcat((result[2] for result in results)...)
@@ -121,10 +126,11 @@ function Dual(B::Chebyshev, D::PwMap, ϵ)
 end
 
 Base.length(dual::ChebyshevDual) = length(dual.x)
-Base.eltype(dual::ChebyshevDual) = Tuple{eltype(dual.xlabel), Tuple{eltype(dual.x), eltype(dual.x′)}}
-function iterate(dual::ChebyshevDual, state=1)
+Base.eltype(dual::ChebyshevDual) =
+    Tuple{eltype(dual.xlabel),Tuple{eltype(dual.x),eltype(dual.x′)}}
+function iterate(dual::ChebyshevDual, state = 1)
     if state <= length(dual.x)
-        return ((dual.xlabel[state], (dual.x[state], abs(dual.x′[state]))), state+1)
+        return ((dual.xlabel[state], (dual.x[state], abs(dual.x′[state]))), state + 1)
     else
         return nothing
     end
@@ -132,40 +138,40 @@ end
 
 using FFTW
 function chebtransform(w)
-	n = length(w)-1
-	z= fft([reverse(w); w[2: end-1]])/n
-	t = real.(z[1:length(w)])
-	t[1]/=2
-	t[end]/=2
-	return Interval.(t)
+    n = length(w) - 1
+    z = fft([reverse(w); w[2:end-1]]) / n
+    t = real.(z[1:length(w)])
+    t[1] /= 2
+    t[end] /= 2
+    return Interval.(t)
 end
 
 using ProgressMeter
-function assemble(B::Chebyshev, D::Dynamic, ϵ=0.0; T = Float64)
-	n = length(B.p)
-	M = zeros(Interval{T}, (n, n))
-	x, labels, x′ = Dual(B, D, ϵ)
-	@showprogress for i in 1:n
-		ϕ = B[i]
-		w = zeros(Interval{Float64}, n)
-		for j in 1:length(x)
-			w[labels[j]]+=ϕ(x[j])/abs(x′[j])
-		end
-		#@info w
-		M[:, i] = chebtransform(w)
-	end
-	return M
+function assemble(B::Chebyshev, D::Dynamic, ϵ = 0.0; T = Float64)
+    n = length(B.p)
+    M = zeros(Interval{T}, (n, n))
+    x, labels, x′ = Dual(B, D, ϵ)
+    @showprogress for i = 1:n
+        ϕ = B[i]
+        w = zeros(Interval{Float64}, n)
+        for j = 1:length(x)
+            w[labels[j]] += ϕ(x[j]) / abs(x′[j])
+        end
+        #@info w
+        M[:, i] = chebtransform(w)
+    end
+    return M
 end
 
 is_integral_preserving(B::Chebyshev) = false
 
 
-function BasisDefinition.opnormbound(B::Hat{T}, N::Type{C1}, A::AbstractVecOrMat{S}) where {S,T}
-	return 0.5	
+function opnormbound(B::Hat{T}, N::Type{C1}, A::AbstractVecOrMat{S}) where {S,T}
+    return 0.5
 end
 
-function BasisDefinition.normbound(B::Hat{T}, N::Type{Linf}, v) where {T}
-	return 0.5
+function normbound(B::Hat{T}, N::Type{Linf}, v) where {T}
+    return 0.5
 end
 
 # """
@@ -191,12 +197,12 @@ end
 # 	end
 # end
 
-# function BasisDefinition.is_dual_element_empty(::Hat, d)
+# function is_dual_element_empty(::Hat, d)
 # 	# TODO: the preim() may indeed be empty, so there could be an additional check here
 # 	return false
 # end
 
-# BasisDefinition.is_refinement(Bf::Hat, Bc::Hat) = Bc.p ⊆ Bf.p
+# is_refinement(Bf::Hat, Bc::Hat) = Bc.p ⊆ Bf.p
 
 # function integral_covector(B::Hat)
 # 	n = length(B)
@@ -215,7 +221,7 @@ end
 # it means that it intersects with the hat function peaked in 0 as well
 # (think for instance y = 0.9999).
 # """
-# function BasisDefinition.nonzero_on(B::Hat, dual_element)
+# function nonzero_on(B::Hat, dual_element)
 # 	y, absT′ = dual_element
 # 	# Note that this cannot rely on arithmetic unless it is verified
 
@@ -253,9 +259,9 @@ end
 # 		    state+1)
 # end
 
-# BasisDefinition.strong_norm(B::Hat) = Lipschitz
-# BasisDefinition.weak_norm(B::Hat) = Linf
-# BasisDefinition.aux_norm(B::Hat) = L1
+# strong_norm(B::Hat) = Lipschitz
+# weak_norm(B::Hat) = Linf
+# aux_norm(B::Hat) = L1
 
 # evaluate_integral(B::Hat, i, T) = T(i)/length(B)
 
@@ -270,16 +276,16 @@ end
 # 	return (v, state+1)
 # end
 
-# BasisDefinition.weak_projection_error(B::Hat) = 0.5 ⊘₊ Float64(length(B), RoundDown)
-# BasisDefinition.aux_normalized_projection_error(B::Hat) = 0.5 ⊘₊ Float64(length(B), RoundDown)
-# BasisDefinition.strong_weak_bound(B::Hat) = 2. ⊗₊ Float64(length(B), RoundDown)
-# BasisDefinition.aux_weak_bound(B::Hat) = 1.
-# BasisDefinition.weak_by_strong_and_aux_bound(B::Hat) = (1., 1.)
-# BasisDefinition.bound_weak_norm_from_linalg_norm(B::Hat) = @error "TODO"
-# BasisDefinition.bound_linalg_norm_L1_from_weak(B::Hat) = @error "TODO"
-# BasisDefinition.bound_linalg_norm_L∞_from_weak(B::Hat) = @error "TODO"
+# weak_projection_error(B::Hat) = 0.5 ⊘₊ Float64(length(B), RoundDown)
+# aux_normalized_projection_error(B::Hat) = 0.5 ⊘₊ Float64(length(B), RoundDown)
+# strong_weak_bound(B::Hat) = 2. ⊗₊ Float64(length(B), RoundDown)
+# aux_weak_bound(B::Hat) = 1.
+# weak_by_strong_and_aux_bound(B::Hat) = (1., 1.)
+# bound_weak_norm_from_linalg_norm(B::Hat) = @error "TODO"
+# bound_linalg_norm_L1_from_weak(B::Hat) = @error "TODO"
+# bound_linalg_norm_L∞_from_weak(B::Hat) = @error "TODO"
 
-# function BasisDefinition.invariant_measure_strong_norm_bound(B::Hat, D::Dynamic)
+# function invariant_measure_strong_norm_bound(B::Hat, D::Dynamic)
 # 	A, B = dfly(strong_norm(B), aux_norm(B), D)
 # 	@assert A < 1.
 # 	return B ⊘₊ (1. ⊖₋ A)
@@ -326,3 +332,4 @@ end
 # 		end
 # 	end
 # end
+# COV_EXCL_STOP

@@ -1,56 +1,47 @@
 module RigorousInvariantMeasures
 
 using IntervalArithmetic: range_atan
-abstract type NormKind end
-struct L1 <: NormKind end
-struct L2 <: NormKind end
-struct Linf <: NormKind end
-struct Lipschitz <: NormKind end
-struct TotalVariation <: NormKind end
-struct ℓ1 <: NormKind end
-struct ℓinf <: NormKind end
 
+
+include("Norms.jl")
 include("differentiation_interface.jl")
 
-# the module Contractors does not depend on any submodule
 include("Contractors.jl")
-using .Contractors
 
 include("DynamicDefinition.jl")
-using .DynamicDefinition
 export Dynamic, endpoints, nbranches, branch, max_inverse_derivative, max_distortion
 
-include("BasisDefinition.jl")
-using .BasisDefinition
+include("Basis/BasisDefinition.jl")
 export opnormbound, weak_norm, strong_norm, aux_norm, integral_covector
+include("NormBounds.jl")
+include("NormCacher.jl")
+
 
 include("GenericAssembler.jl")
-export DiscretizedOperator, IntegralPreservingDiscretizedOperator, NonIntegralPreservingDiscretizedOperator
+export DiscretizedOperator,
+    IntegralPreservingDiscretizedOperator, NonIntegralPreservingDiscretizedOperator
 
 include("GenericEstimate.jl")
 export invariant_vector, finepowernormbounds, powernormbounds, distance_from_invariant
 
 include("PwDynamicDefinition.jl")
 export PwMap, mod1_dynamic
+include("DFLY.jl")
 
-
-include("UlamBasis.jl")
+include("Basis/UlamBasis.jl")
 export Ulam
-include("HatBasis.jl")
+include("Basis/HatBasis.jl")
 export Hat
-include("NonPeriodicHatBasis.jl")
+include("Basis/NonPeriodicHatBasis.jl")
 export HatNP
 
 
-#using .Mod1DynamicDefinition, .Contractors, .PwDynamicDefinition
-
-include("Norms.jl")
 include("pitrig.jl")
 include("NormsOfPowers.jl")
 
 include("preimages.jl")
 include("FFT.jl")
-include("NewChebyshev.jl")
+include("Basis/NewChebyshev.jl")
 export Chebyshev
 
 
@@ -58,17 +49,26 @@ include("precompile.jl")
 
 export NormKind, L1, Linf, Lipschitz, TotalVariation
 
-export PwMap, Basis, assemble, preim, Hat, Ulam,
-	EquispacedPartition, norms_of_powers, sinpi, cospi, dfly,
-	distance_from_invariant,
-	mod1_dynamic, is_refinement
+export PwMap,
+    Basis,
+    assemble,
+    preim,
+    Hat,
+    Ulam,
+    EquispacedPartition,
+    norms_of_powers,
+    sinpi,
+    cospi,
+    dfly,
+    distance_from_invariant,
+    mod1_dynamic,
+    is_refinement
 
 import IntervalArithmetic: Interval, @interval, @biginterval, midpoint_radius
 using IntervalArithmetic
 export Interval
 
-include("C2Basis.jl")
-using .C2BasisDefinition
+include("Basis/C2Basis.jl")
 export C2Basis
 
 
@@ -81,22 +81,41 @@ include("HigherDFLY.jl")
 
 # a special example, the induced map for the LSV map
 include("InducedLSV.jl")
-using .InducedLSVMapDefinition
 export ApproxInducedLSV
 
 include("NoiseKernel.jl")
 export UniformNoiseUlam
+
+include("NoiseKernel2.jl")
+export UniformNoiseUlam2
+
 include("NormsOfPowersNoise.jl")
-export powernormboundsnoise, finepowernormboundsnoise, abstractpowernormboundsnoise, invariant_vector_noise, distance_from_invariant_noise
+export powernormboundsnoise,
+    finepowernormboundsnoise,
+    abstractpowernormboundsnoise,
+    invariant_vector_noise,
+    distance_from_invariant_noise
 
 include("Observables.jl")
 export Observable, discretizationlogder, integrateobservable
 
-include("FourierBasis.jl")
-export L2, Fourier1D, GaussianNoise
+include("Basis/BasisIndex.jl")
 
-include("Lorenz2DUlam.jl")
+#include("Lorenz2DUlam.jl")
+
+
+#include("SkewProductMapDefinition.jl")
+#include("Basis/BasisUlam2DSkewProduct.jl")
 
 include("sample_dynamics.jl")
+
+
+#include("FourierCommon.jl")
+#include("FourierBasis.jl")
+#export L2, Fourier1D, GaussianNoise
+#include("FourierAnalytic.jl")
+#include("FourierAdjoint.jl")
+#include("FourierBasisBack.jl")
+
 
 end

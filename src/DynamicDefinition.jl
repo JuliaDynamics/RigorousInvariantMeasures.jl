@@ -2,9 +2,19 @@
 defines generic Dynamic type
 """
 
-module DynamicDefinition
-export Dynamic, MarkovDynamic, preim, branches, nbranches, plottable, is_full_branch, 
-	domain, endpoints, branch, max_distortion, max_inverse_derivative, is_increasing
+export Dynamic,
+    MarkovDynamic,
+    preim,
+    branches,
+    nbranches,
+    plottable,
+    is_full_branch,
+    domain,
+    endpoints,
+    branch,
+    max_distortion,
+    max_inverse_derivative,
+    is_increasing
 
 abstract type Dynamic end
 abstract type MarkovDynamic <: Dynamic end
@@ -46,5 +56,3 @@ function max_inverse_derivative end
 Maximum of distortion(D, x) = |T''| / (T')^2, over all branches
 """
 function max_distortion end
-
-end

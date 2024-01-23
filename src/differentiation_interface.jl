@@ -2,8 +2,15 @@ using TaylorSeries
 
 # TODO: explore if ForwardDiff(), DualNumbers() or other packages work better than TaylorSeries
 
-export value_and_derivative, value_derivative_and_second_derivative, derivative, 
-        derivative_and_second_derivative, second_derivative, distortion, inverse_derivative, @define_with_derivatives, check_derivatives
+export value_and_derivative,
+    value_derivative_and_second_derivative,
+    derivative,
+    derivative_and_second_derivative,
+    second_derivative,
+    distortion,
+    inverse_derivative,
+    @define_with_derivatives,
+    check_derivatives
 
 
 """
@@ -29,21 +36,21 @@ since the latter are defined generically in terms of the former.
 
 Remark: tricky point that can cause subtle bugs: functions created in the same line-of-code
 will often have the same type; so for instance
-```jldoctest
-julia> fs = [x -> k*x for k in 1:3];  # the three elements here have the same type
+# ```jldoctest
+# julia> fs = [x -> k*x for k in 1:3];  # the three elements here have the same type
 
-julia> typeof(fs[1]) == typeof(fs[3])
-true
+# julia> typeof(fs[1]) == typeof(fs[3])
+# true
 
-julia> derivative(f::typeof(fs[1]), x) = 1;
+# julia> RigorousInvariantMeasures.derivative(f::typeof(fs[1]), x) = 1;
 
-julia> derivative(f::typeof(fs[2]), x) = 2;
+# julia> RigorousInvariantMeasures.derivative(f::typeof(fs[2]), x) = 2;
 
-julia> derivative(f::typeof(fs[3]), x) = 3;
+# julia> RigorousInvariantMeasures.derivative(f::typeof(fs[3]), x) = 3;
 
-julia> derivative(fs[1], 0.5)  # this returns 3, not 1
-3
-```
+# julia> RigorousInvariantMeasures.derivative(fs[1], 0.5)  # this returns 3, not 1
+# 3
+# ```
 """
 function value_and_derivative(f, x)
     y = f(Taylor1([x, one(x)]))
@@ -130,10 +137,12 @@ macro define_with_derivatives(f, df, ddf)
     return quote
         local g = $f
         RigorousInvariantMeasures.value_and_derivative(::typeof(g), x) = ($f(x), $df(x))
-        RigorousInvariantMeasures.value_derivative_and_second_derivative(::typeof(g), x) = ($f(x), $df(x), $ddf(x))
+        RigorousInvariantMeasures.value_derivative_and_second_derivative(::typeof(g), x) =
+            ($f(x), $df(x), $ddf(x))
         RigorousInvariantMeasures.derivative(::typeof(g), x) = $df(x)
         RigorousInvariantMeasures.second_derivative(::typeof(g), x) = $ddf(x)
-        RigorousInvariantMeasures.derivative_and_second_derivative(::typeof(g), x) = ($df(x), $ddf(x))
+        RigorousInvariantMeasures.derivative_and_second_derivative(::typeof(g), x) =
+            ($df(x), $ddf(x))
         g
     end
 end
@@ -161,7 +170,7 @@ julia> check_derivatives(g, 0.2)
 ERROR: AssertionError: all(value_derivative_and_second_derivative(f, x) .≈ (fx, dfx, ddfx))
 ```
 """
-function check_derivatives(f, x=rand())
+function check_derivatives(f, x = rand())
     y = f(Taylor1([x, one(x), zero(x)]))
     fx, dfx, ddfx = y[0], y[1], 2y[2]
 
@@ -170,6 +179,6 @@ function check_derivatives(f, x=rand())
     @assert derivative(f, x) ≈ dfx
     @assert second_derivative(f, x) ≈ ddfx
     @assert all(derivative_and_second_derivative(f, x) .≈ (dfx, ddfx))
-    @assert inverse_derivative(f, x) ≈ 1/dfx 
+    @assert inverse_derivative(f, x) ≈ 1 / dfx
     @assert distortion(f, x) ≈ ddfx / dfx^2
 end

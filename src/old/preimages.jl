@@ -1,9 +1,10 @@
+# COV_EXCL_START
 """
 Compute preimages of monotonic sequences
 """
 
 using IntervalArithmetic
-using .Contractors
+
 
 
 """
@@ -25,7 +26,7 @@ If `X` falls entirely between `v[i]` and `v[i+1]`, then (i, i) is returned.
 """
 function skipandlast(seq, X)
     cmp = ifelse(seq.increasing, lt, gt)
-    return (searchsortedfirst(seq.v, X, lt=cmp) - 1, searchsortedlast(seq.v, X, lt=cmp))
+    return (searchsortedfirst(seq.v, X, lt = cmp) - 1, searchsortedlast(seq.v, X, lt = cmp))
 end
 
 """
@@ -39,7 +40,8 @@ struct PointSequence{T<:AbstractVector}
     skip::Int
     increasing::Bool
 end
-PointSequence(v, skip=0, increasing=unique_increasing(v[begin], v[end])) = PointSequence{typeof(v)}(v, skip, increasing)
+PointSequence(v, skip = 0, increasing = unique_increasing(v[begin], v[end])) =
+    PointSequence{typeof(v)}(v, skip, increasing)
 
 """
 Type used to represent a "branch" of a dynamic. The branch is represented by a monotonic map `f` with domain `X=(a,b)` with a≤b (where typically a,b are intervals). 
@@ -47,11 +49,16 @@ Type used to represent a "branch" of a dynamic. The branch is represented by a m
 """
 struct MonotonicBranch{T,S}
     f::T
-    X::Tuple{S, S}
-    Y::Tuple{S, S}
+    X::Tuple{S,S}
+    Y::Tuple{S,S}
     increasing::Bool
 end
-MonotonicBranch(f, X, Y=(f(Interval(X[1])), f(Interval(X[2]))), increasing=unique_increasing(Y[1], Y[2])) = MonotonicBranch{typeof(f), typeof(X[1])}(f, X, Y, increasing)
+MonotonicBranch(
+    f,
+    X,
+    Y = (f(Interval(X[1])), f(Interval(X[2]))),
+    increasing = unique_increasing(Y[1], Y[2]),
+) = MonotonicBranch{typeof(f),typeof(X[1])}(f, X, Y, increasing)
 
 """
 Construct preimages of a monotonic array y under a monotonic function f in a domain X.
@@ -81,23 +88,24 @@ function preimages(seq, branch, ϵ = 0.0)
 
     n = last - skip
 
-    v = fill((-∞..∞)::typeof(Interval(branch.X[1])), n)
+    v = fill((-∞ .. ∞)::typeof(Interval(branch.X[1])), n)
     if n == 0
-        return PointSequence(v, seq.skip+skip, v_increasing)
+        return PointSequence(v, seq.skip + skip, v_increasing)
     end
     v[1] = preimage(seq.v[skip+1], branch.f, hull(branch.X...), ϵ)
     if n == 1
-        return PointSequence(v, seq.skip+skip, v_increasing)
+        return PointSequence(v, seq.skip + skip, v_increasing)
     end
     v[end] = preimage(seq.v[skip+n], branch.f, hull(branch.X...), ϵ)
-    stride = prevpow(2, n-1)
+    stride = prevpow(2, n - 1)
     while stride >= 1
         # fill in v[i] using v[i-stride] and v[i+stride]
         for i = 1+stride:2*stride:n-1
-            X = hull(v[i-stride], v[min(i+stride, n)]) #TODO: this hull() could be replaced with the proper [a.lo..b.hi], since we know orientations
+            X = hull(v[i-stride], v[min(i + stride, n)]) #TODO: this hull() could be replaced with the proper [a.lo..b.hi], since we know orientations
             v[i] = preimage(seq.v[skip+i], branch.f, X, ϵ)
         end
         stride = stride ÷ 2
     end
-    return PointSequence(v, seq.skip+skip, v_increasing)
+    return PointSequence(v, seq.skip + skip, v_increasing)
 end
+# COV_EXCL_STOP

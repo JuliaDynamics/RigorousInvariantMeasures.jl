@@ -1,10 +1,11 @@
 name = "RigorousInvariantMeasures"
 uuid = "6103b61f-200f-420b-b397-2cbeef157920"
 authors = ["Isaia Nisoli <nisoli@im.ufrj.br>, Federico Poloni <federico.poloni@unipi.it> and contributors"]
-version = "0.2.1"
+version = "0.2.2"
 
 [deps]
 AbstractFFTs = "621f4979-c628-5d54-868e-fcf4e3e8185c"
+Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
 Arpack = "7d9fca2a-8960-54d3-9f78-7d1dccf2cb97"
 CRlibm = "96374032-68de-5a5b-8d9e-752f78720389"
 CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
@@ -35,6 +36,7 @@ TaylorModels = "314ce334-5f6e-57ae-acf6-00b6e903104a"
 TaylorSeries = "6aa5eb33-94cf-58f4-a9d0-e4b2c4fc25ea"
 
 [compat]
+Adapt = "3.7.0"
 AbstractFFTs = "1"
 Arpack = "0.4.0, 0.5"
 CRlibm = "1"
