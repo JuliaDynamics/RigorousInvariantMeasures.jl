@@ -37,8 +37,8 @@ makedocs(;
     ],
 )
 
-# deploydocs(;
-#     repo = "github.com/JuliaDynamics/RigorousInvariantMeasures.jl",
-#     #versions = ["stable" => "v^", "v#.#", devurl => devurl],
-#     devbranch = "main",
-# )
+deploydocs(;
+    repo = "github.com/JuliaDynamics/RigorousInvariantMeasures.jl",
+    #versions = ["stable" => "v^", "v#.#", devurl => devurl],
+    devbranch = "main",
+)
