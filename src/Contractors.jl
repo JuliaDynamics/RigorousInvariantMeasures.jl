@@ -128,29 +128,29 @@ function preimage_monotonic(
     return x
 end
 
-# superseded by IntervalOptimisation.jl
-function range_estimate(f, domain, recstep = 5)
-    if recstep == 1
-        return f(domain)
-    else
-        a, b = bisect(domain)
-        Iₐ = range_estimate(f, a, recstep - 1)
-        Iᵦ = range_estimate(f, b, recstep - 1)
-        return Iₐ ∪ Iᵦ
-    end
-end
+# # superseded by IntervalOptimisation.jl
+# function range_estimate(f, domain, recstep = 5)
+#     if recstep == 1
+#         return f(domain)
+#     else
+#         a, b = bisect(domain)
+#         Iₐ = range_estimate(f, a, recstep - 1)
+#         Iᵦ = range_estimate(f, b, recstep - 1)
+#         return Iₐ ∪ Iᵦ
+#     end
+# end
 
-function range_estimate_der(f, fprime, domain, recstep = 5)
-    if recstep == 1
-        m = typeof(domain)(mid(domain))
-        return f(m) + fprime(domain) * radius(domain)
-    else
-        a, b = bisect(domain)
-        Iₐ = range_estimate_der(f, fprime, a, recstep - 1)
-        Iᵦ = range_estimate_der(f, fprime, b, recstep - 1)
-        return Iₐ ∪ Iᵦ
-    end
-end
+# function range_estimate_der(f, fprime, domain, recstep = 5)
+#     if recstep == 1
+#         m = typeof(domain)(mid(domain))
+#         return f(m) + fprime(domain) * radius(domain)
+#     else
+#         a, b = bisect(domain)
+#         Iₐ = range_estimate_der(f, fprime, a, recstep - 1)
+#         Iᵦ = range_estimate_der(f, fprime, b, recstep - 1)
+#         return Iₐ ∪ Iᵦ
+#     end
+# end
 
 
 using LinearAlgebra
