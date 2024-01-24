@@ -22,9 +22,9 @@ makedocs(;
         "Home" => "index.md",
         "Background" => "background.md",
         "User guide" => [
-             "General usage" => "userguide.md",
-             "Implementing a new basis" => "implementingnewbasis.md",
-         ],
+            "General usage" => "userguide.md",
+            "Implementing a new basis" => "implementingnewbasis.md",
+        ],
         "Basis" => "Basis.md",
         "Dynamic" => "Dynamic.md",
         "Generic assembler interface" => "GenericAssembler.md",
