@@ -9,3 +9,10 @@ Modules = [Base,
         RigorousInvariantMeasures]
 Pages = ["GenericEstimate.jl"]
 ```
+
+# DFLY
+```@autodocs
+Modules = [Base, 
+        RigorousInvariantMeasures]
+Pages = ["DFLY.jl"]
+```

@@ -21,16 +21,18 @@ necessary to compute the raw data necessary
 to compute the entries of the operator, e.g.,
 in the Ulam basis case, it contains three objects.
 One is a vector of preimages, which contains 
-all the preimages $T_i^{-1}(x_j)$ of the elements of the partition 
-through the different branches $T_i$ of the map,
-a second vector that contains the labels associated to these points, i.e., $j$.
+all the preimages ``T_i^{-1}(x_j)`` of the elements of the partition 
+through the different branches ``T_i`` of the map,
+a second vector that contains the labels associated to these points, i.e., ``j``.
 The layout is like this:
-$$
+
+``
 [T_1^{-1}(x_1) \ldots T_1^{-1}(x_n) T_2^{-1}(x_1) \ldots ]
-$$
-$$
+``
+
+``
 [1 \ldots n 1 \ldots]
-$$
+``
 
 In the case of the `Hat` basis, there is a third vector 
 that contains the derivative at the preimages.

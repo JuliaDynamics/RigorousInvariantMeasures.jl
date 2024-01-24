@@ -14,3 +14,10 @@ Modules = [Base,
         RigorousInvariantMeasures]
 Pages = ["PwDynamic.jl"]
 ```
+
+# Induced Liverani Saussol Vaienti
+```@autodocs
+Modules = [Base, 
+        RigorousInvariantMeasures]
+Pages = ["InducedLSV.jl"]
+```

@@ -21,15 +21,17 @@ makedocs(;
     pages = [
         "Home" => "index.md",
         "Background" => "background.md",
-        # "User guide" => [
-        #     "General usage" => "userguide.md",
-        #     "Implementing a new basis" => "implementingnewbasis.md",
-        # ],
+        "User guide" => [
+             "General usage" => "userguide.md",
+             "Implementing a new basis" => "implementingnewbasis.md",
+         ],
         "Basis" => "Basis.md",
         "Dynamic" => "Dynamic.md",
         "Generic assembler interface" => "GenericAssembler.md",
         "Generic estimate interface" => "GenericEstimate.md",
         "Norms Of Powers" => "NormsOfPowers.md",
+        "Noise Kernel" => "NoiseKernel.md",
+        "Observables" => "Observables.md",
         "Examples" => "examples.md",
         "API" => "api.md",
     ],

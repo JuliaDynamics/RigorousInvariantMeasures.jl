@@ -34,3 +34,34 @@ Modules = [Base,
             RigorousInvariantMeasures]
 Pages = ["NormsOfPowersNoise.jl"]
 ```
+
+# Norms
+```@autodocs
+Modules = [Base, 
+            RigorousInvariantMeasures]
+Pages = ["Norms.jl"]
+```
+
+# Norm bounds
+```@autodocs
+Modules = [Base, 
+            RigorousInvariantMeasures]
+Pages = ["NormBounds.jl"]
+```
+
+
+# Norm Cachers
+The methods for systems with noise are the following
+```@autodocs
+Modules = [Base, 
+            RigorousInvariantMeasures]
+Pages = ["NormCacher.jl"]
+```
+
+# Convergence rates abstract operator
+
+```@autodocs
+Modules = [Base, 
+            RigorousInvariantMeasures]
+Pages = ["ConvergenceRatesOriginal.jl"]
+```
