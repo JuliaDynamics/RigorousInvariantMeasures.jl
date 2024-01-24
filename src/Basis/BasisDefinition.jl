@@ -177,7 +177,9 @@ Base.length(S::AverageZero{T}) where {T} = length(S.basis) - 1
 	weak_projection_error(B::Basis)
 
 Return a constant Kh (typically scales as h ~ 1/n) such that 
+
 ``||P_h f-f||\\leq Kh ||f||_s``
+
 Must be rounded up correctly!
 This function is not exported explictly but is used in all the estimates.
 
@@ -187,12 +189,11 @@ This function is not exported explictly but is used in all the estimates.
 julia> using RigorousInvariantMeasures;
 
 julia> B = Ulam(1024)
-Ulam{LinRange{Float64, Int64}}(range(0.0, stop=1.0, length=1025))
+Ulam{LinRange{Float64, Int64}}(LinRange{Float64}(0.0, 1.0, 1025))
 
 julia> RigorousInvariantMeasures.weak_projection_error(B)
-
 0.00048828125
-````
+```
 """
 weak_projection_error(B::Basis) = @error "Not Implemented"
 
@@ -200,7 +201,9 @@ weak_projection_error(B::Basis) = @error "Not Implemented"
 	aux_normalized_projection_error(B::Basis)
 
 Return a constant Eh (typically scales as h ~ 1/n) such that 
-```|||P_h f|||\\leq |||f|||+ Eh * ||f||_s```
+
+``|||P_h f|||\\leq |||f|||+ Eh * ||f||_s``
+
 Must be rounded up correctly!
 """
 aux_normalized_projection_error(B::Basis) = @error "Not Implemented"
@@ -208,22 +211,28 @@ aux_normalized_projection_error(B::Basis) = @error "Not Implemented"
 """
     strong_weak_bound(B::Basis)
 Return a constant ``M₁n`` such that for a vector ``v ∈ Uₕ`` 
-```||v||_s\\leq M1n*||v||```
+
+``||v||_s\\leq M1n*||v||``
+
 Must be rounded up correctly!
 """
 strong_weak_bound(B::Basis) = @error "Not Implemented"
 
 """
 	aux_weak_bound(B::Basis)
-Return a constant ``M₂`` such that for a vector ``v ∈ Uₕ`` 
-```|||v|||\\leq M_2||v||```
+Return a constant ``M₂`` such that for a vector ``v ∈ Uₕ``
+
+``|||v|||\\leq M_2||v||``
+
 Must be rounded up correctly!
 """
 aux_weak_bound(B::Basis) = @error "Not Implemented"
 
 """
-	Return constants ``S₁, S₂`` such that for a vector ``v ∈ Uₕ`` 
-	```||v||\\leq S_1||v||_s+S_2|||v|||```
+Return constants ``S₁, S₂`` such that for a vector ``v ∈ Uₕ`` 
+
+``||v||\\leq S_1||v||_s+S_2|||v|||``
+
 Must be rounded up correctly!
 """
 weak_by_strong_and_aux_bound(B::Basis) = @error "Not Implemented"
@@ -231,16 +240,20 @@ weak_by_strong_and_aux_bound(B::Basis) = @error "Not Implemented"
 """
 	bound_weak_norm_from_linalg_norm(B::Basis)
 Return constants W₁, W₂ such that for a vector ``v ∈ Uₕ`` 
-```||v||\\leq W_1||v||_1+W_2||v||_{\\infty}```
+
+``||v||\\leq W_1||v||_1+W_2||v||_{\\infty}``
+
 Must be rounded up correctly!
 """
 bound_weak_norm_from_linalg_norm(B::Basis) = @error "Not Implemented"
 
-"""
+@doc raw"""
 	bound_linalg_norm_L1_from_weak(B::Basis)
 
 Return a constant ``A`` such that for a vector ``v ∈ Uₕ`` 
-```||v||_1\\leq A||v||```
+
+``||v||_1\leq A||v||``
+
 Must be rounded up correctly!
 """
 bound_linalg_norm_L1_from_weak(B::Basis) = @error "Not Implemented"

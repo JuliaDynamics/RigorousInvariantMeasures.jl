@@ -41,3 +41,24 @@ Modules = [Base,
             RigorousInvariantMeasures]
 Pages = ["NewChebyshev.jl"]
 ```
+
+# Common Fourier interface
+```@autodocs
+Modules = [Base, 
+            RigorousInvariantMeasures]
+Pages = ["FourierCommon.jl"]
+```
+
+# The Fourier Adjoint basis 
+```@autodocs
+Modules = [Base, 
+            RigorousInvariantMeasures]
+Pages = ["FourierAdjoint.jl"]
+```
+
+# The Fourier Analytic basis 
+```@autodocs
+Modules = [Base, 
+            RigorousInvariantMeasures]
+Pages = ["FourierAnalytic.jl"]
+```

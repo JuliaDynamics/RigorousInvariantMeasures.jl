@@ -194,8 +194,8 @@ function nonzero_on(B::Hat, dual_element)
 end
 
 """
-Given a preimage ```y``` of a point ```x```, this iterator returns
-```\\phi_j(y)/T'(y) ```
+Given a preimage ``y`` of a point ``x``, this iterator returns
+``\\phi_j(y)/T'(y) ``
 """
 function Base.iterate(S::ProjectDualElement{T,DT}, state = S.j_min) where {T<:Hat,DT}
     if state == S.j_max + 1

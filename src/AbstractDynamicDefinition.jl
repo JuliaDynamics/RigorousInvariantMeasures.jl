@@ -43,11 +43,19 @@ Endpoints of the branches, in increasing order (returned as a vector of interval
 function endpoints end
 
 @doc raw"""
-Maximum of ``|1/T'|``
+Maximum of 
+
+``|\frac{1}{T'}|``
+
+over all branches
 """
 function max_inverse_derivative end
 
-"""
-    Maximum of distortion(D, x) = ``|T''| / (T')^2``, over all branches
+@doc raw"""
+Maximum of 
+
+``\frac{|T''|}{(T')^2}`` 
+
+over all branches
 """
 function max_distortion end

@@ -127,7 +127,8 @@ end
 dual_val(f::Function, fprime::Function, x, der, derder) = f(x) / der
 dual_der(f::Function, fprime::Function, x, der, derder) =
     fprime(x) / der^2 - f(x) * derder / der^3
-"""
+
+@doc raw"""
 Return (in an iterator) the pairs (i, (x, |T'(x)|)) where x is a preimage of p[i], which
 describe the "dual" L* evaluation(p[i])
 """
@@ -202,9 +203,9 @@ function nonzero_on(B::C2Basis, dual_element)
     return (lo, hi)
 end
 
-"""
-Given a preimage ```y``` of a point ```x```, this iterator returns
-```\\phi_j(y)/T'(y) ```
+@doc raw"""
+Given a preimage `y` of a point `x`, this iterator returns
+``\phi_j(y)/T'(y) ``
 """
 function Base.iterate(S::ProjectDualElement{T}, state = (S.j_min, :val)) where {T<:C2Basis}
     dual = S.dual_element[2]

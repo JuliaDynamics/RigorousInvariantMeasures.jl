@@ -23,5 +23,12 @@ Modules = [Base,
 Pages = ["Preimages.jl"]
 ```
 
+# Differentiation interface
+```@autodocs
+Modules = [Base, 
+            RigorousInvariantMeasures]
+Pages = ["differentiation_interface.jl"]
+```
+
 
 
