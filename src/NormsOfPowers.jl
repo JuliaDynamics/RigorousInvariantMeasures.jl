@@ -164,13 +164,13 @@ function norms_of_powers_trivial(normQ::Real, m::Integer)
     return norms
 end
 
-"""
-Arrays of bounds to ||Q^k||_{w → s} = sup_{||f||_w=1} ||Q^k f||_s
-and to ||Q^k||_{w}
+@doc raw"""
+Arrays of bounds to ``||Q^k||_{w → s} = \sup_{||f||_w=1} ||Q^k f||_s``
+and to ``||Q^k||_{w}``
 coming theoretically from iterated DFLY inequalities (the "small matrix method").
 
 Returns two arrays (strongs, norms) of length m:
-strongs[k] bounds ||Q^k f||_s, norms[k] bounds ||Q^k f||)
+strongs[k] bounds ``||Q^k f||_s``, norms[k] bounds ``||Q^k f||``)
 """
 function norms_of_powers_dfly(
     Bas::Basis,
@@ -201,12 +201,12 @@ function norms_of_powers_dfly(
 end
 
 
-"""
+@doc raw"""
 Compute better and/or more estimates of power norms using
-the fact that ||Q^{k+h}|| ≤ ||Q^k|| * ||Q^h||.
+the fact that ``||Q^{k+h}|| ≤ ||Q^k|| \cdot ||Q^h||``.
 This uses multiplicativity, so it will not work for mixed norms,
-e.g., ||Q^k||_{s → w}, or ||M^k|_{U^0}||
-(unless M preserves U^0, which is the case for Q|_{U^0}).
+e.g., ``||Q^k||_{s → w}``, or ``||M^k|_{U^0}||``
+(unless M preserves ``U^0``, which is the case for ``Q|_{U^0}``).
 """
 function refine_norms_of_powers(norms::Vector, m)
     better_norms = fill(NaN, m)

@@ -13,14 +13,14 @@ A general framework for the rigorous computation of invariant densities and the 
 
 To obtain this estimate we need to get upper bounds
 on 
-$$
+``
 ||L^n_k|_{U_0}||_w.
-$$
+``
 
 The main estimate is 
-$$
-||f-f_k||_w \leq \sum_{i=0}^n ||L^n_k|_{U_0}||_w ||L-L_k f||_{s\to w}$
-$$
+``
+||f-f_k||_w \leq \sum_{i=0}^n ||L^n_k|_{U_0}||_w ||L-L_k f||_{s\to w}
+``
 
 ```@autodocs
 Modules = [Base, 

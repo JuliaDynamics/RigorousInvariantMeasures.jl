@@ -189,10 +189,9 @@ This function is not exported explictly but is used in all the estimates.
 julia> using RigorousInvariantMeasures;
 
 julia> B = Ulam(1024)
-Ulam{LinRange{Float64, Int64}}(range(0.0, stop=1.0, length=1025))
+Ulam{LinRange{Float64, Int64}}(LinRange{Float64}(0.0, 1.0, 1025))
 
 julia> RigorousInvariantMeasures.weak_projection_error(B)
-
 0.00048828125
 ```
 """

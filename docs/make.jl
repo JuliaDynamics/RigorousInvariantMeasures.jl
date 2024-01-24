@@ -9,18 +9,18 @@ DocMeta.setdocmeta!(
 )
 
 makedocs(;
-    #modules = [RigorousInvariantMeasures],
+    modules = [RigorousInvariantMeasures],
     authors = "Isaia Nisoli <nisoli@im.ufrj.br> and contributors",
     sitename = "RigorousInvariantMeasures.jl",
     format = Documenter.HTML(;
         canonical = "https://juliadynamics.github.io/RigorousInvariantMeasures.jl",
         edit_link = "main",
         assets = String[],
-        prettyurls = false,
+        prettyurls = true,
     ),
     pages = [
         "Home" => "index.md",
-        # "Background" => "background.md",
+        "Background" => "background.md",
         # "User guide" => [
         #     "General usage" => "userguide.md",
         #     "Implementing a new basis" => "implementingnewbasis.md",
@@ -30,7 +30,7 @@ makedocs(;
         "Generic assembler interface" => "GenericAssembler.md",
         "Generic estimate interface" => "GenericEstimate.md",
         "Norms Of Powers" => "NormsOfPowers.md",
-        # "Examples" => "examples.md",
+        "Examples" => "examples.md",
         "API" => "api.md",
     ],
 )

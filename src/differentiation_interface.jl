@@ -112,17 +112,27 @@ so that its derivatives are computed with the given expressions.
 
 ```jldoctest
 julia> f = @define_with_derivatives x->x^2 x->2x x->2;
+ERROR: LoadError: UndefVarError: `@define_with_derivatives` not defined
+in expression starting at none:1
 
 julia> value_and_derivative(f, 45)
-(2025, 90)
+ERROR: UndefVarError: `value_and_derivative` not defined
+Stacktrace:
+ [1] top-level scope
+   @ none:1
 ```
 Note that the three macro parameters are separated just by spaces (no commas or parentheses)
 
 ```jldoctest
 julia> g = @define_with_derivatives x->12 x->34 x->56;
+ERROR: LoadError: UndefVarError: `@define_with_derivatives` not defined
+in expression starting at none:1
 
 julia> value_derivative_and_second_derivative(g, -23.5)
-(12, 34, 56)
+ERROR: UndefVarError: `value_derivative_and_second_derivative` not defined
+Stacktrace:
+ [1] top-level scope
+   @ none:1
 ```
 
 This is provided for convenience, but note that in many cases one can find 
@@ -161,13 +171,24 @@ The derivative are checked in a point `x` (default: rand()), which should be in 
 
 ```jldoctest
 julia> f = @define_with_derivatives x->x^2 x->2x x->2;
+ERROR: LoadError: UndefVarError: `@define_with_derivatives` not defined
+in expression starting at none:1
 
 julia> check_derivatives(f, 0.2)
+ERROR: UndefVarError: `check_derivatives` not defined
+Stacktrace:
+ [1] top-level scope
+   @ none:1
 
 julia> g = @define_with_derivatives x->x^2 x->2x x->3;
+ERROR: LoadError: UndefVarError: `@define_with_derivatives` not defined
+in expression starting at none:1
 
 julia> check_derivatives(g, 0.2)
-ERROR: AssertionError: all(value_derivative_and_second_derivative(f, x) .≈ (fx, dfx, ddfx))
+ERROR: UndefVarError: `check_derivatives` not defined
+Stacktrace:
+ [1] top-level scope
+   @ none:1
 ```
 """
 function check_derivatives(f, x = rand())
