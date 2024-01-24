@@ -20,7 +20,7 @@ export PwMap,
     intersect_domain,
     intersect_domain_bool
 
-"""
+@doc raw"""
 Type used to represent a "branch" of a dynamic. The branch is represented by a map `f` with domain `X=(a,b)`. X[1] and X[2] are interval enclosures of a,b.
 
 The map must be monotonic on [a,b]. Note that this is not the same thing as being monotonic on hull(X[1], X[2]): 
@@ -62,10 +62,11 @@ is_full_branch(b::MonotonicBranch{T,S}, X) where {T,S} = equal_up_to_order(b.Y, 
 is_increasing(b::MonotonicBranch) = b.increasing
 
 import Base.reverse
-"""
+
+@doc raw"""
     Base.reverse(br:MonotonicBranch)
 
-"Reverses" the x-axis of a branch: given f:[a,b] -> R, creates a branch with the function g:[-b,-a] -> R defined as g(x) = f(-x)
+"Reverses" the x-axis of a branch: given ``f:[a,b] -> R``, creates a branch with the function ``g:[-b,-a] -> R`` defined as ``g(x) = f(-x)``
 """
 Base.reverse(br::MonotonicBranch) = MonotonicBranch(
     x -> br.f(-x),
@@ -74,12 +75,12 @@ Base.reverse(br::MonotonicBranch) = MonotonicBranch(
     !is_increasing(br),
 )
 
-"""
+@doc raw"""
 Dynamic based on a piecewise monotonic map.
 
-The map is defined as T(x) = Ts[k](x) if x ∈ [endpoints[k], endpoints[k+1]).
+The map is defined as T(x) = Ts\[k\](x) if ``x \in [endpoints[k], endpoints[k+1])``.
 
-`y_endpoints` (k × 2 matrix) contains the result of applying Ts to the endpoints of each interval. These can be filled in automatically from `endpoints`,
+`y_endpoints` (``k \times 2`` matrix) contains the result of applying Ts to the endpoints of each interval. These can be filled in automatically from `endpoints`,
 but sometimes they are known to higher accuracy, for instance for `x -> mod(3x, 1)` we know that it is full-branch exactly.
 It is assumed that the map will send its domain hull(endpoints[begin],endpoints[end]) into itself.
 
@@ -176,7 +177,7 @@ end
 
 
 # Rather than defining derivatives of a PwMap, we define Taylor1 expansions directly
-"""
+@doc raw"""
 Function call, and Taylor expansion, of a PwMap.
 Note that this ignores discontinuities; users are free to shoot themselves
 in the foot and call this on a non-smooth piecewise map. No better solutions for now.
@@ -239,7 +240,7 @@ function bound_branch_distortion(
     return val
 end
 
-"""
+@doc raw"""
     max_distortion(D::PwMap; tol=1e-3)
 
 Compute a rigorous bound for the distortion of a PwMap
@@ -281,10 +282,6 @@ plottable(D::PwMap) = x -> plottable(D, x)
     has_infinite_derivative_at_endpoints(b::MonotonicBranch)
 
 Returns a pair (left::Bool, right::Bool) that tells if a branch has infinite derivative at any of its endpoints
-
-    has_infinite_derivative_at_endpoints(D::PwMap)
-
-Returns a single bool to tell whether the dynamic has infinite derivative at any of its endpoint
 """
 function has_infinite_derivative_at_endpoints(branch::MonotonicBranch)
     # the Interval(0, 1e-15) summand is there because for some reason TaylorSeries fails on point intervals of singularity but not on larger intervals containing them:
@@ -296,6 +293,11 @@ function has_infinite_derivative_at_endpoints(branch::MonotonicBranch)
     return (left, right)
 end
 
+"""
+has_infinite_derivative_at_endpoints(D::PwMap)
+
+Returns a single bool to tell whether the dynamic has infinite derivative at any of its endpoint
+"""
 function has_infinite_derivative_at_endpoints(D::PwMap)
     return any(any(has_infinite_derivative_at_endpoints(b)) for b in D.branches)
 end
@@ -305,7 +307,7 @@ using RecipesBase
 @recipe f(::Type{PM}, D::PM) where {PM<:PwMap} = x -> plottable(D, x)
 #COV_EXCL_STOP
 
-"""
+@doc raw"""
     mod1_dynamic(f::Function, ε = 0.0; full_branch = false)
 
 Utility constructor for dynamics Mod 1 on the torus [0,1].
@@ -394,7 +396,8 @@ function composedPwMap(D1::PwMap, D2::PwMap)
 end
 
 using ProgressMeter
-"""
+
+@doc raw"""
 dfly inequality for maps with infinite derivatives. 
     
 The strategy to compute it follows a variant of Lemma 9.1 in the GMNP paper: 

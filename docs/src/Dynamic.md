@@ -9,7 +9,6 @@ Pages = ["AbstractDynamicDefinition.jl"]
 ```
 
 # One dimensional piecewise monotone map definition
-
 ```@autodocs
 Modules = [Base, 
         RigorousInvariantMeasures]
