@@ -14,10 +14,13 @@ end
 # to make it as coherent possible as the output of the FFT
 # [0:N; -N:-1]
 
-struct FourierAnalytic{T<:AbstractVector} <: Basis
+struct FourierAnalytic{T<:AbstractVector} <: Fourier
     p::T
     k::Integer
 end
+
+Base.length(B::FourierAnalytic) = 2 * B.k + 1
+
 
 function FourierAnalytic(k::Integer, n::Integer; T = Float64)
     return FourierAnalytic(FourierPoints(n, T), k)
@@ -25,11 +28,6 @@ end
 Base.show(io::IO, B::FourierAnalytic) =
     print(io, "FFT on $(length(B.p)) points restricted to highest frequency $(B.k)")
 
-"""
-Return the size of the Fourier basis
-"""
-Base.length(B::FourierAnalytic) = 2 * B.k + 1
-Base.lastindex(B::FourierAnalytic) = length(B)
 
 
 ###############################################################################
@@ -78,48 +76,6 @@ aux_weak_bound(B::FourierAnalytic) = 1.0
 # weak_norm(B::Fourier) = C1
 # aux_norm(B::Fourier) = L1
 # strong_norm(B::Fourier) = W{B.k,1}
-
-"""
-Make so that B[j] returns the basis function of coordinate j
-"""
-function Base.getindex(B::FourierAnalytic, i::Int)
-
-    K = length(B)
-    @boundscheck 1 <= i <= K || throw(BoundsError(B, i))
-
-    N = (K - 1) ÷ 2
-
-    if i == 1
-        return x -> 1
-    end
-
-    if 1 < i <= N + 1
-        return x -> exp(2 * pi * im * (i - 1) * x)
-    end
-
-    if N + 2 <= i <= K
-        L = i + (-2 * N - 2)
-        return x -> exp(2 * pi * im * L * x)
-    end
-end
-
-
-is_refinement(Bc::FourierAnalytic, Bf::FourierAnalytic) = length(Bc) < length(Bf)
-integral_covector(B::FourierAnalytic; T = Float64) = [Interval{T}(1); zeros(length(B) - 1)]'
-one_vector(B::FourierAnalytic) = [1; zeros(length(B) - 1)]
-
-Base.length(S::AverageZero{T}) where {T<:FourierAnalytic} = length(S.basis) - 1
-
-function Base.iterate(S::AverageZero{T}, state = 1) where {T<:FourierAnalytic}
-    B = S.basis
-    i = state
-    if i == length(B)
-        return nothing
-    end
-    v = zeros(length(B))
-    v[i+1] = 1
-    return v, state + 1
-end
 
 struct FourierAnalyticDual <: Dual
     x::Vector{Interval} #TODO: a more generic type may be needed in future
@@ -204,29 +160,30 @@ end
 
 using ProgressMeter
 function assemble(B::FourierAnalytic, D::Dynamic; ϵ = 0.0, max_iter = 100, T = Float64)
-    n = length(B)
+    return assemble_common(B, D; ϵ, max_iter, T)
+    # n = length(B)
 
-    k = (n - 1) ÷ 2
+    # k = (n - 1) ÷ 2
 
-    M = zeros(Complex{Interval{Float64}}, (n, n))
-    computed_dual = Dual(B, D; ϵ, max_iter)
-    @showprogress for i = 1:n
-        ϕ = B[i]
-        w = eval_on_dual(B, computed_dual, ϕ)
+    # M = zeros(Complex{Interval{Float64}}, (n, n))
+    # computed_dual = Dual(B, D; ϵ, max_iter)
+    # @showprogress for i = 1:n
+    #     ϕ = B[i]
+    #     w = eval_on_dual(B, computed_dual, ϕ)
 
-        # zeros(Complex{Interval{Float64}}, length(B.p))
-        # for j in 1:length(x)
-        #     C = ϕ(x[j]) / abs(xp[j])
-        #     if real(C) != ∅ && imag(C) != ∅
-        #         w[labels[j]] += C
-        #     end
-        # end
-        # #@info w
-        FFTw = interval_fft(w)
+    #     # zeros(Complex{Interval{Float64}}, length(B.p))
+    #     # for j in 1:length(x)
+    #     #     C = ϕ(x[j]) / abs(xp[j])
+    #     #     if real(C) != ∅ && imag(C) != ∅
+    #     #         w[labels[j]] += C
+    #     #     end
+    #     # end
+    #     # #@info w
+    #     FFTw = interval_fft(w)
 
-        M[:, i] = [FFTw[1:k+1]; FFTw[end-k+1:end]]
-    end
-    return M
+    #     M[:, i] = [FFTw[1:k+1]; FFTw[end-k+1:end]]
+    # end
+    # return M
 end
 
 # function assemble(B::Fourier, D::Dynamic, ϵ=0.0; T=Float64)

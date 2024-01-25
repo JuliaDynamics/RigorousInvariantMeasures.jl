@@ -29,7 +29,7 @@ Base.show(io::IO, B::FourierAdjoint) =
 Return the size of the Fourier basis
 """
 Base.length(B::FourierAdjoint) = 2 * B.k + 1
-Base.lastindex(B::FourierAdjoint) = length(B)
+#Base.lastindex(B::FourierAdjoint) = length(B)
 
 ###############################################################################
 ###############################################################################

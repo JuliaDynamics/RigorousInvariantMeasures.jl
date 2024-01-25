@@ -30,7 +30,7 @@ comparetrinormweak(Bas::Ulam) = WeakStrongerTrinorm
 
 using LinearAlgebra
 
-"""
+@doc raw"""
     eig_costants_small_matrix(A)
 
 Return the dominant eigenvalue and associated left eigenvector of the small matrix
@@ -61,17 +61,17 @@ function eig_costants_small_matrix(A)
     return ρ, v
 end
 
-"""
+@doc raw"""
     convergencerateabstract(Bas::Ulam, D::Dynamic, norms)
 
-Estimate the strong norm of ```||L^n|_{U_0}||_s``` from `norms`,
+Estimate the strong norm of ``||L^n|_{U_0}||_s`` from `norms`,
 the bounds on the weak norm of the discretized operator
-```||L_{h}^n|_{U_0}||_w```
+
+``||L_{h}^n|_{U_0}||_w``
 
 This method was developed in 
 Stefano Galatolo, Isaia Nisoli, Benoît Saussol. An elementary way to rigorously estimate convergence to equilibrium and escape rates. Journal of Computational Dynamics, 2015, 2 (1) : 51-64. doi: 10.3934/jcd.2015.2.51
 """
-
 function convergencerateabstract(Bas::Ulam, D::Dynamic, norms)
     boundL = bound_weak_norm_abstract(Bas)
     A, B = dfly(strong_norm(Bas), aux_norm(Bas), D)
