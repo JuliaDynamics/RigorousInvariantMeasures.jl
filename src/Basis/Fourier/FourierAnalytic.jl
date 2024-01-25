@@ -22,7 +22,7 @@ end
 Base.length(B::FourierAnalytic) = 2 * B.k + 1
 
 
-function FourierAnalytic(k::Integer, n::Integer; T=Float64)
+function FourierAnalytic(k::Integer, n::Integer; T = Float64)
     return FourierAnalytic(FourierPoints(n, T), k)
 end
 Base.show(io::IO, B::FourierAnalytic) =
@@ -88,7 +88,7 @@ using ..RigorousInvariantMeasures: preimages_and_derivatives
 function FourierAnalyticDualBranch(
     y,
     br::MonotonicBranch,
-    ylabel=1:length(y);
+    ylabel = 1:length(y);
     ϵ,
     max_iter,
 )
@@ -159,7 +159,7 @@ end
 
 
 using ProgressMeter
-function assemble(B::FourierAnalytic, D::Dynamic; ϵ=0.0, max_iter=100, T=Float64)
+function assemble(B::FourierAnalytic, D::Dynamic; ϵ = 0.0, max_iter = 100, T = Float64)
     return assemble_common(B, D; ϵ, max_iter, T)
     # n = length(B)
 

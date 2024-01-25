@@ -3,7 +3,7 @@ using IntervalArithmetic
 
 @testset "Fourier assembler: Common" begin
     coeff = [0.5; 0.0; 0.5]
-    
+
     @test evalFourier(coeff, 0.0) == 1.0
     @test real(evalFourier(coeff, 0.5)) == 0.0
 
@@ -19,16 +19,16 @@ using IntervalArithmetic
     @test length(S) == 256
 
     (v, state) = iterate(S)
-    
+
     w = zeros(257)
     w[2] = 1.0
-    @test v == w 
+    @test v == w
 
     (v, state) = iterate(S, state)
 
     w = zeros(257)
     w[3] = 1.0
-    @test v == w 
+    @test v == w
 
 
 end

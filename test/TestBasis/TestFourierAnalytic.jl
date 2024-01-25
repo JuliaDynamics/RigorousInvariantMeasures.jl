@@ -8,7 +8,13 @@ using IntervalArithmetic
 
     D = mod1_dynamic(x -> 2 * x)
 
-    P = RigorousInvariantMeasures.assemble(B, D; ϵ = 0.00000001, max_iter = 100, T = Float64)
+    P = RigorousInvariantMeasures.assemble(
+        B,
+        D;
+        ϵ = 0.00000001,
+        max_iter = 100,
+        T = Float64,
+    )
 
     real_P = real.(P)
 
