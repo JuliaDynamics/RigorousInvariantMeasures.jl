@@ -2,13 +2,19 @@ using RigorousInvariantMeasures
 using IntervalArithmetic
 @testset "Fourier assembler: Analytic" begin
     B = RigorousInvariantMeasures.FourierAnalytic(128, 1024)
-    length(B) == 128
+    @test length(B) == 257
 
     v = zeros(128)
 
     D = mod1_dynamic(x -> 2 * x)
 
-    P = RigorousInvariantMeasures.assemble(B, D)
+    P = RigorousInvariantMeasures.assemble(
+        B,
+        D;
+        ϵ = 0.00000001,
+        max_iter = 100,
+        T = Float64,
+    )
 
     real_P = real.(P)
 
@@ -28,9 +34,5 @@ using IntervalArithmetic
 
 
     @test all(M .∈ real_P)
-
-
-
-
 
 end

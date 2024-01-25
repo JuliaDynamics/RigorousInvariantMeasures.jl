@@ -5,3 +5,5 @@ docs/build/*
 examples/*.jld
 *.png
 /regressions_*.txt
+*.cov
+*.info
