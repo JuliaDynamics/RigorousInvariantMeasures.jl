@@ -1,3 +1,5 @@
+# COV_EXCL_START
+
 export SkewProductMap
 
 
@@ -18,3 +20,5 @@ function FiberMap(D::SkewProductMap, x, y)
     @assert sum(intersection_x) == 1 "Intersects many branches, ambiguous"
     return (D.G[intersection_x][1])(x, y)
 end
+
+# COV_EXCL_STOP

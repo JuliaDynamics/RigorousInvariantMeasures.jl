@@ -10,6 +10,10 @@ abstract type Fourier <: Basis end
 
 FourierPoints(n, T) = [Interval{T}(i) / (n) for i = 0:n-1]
 
+Base.lastindex(B::Fourier) = length(B)
+
+
+
 function evalFourier(coeff, x)
     @assert length(coeff) % 2 == 1
 
