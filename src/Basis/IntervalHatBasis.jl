@@ -136,7 +136,7 @@ strong_norm(B::HatNP) = Lipschitz
 weak_norm(B::HatNP) = Linf
 aux_norm(B::HatNP) = L1
 
-evaluate_integral(B::HatNP, i, T) = T(i) / (length(B) - 1)
+evaluate_integral(B::HatNP, i, T) = T(1) / (length(B) - 1)
 
 function Base.iterate(S::AverageZero{HatNP{T}}, state = 1) where {T}
     n = length(S.basis)
@@ -151,9 +151,9 @@ end
 
 Base.length(S::AverageZero{HatNP{T}}) where {T} = length(S.basis) - 1
 
-weak_projection_error(B::HatNP) = 0.5 ⊘₊ Float64(length(B), RoundDown)
-aux_normalized_projection_error(B::HatNP) = 0.5 ⊘₊ Float64(length(B), RoundDown)
-strong_weak_bound(B::HatNP) = 2.0 ⊗₊ Float64(length(B), RoundDown)
+weak_projection_error(B::HatNP) = 0.5 ⊘₊ Float64(length(B)-1, RoundDown)
+aux_normalized_projection_error(B::HatNP) = 0.5 ⊘₊ Float64(length(B)-1, RoundDown)
+strong_weak_bound(B::HatNP) = 2.0 ⊗₊ Float64(length(B)-1, RoundDown)
 aux_weak_bound(B::HatNP) = 1.0
 weak_by_strong_and_aux_bound(B::HatNP) = (1.0, 1.0)
 bound_weak_norm_from_linalg_norm(B::HatNP) = @error "TODO"
@@ -218,27 +218,27 @@ struct HatNPDual <: Dual
     x′::Vector{Interval}
 end
 
-function HatNPDualBranch(y, br::MonotonicBranch, ylabel = 1:length(y), ϵ = 0.0)
+function HatNPDualBranch(y, br::MonotonicBranch, ylabel = 1:length(y); ϵ, max_iter)
     if is_increasing(br)
         endpoint_X = br.X[2]
         der = derivative(br.f)(endpoint_X)
-        preim_der = preimages_and_derivatives(y, br, ylabel, ϵ)
+        preim_der = preimages_and_derivatives(y, br, ylabel; ϵ, max_iter)
         return [preim_der[1]; endpoint_X],
         [preim_der[2]; length(preim_der[2]) + 1],
         [preim_der[3]; der]
     else
         endpoint_X = br.X[2]
         der = derivative(br.f)(endpoint_X)
-        preim_der = preimages_and_derivatives(B.p, D, 1:length(B.p)-1, ϵ)
+        preim_der = preimages_and_derivatives(B.p, D, 1:length(B.p)-1; ϵ, max_iter)
         return [preim_der[1]; endpoint_X],
         [preim_der[2]; length(preim_with_der[2]) + 1],
         [preim_der[3]; der]
     end
 end
 
-function Dual(B::HatNP, D, ϵ)
+function Dual(B::HatNP, D; ϵ = 0.0, max_iter = 100)
     @assert is_full_branch(D)
-    results = collect(HatNPDualBranch(B.p, b, 1:length(B.p)-1, ϵ) for b in branches(D))
+    results = collect(HatNPDualBranch(B.p, b, 1:length(B.p)-1; ϵ, max_iter) for b in branches(D))
     x = vcat((result[1] for result in results)...)
     xlabel = vcat((result[2] for result in results)...)
     x′ = vcat((result[3] for result in results)...)
