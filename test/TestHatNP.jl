@@ -50,6 +50,16 @@
     D = mod1_dynamic(x -> 2 * x)
 
     B = HatNP(4)
+
+    @test RigorousInvariantMeasures.strong_norm(B) == Lipschitz
+    @test RigorousInvariantMeasures.weak_norm(B) == Linf
+    @test RigorousInvariantMeasures.aux_norm(B) == L1
+
+    BU = Ulam(4)
+    BH = HatNP(4)
+    v = ones(4)
+    @test RigorousInvariantMeasures.change_of_basis(BU, BH, v) == ones(5)
+
     
     @test RigorousInvariantMeasures.evaluate_integral(B, 1, Float64) == 0.25
     
@@ -68,4 +78,5 @@
     @test norms[10] < 1.0
     @test all(norms[1:9] .>= 1.0)
 
+    @test RigorousInvariantMeasures.invariant_measure_strong_norm_bound(B, D) == 0.0
 end
