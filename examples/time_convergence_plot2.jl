@@ -137,7 +137,7 @@ function save_coarse_data(prefix, K)
     compute_coarse_grid_quantities(f, 4; m = 24)  # warm-up for precompilation
     for n in 2 .^ K
         print("Coarse+fine $n...")
-        F, C = compute_coarse_grid_quantities(f, n; m = 24)
+        C, F = compute_coarse_grid_quantities(f, n; m = 24)
         serialize("$prefix-$n-coarse.juliaserialize", C)
         serialize("$prefix-$n-fine.juliaserialize", F)
         println("done.")
