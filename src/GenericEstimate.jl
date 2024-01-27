@@ -105,16 +105,18 @@ end
 #
 # @deprecate contractmatrix norms_of_powers
 
-"""
-This function returns the bound on the weak norm of the discretized operator
-"""
-function boundnorm(B::Basis, P::AbstractMatrix{Interval{T}}, m) where {T}
-    W₁, W₂ = bound_weak_norm_from_linalg_norm(B)
-    α₁ = bound_linalg_norm_L1_from_weak(B)
-    α₂ = bound_linalg_norm_L∞_from_weak(B)
-    C, tilde_C = contractmatrix(B, P, m)
-    return (W₁ / α₁) * C + (W₂ / α₂) * tilde_C
-end
+# """
+# This function returns the bound on the weak norm of the discretized operator
+# """
+# function boundnorm(B::Basis, P::AbstractMatrix{Interval{T}}, m) where {T}
+#     W₁, W₂ = bound_weak_norm_from_linalg_norm(B)
+#     α₁ = bound_linalg_norm_L1_from_weak(B)
+#     α₂ = bound_linalg_norm_L∞_from_weak(B)
+#     C, tilde_C = contractmatrix(B, P, m)
+#     return (W₁ / α₁) * C + (W₂ / α₂) * tilde_C
+# end
+# 
+# @deprecate boundnorm
 
 """
 Uses different strategies to compute power norm bounds.
@@ -128,7 +130,7 @@ A vector of length m_extend is returned, such that norms[k] ≥ ||Q_h^k|_{U_h^0}
 function powernormbounds(B, D, m, m_extend; Q = DiscretizedOperator(B, D))
     normQ = opnormbound(B, weak_norm(B), Q)
     trivial_norms = norms_of_powers_trivial(normQ, m)
-    computed_norms = norms_of_powers(weak_norm(B), m, Q, integral_covector(B))
+    computed_norms = norms_of_powers(B, weak_norm(B), m, Q, integral_covector(B))
 
     # not interesting at the moment
     #(dfly_strongs, dfly_norms) = norms_of_powers_dfly(B, D, m)
@@ -270,7 +272,16 @@ function compute_coarse_grid_quantities(f, n; m = 8)
         residualbound(B, weak_norm(B), Q, w), mag(integral_covector(B) * w - 1)
     time_norms = @elapsed norms = powernormbounds(B, D, Q = Q, m = m)
     time_dfly = @elapsed dfly_coefficients = dfly(strong_norm(B), aux_norm(B), D)
-    return FineGridQuantities(
+    return CoarseGridQuantities(
+        B,
+        D,
+        norms,
+        dfly_coefficients,
+        time_assembling1,
+        time_norms,
+        time_dfly,
+    ),
+    FineGridQuantities(
         B,
         D,
         normQ,
@@ -279,15 +290,6 @@ function compute_coarse_grid_quantities(f, n; m = 8)
         ε₂,
         time_assembling1 + time_assembling2,
         time_eigen1 + time_eigen2,
-    ),
-    CoarseGridQuantities(
-        B,
-        D,
-        norms,
-        dfly_coefficients,
-        time_assembling1,
-        time_norms,
-        time_dfly,
     )
 end
 

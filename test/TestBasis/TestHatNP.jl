@@ -60,13 +60,13 @@
     v = ones(4)
     @test RigorousInvariantMeasures.change_of_basis(BU, BH, v) == ones(5)
 
-    
+
     @test RigorousInvariantMeasures.evaluate_integral(B, 1, Float64) == 0.25
-    
+
     Q = DiscretizedOperator(B, D)
 
-    @test Q.L[:, 1] == [0.5; 0.25; 0;  0; 0]
-    @test Q.L[:, 2] == [0.0; 0.25; 0.5; 0.25;  0]
+    @test Q.L[:, 1] == [0.5; 0.25; 0; 0; 0]
+    @test Q.L[:, 2] == [0.0; 0.25; 0.5; 0.25; 0]
     @test Q.L[:, 3] == [0.5; 0.25; 0.0; 0.25; 0.5]
     @test Q.L[:, 4] == [0; 0.25; 0.5; 0.25; 0.0]
     @test Q.L[:, 5] == [0; 0; 0; 0.25; 0.5]
