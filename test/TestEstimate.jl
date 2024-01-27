@@ -9,7 +9,7 @@
         return B, D, Q
     end
 
-    FGQ, CGQ = RigorousInvariantMeasures.compute_coarse_grid_quantities(twoxexperiment, 64)
+    CGQ, FGQ = RigorousInvariantMeasures.compute_coarse_grid_quantities(twoxexperiment, 64)
 
     Q = DiscretizedOperator(CGQ.B, CGQ.D)
     norms = powernormbounds(CGQ.B, CGQ.D; Q = Q)
