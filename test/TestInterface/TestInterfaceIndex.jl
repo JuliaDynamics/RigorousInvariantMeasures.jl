@@ -1,0 +1,7 @@
+include("TestAbstractConvergence.jl")
+include("TestAssemble.jl")
+include("TestEstimate.jl")
+include("TestNormOfPowers.jl")
+include("TestNormOfPowersNoise.jl")
+include("TestObservables.jl")
+include("TestPreimages.jl")

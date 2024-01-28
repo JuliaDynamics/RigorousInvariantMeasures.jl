@@ -16,16 +16,14 @@ DocMeta.setdocmeta!(
     include("TestBasisDefinition.jl")
     include("TestContractors.jl")
     include("TestDynamic.jl")
-    include("TestAssemble.jl")
-    include("TestEstimate.jl")
     include("TestRun/TestRunIndex.jl")
-    include("TestNormOfPowers.jl")
-    include("TestAbstractConvergence.jl")
-    include("TestPreimages.jl")
     include("TestChebyshev.jl")
-    include("TestObservables.jl")
-
+    
     include("TestBasis/TestBasisIndex.jl")
+    include("TestInterface/TestInterfaceIndex.jl")
+
+    include("TestInducedLSV.jl")
+    
     include("TestTrig.jl")
 
     #include("TestSkewProductMap.jl")
