@@ -23,6 +23,7 @@ DocMeta.setdocmeta!(
     include("TestInterface/TestInterfaceIndex.jl")
 
     include("TestInducedLSV.jl")
+    include("TestPwMapInducedLSV.jl")
     
     include("TestTrig.jl")
 

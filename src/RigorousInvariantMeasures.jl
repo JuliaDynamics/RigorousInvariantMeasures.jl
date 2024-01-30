@@ -81,6 +81,7 @@ include("HigherDFLY.jl")
 # a special example, the induced map for the LSV map
 include("InducedLSV.jl")
 export ApproxInducedLSV
+include("PwMapInducedLSV.jl")
 
 include("NoiseKernel.jl")
 export UniformNoiseUlam
