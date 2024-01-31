@@ -105,7 +105,5 @@ end
 
 # These definitions were missing, too
 
-using TaylorSeries: Taylor1
-
 sinpi(x::Taylor1) = sin(x * π)
 cospi(x::Taylor1) = cos(x * π)
