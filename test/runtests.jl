@@ -18,13 +18,13 @@ DocMeta.setdocmeta!(
     include("TestDynamic.jl")
     include("TestRun/TestRunIndex.jl")
     include("TestChebyshev.jl")
-    
+
     include("TestBasis/TestBasisIndex.jl")
     include("TestInterface/TestInterfaceIndex.jl")
 
     include("TestInducedLSV.jl")
     include("TestPwMapInducedLSV.jl")
-    
+
     include("TestTrig.jl")
 
     #include("TestSkewProductMap.jl")
