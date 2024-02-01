@@ -35,7 +35,13 @@ function derderleft(D::ApproxInducedLSV, x)
     return 2^α * (α + 1) * α * x^(α - 1) # check that α must be an interval? 
 end
 
-
+"""
+    ShootingLSV(n, y, α, rigstep = 10; T = Float64)
+    
+This method returns the preimages of `y` in the right branch domain
+after `n-1` preimages through the left branch through the LSV map
+with exponent `α`
+"""
 function ShootingLSV(n, y, α, rigstep = 10; T = Float64)
     x = [Interval{T}(0.5, 1); Interval{T}(0, 0.5) * ones(Interval{T}, n - 1)]
     f(x) = 0 <= x <= 0.5 ? x * (1 + (2 * x)^α) : 2x - 1
@@ -288,11 +294,6 @@ function RigorousInvariantMeasures.Dual(
     return x, labels, x′
 end
 
-# this function belongs to the RigorousInvariantMeasures namespace,
-# this is the reason why we define it outside
-using TaylorSeries: Taylor1
-
-
 function dfly(
     ::Type{TotalVariation},
     ::Type{L1},
@@ -322,7 +323,6 @@ function dfly(
 end
 
 import TaylorSeries
-import TaylorSeries: Taylor1
 
 function derivatives_D(α, k, l; T = Float64)
     w = zeros(Interval, (l, l))

@@ -8,9 +8,9 @@ using IntervalArithmetic
 
     v = zeros(128)
 
-    T(x) = 2 * x
+    G(x) = 2 * x
 
-    P = RigorousInvariantMeasures.assemble(B, T)
+    P = RigorousInvariantMeasures.assemble(B, G)
 
     real_P = real.(P)
 

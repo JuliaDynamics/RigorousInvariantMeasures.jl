@@ -374,7 +374,8 @@ function mod1_dynamic(f::Function; ϵ = 0.0, max_iter = 100, full_branch = false
 end
 
 """
-    Create explicitly D1 ∘ D2 as a PwMap
+    Create explicitly D1 ∘ D2 as a PwMap; remark that the endpoints 
+    of D1 must be ordered with respect to the canonical order on R.
 """
 function composedPwMap(D1::PwMap, D2::PwMap)
     y_endpoints = endpoints(D1)

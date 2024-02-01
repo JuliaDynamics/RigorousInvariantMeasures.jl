@@ -1,6 +1,7 @@
 module RigorousInvariantMeasures
 
 using IntervalArithmetic: range_atan
+import IntervalArithmetic: Interval, mid, radius, @interval
 
 
 include("Norms.jl")
@@ -81,6 +82,7 @@ include("HigherDFLY.jl")
 # a special example, the induced map for the LSV map
 include("InducedLSV.jl")
 export ApproxInducedLSV
+include("PwMapInducedLSV.jl")
 
 include("NoiseKernel.jl")
 export UniformNoiseUlam
