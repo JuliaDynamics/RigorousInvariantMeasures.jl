@@ -1,6 +1,7 @@
 module RigorousInvariantMeasures
 
 using IntervalArithmetic: range_atan
+import IntervalArithmetic: Interval, mid, radius, @interval
 
 
 include("Norms.jl")

@@ -323,7 +323,6 @@ function dfly(
 end
 
 import TaylorSeries
-import TaylorSeries: Taylor1
 
 function derivatives_D(α, k, l; T = Float64)
     w = zeros(Interval, (l, l))

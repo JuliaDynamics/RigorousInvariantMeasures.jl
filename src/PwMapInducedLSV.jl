@@ -1,10 +1,15 @@
 # We implement here the InducedLSV map using the new PwDynamics interface
 
+LSV_left(x; α) = x * (1 + (2 * x)^α)
+LSV_right(x) = 2 * x - 1
+
 function PwDynamicApproxInducedLSV(α, k; T=Float64, rescaled = false)
     right = Interval{T}(1.0)
-    f_left(x) = x * (1 + (2 * x)^α)
-    f_right(x) = 2 * x
+    
     branches = MonotonicBranch[]
+
+    f_left(x) = LSV_left(x; α)
+    f_right = LSV_right
 
     f = f_right
     for i in 1:k
@@ -23,8 +28,8 @@ function PwDynamicApproxInducedLSV(α, k; T=Float64, rescaled = false)
     return PwMap(reverse(branches), full_branch=true)
 end
 
-CoordinateChangePwMap(; T=Float64) = PwMap([MonotonicBranch(x -> 2 * x - 1, (Interval{T}(0.5), Interval{T}(1.0)), (Interval{T}(0.0), Interval{T}(1.0)));])
-InvCoordinateChangePwMap(; T=Float64) = PwMap([MonotonicBranch(x -> x / 2 + 0.5, (Interval{T}(0.0), Interval{T}(1.0)), (Interval{T}(0.5), Interval{T}(1.0)));])
+CoordinateChangePwMap(; T=Float64) = PwMap([MonotonicBranch(x -> 2 * x - 1, (Interval{T}(0.5), Interval{T}(1.0)), (Interval{T}(0.0), Interval{T}(1.0)));]; full_branch = true)
+InvCoordinateChangePwMap(; T=Float64) = PwMap([MonotonicBranch(x -> x / 2 + 0.5, (Interval{T}(0.0), Interval{T}(1.0)), (Interval{T}(0.5), Interval{T}(1.0)));]; full_branch = true)
 
 function RescaledApproxInducedLSV(α, k; T=Float64)
     ϕ = CoordinateChangePwMap(; T = T)

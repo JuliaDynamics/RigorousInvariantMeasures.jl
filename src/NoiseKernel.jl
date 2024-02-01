@@ -19,7 +19,6 @@ struct DiscretizedNoiseKernelFFT{S<:AbstractVector,T<:AbstractVector} <: NoiseKe
     P::Any
 end
 
-import IntervalArithmetic: Interval, mid, radius, @interval
 import RigorousInvariantMeasures: opnormbound, Linf
 DiscretizedNoiseKernelFFT(v::Vector{Real}) =
     DiscretizedNoiseKernelFFT(v, fft(v), 0, plan_fft(mid.(v)))
