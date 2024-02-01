@@ -378,7 +378,7 @@ end
     of D1 must be ordered with respect to the canonical order on R.
 """
 function composedPwMap(D1::PwMap, D2::PwMap)
-    y_endpoints = endpoints(D1) 
+    y_endpoints = endpoints(D1)
     x, xlabel = preimages_and_branches(y_endpoints, D2; ϵ = 1e-13, max_iter = 100)
     push!(x, D2.branches[end].X[2])
     branches = [
