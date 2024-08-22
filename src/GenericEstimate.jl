@@ -126,11 +126,11 @@ end
 """
 Computes bounds for norms of powers, taking (optionally) minimum values for the number of norms to compute
 """
-function powernormbounds(B, D; Q=DiscretizedOperator(B, D), m=8)
+function powernormbounds(B, D; Q=DiscretizedOperator(B, D), m=8, threshold = 0.1)
 	computed_norms = []
 	while true
 		computed_norms = norms_of_powers(B, weak_norm(B), m, Q, integral_covector(B))
-		if any(computed_norms .< 0.1)
+		if any(computed_norms .< threshold)
 			break
 		end
 		m = 2*m

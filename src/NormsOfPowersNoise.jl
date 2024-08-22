@@ -261,12 +261,12 @@ function norms_of_powers_from_coarser_grid_noise_abstract(coarse_basis::Ulam,
 end
 
 
-function powernormboundsnoise(B; Q=DiscretizedOperator(B, D), NK = NK::NoiseKernel)
+function powernormboundsnoise(B; Q=DiscretizedOperator(B, D), NK = NK::NoiseKernel, threshold = 0.1)
 	m = 8
 	computed_norms = []
 	while true
 		computed_norms = norms_of_powers_noise(B, weak_norm(B), m, Q, NK, integral_covector(B))
-		if any(computed_norms .< 0.1)
+		if any(computed_norms .< threshold)
 			break
 		end
 		m = 2*m
