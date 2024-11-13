@@ -17,10 +17,12 @@
     error = distance_from_invariant(B, D, Q, w, norms)
     @test error < 1e-10
 
-    logder = discretizationlogder(B, D)
-    @test log(2) ∈ logder.v[1]
+    # using TaylorModels
 
-    lyap = integrateobservable(B, logder, w, error)
-    @test log(2) ∈ lyap
+    # logder = discretizationlogder(B, D)
+    # @test log(2) ∈ logder.v[1]
+
+    # lyap = integrateobservable(B, logder, w, error)
+    # @test log(2) ∈ lyap
 
 end

@@ -229,49 +229,6 @@ function invariant_measure_strong_norm_bound(
     return B ⊘₊ (1.0 ⊖₋ A)
 end
 
-#COV_EXCL_START
-using RecipesBase
-using LaTeXStrings
-
-"""
-Plots a function in the Ulam basis
-"""
-@recipe function f(B::Ulam, w::AbstractVector)
-
-    legend --> :bottomright
-
-    if eltype(w) <: Interval
-        w = mid.(w)
-    end
-
-    @series begin
-        seriestype --> :steppost
-        label --> L"f_{\delta}"
-        ylims --> (0, NaN)
-        B.p, vcat(w, w[end])
-    end
-end
-
-"""
-Displays error on a function in the Ulam basis
-
-The w argument is unused, but kept for compatibility with other functions
-for different bases
-"""
-@recipe function f(B::Ulam, error::Number, w = nothing)
-
-    if isfinite(error)
-        @series begin
-            seriestype --> :path
-            seriesalpha --> 0.5
-            fillrange --> 0
-            label --> "L1 Error"
-            [0; sqrt(error)], [sqrt(error); sqrt(error)]
-        end
-    end
-end
-#COV_EXCL_START
-
 struct UlamDual <: Dual
     x::Vector{Interval} #TODO: a more generic type may be needed in future
     xlabel::Vector{Int}
