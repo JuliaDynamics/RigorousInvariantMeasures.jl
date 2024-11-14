@@ -290,21 +290,4 @@ function Base.iterate(S::AverageZero{T}, state = 1) where {T<:C2Basis}
     return v, state + 1
 end
 
-#COV_EXCL_START
-using RecipesBase
 
-@userplot PlotC2
-@recipe function f(h::PlotC2)
-    if length(h.args) != 2 ||
-       (typeof(h.args[1]) != C2) ||
-       !(typeof(h.args[2]) <: AbstractVector)
-        error("Plot C2 needs as an input a C2 Basis and a vector")
-    end
-
-    B = h.args[1]
-    w = h.args[2]
-
-    seriestype := :path
-    collect(B), mid.(w)
-end
-#COV_EXCL_STOP

@@ -302,11 +302,6 @@ function has_infinite_derivative_at_endpoints(D::PwMap)
     return any(any(has_infinite_derivative_at_endpoints(b)) for b in D.branches)
 end
 
-using RecipesBase
-#COV_EXCL_START
-@recipe f(::Type{PM}, D::PM) where {PM<:PwMap} = x -> plottable(D, x)
-#COV_EXCL_STOP
-
 @doc raw"""
     mod1_dynamic(f::Function, ε = 0.0; full_branch = false)
 

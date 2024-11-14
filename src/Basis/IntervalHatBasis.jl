@@ -169,49 +169,6 @@ function invariant_measure_strong_norm_bound(B::HatNP, D::Dynamic)
     return B ⊘₊ (1.0 ⊖₋ A)
 end
 
-#COV_EXCL_START
-using RecipesBase
-
-"""
-Plots a function in the Hat basis
-"""
-@recipe function f(B::HatNP, w::AbstractVector)
-
-    legend --> :bottomright
-
-    if eltype(w) <: Interval
-        w = mid.(w)
-    end
-
-    @series begin
-        seriestype --> :path
-        label --> L"f_{\delta}"
-        ylims --> (0, NaN)
-        B.p, vcat(w, w[end])
-    end
-end
-
-"""
-Displays error on a function in the Hat basis
-"""
-@recipe function f(B::HatNP, error::Number, w)
-
-    if eltype(w) <: Interval
-        w = mid.(w)
-    end
-
-    if isfinite(error)
-        @series begin
-            seriestype --> :path
-            seriesalpha --> 0.5
-            fillrange --> vcat(w, w[end]) .- error
-            label --> "Error area"
-            B.p, vcat(w, w[end]) .+ error
-        end
-    end
-end
-#COV_EXCL_STOP
-
 struct HatNPDual <: Dual
     x::Vector{Interval} #TODO: a more generic type may be needed in future
     xlabel::Vector{Int}

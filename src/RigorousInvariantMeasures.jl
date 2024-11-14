@@ -76,7 +76,7 @@ export C2Basis
 include("ConvergenceRatesOriginal.jl")
 export convergencerateabstract
 
-include("HigherDFLY.jl")
+#include("HigherDFLY.jl")
 
 
 # a special example, the induced map for the LSV map
@@ -87,8 +87,8 @@ include("PwMapInducedLSV.jl")
 include("NoiseKernel.jl")
 export UniformNoiseUlam
 
-include("NoiseKernel2.jl")
-export UniformNoiseUlam2
+# include("NoiseKernel2.jl")
+# export UniformNoiseUlam2
 
 include("NormsOfPowersNoise.jl")
 export powernormboundsnoise,
@@ -97,8 +97,6 @@ export powernormboundsnoise,
     invariant_vector_noise,
     distance_from_invariant_noise
 
-include("Observables.jl")
-export Observable, discretizationlogder, integrateobservable
 
 include("Basis/BasisIndex.jl")
 
