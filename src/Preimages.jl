@@ -167,7 +167,7 @@ end
 """
 function preimages(y, D::Dynamic, ylabel = 1:length(y); ϵ, max_iter)
     
-    progress = Progress(length(AverageZero(B)); desc="Computing preimages...", enabled=SHOW_PROGRESS_BARS)
+   #progress = Progress(length(AverageZero(B)); desc="Computing preimages...", enabled=SHOW_PROGRESS_BARS)
 
     results = [
         preimages(y, b, ylabel; ϵ, max_iter) for b in branches(D)
