@@ -226,7 +226,7 @@ end
 
 #     M = zeros(Complex{Interval{Float64}}, (n, n))
 #     computed_dual = Dual(B, D; ϵ, max_iter)
-#     @showprogress for i in 1:n
+#     @showprogress enabled=SHOW_PROGRESS_BARS  for i in 1:n
 #         ϕ = B[i]
 #         w = eval_on_dual(B, computed_dual, ϕ)
 #         #@info w

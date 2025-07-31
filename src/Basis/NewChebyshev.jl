@@ -302,7 +302,8 @@ function assemble(B::Chebyshev, D::Dynamic; ϵ = 1e-13, max_iter = 100, T = Floa
     n = length(B.p)
     M = zeros(Interval{T}, (n, n))
     x, labels, x′ = Dual(B, D; ϵ, max_iter)
-    @showprogress for i = 1:n
+    #@showprogress enabled=SHOW_PROGRESS_BARS  
+    for i = 1:n
         ϕ = B[i]
         w = zeros(Interval{Float64}, n)
         for j = 1:length(x)

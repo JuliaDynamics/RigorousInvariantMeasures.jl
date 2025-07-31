@@ -50,7 +50,9 @@ function norms_of_powers_basis(
     #k = length(B.p)
     factor = rescaling_factor(B)
 
-    @showprogress for (v, norm_0) in AverageZero(B)
+    #@showprogress enabled=SHOW_PROGRESS_BARS  
+    for (v, norm_0) in AverageZero(B)
+
 
         #@info v
         v /= norm_0

@@ -167,7 +167,7 @@ function assemble(B::FourierAnalytic, D::Dynamic; ϵ = 0.0, max_iter = 100, T = 
 
     # M = zeros(Complex{Interval{Float64}}, (n, n))
     # computed_dual = Dual(B, D; ϵ, max_iter)
-    # @showprogress for i = 1:n
+    # @showprogress enabled=SHOW_PROGRESS_BARS  for i = 1:n
     #     ϕ = B[i]
     #     w = eval_on_dual(B, computed_dual, ϕ)
 

@@ -3,6 +3,7 @@ module RigorousInvariantMeasures
 using IntervalArithmetic: range_atan
 import IntervalArithmetic: Interval, mid, radius, @interval
 
+const SHOW_PROGRESS_BARS = parse(Bool, get(ENV, "PROGRESS_BARS", "true"))
 
 include("Norms.jl")
 include("differentiation_interface.jl")
