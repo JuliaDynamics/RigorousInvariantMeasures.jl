@@ -123,7 +123,10 @@ function norms_of_powers(
     # main loop
 
     v = zeros(T, n)
-    @showprogress 1 "Computing norms of powers..." for v in AverageZero(B)
+    progress = Progress(length(AverageZero(B)); desc="Computing norms...", enabled=SHOW_PROGRESS_BARS)
+
+    for v in AverageZero(B)
+        next!(progress)
         if normv0 == -1.0
             nrmv = opnormbound(B, N, v)
         else

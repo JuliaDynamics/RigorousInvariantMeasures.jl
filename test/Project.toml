@@ -1,0 +1,6 @@
+[deps]
+Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
+RigorousInvariantMeasures = "6103b61f-200f-420b-b397-2cbeef157920"
+SymbolicUtils = "d1185830-fcd6-423d-90d6-eec64667417b"
+Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
+TaylorModels = "314ce334-5f6e-57ae-acf6-00b6e903104a"

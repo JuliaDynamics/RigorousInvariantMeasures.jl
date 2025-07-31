@@ -107,7 +107,9 @@ function norms_of_powers_noise(
 
     v = zeros(T, n)
 
-    @showprogress for j = 1:n-1
+    progress = Progress(n-1; desc="Computing norms...", enabled=SHOW_PROGRESS_BARS)
+    for j = 1:n-1
+        next!(progress)
         v .= zero(T) # TODO: check for type stability in cases with unusual types
         v[1] = one(T) # TODO: in full generality, this should contain entries of f rather than ±1
         v[j+1] = -one(T)

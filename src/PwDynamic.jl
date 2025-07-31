@@ -414,7 +414,7 @@ function dfly_inf_der(::Type{TotalVariation}, ::Type{L1}, D::PwMap, tol = 1e-3)
         push!(leftrightsingularity, (left, right))
     end
     est = +∞
-    @showprogress 1 "Computing infinite-derivative DFLY..." for i = 3:15
+    for i = 3:15
         val = 0.0
         val_summand = Interval(0.0)
         l = 0.0

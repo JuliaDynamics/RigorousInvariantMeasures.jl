@@ -83,7 +83,9 @@ function assemble_common(B::Fourier, D; ϵ = 0.0, max_iter = 100, T = Float64)
 
     M = zeros(Complex{Interval{Float64}}, (n, n))
     computed_dual = Dual(B, D; ϵ, max_iter)
-    @showprogress for i = 1:n
+    progress = Progress(n; desc="Assembling matrix...", enabled=SHOW_PROGRESS_BARS)
+    for i = 1:n
+        next!(progress)
         ϕ = B[i]
         w = eval_on_dual(B, computed_dual, ϕ)
         #@info w
