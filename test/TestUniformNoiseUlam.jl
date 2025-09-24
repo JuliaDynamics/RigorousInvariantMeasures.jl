@@ -67,7 +67,7 @@
         K = UniformKernelUlamReflecting(B, 1)
         w = K * v
         # at i=1, neighbors are 2 and reflected neighbor also 2
-        expected1 = (2*1 + 2) / 3
+        expected1 = (2 * 1 + 2) / 3
         @test isapprox(w[1], expected1)
     end
 
@@ -77,8 +77,8 @@
         v = rand(length(B))
         Kp = UniformKernelUlamPeriodic(B, 3)
         Kr = UniformKernelUlamReflecting(B, 3)
-        @test isapprox(sum(Kp * v), sum(v); rtol=1e-12)
-        @test isapprox(sum(Kr * v), sum(v); rtol=1e-12)
+        @test isapprox(sum(Kp * v), sum(v); rtol = 1e-12)
+        @test isapprox(sum(Kr * v), sum(v); rtol = 1e-12)
     end
 
     # 5. Interval consistency
@@ -89,7 +89,7 @@
         K = UniformKernelUlamPeriodic(B, 2)
         w_float = K * v
         w_interval = K * iv
-        @test all(w_float[i] ∈ w_interval[i] for i in 1:length(v))
+        @test all(w_float[i] ∈ w_interval[i] for i = 1:length(v))
     end
 
     #import Statistics   
@@ -99,13 +99,13 @@
         v = rand(length(B))
         K = UniformKernelUlamPeriodic(B, 2)
         w = copy(v)
-        for _ in 1:300
+        for _ = 1:300
             mul!(K, w)   # make sure mul! writes in-place
         end
 
         mv = sum(v) / length(v)
 
-        @test isapprox(w, fill(mv, length(v)); rtol=1e-8)
+        @test isapprox(w, fill(mv, length(v)); rtol = 1e-8)
     end
 
     # run all

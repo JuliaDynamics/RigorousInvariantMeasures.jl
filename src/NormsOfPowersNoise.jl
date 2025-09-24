@@ -276,7 +276,12 @@ function norms_of_powers_from_coarser_grid_noise_abstract(
 end
 
 
-function powernormboundsnoise(B; Q = DiscretizedOperator(B, D), NK = NK::NoiseKernel, threshold = 0.1)
+function powernormboundsnoise(
+    B;
+    Q = DiscretizedOperator(B, D),
+    NK = NK::NoiseKernel,
+    threshold = 0.1,
+)
     m = 8
     computed_norms = []
     while true

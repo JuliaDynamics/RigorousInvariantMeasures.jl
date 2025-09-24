@@ -7,7 +7,7 @@ end
 
 function UniformKernelUlam(::Val{BC}, B::Ulam, l::Int) where {BC}
     k = length(B)
-    UniformKernelUlam{BC}(B, l, zeros(k+2l), zeros(k))
+    UniformKernelUlam{BC}(B, l, zeros(k + 2l), zeros(k))
 end
 
 UniformKernelUlamPeriodic(B::Ulam, l::Int) = UniformKernelUlam(Val(:periodic), B, l)
@@ -36,11 +36,11 @@ function mul!(K::UniformKernelUlam{BC}, v::Vector{Float64}) where {BC}
     k = length(v)
     l = K.l
     n = 2l + 1
-    sums  = K.scratch_sum
+    sums = K.scratch_sum
     v_ext = K.scratch_ext
 
     # build extension with chosen boundary condition
-    @inbounds for j = 1:(k + 2l)
+    @inbounds for j = 1:(k+2l)
         idx = get_idx(Val(BC), j - l, k)
         v_ext[j] = v[idx]
     end
@@ -72,18 +72,18 @@ function mul!(K::UniformKernelUlam{BC}, v::Vector{Interval{T}}) where {BC,T}
     k = length(v)
     l = K.l
     n = 2l + 1
-    sums  = K.scratch_sum
+    sums = K.scratch_sum
     v_ext = K.scratch_ext
 
     midv = mid.(v)
     radv = radius.(v)
 
     # norms
-    nrmv   = sum(abs, midv)
+    nrmv = sum(abs, midv)
     nrmrad = sum(abs, radv)
 
     # build extended midpoints
-    @inbounds for j = 1:(k + 2l)
+    @inbounds for j = 1:(k+2l)
         idx = get_idx(Val(BC), j - l, k)
         v_ext[j] = midv[idx]
     end
@@ -110,10 +110,9 @@ function mul!(K::UniformKernelUlam{BC}, v::Vector{Interval{T}}) where {BC,T}
     ϵ = (γₖ ⊗₊ normMK) ⊗₊ nrmv / n ⊕₊ (normMK ⊗₊ nrmrad) / n
 
     # normalize into intervals
-    @inbounds for i = 1:k 
+    @inbounds for i = 1:k
         v[i] = Interval(sums[i] / n) + Interval(-ϵ, ϵ)
     end
 
     return v
 end
-
