@@ -26,6 +26,7 @@ DocMeta.setdocmeta!(
     include("TestPwMapInducedLSV.jl")
 
     include("TestTrig.jl")
+    include("TestUniformNoiseUlam.jl")
 
     #include("TestSkewProductMap.jl")
     #include("TestUlam2DSP.jl")

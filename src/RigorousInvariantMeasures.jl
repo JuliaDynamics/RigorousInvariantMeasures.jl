@@ -88,6 +88,9 @@ include("PwMapInducedLSV.jl")
 include("NoiseKernel.jl")
 export UniformNoiseUlam
 
+include("UniformNoiseUlam.jl")
+export UniformKernelUlamPeriodic, UniformKernelUlamReflecting
+
 # include("NoiseKernel2.jl")
 # export UniformNoiseUlam2
 
