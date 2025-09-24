@@ -289,5 +289,3 @@ function Base.iterate(S::AverageZero{T}, state = 1) where {T<:C2Basis}
     end
     return v, state + 1
 end
-
-

@@ -40,7 +40,7 @@ CoordinateChangePwMap(; T = Float64) = PwMap(
             x -> 2 * x - 1,
             (Interval{T}(0.5), Interval{T}(1.0)),
             (Interval{T}(0.0), Interval{T}(1.0)),
-        )
+        ),
     ];
     full_branch = true,
 )
@@ -50,7 +50,7 @@ InvCoordinateChangePwMap(; T = Float64) = PwMap(
             x -> x / 2 + 0.5,
             (Interval{T}(0.0), Interval{T}(1.0)),
             (Interval{T}(0.5), Interval{T}(1.0)),
-        )
+        ),
     ];
     full_branch = true,
 )

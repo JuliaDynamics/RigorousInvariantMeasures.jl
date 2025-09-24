@@ -1,4 +1,4 @@
 module SymbolicsExt
-    using RigorousInvariantMeasures, Symbolics
-    include("HigherDFLY.jl")
+using RigorousInvariantMeasures, Symbolics
+include("HigherDFLY.jl")
 end

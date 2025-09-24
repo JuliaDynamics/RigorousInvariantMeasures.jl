@@ -6,7 +6,7 @@ using RigorousInvariantMeasures
 
 import TaylorModels
 
-function integrate(f, I; steps=1024, degree=6)
+function integrate(f, I; steps = 1024, degree = 6)
     lo = I.lo
     hi = I.hi
     l = 2 * radius(I)
@@ -28,7 +28,7 @@ function integrate(f, I; steps=1024, degree=6)
     return int_center + int_error
 end
 
-function adaptive_integration(f, I::Interval; tol=2^-10, steps=8, degree=6) # tol 2^-10, steps = 8 are default values
+function adaptive_integration(f, I::Interval; tol = 2^-10, steps = 8, degree = 6) # tol 2^-10, steps = 8 are default values
     lo = I.lo
     hi = I.hi
     l = 2 * radius(I)
@@ -45,16 +45,16 @@ function adaptive_integration(f, I::Interval; tol=2^-10, steps=8, degree=6) # to
             val₁ = adaptive_integration(
                 f,
                 I₁;
-                tol=tol / 2,
-                steps=steps,
-                degree=degree + 2,
+                tol = tol / 2,
+                steps = steps,
+                degree = degree + 2,
             )
             val₂ = adaptive_integration(
                 f,
                 I₂;
-                tol=tol / 2,
-                steps=steps,
-                degree=degree + 2,
+                tol = tol / 2,
+                steps = steps,
+                degree = degree + 2,
             )
             int_value += val₁ + val₂
         end
@@ -90,11 +90,11 @@ julia> Observable(B, x->x)
 Observable(Ulam{LinRange{Float64, Int64}}(LinRange{Float64}(0.0, 1.0, 5)), Interval{Float64}[[0.125, 0.125], [0.375, 0.375], [0.625, 0.625], [0.875, 0.875]], [0.999734, 1])
 ```
 """
-function Observable(B::Ulam, ϕ::Function; tol=2^-10)
+function Observable(B::Ulam, ϕ::Function; tol = 2^-10)
     v = zeros(Interval{Float64}, length(B))
     for i = 1:length(B)
         I = Interval(B.p[i], B.p[i+1])
-        v[i] = adaptive_integration(ϕ, I; tol=tol, steps=1, degree=2) * length(B)
+        v[i] = adaptive_integration(ϕ, I; tol = tol, steps = 1, degree = 2) * length(B)
     end
     infbound = maximise(x -> abs(ϕ(x)), Interval(0, 1))[1]
     return Observable(B, v, infbound)
@@ -108,7 +108,7 @@ Compute the discretization of the logarithm of the derivative
 of the dynamics 'D' on the Ulam basis 'B', using a Taylor series 
 expansion of degree 'degree' 
 """
-function discretizationlogder(B::Ulam, D::PwMap; degree=7)
+function discretizationlogder(B::Ulam, D::PwMap; degree = 7)
     v = zeros(Interval{Float64}, length(B))
     # we first compute the indexes in the Ulam approximation 
     # of the endpoints of the branches 
