@@ -4,7 +4,8 @@
     using IntervalArithmetic
     using RigorousInvariantMeasures
 
-    import RigorousInvariantMeasures: wrap_idx, reflect_outward_idx
+    import RigorousInvariantMeasures: wrap_idx, reflect_outward_idx, nonzero_per_row, opnormbound, opradius, dfly
+    import RigorousInvariantMeasures: UniformKernelUlamPeriodic, UniformKernelUlamReflecting
 
 
     k = 5
@@ -107,6 +108,34 @@
 
         @test isapprox(w, fill(mv, length(v)); rtol = 1e-8)
     end
+
+    B = Ulam(10)
+    # Periodic kernel with half-width l=2 (window size = 5)
+    Kp = UniformKernelUlamPeriodic(B, 2)
+    Kr = UniformKernelUlamReflecting(B, 2)
+
+    # --- opnormbound ---
+    @test opnormbound(B, L1, Kp) == 1.0
+    @test opnormbound(B, L1, Kr) == 1.0
+
+    # --- opradius ---
+    @test opradius(L1, Kp) == 0.0
+    @test opradius(L1, Kr) == 0.0
+
+    # --- nonzero_per_row ---
+    @test nonzero_per_row(Kp) == 2*2 + 1  # 5
+    @test nonzero_per_row(Kr) == 5
+
+    # --- dfly ---
+    coeffs_p = dfly(TotalVariation, L1, Kp)
+    coeffs_r = dfly(TotalVariation, L1, Kr)
+
+    # both kernels should have contraction coefficients (0, 1/(2ξ))
+    ξ = (2*2 + 1) / length(B)   # effective noise size
+    expected = (0.0, 1/(2ξ))
+
+    @test coeffs_p[2] ≈ expected[2]
+    @test coeffs_r[2] ≈ expected[2]
 
     # run all
     test_identity()
