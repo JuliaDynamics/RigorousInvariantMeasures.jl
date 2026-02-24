@@ -239,7 +239,7 @@ function Base.iterate(S::AverageZero{T}, state = 1) where {T<:Chebyshev}
     v = zeros(length(B))
     v[i+1] = 1
     v[1] = -mid.(integral_covector(B)[i+1])
-    return v / ((i + 1)^2), state + 1
+    return v, state + 1
 end
 
 struct ChebyshevDual <: Dual
@@ -359,12 +359,12 @@ function opnormbound(B::Chebyshev, N::Type{C1}, A::Matrix{S}) where {S}
     for i = 1:m
         norm = max(
             norm,
-            Float64(opnormbound(B, N, A[:, i]), RoundUp) ⊘₊ Float64(1 + i^2, RoundDown),
+            Float64(opnormbound(B, N, A[:, i]), RoundUp),
         )
-        # since these are the images of the basis elements, we can use the fact that
-        # |Tₖ(x)|= 1, Tₖ' = k*U_{k-1}, |U_{k-1}|=k
     end
-    return norm ⊗₊ log(m + 2)
+    # D = log(N+1) bounds ||·||_{ℓ¹} ≤ D ||·||_{C¹} via Chebyshev coefficient decay
+    # (Theorem 3.12 in Nisoli–Taylor-Crush 2023); columns must be unnormalized.
+    return norm ⊗₊ Float64(log(m + 1), RoundUp)
 end
 
 normbound(B::Chebyshev{T}, N::Type{C1}, v) where {T} =
@@ -388,5 +388,5 @@ Return the norm of the matrix the NormCacher is working on.
 """
 function get_norm(Cacher::NormCacherC1)
     n = length(Cacher.B)
-    return Cacher.C ⊗₊ log(n + 2)
+    return Cacher.C ⊗₊ Float64(log(n + 1), RoundUp)
 end
