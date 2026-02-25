@@ -1,6 +1,6 @@
 using Symbolics
 
-""" 
+"""
     Represent a symbolic transfer operator
     `(L_n f)(x) = \\sum_{y\\in T^{-1}(x)}\\frac{f(y)}{|T'(y)|^n}`
 """
@@ -12,9 +12,9 @@ end
 
 
 """
-    Compute the derivative of a symbolic transfer operator  
+    Compute the derivative of a symbolic transfer operator
     `P` with respect to differential `∂`
-    and with derivative of `1/T′ ` given by the function 
+    and with derivative of `1/T′ ` given by the function
     `Dist`.
     Refer to Eq. 3.2 in Butterley-Kiamari-Liverani Locating Ruelle Pollicot Resonances
 """
@@ -23,7 +23,7 @@ Diff(P::SymbL, ∂::Differential, Dist) =
 
 """
     Given the summands of a sum of Symbolic Transfer Operator
-    given in a vector, computes a vector containing 
+    given in a vector, computes a vector containing
     the sum of the derivatives
 """
 function Diff(v::Vector{SymbL}, ∂::Differential, Dist)
@@ -35,13 +35,13 @@ function Diff(v::Vector{SymbL}, ∂::Differential, Dist)
 end
 
 function compute_dfly_k_fi_DDi(k::Int)
-    # the following vector valued function is such that 
-    # f_i corresponds to the $i-1$ derivative of f 
+    # the following vector valued function is such that
+    # f_i corresponds to the $i-1$ derivative of f
     @variables x
-    @variables (f(x))[1:k+1] #f[0:k](x) # 
+    @variables (f(x))[1:k+1] #f[0:k](x) #
 
-    # the following vector valued function is such that 
-    # DD_i corresponds to the $i-1$ derivative of Dist 
+    # the following vector valued function is such that
+    # DD_i corresponds to the $i-1$ derivative of Dist
     @variables Dist(x)
     @variables (DD(x))[1:k+1]
 
@@ -61,17 +61,17 @@ function compute_dfly_k_fi_DDi(k::Int)
     v = P
     for i = 1:k
         v = Diff(v, ∂, Dist)
-        for k = 1:length(v)
+        for j = 1:length(v)
             # for each one of the elements in v
             # we first expand the derivatives
-            temporary = expand_derivatives(v[k].f, true)
-            # we know use the dictionary above 
+            temporary = expand_derivatives(v[j].f, true)
+            # we then use the dictionary above
             # ∂(f[i]) = f[i+1], and similarly for DD
             temporary = substitute(temporary, der_dict)
             # we simplify
             temporary = simplify(temporary; expand = true)
             # we store again in the vector
-            v[k] = SymbL(v[k].n, temporary)
+            v[j] = SymbL(v[j].n, temporary)
         end
     end
     return v
@@ -79,7 +79,8 @@ end
 
 using SymbolicUtils
 
-function _optimize_mult(k, n, h::SymbolicUtils.Mul, vals)
+function _optimize_mult(k, n, h, vals)
+    @assert SymbolicUtils.ismul(h)
 
     @variables x
 
@@ -89,7 +90,7 @@ function _optimize_mult(k, n, h::SymbolicUtils.Mul, vals)
     @variables (DD(x))[1:k+1]
     boolDD = [(symb in keys(h.dict)) for symb in DD]
 
-    # I start with a simple version, where I use the n on 
+    # I start with a simple version, where I use the n on
     # the highest derivative of DD, in further versions
     # I will try to optimize over all possibilities
 
@@ -97,14 +98,14 @@ function _optimize_mult(k, n, h::SymbolicUtils.Mul, vals)
     pow = h.dict[DD[i]]
 
     # This uses the computed bounds to compute
-    # ||DDᵢ/(T')^n-1||_{∞}*||DD_i||_{∞}^{pow-1}
+    # ||DDᵢ/(T')^{n-1}||_{∞} * ||DD_i||_{∞}^{pow-1}
 
     bound = vals[i+1, n] * vals[i+1, 1]^(pow - 1)
 
     for j = 1:i-1
-        if boolDD[j] != false
+        if boolDD[j]
             pow = h.dict[DD[j]]
-            bound *= vals[j+1, 1] * pow
+            bound *= vals[j+1, 1]^pow
         end
     end
 
@@ -116,15 +117,13 @@ function optimize_coefficients(k, v::Vector{SymbL}, vals)
     out = Num(0)
     for x in v
         n = x.n
-        #@info "x" x
-        if typeof(x.f.val) <: SymbolicUtils.Mul
-            y = x.f.val
-            val = _optimize_mult(k, n, y, vals)
-            out += _optimize_mult(k, n, x.f.val, vals)
-        elseif typeof(x.f.val) <: SymbolicUtils.Add
-            for y in keys(x.f.val.dict)
+        fval = x.f.val
+        if SymbolicUtils.ismul(fval)
+            out += _optimize_mult(k, n, fval, vals)
+        elseif SymbolicUtils.isadd(fval)
+            for y in keys(fval.dict)
                 val = _optimize_mult(k, n, y, vals)
-                out += x.f.val.dict[y] * val
+                out += fval.dict[y] * val
             end
         end
     end
@@ -135,18 +134,17 @@ function substitute_values(k, v::Vector{SymbL}, vals)
     λ = vals[1]
     DDs = vals[2:end]
     @variables x
-    @variables f(x)[1:k]
-    @variables DD(x)[1:k]
+    @variables (f(x))[1:k+1]
+    @variables (DD(x))[1:k+1]
 
     subsdict = Dict([DD[i] => DDs[i] for i = 1:k])
 
     w = zeros(Num, length(v))
 
-    for k = 1:length(v)
-        n = v[k].n
-        f = v[k].f
-        #w[k] = substitute(f, subsdict)
-        #w[k] = λ^(n-1)*w[k]
+    for j = 1:length(v)
+        n = v[j].n
+        w[j] = substitute(v[j].f, subsdict)
+        w[j] = λ^(n - 1) * w[j]
     end
     return w
 end
