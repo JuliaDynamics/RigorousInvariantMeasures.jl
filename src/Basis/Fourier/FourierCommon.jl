@@ -1,9 +1,11 @@
 using .RigorousInvariantMeasures: Dual, interval_fft
+using .RigorousInvariantMeasures: NormKind, L1, L2, Aη, W, Cω, TotalVariation, dfly
+import .RigorousInvariantMeasures: opnormbound, normbound, restrict_to_average_zero
 
 export Fourier, evalFourier, FourierPoints, assemble_common, eval_on_dual
 
-
 using IntervalArithmetic
+using FastRounding
 
 abstract type Fourier <: Basis end
 
@@ -66,6 +68,62 @@ function Base.iterate(S::AverageZero{T}, state = 1) where {T<:Fourier}
     v[i+1] = 1
     return v, state + 1
 end
+
+###############################################################################
+# Shared norm interface for all Fourier bases (dispatch on Fourier)
+###############################################################################
+
+# --- aux_weak_bound: ||v||_{L¹} ≤ M₂ · ||v||_{L²} ---
+# On [0,1]: ||v||_{L¹} ≤ ||v||_{L²} by Cauchy-Schwarz → M₂ = 1
+aux_weak_bound(B::Fourier) = 1.0
+
+# --- weak_by_strong_and_aux_bound: ||v||_{L²} ≤ S₁·||v||_s + S₂·||v||_{L¹} ---
+# Both Aη and W^{k,1}: ||v||_{L²} ≤ ||v||_{L∞} ≤ ||v||_{Aη} or ||v||_{W^{1,1}} ≤ ||v||_{W^{k,1}}
+# So (S₁, S₂) = (1, 0)
+weak_by_strong_and_aux_bound(B::Fourier) = (1.0, 0.0)
+
+# --- bound_weak_norm_from_linalg_norm: ||v||_{L²} ≤ W₁·||v̂||_{ℓ¹} + W₂·||v̂||_{ℓ∞} ---
+# Parseval: ||v||_{L²} = ||v̂||_{ℓ²} ≤ ||v̂||_{ℓ¹} → (1, 0)
+bound_weak_norm_from_linalg_norm(B::Fourier) = (1.0, 0.0)
+
+# --- bound_linalg_norm_L1_from_weak: ||v̂||_{ℓ¹} ≤ A · ||v||_{L²} ---
+# Cauchy-Schwarz: ||v̂||_{ℓ¹} ≤ √n · ||v̂||_{ℓ²} = √n · ||v||_{L²}
+bound_linalg_norm_L1_from_weak(B::Fourier) = sqrt(Float64(length(B), RoundUp))
+
+# --- bound_linalg_norm_L∞_from_weak: ||v̂||_{ℓ∞} ≤ A · ||v||_{L²} ---
+# ||v̂||_{ℓ∞} ≤ ||v̂||_{ℓ²} = ||v||_{L²} → A = 1
+bound_linalg_norm_L∞_from_weak(B::Fourier) = 1.0
+
+# --- opnormbound and normbound: delegate to NormBounds.jl L2 implementations ---
+# The 2-argument opnormbound(::Type{L2}, M) is defined in NormBounds.jl
+opnormbound(B::Fourier, ::Type{L2}, M::AbstractVecOrMat{S}) where {S} =
+    opnormbound(L2, M)
+normbound(B::Fourier, ::Type{L2}, v) = normbound(L2, v)
+
+# --- invariant_measure_strong_norm_bound: standard DFLY pattern B/(1-A) ---
+function invariant_measure_strong_norm_bound(
+    B::Fourier,
+    D::Dynamic;
+    dfly_coefficients = dfly(strong_norm(B), aux_norm(B), D),
+)
+    A, Bcoeff = dfly_coefficients
+    @assert A < 1.0
+    return Bcoeff ⊘₊ (1.0 ⊖₋ A)
+end
+
+# --- bound_weak_norm_abstract: bound ||L||_{L²→L²} ---
+# For Markov transfer operators: ||L||_{L¹} ≤ 1, ||L||_{L∞} ≤ 1
+# By Riesz-Thorin: ||L||_{L²} ≤ 1
+# For general maps: use dfly_coefficients[2] ⊕₊ 1.0 as Hat does
+bound_weak_norm_abstract(
+    B::Fourier,
+    D = nothing;
+    dfly_coefficients = dfly(strong_norm(B), aux_norm(B), D),
+) = dfly_coefficients[2] ⊕₊ 1.0
+
+# --- restrict_to_average_zero for Fourier: U^0 = span{e₂,...,eₙ} ---
+# For Fourier, integral_covector = [1, 0, ..., 0], so restriction is just BM[2:end, 2:end]
+restrict_to_average_zero(B::Fourier, BM, f) = BM[2:end, 2:end]
 
 abstract type FourierDual <: Dual end
 

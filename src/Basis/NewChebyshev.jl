@@ -1,9 +1,3 @@
-
-struct C1 <: NormKind end
-struct W{k,l} <: NormKind end
-order(::Type{W{k,l}}) where {k,l} = k
-regularity(::Type{W{k,l}}) where {k,l} = l
-
 struct Chebyshev{T<:AbstractVector} <: Basis
     p::T
     k::Integer

@@ -66,6 +66,22 @@ function opnormbound(::Type{L2}, v::Vector{T}) where {T<:Complex}
     return convert(Tnorm, sqrt_round(nrm, RoundUp))
 end
 
+"""
+Certified upper bound to the L2 operator norm of a matrix via BallArithmetic.
+Uses Collatz + sqrt(L1·L∞) interpolation for a tight bound.
+"""
+function opnormbound(::Type{L2}, A::AbstractMatrix{T}) where {T}
+    BM = BallMatrix(Matrix(A))  # materialize to handle Adjoint/Transpose types
+    return upper_bound_L2_opnorm(BM)
+end
+
+"""
+Rigorous upper bound on the L2 norm of a vector, using Parseval identity.
+"""
+function normbound(::Type{L2}, v::AbstractVector)
+    return opnormbound(L2, collect(v))
+end
+
 import SparseArrays
 
 function opnormbound(::Type{L1}, A::SparseArrays.SparseMatrixCSC)

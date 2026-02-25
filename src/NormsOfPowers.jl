@@ -153,6 +153,43 @@ function norms_of_powers(
 end
 
 """
+Restrict a matrix to the average-zero subspace.
+Default implementation: requires specialization per basis type.
+"""
+restrict_to_average_zero(B::Basis, BM, f) = @error "restrict_to_average_zero not implemented for $(typeof(B))"
+
+"""
+Estimates ||Q||, ||Q^2||, ... ||Q^m|| on U^0 using L2 norm via BallArithmetic.
+
+Computes matrix powers as BallMatrices, which automatically track rounding errors.
+Uses upper_bound_L2_opnorm for rigorous spectral norm bounds.
+"""
+function norms_of_powers(
+    B::Basis,
+    ::Type{L2},
+    m::Integer,
+    Q::DiscretizedOperator,
+    f::AbstractArray;
+    kwargs...,
+)
+    # Convert Q.L to BallMatrix (IntervalArithmeticExt handles Complex{Interval} → BallMatrix)
+    BM = BallMatrix(Q.L)
+
+    # Restrict to U^0 (average-zero subspace)
+    BM_U0 = restrict_to_average_zero(B, BM, f)
+
+    norms = Vector{Float64}(undef, m)
+    BM_power = BM_U0
+    for k = 1:m
+        norms[k] = upper_bound_L2_opnorm(BM_power)
+        if k < m
+            BM_power = BM_power * BM_U0
+        end
+    end
+    return norms
+end
+
+"""
 Array of "trivial" bounds for the powers of a DiscretizedOperator (on the whole space)
 coming from from ||Q^k|| ≤ ||Q||^k
 """
