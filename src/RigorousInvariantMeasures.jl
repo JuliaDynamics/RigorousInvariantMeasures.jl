@@ -89,7 +89,19 @@ include("NoiseKernel.jl")
 export UniformNoiseUlam
 
 include("UniformNoiseUlam.jl")
-export UniformKernelUlamPeriodic, UniformKernelUlamReflecting
+export UniformKernelUlamPeriodic, UniformKernelUlamReflecting, UniformKernelUlam
+
+# Function stub for plotting extension
+"""
+    plot_noisy_system(D::PwMap, K::UniformKernelUlam, w, L; n_samples=1000, n_points=500)
+
+Plot a 3-panel visualization of a dynamical system with uniform noise.
+Requires `using Plots` to load the extension that implements this function.
+
+See the PlotsExt extension for full documentation.
+"""
+function plot_noisy_system end
+export plot_noisy_system
 
 # include("NoiseKernel2.jl")
 # export UniformNoiseUlam2
@@ -100,6 +112,13 @@ export powernormboundsnoise,
     abstractpowernormboundsnoise,
     invariant_vector_noise,
     distance_from_invariant_noise
+
+include("NoiseSpecializedEstimate.jl")
+export noise_error_aposteriori,
+    noise_error_apriori,
+    prepare_Wnorm_estimate,
+    prepare_derivative_bounds,
+    total_variation
 
 
 include("Basis/BasisIndex.jl")

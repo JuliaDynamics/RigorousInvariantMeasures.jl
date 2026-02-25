@@ -27,10 +27,11 @@ DocMeta.setdocmeta!(
 
     include("TestTrig.jl")
     include("TestUniformNoiseUlam.jl")
+    include("TestNoiseSpecializedEstimate.jl")
 
     #include("TestSkewProductMap.jl")
     #include("TestUlam2DSP.jl")
-    #include("TestHigherDFLY.jl")
+    include("TestHigherDFLY.jl")
 
 
 
