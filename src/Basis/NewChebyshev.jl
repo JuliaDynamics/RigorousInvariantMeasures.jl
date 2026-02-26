@@ -191,15 +191,64 @@ function strong_weak_bound(B::Chebyshev)
 end
 aux_weak_bound(B::Chebyshev) = 1.0
 
-# Check this!!!
+"""
+    weak_by_strong_and_aux_bound(B::Chebyshev)
+
+Returns `(S₁, S₂)` such that `||f||_{C1} ≤ S₁·||f||_{W^{k,1}} + S₂·||f||_{L1}`.
+
+For k ≥ 2: Sobolev embedding gives ||f||_∞ ≤ ||f||_{L1} + ||f'||_{L1} and
+||f'||_∞ ≤ ||f'||_{L1} + ||f''||_{L1}, so ||f||_{C1} ≤ 2·||f||_{W^{k,1}}.
+
+For k = 1: uses Markov inequality ||p'||_∞ ≤ 2n²·||p||_∞ for polynomials of
+degree n on [0,1], giving ||f||_{C1} ≤ (1 + 2n²)·||f||_{W^{1,1}}.
+"""
 function weak_by_strong_and_aux_bound(B::Chebyshev)
-    @error "TODO"
-    ν = B.k
-    return (ν, 1.0)
+    if B.k >= 2
+        return (2.0, 0.0)
+    else
+        n = Float64(length(B) - 1, RoundUp)
+        return (1.0 ⊕₊ 2.0 ⊗₊ n ⊗₊ n, 0.0)
+    end
 end
-bound_weak_norm_from_linalg_norm(B::Chebyshev) = @error "TODO"
-bound_linalg_norm_L1_from_weak(B::Chebyshev) = @error "TODO"
-bound_linalg_norm_L∞_from_weak(B::Chebyshev) = @error "TODO"
+
+"""
+    bound_weak_norm_from_linalg_norm(B::Chebyshev)
+
+Returns `(W₁, W₂)` such that `||f||_{C1} ≤ W₁·||ĉ||_{ℓ¹} + W₂·||ĉ||_{ℓ∞}`.
+
+Since |Tⱼ(x)| ≤ 1: ||f||_∞ ≤ ||ĉ||_{ℓ¹}.
+For the derivative: ||f'||_∞ ≤ Σ|cⱼ|·2j² ≤ 2(n-1)²·||ĉ||_{ℓ¹} where n = degree.
+"""
+function bound_weak_norm_from_linalg_norm(B::Chebyshev)
+    n = Float64(length(B) - 1, RoundUp)
+    nm1 = n ⊖₋ 1.0
+    W₁ = 1.0 ⊕₊ 2.0 ⊗₊ nm1 ⊗₊ nm1
+    return (W₁, 0.0)
+end
+
+"""
+    bound_linalg_norm_L1_from_weak(B::Chebyshev)
+
+Returns `A` such that `||ĉ||_{ℓ¹} ≤ A·||f||_{C1}`.
+
+Chebyshev coefficients satisfy |cⱼ| ≤ 2·||f||_∞ for j ≥ 1 and |c₀| ≤ ||f||_∞,
+so ||ĉ||_{ℓ¹} ≤ (2n-1)·||f||_∞ ≤ (2n-1)·||f||_{C1} where n = length(B).
+"""
+function bound_linalg_norm_L1_from_weak(B::Chebyshev)
+    n = Float64(length(B), RoundUp)
+    return 2.0 ⊗₊ n ⊖₋ 1.0
+end
+
+"""
+    bound_linalg_norm_L∞_from_weak(B::Chebyshev)
+
+Returns `A` such that `||ĉ||_{ℓ∞} ≤ A·||f||_{C1}`.
+
+max_j |cⱼ| ≤ 2·||f||_∞ ≤ 2·||f||_{C1}.
+"""
+function bound_linalg_norm_L∞_from_weak(B::Chebyshev)
+    return 2.0
+end
 weak_norm(B::Chebyshev) = C1
 aux_norm(B::Chebyshev) = L1
 strong_norm(B::Chebyshev) = W{B.k,1}
@@ -339,6 +388,106 @@ end
 
 
 is_integral_preserving(B::Chebyshev) = false
+
+"""
+    restrict_to_average_zero(B::Chebyshev, BM::BallMatrix, f; certification=nothing)
+
+Restrict `BM` to the average-zero subspace U⁰ using a certified spectral projector.
+
+For Chebyshev, `integral_covector(B) ≠ [1,0,...,0]`, so simple submatrix extraction
+does not work. Instead, we compute the Riesz projector P₁ onto the eigenspace of
+eigenvalue 1 (the invariant measure direction) via Schur decomposition, then return
+`(I - P₁) * BM`.
+
+If `certification` is provided (from `certify_spectral_gap`), the projector radii are
+inflated by the certified projector error δ_P to account for the Schur factorization
+error ‖ZTZ* - A‖₂.
+"""
+function restrict_to_average_zero(B::Chebyshev, BM::BallMatrix, f;
+                                   certification = nothing)
+    n = size(BM, 1)
+
+    # Find eigenvalue closest to 1 via Schur decomposition
+    F = LinearAlgebra.schur(Complex{Float64}.(BM.c))
+    eigenvalues = diag(F.T)
+    idx_1 = argmin(abs.(eigenvalues .- 1.0))
+
+    # Compute Schur-based spectral projector for eigenvalue 1
+    proj_result = compute_spectral_projector_schur(BM, [idx_1])
+    P1 = proj_result.projector
+
+    # Inflate projector radii by certified error if available
+    if certification !== nothing
+        δ_P = certification.projector_error
+        P1 = BallMatrix(P1.c, P1.r .+ Float64(δ_P))
+    end
+
+    # (I - P₁) · BM acts on complement of eigenvalue 1
+    I_n = BallMatrix(Matrix{eltype(BM.c)}(LinearAlgebra.I, n, n))
+    return (I_n - P1) * BM
+end
+
+"""
+    certify_spectral_gap(B::Chebyshev, Q::DiscretizedOperator;
+                          samples=256, radius_factor=0.5)
+
+Run the full spectral gap certification pipeline for a Chebyshev discretized operator.
+
+Uses BallArithmetic's CertifScripts to:
+1. Compute Schur decomposition with rigorous error bounds
+2. Find the spectral gap (distance from eigenvalue 1 to next largest eigenvalue)
+3. Certify the resolvent on a circle separating eigenvalue 1 from the rest
+4. Compute projector error bound δ_P for `restrict_to_average_zero`
+
+Returns a named tuple with fields:
+- `spectral_gap`, `second_largest`, `ρ` (contour radius)
+- `M_inf` (certified resolvent bound on contour)
+- `projector_error` (δ_P for projector inflation)
+- `certification`, `schur_data`, `eigenvalue_index`
+"""
+function certify_spectral_gap(B::Chebyshev, Q::DiscretizedOperator;
+                               samples = 256, radius_factor = 0.5)
+    BM = BallMatrix(Q.L)
+    n = size(BM, 1)
+
+    # Step 1: Schur decomposition with error bounds
+    schur_data = CertifScripts.compute_schur_and_error(BM)
+    S, errF, errT, norm_Z, norm_Z_inv = schur_data
+
+    # Step 2: Find eigenvalue 1 and spectral gap
+    eigenvalues = diag(S.T)
+    idx_1 = argmin(abs.(eigenvalues .- 1.0))
+    second_largest = maximum(abs(eigenvalues[i]) for i in 1:n if i != idx_1)
+    spectral_gap = 1.0 - second_largest
+
+    # Step 3: Choose contour Γ separating eigenvalue 1
+    ρ = second_largest + radius_factor * spectral_gap
+    circle = CertifScripts.CertificationCircle(0.0 + 0.0im, ρ; samples = samples)
+
+    # Step 4: Certify resolvent on Γ (accounts for Schur→original error)
+    cert = CertifScripts.run_certification(BM, circle; schur_data = schur_data)
+    M_inf = cert.resolvent_original
+
+    # Step 5: Projector error bound (Gauss.pdf Eq 16)
+    # δ_P = ρ · M²_∞ · ε_K / (1 - ε_K · M_∞)
+    ε_K = Float64(cert.errT)
+    α = ε_K * M_inf
+    if α >= 1.0
+        @error "Small-gain condition fails: α = ε_K · M_∞ = $α ≥ 1"
+    end
+    δ_P = ρ * M_inf^2 * ε_K / (1.0 - α)
+
+    return (spectral_gap = spectral_gap,
+            second_largest = second_largest,
+            ρ = ρ,
+            M_inf = M_inf,
+            projector_error = δ_P,
+            α = α,
+            certification = cert,
+            schur_data = schur_data,
+            eigenvalue_index = idx_1)
+end
+
 function opnormbound(B::Chebyshev, N::Type{C1}, v::Vector{S}) where {S}
     return normbound(B, N, v)
 end

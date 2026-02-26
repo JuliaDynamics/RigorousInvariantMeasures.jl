@@ -2,7 +2,9 @@ module RigorousInvariantMeasures
 
 using IntervalArithmetic: range_atan
 import IntervalArithmetic: Interval, mid, radius, @interval
-using BallArithmetic: BallMatrix, BallVector, upper_bound_L2_opnorm, upper_bound_norm
+using BallArithmetic: BallMatrix, BallVector, upper_bound_L2_opnorm, upper_bound_norm,
+    compute_spectral_projector_schur, SchurSpectralProjectorResult
+using BallArithmetic.CertifScripts: CertifScripts
 
 const SHOW_PROGRESS_BARS = parse(Bool, get(ENV, "PROGRESS_BARS", "true"))
 
@@ -46,7 +48,7 @@ include("FFT.jl")
 include("Basis/Fourier/FourierIndex.jl")
 export Fourier, FourierAnalytic, FourierAdjoint
 include("Basis/NewChebyshev.jl")
-export Chebyshev
+export Chebyshev, certify_spectral_gap
 
 
 include("precompile.jl")

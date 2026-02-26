@@ -85,10 +85,10 @@ function _optimize_mult(k, n, h, vals)
     @variables x
 
     @variables (f(x))[1:k+1]
-    boolf = [(symb in keys(h.dict)) for symb in f]
+    boolf = Bool[(symb in keys(h.dict)) for symb in collect(f)]
 
     @variables (DD(x))[1:k+1]
-    boolDD = [(symb in keys(h.dict)) for symb in DD]
+    boolDD = Bool[(symb in keys(h.dict)) for symb in collect(DD)]
 
     # I start with a simple version, where I use the n on
     # the highest derivative of DD, in further versions
@@ -197,7 +197,8 @@ function dfly(::Type{W{k,l}}, ::Type{L1}, D::PwMap) where {k,l}
     # Extract the coefficient of f[1] from the optimized expression
     @variables x
     @variables (f(x))[1:k+1]
-    B_val = Float64(Symbolics.substitute(opt, Dict(f[i] => (i == 1 ? 1.0 : 0.0) for i = 1:k+1)))
+    B_symbolic = Symbolics.substitute(opt, Dict(f[i] => (i == 1 ? 1.0 : 0.0) for i = 1:k+1))
+    B_val = Float64(Symbolics.unwrap(B_symbolic))
 
     return A, abs(B_val)
 end
