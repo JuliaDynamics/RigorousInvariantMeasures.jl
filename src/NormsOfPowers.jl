@@ -11,7 +11,8 @@ export norms_of_powers,
     refine_norms_of_powers,
     norms_of_powers_dfly,
     norms_of_powers_trivial,
-    norms_of_powers_from_coarser_grid
+    norms_of_powers_from_coarser_grid,
+    norms_of_powers_resolvent
 
 """
 Returns the maximum number of (structural) nonzeros in a row of A
@@ -150,6 +151,68 @@ function norms_of_powers(
         end
     end
     return map(get_norm, normcachers)
+end
+
+"""
+Restrict a matrix to the average-zero subspace.
+Default implementation: requires specialization per basis type.
+"""
+restrict_to_average_zero(B::Basis, BM, f) = @error "restrict_to_average_zero not implemented for $(typeof(B))"
+
+"""
+Estimates ||Q||, ||Q^2||, ... ||Q^m|| on U^0 using L2 norm via BallArithmetic.
+
+Computes matrix powers as BallMatrices, which automatically track rounding errors.
+Uses upper_bound_L2_opnorm for rigorous spectral norm bounds.
+"""
+function norms_of_powers(
+    B::Basis,
+    ::Type{L2},
+    m::Integer,
+    Q::DiscretizedOperator,
+    f::AbstractArray;
+    kwargs...,
+)
+    # Convert Q.L to BallMatrix (IntervalArithmeticExt handles Complex{Interval} → BallMatrix)
+    BM = BallMatrix(Q.L)
+
+    # Restrict to U^0 (average-zero subspace)
+    BM_U0 = restrict_to_average_zero(B, BM, f)
+
+    norms = Vector{Float64}(undef, m)
+    BM_power = BM_U0
+    for k = 1:m
+        norms[k] = upper_bound_L2_opnorm(BM_power)
+        if k < m
+            BM_power = BM_power * BM_U0
+        end
+    end
+    return norms
+end
+
+"""
+    norms_of_powers_resolvent(m, ρ, M_inf)
+
+Compute power norm bounds via certified resolvent on a contour.
+Returns `norms[k] ≥ ||Q^k|_{complement of eigenvalue 1}||₂`.
+
+Uses the Cauchy integral bound:
+  `||Q^k(I-P₁)|| ≤ ρ^{k+1} · M_∞`
+
+where `ρ` is the radius of the certified contour (must satisfy max|λⱼ| < ρ < 1 for j≥2)
+and `M_∞ = sup_{z∈Γ} ||(zI-Q)⁻¹||` is the certified resolvent bound from
+`certify_spectral_gap`.
+"""
+function norms_of_powers_resolvent(m::Integer, ρ::Real, M_inf::Real)
+    norms = Vector{Float64}(undef, m)
+    ρf = Float64(ρ)
+    M_f = Float64(M_inf)
+    ρk = ρf  # will become ρ^{k+1} after first multiply
+    for k = 1:m
+        ρk = ρk ⊗₊ ρf  # ρ^{k+1} with upward rounding
+        norms[k] = ρk ⊗₊ M_f
+    end
+    return norms
 end
 
 """

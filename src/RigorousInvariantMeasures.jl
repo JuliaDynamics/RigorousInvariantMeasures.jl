@@ -2,6 +2,9 @@ module RigorousInvariantMeasures
 
 using IntervalArithmetic: range_atan
 import IntervalArithmetic: Interval, mid, radius, @interval
+using BallArithmetic: BallMatrix, BallVector, upper_bound_L2_opnorm, upper_bound_norm,
+    compute_spectral_projector_schur, SchurSpectralProjectorResult
+using BallArithmetic.CertifScripts: CertifScripts
 
 const SHOW_PROGRESS_BARS = parse(Bool, get(ENV, "PROGRESS_BARS", "true"))
 
@@ -42,13 +45,15 @@ include("NormsOfPowers.jl")
 
 include("Preimages.jl")
 include("FFT.jl")
+include("Basis/Fourier/FourierIndex.jl")
+export Fourier, FourierAnalytic, FourierAdjoint
 include("Basis/NewChebyshev.jl")
-export Chebyshev
+export Chebyshev, certify_spectral_gap
 
 
 include("precompile.jl")
 
-export NormKind, L1, Linf, Lipschitz, TotalVariation
+export NormKind, L1, L2, Linf, Lipschitz, TotalVariation, C1, W, Aη, Cω
 
 export PwMap,
     Basis,
@@ -132,12 +137,6 @@ include("Basis/BasisIndex.jl")
 include("sample_dynamics.jl")
 
 
-#include("FourierCommon.jl")
-#include("FourierBasis.jl")
-#export L2, Fourier1D, GaussianNoise
-#include("FourierAnalytic.jl")
-#include("FourierAdjoint.jl")
-#include("FourierBasisBack.jl")
 
 
 end

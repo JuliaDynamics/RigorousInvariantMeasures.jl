@@ -7,6 +7,20 @@ struct TotalVariation <: NormKind end
 struct ℓ1 <: NormKind end
 struct ℓinf <: NormKind end
 
+# Sobolev W^{k,l} norm
+struct C1 <: NormKind end
+struct W{k,l} <: NormKind end
+order(::Type{W{k,l}}) where {k,l} = k
+regularity(::Type{W{k,l}}) where {k,l} = l
+
+# Analytic strip norm
+struct Aη <: NormKind
+    η::Float64
+end
+
+# Adjoint analytic norm
+struct Cω <: NormKind end
+
 
 
 """

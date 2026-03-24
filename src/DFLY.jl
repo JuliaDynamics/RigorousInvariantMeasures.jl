@@ -5,6 +5,8 @@
 Constants (A, B) such that ||Lf||_s ≦ A||f||_s + B||f||_aux
 """
 dfly(::Type{<:NormKind}, ::Type{<:NormKind}, ::Dynamic) = @error "Not implemented"
+# Instance dispatch fallback: forward to type dispatch for simple norms
+dfly(n1::NormKind, n2::Type{<:NormKind}, D::Dynamic) = dfly(typeof(n1), n2, D)
 
 # I don't think this is used in production anymore
 # function dfly(N1::Type{TotalVariation}, N2::Type{L1}, D::Dynamic)
@@ -46,6 +48,41 @@ function dfly(N1::Type{TotalVariation}, N2::Type{L1}, D::PwMap)
         if !(abs(2 * lam) < 1)
             @error "Expansivity is insufficient to prove a DFLY. Try with an iterate."
         end
+        return (2 * lam).hi, (dist + disc).hi
+    end
+end
+
+# W{1,1} → TotalVariation bridge: W^{1,1} seminorm = total variation
+# Accept both type and instance dispatch
+dfly(::Type{W{1,1}}, N2::Type{L1}, D::PwMap) = dfly(TotalVariation, L1, D)
+dfly(::W{1,1}, N2::Type{L1}, D::PwMap) = dfly(TotalVariation, L1, D)
+
+# Higher-order W{k,1} (k≥2) is provided by the SymbolicsExt extension.
+# Without Symbolics loaded, the generic dfly fallback will @error "Not implemented".
+
+# Aη DFLY: analytic strip norm
+# ||Lf||_{Aη'} ≤ A · ||f||_{Aη} + B · ||f||_{L¹}
+# For expanding full-branch maps: A = max|1/T'|, B = distortion bound
+# This is a conservative estimate; tighter bounds require complex interval evaluation
+function dfly(norm::Aη, ::Type{L1}, D::PwMap)
+    if has_infinite_derivative_at_endpoints(D)
+        # Fall back to TotalVariation DFLY for infinite derivative maps
+        return dfly(TotalVariation, L1, D)
+    end
+    dist = max_distortion(D)
+    lam = max_inverse_derivative(D)
+
+    if is_full_branch(D)
+        if !(abs(lam) < 1)
+            @error "The function is not expanding"
+        end
+        return lam.hi, dist.hi
+    else
+        if !(abs(2 * lam) < 1)
+            @error "Expansivity is insufficient to prove a DFLY. Try with an iterate."
+        end
+        vec = endpoints(D)
+        disc = maximum(2 / abs(vec[i] - vec[i+1]) for i = 1:nbranches(D))
         return (2 * lam).hi, (dist + disc).hi
     end
 end
