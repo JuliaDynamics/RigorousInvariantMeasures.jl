@@ -37,8 +37,8 @@ function interval_fft(
         norm_FFT_normalized_2 ⊗₊ (rel_err_fft ⊗₊ norm_obs) ⊕₊
         norm_FFT_normalized_2 ⊗₊ norm_rad
     mid_fft = (P * vector_mid) / n
-    w = [Interval(real(z)) + im * Interval(imag(z)) for z in mid_fft]
-    return w .+ (Interval(-err_fft, err_fft) + im * Interval(-err_fft, err_fft))
+    w = [interval(real(z)) + im * interval(imag(z)) for z in mid_fft]
+    return w .+ (interval(-err_fft, err_fft) + im * interval(-err_fft, err_fft))
 end
 
 Base.:*(P::AbstractFFTs.Plan{Complex{T}}, v::Vector{Complex{Interval{T}}}) where {T} =

@@ -33,7 +33,7 @@ A separate type for intervals on the torus (mod 1) to "remind" us of the quotien
 
 The interval is normalized in the constructor: the caller may assume that
 * 0 <= i.lo < 1
-* i.hi < i.lo + 1 OR i==Interval(0,1)
+* i.hi < i.lo + 1 OR i==interval(0,1)
 """
 struct IntervalOnTorus{T<:Real}
     I::Interval{T}
@@ -176,7 +176,7 @@ function nonzero_on(B::Hat, dual_element)
     y, absT′ = dual_element
     # Note that this cannot rely on arithmetic unless it is verified
 
-    y = y ∩ Interval(0.0, 1.0) # we assume it's bona-fide interval in [0,1]
+    y = y ∩ interval(0.0, 1.0) # we assume it's bona-fide interval in [0,1]
     # this should work for preims(), since they are supposed to return
     # a number in [0,1]
 

@@ -239,7 +239,7 @@ function infnormoffunction(B::C2Basis, v)
         coeff += v[i+1] * [0, 0, 0, 10, -15, 6]
         coeff += (v[i+n+1] / (n - 1)) * [0, 0, 0, -4, +7, -3]
 
-        dom = Interval(0, 1)
+        dom = interval(0, 1)
         f(x) = abs(evalpoly(x, coeff))
         maximum = max(maximum, maximise(f, dom)[1])
     end
@@ -256,7 +256,7 @@ function infnormofderivative(B::C2Basis, v)
         coeff += (n - 1) * v[i+1] * [0, 0, 30, -60, 30]
         coeff += v[i+n+1] * [0, 0, -12, +28, -15]
 
-        dom = Interval(0, 1)
+        dom = interval(0, 1)
         f(x) = abs(evalpoly(x, coeff))
         maximum = max(maximum, maximise(f, dom)[1])
     end

@@ -139,7 +139,7 @@ end
 function preimwithder_derder(D::ApproxInducedLSV, k, y, ϵ) #::NTuple{Interval, 3}
     @assert 1 <= k <= D.nbranches
 
-    y = Interval(y) #hack, please check
+    y = interval(y) #hack, please check
     _y = InvCoordinateChange(y)
 
     if k == 1 # the manufactured branch
@@ -175,7 +175,7 @@ end
 function preimwithder(D::ApproxInducedLSV, k, y, ϵ) #::NTuple{Interval, 3}
     @assert 1 <= k <= D.nbranches
 
-    y = Interval(y) #hack, please check
+    y = interval(y) #hack, please check
     _y = InvCoordinateChange(y)
 
     if k == 1 # the manufactured branch
@@ -323,7 +323,7 @@ import TaylorSeries
 
 function derivatives_D(α, k, l; T = Float64)
     w = zeros(Interval, (l, l))
-    right = Interval(1.0)
+    right = interval(1.0)
     for i = 1:k
         @info i
         left = ShootingLSV(i, 0.5, α; T = T)[1]
@@ -331,7 +331,7 @@ function derivatives_D(α, k, l; T = Float64)
         f(x) = iterate_LSV(x, i, α)
         g(x) = 1 / (TaylorSeries.derivative(f(Taylor1([x, 1], l))))
 
-        dom = Interval(left.lo, right.hi)
+        dom = interval(left.lo, right.hi)
         tol = diam(dom) * 2^(-10)
         for i = 0:l-1, j = 0:l-1
             h(x) = abs((factorial(i) * g(x)[i]) * g(x)[0]^j) # \partial^i (1/T') * (1/T')^j
@@ -348,7 +348,7 @@ end
 
 #import DualNumbers
 #function bound_b_ω(α, k; T = Float64)
-#	right = Interval(1.0)
+#	right = interval(1.0)
 #	for i in 1:k
 #		@info i
 #		left = ShootingLSV(i, 0.5, α; T = T)[1]
@@ -357,7 +357,7 @@ end
 #		f_prime_α(x) = f(DualNumbers.Dual(α, 1), x).epsilon
 #		f_prime_x(x) = f(α, DualNumbers.Dual(x, 1)).epsilon
 #		h(x) = -f_prime_α(x)/f_prime_x(x)
-#		dom = Interval(left.lo, right.hi)
+#		dom = interval(left.lo, right.hi)
 #		tol = diam(dom)*2^(-10)
 #		val = maximise(h, dom, tol = tol)[1]
 #		@info val

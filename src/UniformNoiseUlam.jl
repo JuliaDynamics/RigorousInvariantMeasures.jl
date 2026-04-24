@@ -232,7 +232,7 @@ function mul!(K::UniformKernelUlam{BC}, v::Vector{Interval{T}}) where {BC,T}
 
     # normalize into intervals
     @inbounds for i = 1:k
-        v[i] = Interval(sums[i] / n) + Interval(-ϵ, ϵ)
+        v[i] = interval(sums[i] / n) + interval(-ϵ, ϵ)
     end
 
     return v

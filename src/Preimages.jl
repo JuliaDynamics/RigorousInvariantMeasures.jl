@@ -15,13 +15,13 @@ using IntervalArithmetic
 Smallest possible i such that a is in the semi-open interval [y[i], y[i+1]).
 
 This should work properly even if `a, y` are intervals; in this case it returns the *smallest* possible value of i over all possible "assignments" of a, y inside those intervals.
-Assumes y is sorted, i.e., map(y, x->Interval(x).lo) and map(y, x->Interval(x).hi) are sorted.
+Assumes y is sorted, i.e., map(y, x->interval(x).lo) and map(y, x->interval(x).hi) are sorted.
 """
 function first_overlapping(y, a)
     if iszero(a) # avoids -0 crap
         a = zero(a)
     end
-    searchsortedlast(y, Interval(a).lo, by = x -> Interval(x).hi)
+    searchsortedlast(y, interval(a).lo, by = x -> interval(x).hi)
 end
 
 """
@@ -30,19 +30,19 @@ end
 Largest possible j such that a-ε is in the semi-open interval [y[j], y[j+1]).
 
 This should work properly even if `a, y` are intervals; in this case it returns the *largest* possible value of i over all possible "assignments" of a, y inside those intervals.
-Assumes y is sorted, i.e., map(y, x->Interval(x).lo) and map(y, x->Interval(x).hi) are sorted.
+Assumes y is sorted, i.e., map(y, x->interval(x).lo) and map(y, x->interval(x).hi) are sorted.
 """
 function last_overlapping(y, a)
     if iszero(a) # avoids -0 crap
         a = zero(a)
     end
-    searchsortedfirst(y, Interval(a).hi, by = x -> Interval(x).lo) - 1
+    searchsortedfirst(y, interval(a).hi, by = x -> interval(x).lo) - 1
 end
 
 """
 Utility function that estimates the range of a monotone function
 """
-range_estimate_monotone(f, X) = hull(f(Interval(X.lo)), f(Interval(X.hi)))
+range_estimate_monotone(f, X) = hull(f(interval(X.lo)), f(interval(X.hi)))
 
 """
 Compute the preimage f⁻¹(y), knowing that it lies inside `search_interval`.
@@ -51,10 +51,10 @@ function preimage(y, br::MonotonicBranch, search_interval = hull(br.X...); ϵ, m
     # Since the branch is monotonic, we can compute the preimages of y.lo and y.hi separately
     # This should give slightly thinner intervals.
 
-    Y = intersect(range_estimate_monotone(br.f, search_interval), Interval(y))
+    Y = intersect(range_estimate_monotone(br.f, search_interval), interval(y))
 
     if isempty(Y)
-        return Interval(∅)
+        return interval(∅)
     end
 
     xlo = preimage_monotonic(Y.lo, br.f, search_interval, br.Y; ϵ, max_iter)
@@ -141,7 +141,7 @@ function preimages(y, br::MonotonicBranch, ylabel = 1:length(y); ϵ, max_iter)
             # fill in v[i] using x[i-stride].lo and x[i+stride].hi as range for the preimage search
             for k = 1+stride:2*stride:n
                 search_range =
-                    Interval(x[k-stride].lo, (k + stride <= n ? x[k+stride] : br.X[2]).hi)
+                    interval(x[k-stride].lo, (k + stride <= n ? x[k+stride] : br.X[2]).hi)
                 x[k] = preimage(y[i-1+k], br, search_range; ϵ, max_iter)
             end
             stride = stride ÷ 2

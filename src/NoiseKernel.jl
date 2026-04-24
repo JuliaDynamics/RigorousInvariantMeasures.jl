@@ -65,14 +65,14 @@ function UniformNoiseUlam(ξ, B::Ulam, boundarycondition = :periodic)
     k = length(B)
     n = 2 * Int64(ceil(ξ * k))
     v = zeros(Interval{Float64}, n)
-    a = 1 / (2 * Interval(ξ))
+    a = 1 / (2 * interval(ξ))
     v[2:n-1] = a * ones(Interval{Float64}, n - 2)
     v[1] = (k - sum(v)) / 2
     v[n] = v[1]
     if boundarycondition == :periodic
         return DiscretizedNoiseKernelUlam(
             B,
-            Interval(ξ),
+            interval(ξ),
             mid.(v),
             opnormbound(L1, v) - k,
             boundarycondition,
@@ -82,7 +82,7 @@ function UniformNoiseUlam(ξ, B::Ulam, boundarycondition = :periodic)
     elseif boundarycondition == :reflecting
         return DiscretizedNoiseKernelUlam(
             B,
-            Interval(ξ),
+            interval(ξ),
             mid.(v),
             opnormbound(L1, v) - k,
             boundarycondition,
@@ -154,7 +154,7 @@ function mult(
 
     ϵ = (γₖ ⊗₊ normMK) ⊗₊ nrmv ⊕₊ normMK ⊗₊ nrmrad
 
-    return v + fill(Interval(-ϵ, ϵ), length(v))
+    return v + fill(interval(-ϵ, ϵ), length(v))
 end
 
 

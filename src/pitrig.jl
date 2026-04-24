@@ -37,23 +37,23 @@ function sinpi(a::Interval{T}) where {T}
     # Different cases depending on the two quadrants:
     if lo_quadrant == hi_quadrant
         a.hi - a.lo > 1 && return whole_range  # in same quadrant but separated by almost 2pi
-        lo = @round(sinpi(a.lo), sinpi(a.lo)) # Interval(sin(a.lo, RoundDown), sin(a.lo, RoundUp))
-        hi = @round(sinpi(a.hi), sinpi(a.hi)) # Interval(sin(a.hi, RoundDown), sin(a.hi, RoundUp))
+        lo = @round(sinpi(a.lo), sinpi(a.lo)) # interval(sin(a.lo, RoundDown), sin(a.lo, RoundUp))
+        hi = @round(sinpi(a.hi), sinpi(a.hi)) # interval(sin(a.hi, RoundDown), sin(a.hi, RoundUp))
         return hull(lo, hi)
 
     elseif lo_quadrant == 3 && hi_quadrant == 0
-        return @round(sinpi(a.lo), sinpi(a.hi)) # Interval(sin(a.lo, RoundDown), sin(a.hi, RoundUp))
+        return @round(sinpi(a.lo), sinpi(a.hi)) # interval(sin(a.lo, RoundDown), sin(a.hi, RoundUp))
 
     elseif lo_quadrant == 1 && hi_quadrant == 2
-        return @round(sinpi(a.hi), sinpi(a.lo)) # Interval(sin(a.hi, RoundDown), sin(a.lo, RoundUp))
+        return @round(sinpi(a.hi), sinpi(a.lo)) # interval(sin(a.hi, RoundDown), sin(a.lo, RoundUp))
 
     elseif (lo_quadrant == 0 || lo_quadrant == 3) && (hi_quadrant == 1 || hi_quadrant == 2)
         return @round(min(sinpi(a.lo), sinpi(a.hi)), 1)
-        # Interval(min(sin(a.lo, RoundDown), sin(a.hi, RoundDown)), one(T))
+        # interval(min(sin(a.lo, RoundDown), sin(a.hi, RoundDown)), one(T))
 
     elseif (lo_quadrant == 1 || lo_quadrant == 2) && (hi_quadrant == 3 || hi_quadrant == 0)
         return @round(-1, max(sinpi(a.lo), sinpi(a.hi)))
-        # Interval(-one(T), max(sin(a.lo, RoundUp), sin(a.hi, RoundUp)))
+        # interval(-one(T), max(sin(a.lo, RoundUp), sin(a.hi, RoundUp)))
 
     else #if( lo_quadrant == 0 && hi_quadrant==3 ) || ( lo_quadrant == 2 && hi_quadrant==1 )
         return whole_range
@@ -65,7 +65,7 @@ cospi(a...) = Base.Math.cospi(a...)
 function cospi(a::Interval{T}) where {T}
     isempty(a) && return a
 
-    whole_range = Interval(-one(T), one(T))
+    whole_range = interval(-one(T), one(T))
 
     diam(a) > 2 && return whole_range
 
@@ -73,7 +73,7 @@ function cospi(a::Interval{T}) where {T}
     hi_quadrant = maximum(find_quadrantspi(a.hi))
 
     if hi_quadrant - lo_quadrant > 4  # close to limits
-        return Interval(-one(T), one(T))
+        return interval(-one(T), one(T))
     end
 
     lo_quadrant = mod(lo_quadrant, 4)

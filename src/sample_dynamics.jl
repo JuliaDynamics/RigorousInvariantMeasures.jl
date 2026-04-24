@@ -23,17 +23,17 @@ function BZ()
     )
     BZC = Interval{Float64}(C_big)
 
-    T_left_leq_1_8(x) = (BZA - (Interval(1.0) / 8 - x)^(Interval(1.0) / 3)) * exp(-x) + BZB
-    T_left_geq_1_8(x) = (BZA + (x - Interval(1.0) / 8)^(Interval(1.0) / 3)) * exp(-x) + BZB
-    T_right(x) = BZC * (10x * exp(-Interval(10) / 3 * x))^(19) + BZB
+    T_left_leq_1_8(x) = (BZA - (interval(1.0) / 8 - x)^(interval(1.0) / 3)) * exp(-x) + BZB
+    T_left_geq_1_8(x) = (BZA + (x - interval(1.0) / 8)^(interval(1.0) / 3)) * exp(-x) + BZB
+    T_right(x) = BZC * (10x * exp(-interval(10) / 3 * x))^(19) + BZB
 
     return PwMap(
         [T_left_leq_1_8, T_left_geq_1_8, T_right],
-        [Interval(0), Interval(1) / 8, Interval(3) / 10, Interval(1)],
+        [interval(0), interval(1) / 8, interval(3) / 10, interval(1)],
         [
-            T_left_leq_1_8(Interval(0)) T_left_leq_1_8(Interval(1) / 8)
-            T_left_geq_1_8(Interval(1) / 8) T_left_geq_1_8(Interval(3) / 10)
-            T_right(Interval(3) / 10) T_right(Interval(1))
+            T_left_leq_1_8(interval(0)) T_left_leq_1_8(interval(1) / 8)
+            T_left_geq_1_8(interval(1) / 8) T_left_geq_1_8(interval(3) / 10)
+            T_right(interval(3) / 10) T_right(interval(1))
         ],
     )
 end
@@ -42,7 +42,7 @@ Lorenz(θ = 109 / 64, α = 51 / 64) = PwMap(
     [x -> θ * (0.5 - x)^α, x -> 1 - θ * (x - 0.5)^α],
     [@interval(0), @interval(0.5), @interval(1)],
     [
-        θ*(Interval(0.5))^α Interval(0.0)
-        Interval(1.0) 1-θ*(Interval(0.5))^α
+        θ*(interval(0.5))^α interval(0.0)
+        interval(1.0) 1-θ*(interval(0.5))^α
     ],
 )

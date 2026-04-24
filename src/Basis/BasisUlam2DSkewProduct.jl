@@ -179,7 +179,7 @@ function preimage_fixed_x(D::SkewProductMap, branch_idx, x, y_min, y_max; ϵ, ma
         # this try block is used to catch the non monotone branch 
         # exception that occurs when the image collapses to a point
 
-        H = MonotonicBranch(g, (Interval(0), Interval(1)))
+        H = MonotonicBranch(g, (interval(0), interval(1)))
 
         if H.increasing
             bound_Y = H.Y[1], H.Y[2]
@@ -190,12 +190,12 @@ function preimage_fixed_x(D::SkewProductMap, branch_idx, x, y_min, y_max; ϵ, ma
         # disjoint
         if y_max < bound_Y[1] || y_min > bound_Y[2]
             @debug "disjoint"
-            return (Interval(∅), Interval(∅))
+            return (interval(∅), interval(∅))
         end
 
         if y_min <= bound_Y[1] && y_max >= bound_Y[2]
             @debug "contains"
-            return (Interval(0), Interval(1))
+            return (interval(0), interval(1))
         end
 
         preim_y_min = preimage(y_min, H; ϵ, max_iter)
@@ -208,21 +208,21 @@ function preimage_fixed_x(D::SkewProductMap, branch_idx, x, y_min, y_max; ϵ, ma
         end
 
         if preim_y_min == ∅
-            preim_y_min = Interval(0)
+            preim_y_min = interval(0)
         end
         if preim_y_max == ∅
-            preim_y_max = Interval(1)
+            preim_y_max = interval(1)
         end
 
         return (preim_y_min, preim_y_max)
     catch e
         @debug e
         @debug "Collapse to a point"
-        val = g(Interval(0, 1))
-        if val ⊆ Interval(y_min, y_max)
-            return (Interval(0), Interval(1))
+        val = g(interval(0, 1))
+        if val ⊆ interval(y_min, y_max)
+            return (interval(0), interval(1))
         else
-            return (Interval(∅), Interval(∅))
+            return (interval(∅), interval(∅))
         end
     end
 end
@@ -320,7 +320,7 @@ function _assemble_branch(B::Ulam2DSP, D::SkewProductMap, branch_idx; ϵ, max_it
             for i_x = ind_x_lo:ind_x_hi
                 meas = relative_measure(
                     (x_l, x_r),
-                    (Interval(B.part_x[i_x]), Interval(B.part_x[i_x+1])),
+                    (interval(B.part_x[i_x]), interval(B.part_x[i_x+1])),
                 )
                 # we now need to fill in this value into the matrix
                 for i_y = 1:length(B.part_y)-1
@@ -443,22 +443,22 @@ end
 #         # rectangle [a,b] × [0, 1] is sent into one a thin horizontal strip
 #         # this is the simplest case
 #         if (upper_bound_y-lower_bound_y)<=1
-#             A = [a Interval(0.0);
-#                 b Interval(0.0);
-#                 b Interval(1.0);
-#                 a Interval(1.0)]
+#             A = [a interval(0.0);
+#                 b interval(0.0);
+#                 b interval(1.0);
+#                 a interval(1.0)]
 #             ind_image = square_indexes_to_linear(dual.B, i_x, lower_bound_y)
 
 #             return (ind_image, A), (state[1]+1, 0, 0, 0)
 #         else
-#             A = [Interval(0.0) Interval(0.0)]
+#             A = [interval(0.0) interval(0.0)]
 #             return (0, A), (i_x, lower_bound_y, lowerbound_y, upperbound_y)
 #         end
 #     else
 #         # we start by building a mesh between a and b
 #         preim_x = [a+(b-a)/meshsize*i for i in 0:meshsize]
 
-#         A = Matrix{Interval}(Interval(0.0), 2*meshsize, 2)
+#         A = Matrix{Interval}(interval(0.0), 2*meshsize, 2)
 #         for x in preim_x
 #             preim_y_low = min(max(G_inv(y_lower), 0), 1)
 #             preim_y_up = max(min(G_inv(y_upper), 1), 0)

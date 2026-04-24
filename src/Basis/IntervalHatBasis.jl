@@ -100,7 +100,7 @@ function nonzero_on(B::HatNP, dual_element)
     y, absT′ = dual_element
     # Note that this cannot rely on arithmetic unless it is verified
 
-    y = y ∩ Interval(0.0, 1.0) # we assume it's bona-fide interval in [0,1]
+    y = y ∩ interval(0.0, 1.0) # we assume it's bona-fide interval in [0,1]
     # this should work for preims(), since they are supposed to return
     # a number in [0,1]
 

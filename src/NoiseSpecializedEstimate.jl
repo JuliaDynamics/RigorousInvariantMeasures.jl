@@ -115,7 +115,7 @@ function prepare_Wnorm_estimate(D::PwMap, B_est::Ulam)
         distortion_val = Float64(mag(abs(distortion(br.f, TiI))), RoundUp)
 
         # Check boundary terms: branch limits that overlap with interval I
-        I_interval = hull(Interval(B_est.p[ylabel]), Interval(B_est.p[ylabel + 1]))
+        I_interval = hull(interval(B_est.p[ylabel]), interval(B_est.p[ylabel + 1]))
         bterms = Tuple{Float64,Float64}[]
         for bl in branch_limits[bnum]
             if !isempty(bl ∩ I_interval)
@@ -125,8 +125,8 @@ function prepare_Wnorm_estimate(D::PwMap, B_est::Ulam)
         end
 
         pi = PreimageInfo(
-            Float64(Interval(A_val).lo, RoundDown),
-            Float64(Interval(B_val).hi, RoundUp),
+            Float64(interval(A_val).lo, RoundDown),
+            Float64(interval(B_val).hi, RoundUp),
             invtp_val,
             distortion_val,
             bterms,
@@ -380,7 +380,7 @@ function prepare_derivative_bounds(D::PwMap, B::Ulam)
     K = length(B)
     derivs = zeros(K)
     for i in 1:K
-        I = hull(Interval(B.p[i]), Interval(B.p[i + 1]))
+        I = hull(interval(B.p[i]), interval(B.p[i + 1]))
         # Evaluate |T'| on I by trying each branch that overlaps
         deriv_bound = 0.0
         for br in D.branches

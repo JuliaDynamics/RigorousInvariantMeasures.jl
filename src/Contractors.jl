@@ -46,7 +46,7 @@ function preimage_monotonic(
     y,
     f::Function,
     x::Interval,
-    (y1, y2) = (f(Interval(x.lo)), f(Interval(x.hi)));
+    (y1, y2) = (f(interval(x.lo)), f(interval(x.hi)));
     ϵ,
     max_iter,
 )
@@ -58,7 +58,7 @@ function preimage_monotonic(
         end
 
         x_old = x
-        x_mid = Interval(mid(x))
+        x_mid = interval(mid(x))
 
         fm::typeof(x) = ∅  # both Newton and Krawczyk will compute f(x_mid) as a byproduct; we save it here.
         enc_der = derivative(f, x)
@@ -99,11 +99,11 @@ function preimage_monotonic(
         # Notice that this bisection strategy works also when f is not monotonic outside [a,b]; 
         # see https://github.com/JuliaDynamics/RigorousInvariantMeasures.jl/issues/140#issuecomment-1413541452 for a proof
         if y ∉ hull(y1, fm)
-            x = Interval(x_mid.hi, x.hi)
+            x = interval(x_mid.hi, x.hi)
             continue
         end
         if y ∉ hull(fm, y2)
-            x = Interval(x.lo, x_mid.lo)
+            x = interval(x.lo, x_mid.lo)
             continue
         end
 
@@ -112,13 +112,13 @@ function preimage_monotonic(
         # If we cannot chop off even 1/2^6th of `x`, at the next outer loop iteration `x == x_old` and we will return.
         for k = 2:6
             c = x.lo + diam(x) / 2^k
-            if y ∉ hull(y1, f(Interval(c)))
-                x = Interval(c, x.hi)
+            if y ∉ hull(y1, f(interval(c)))
+                x = interval(c, x.hi)
                 break
             end
             c = x.hi - diam(x) / 2^k
-            if y ∉ hull(f(Interval(c)), y2)
-                x = Interval(x.lo, c)
+            if y ∉ hull(f(interval(c)), y2)
+                x = interval(x.lo, c)
                 break
             end
         end

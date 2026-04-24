@@ -81,7 +81,7 @@ function eval_Clenshaw_BackwardFirst(coeff::Vector{Interval{S}}, x::Interval{T})
     end
     e[1] = e[2] + r * abs(u[1]) + ϵ[1] + coeff_r[1]
     γ = e[1].hi
-    return u[1] + Interval(-γ, γ)
+    return u[1] + interval(-γ, γ)
 end
 eval_Clenshaw_BackwardFirst(coeff::Vector{Float64}, x::Interval) =
     eval_Clenshaw_BackwardFirst(Interval.(coeff), x)
@@ -111,7 +111,7 @@ function eval_Clenshaw_BackwardSecond(
     end
     e[1] = e[2] + 2 * r * abs(u[1]) + ϵ[1] + coeff_r[1]
     γ = e[1].hi
-    return u[1] + Interval(-γ, γ)
+    return u[1] + interval(-γ, γ)
 end
 
 
@@ -148,10 +148,10 @@ function ChebyshevDerivative(coeff, x::Interval{T}) where {T}
 end
 
 evalChebyshev(coeff, x::Interval) =
-    eval_Clenshaw_BackwardFirst(coeff, Interval(mid.(2 * x - 1)))
+    eval_Clenshaw_BackwardFirst(coeff, interval(mid.(2 * x - 1)))
 evalChebyshevDerivative(coeff, x::Interval) = 2 * ChebyshevDerivative(coeff, 2 * x - 1)
 function evalChebyschevCentered(coeff, x::Interval)
-    m = Interval(mid.(x))
+    m = interval(mid.(x))
     return evalChebyshev(coeff, m) + evalChebyshevDerivative(coeff, x) * (x - m)
 end
 ###############################################################################
@@ -363,24 +363,24 @@ using IntervalOptimisation
 function infnormoffunction(B::Chebyshev, v)
     val = 0
     try
-        val = maximize(x -> abs(evalChebyschevCentered(v, x)), Interval(0, 1))[1]
+        val = maximize(x -> abs(evalChebyschevCentered(v, x)), interval(0, 1))[1]
     catch
         print("Refining grid")
         f(x) = abs(evalChebyshevCentered(v, x))
-        ran = range_estimate(f, Interval(0, 1), 5)
+        ran = range_estimate(f, interval(0, 1), 5)
         Bval = union(val, ran)
     end
     return val
 end
 
 function infnormofderivative(B::Chebyshev, v)
-    val = Interval(0)
+    val = interval(0)
     try
-        val = maximize(x -> abs(evalChebyshevDerivative(v, x)), Interval(0, 1))[1]
+        val = maximize(x -> abs(evalChebyshevDerivative(v, x)), interval(0, 1))[1]
     catch
         print("Refining grid")
         f(x) = abs(evalChebyshevDerivative(v, x))
-        ran = range_estimate(f, Interval(0, 1), 5)
+        ran = range_estimate(f, interval(0, 1), 5)
         val = union(val, ran)
     end
     return val

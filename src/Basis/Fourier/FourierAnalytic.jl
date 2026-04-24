@@ -47,14 +47,14 @@ aux_norm(B::FourierAnalytic) = L1
 # Aη strong norm: exponential decay of Fourier tail
 function weak_projection_error(B::FourierAnalytic{Aη})
     N = B.k
-    η = Interval(B.strong.η)
-    return exp(2 * Interval(pi) * N * η).hi
+    η = interval(B.strong.η)
+    return exp(2 * interval(pi) * N * η).hi
 end
 
 function aux_normalized_projection_error(B::FourierAnalytic{Aη})
     N = B.k
-    η = Interval(B.strong.η)
-    return exp(2 * Interval(pi) * N * η).hi
+    η = interval(B.strong.η)
+    return exp(2 * interval(pi) * N * η).hi
 end
 
 # W{k,1} strong norm: polynomial decay O(N^{-(k-1)}) for Fourier coefficient decay
@@ -64,7 +64,7 @@ function weak_projection_error(B::FourierAnalytic{W{k,l}}) where {k,l}
     if k == 0
         return 1.0
     end
-    denom = (2 * Interval(pi) * N)^k
+    denom = (2 * interval(pi) * N)^k
     return (1 / denom).hi
 end
 
@@ -73,7 +73,7 @@ function aux_normalized_projection_error(B::FourierAnalytic{W{k,l}}) where {k,l}
     if k == 0
         return 1.0
     end
-    denom = (2 * Interval(pi) * N)^k
+    denom = (2 * interval(pi) * N)^k
     return (1 / denom).hi
 end
 
@@ -87,8 +87,8 @@ Geometric series: ``\sum_{|k|\leq N} e^{4πη|k|} = 1 + 2(e^{4πη} - e^{4πη(N
 """
 function strong_weak_bound(B::FourierAnalytic{Aη})
     k = B.k
-    η = Interval(B.strong.η)
-    λ = 4 * Interval(pi) * η
+    η = interval(B.strong.η)
+    λ = 4 * interval(pi) * η
 
     # Sum of geometric series: 1 + 2*(e^λ - e^{λ(N+1)})/(1 - e^λ)
     # = 1 + 2*e^λ*(1 - e^{λN})/(1 - e^λ)
@@ -103,9 +103,9 @@ Sum: ``M₁n = \sum_{j=0}^{k} (2πN)^j``
 """
 function strong_weak_bound(B::FourierAnalytic{W{k,l}}) where {k,l}
     N = B.k
-    M = Interval(1.0)
+    M = interval(1.0)
     for j = 1:k
-        M = M + (2 * Interval(pi) * N)^j
+        M = M + (2 * interval(pi) * N)^j
     end
     return M.hi
 end

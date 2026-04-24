@@ -97,8 +97,8 @@
 #     return -α*(-x_left)^s+1 ∪ α*(x_right)^s-1
 # end
 
-# _Lorenz_left_one_dim_map(x::Interval, α, s) = -α*(-(x ∩ @interval -1 0))^s+Interval(1)
-# _Lorenz_right_one_dim_map(x::Interval, α, s) = α*(x ∩ @interval 0 1)^s-Interval(1)
+# _Lorenz_left_one_dim_map(x::Interval, α, s) = -α*(-(x ∩ @interval -1 0))^s+interval(1)
+# _Lorenz_right_one_dim_map(x::Interval, α, s) = α*(x ∩ @interval 0 1)^s-interval(1)
 # _Lorenz_left_fiber_map(x::Interval, y::Interval, r, c) = 2^(-r)*y*(-x)^r-c
 # _Lorenz_right_fiber_map(x::Interval, y::Interval, r, c) = 2^(-r)*y*x^r+c
 
@@ -107,12 +107,12 @@
 #     Dict1to2 = Dict{Int64, NTuple{2, Int64}}()
 #     Dict2to1 = Dict{NTuple{2, Int64}, Int64}()
 
-#     left_image_rectangle_x = _Lorenz_left_one_dim_map(Interval(-1,0), α, s)
-#     left_image_rectangle_y = _Lorenz_left_fiber_map(Interval(-1), Interval(-1, 1), r, c)
+#     left_image_rectangle_x = _Lorenz_left_one_dim_map(interval(-1,0), α, s)
+#     left_image_rectangle_y = _Lorenz_left_fiber_map(interval(-1), interval(-1, 1), r, c)
 
 
-#     right_image_rectangle_x = _Lorenz_right_one_dim_map(Interval(0.5, 1), α, s)
-#     right_image_rectangle_y = _Lorenz_right_fiber_map(Interval(0.5), Interval(-1, 1), r, c)
+#     right_image_rectangle_x = _Lorenz_right_one_dim_map(interval(0.5, 1), α, s)
+#     right_image_rectangle_y = _Lorenz_right_fiber_map(interval(0.5), interval(-1, 1), r, c)
     
 
 #     Numberelements = 0
@@ -120,12 +120,12 @@
 #     @info "left"
 #     for i in 0:2^l-1
 
-#         x = Interval(-1)+Interval(i, i+1)/2^l
+#         x = interval(-1)+interval(i, i+1)/2^l
 #         left_image_rectangle_x = _Lorenz_left_one_dim_map(x, α, s)
 #         @info left_image_rectangle_x
-#         left_image_rectangle_x += Interval(-ξ, ξ)
+#         left_image_rectangle_x += interval(-ξ, ξ)
 #         @info left_image_rectangle_x
-#         left_image_rectangle_y = _Lorenz_left_fiber_map(x, Interval(-1, 1), r, c)+Interval(-ξ, ξ)
+#         left_image_rectangle_y = _Lorenz_left_fiber_map(x, interval(-1, 1), r, c)+interval(-ξ, ξ)
         
 #         @debug left_image_rectangle_x
 #         @debug left_image_rectangle_y
@@ -160,9 +160,9 @@
 #     @info "right"
         
 #     for i in 0:2^l-1
-#         x = Interval(i, i+1)/2^l
-#         right_image_rectangle_x = _Lorenz_left_one_dim_map(x, α, s)+Interval(-ξ, ξ)
-#         right_image_rectangle_y = _Lorenz_left_fiber_map(x, Interval(-1, 1), r, c)+Interval(-ξ, ξ)
+#         x = interval(i, i+1)/2^l
+#         right_image_rectangle_x = _Lorenz_left_one_dim_map(x, α, s)+interval(-ξ, ξ)
+#         right_image_rectangle_y = _Lorenz_left_fiber_map(x, interval(-1, 1), r, c)+interval(-ξ, ξ)
         
 #         @debug right_image_rectangle_x
 #         @debug right_image_rectangle_y
@@ -300,7 +300,7 @@
 
 #         for ind_x in preim_a:preim_b         
 #             #this is the relative measure of T^{-1}I_i in I_j
-#             rel_meas = relative_measure((a, b), (Interval(part_x[ind_x]), Interval(part_x[ind_x+1])))
+#             rel_meas = relative_measure((a, b), (interval(part_x[ind_x]), interval(part_x[ind_x+1])))
 #             #@info ind_x, part_x[ind_x], part_x[ind_x+1]
 #             #@info a, b, rel_meas
 #             index_domain_x = ind_x
@@ -318,7 +318,7 @@
 #                     # F(I, J) where J = (part_y[ind_y], part_y[ind_y+1])
 #                     # this allows us to restrict our computation only to the indexes 
 #                     # that have nontrivial intersection with the image
-#                     im_y = _Lorenz_left_fiber_map(I, Interval(part_y[ind_y], part_y[ind_y+1]), r, c)
+#                     im_y = _Lorenz_left_fiber_map(I, interval(part_y[ind_y], part_y[ind_y+1]), r, c)
                     
 #                     # here we have to be careful, since the matrix has 
 #                     # as left upper corner (1, 1), while 
@@ -329,7 +329,7 @@
 #                     indexes_y = ind_y_lower:ind_y_upper
 #                 else
 #                     # same, but for the right part of the domain
-#                     im_y = _Lorenz_left_fiber_map(I, Interval(part_y[ind_y], part_y[ind_y+1]), r, c)
+#                     im_y = _Lorenz_left_fiber_map(I, interval(part_y[ind_y], part_y[ind_y+1]), r, c)
 #                     ind_y_lower = k_y-searchsortedlast(part_y, im_y.hi)
 #                     ind_y_upper = k_y-searchsortedlast(part_y, im_y.lo)
 #                     indexes_y = ind_y_lower:ind_y_upper

@@ -47,20 +47,20 @@ aux_norm(B::FourierAdjoint) = L1
 function weak_projection_error(B::FourierAdjoint{Cω})
     N = B.k
     # Conservative bound: use exponential decay with a small default η
-    η = Interval(0.1)
-    return exp(2 * Interval(pi) * N * η).hi
+    η = interval(0.1)
+    return exp(2 * interval(pi) * N * η).hi
 end
 
 function aux_normalized_projection_error(B::FourierAdjoint{Cω})
     N = B.k
-    η = Interval(0.1)
-    return exp(2 * Interval(pi) * N * η).hi
+    η = interval(0.1)
+    return exp(2 * interval(pi) * N * η).hi
 end
 
 function strong_weak_bound(B::FourierAdjoint{Cω})
     k = B.k
-    η = Interval(0.1)
-    λ = 4 * Interval(pi) * η
+    η = interval(0.1)
+    λ = 4 * interval(pi) * η
     geo_sum = 1 + 2 * exp(λ) * (1 - exp(λ * k)) / (1 - exp(λ))
     return sqrt(geo_sum).hi
 end

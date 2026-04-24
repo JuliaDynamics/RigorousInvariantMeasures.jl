@@ -98,8 +98,8 @@ function PwMap(
     Ts,
     endpoints,
     y_endpoints_in = hcat(
-        [Ts[k](Interval(endpoints[k])) for k = 1:length(Ts)],
-        [Ts[k](Interval(endpoints[k+1])) for k = 1:length(Ts)],
+        [Ts[k](interval(endpoints[k])) for k = 1:length(Ts)],
+        [Ts[k](interval(endpoints[k+1])) for k = 1:length(Ts)],
     );
     full_branch = false,
 )
@@ -114,7 +114,7 @@ function PwMap(
 end
 
 function intersect_domain(D::PwMap, x)
-    return [(Interval(x) ∩ hull(br.X[1], br.X[2])) for br in D.branches]
+    return [(interval(x) ∩ hull(br.X[1], br.X[2])) for br in D.branches]
 end
 
 function intersect_domain_bool(D::PwMap, x)
@@ -125,7 +125,7 @@ Base.show(io::IO, D::PwMap) =
     print(io, "Piecewise-defined dynamic with $(nbranches(D)) branches")
 
 domain(D::PwMap) = (D.branches[1].X[1], D.branches[end].X[2])
-#intersect_domain(T::PwMap, x) = [Interval(x) ∩ hull(br.X[1], br.X[2]) for br in T.branches]
+#intersect_domain(T::PwMap, x) = [interval(x) ∩ hull(br.X[1], br.X[2]) for br in T.branches]
 #intersect_domain_bool(T::PwMap, x) = [!(∅ == y) for y in intersect_domain(T, x)]
 
 
@@ -258,7 +258,7 @@ julia> max_distortion(D0)
 ```
 """
 function max_distortion(D::PwMap, tol = 1e-3)
-    # max_dist = Interval(0.0)
+    # max_dist = interval(0.0)
     # for br in branches(D)
     #     val = maximise(x -> abs(distortion(br.f, x)), hull(br.X[1], br.X[2]), tol=tol)[1]
     #     max_dist = max(val, max_dist)
@@ -272,7 +272,7 @@ function plottable(D::PwMap, x)
     for k = 1:nbranches(D)
         domain = hull(D[k].X[1], D[k].X[2])
         if x in domain
-            return mid(Interval(D[k].f(x)))
+            return mid(interval(D[k].f(x)))
         end
     end
 end
@@ -284,12 +284,12 @@ plottable(D::PwMap) = x -> plottable(D, x)
 Returns a pair (left::Bool, right::Bool) that tells if a branch has infinite derivative at any of its endpoints
 """
 function has_infinite_derivative_at_endpoints(branch::MonotonicBranch)
-    # the Interval(0, 1e-15) summand is there because for some reason TaylorSeries fails on point intervals of singularity but not on larger intervals containing them:
+    # the interval(0, 1e-15) summand is there because for some reason TaylorSeries fails on point intervals of singularity but not on larger intervals containing them:
     # derivative(x->x^(6/10), 0..0) # fails
     # derivative(x->x^(6/10), 0..1e-15) # succeeds
 
-    left = !isfinite(derivative(branch.f, branch.X[1] + Interval(0, 1e-15)))
-    right = !isfinite(derivative(branch.f, branch.X[2] - Interval(0, 1e-15)))
+    left = !isfinite(derivative(branch.f, branch.X[1] + interval(0, 1e-15)))
+    right = !isfinite(derivative(branch.f, branch.X[2] - interval(0, 1e-15)))
     return (left, right)
 end
 
@@ -417,7 +417,7 @@ function dfly_inf_der(::Type{TotalVariation}, ::Type{L1}, D::PwMap, tol = 1e-3)
     #@showprogress enabled=SHOW_PROGRESS_BARS  1 "Computing infinite-derivative DFLY..." 
     for i = 3:15
         val = 0.0
-        val_summand = Interval(0.0)
+        val_summand = interval(0.0)
         l = 0.0
 
         for (j, br) in enumerate(branches(D))

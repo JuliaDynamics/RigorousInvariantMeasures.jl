@@ -153,7 +153,7 @@ function Base.iterate(S::ProjectDualElement{BT,DT}, state = S.j_min) where {BT<:
         return nothing
     end
     j = state
-    x = relative_measure(S.dual_element, (Interval(S.basis.p[j]), Interval(S.basis.p[j+1])))
+    x = relative_measure(S.dual_element, (interval(S.basis.p[j]), interval(S.basis.p[j+1])))
     return (j, x), state + 1
 end
 Base.eltype(f::ProjectDualElement{<:Ulam,DT}) where {DT} = Tuple{Int64,Interval{Float64}}
