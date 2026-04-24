@@ -3,6 +3,8 @@ module TaylorModelsExt
 export Observable, discretizationlogder, integrateobservable
 
 using RigorousInvariantMeasures
+using IntervalArithmetic
+using IntervalOptimisation: maximise
 
 import TaylorModels
 
@@ -65,13 +67,11 @@ end
 struct Observable
     B::Any
     v::Vector
-    infbound::Any
+    inf_bound::Any
 end
-
 
 ### TODO: Actually some assumptions are made, as the fact that
 # the Ulam base is equispaced 
-
 """
     Observable(B::Ulam, ϕ::Function; tol = 2^-10)
 
@@ -118,7 +118,7 @@ function discretizationlogder(B::Ulam, D::PwMap; degree = 7)
         ind_X1 = Int64(floor(length(B) * br.X[1].lo)) + 1
         ind_X2 = min(Int64(floor(length(B) * br.X[2].lo)) + 1, length(B))
         dom = hull(br.X[1], br.X[2])
-        fprime = derivative(br.f)
+          fprime = derivative(br.f)
         for i = ind_X1:ind_X2
             I = Interval(B.p[i], B.p[i+1]) ∩ dom
             r = Interval(radius(I))
@@ -146,8 +146,48 @@ function discretizationlogder_fast(B, D::PwMap)
     v = zeros(Interval{Float64}, length(B))
 
     @error "Not implemented yet!"
+end
+
+struct ProjectedFunction
+    B::Any
+    v::Vector
+    err_bound::Any
+end
+
+"""
+    VariationBound(f; steps = 1024)
+
+Rigorous variation bound for a C¹ function on `[0,1]`, computed as
+``\\int_0^1 |f'(x)|\\,dx`` via a Riemann upper bound over a uniform
+partition with `steps` subintervals. `f'` is obtained from Taylor-series
+automatic differentiation, so `f` must be callable on a
+`TaylorSeries.Taylor1{Interval{Float64}}`.
+"""
+function VariationBound(f; steps = 1024)
+    total = Interval(0.0)
+    h = Interval(1.0) / steps
+    for i = 1:steps
+        I = Interval((i - 1) / steps, i / steps)
+        Tx = TaylorSeries.Taylor1([I, Interval(1.0)], 1)
+        fprime_I = f(Tx)[1]
+        total += abs(fprime_I) * h
+    end
+    return total
+end
 
 
+function ProjectedFunction(
+    B::Ulam,
+    f::Function;
+    tol = 2^-10,
+    VarBound = VariationBound(f),
+)
+    v = zeros(Interval{Float64}, length(B))
+    for i = 1:length(B)
+        I = Interval(B.p[i], B.p[i+1])
+        v[i] = adaptive_integration(f, I; tol = tol, steps = 1, degree = 2) * length(B)
+    end
+    return ProjectedFunction(B, v, VarBound / length(B))
 end
 
 
@@ -191,7 +231,7 @@ end =#
 
 function integrateobservable(B::Ulam, ϕ::Observable, f::Vector, error)
     val = (ϕ.v)' * f
-    return val / length(B) + (ϕ.infbound.hi) * Interval(-error, error)
+    return val / length(B) + (ϕ.inf_bound.hi) * Interval(-error, error)
 end
 
 

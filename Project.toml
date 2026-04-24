@@ -42,9 +42,9 @@ TaylorModelsExt = "TaylorModels"
 AbstractFFTs = "1"
 Adapt = "4"
 Arpack = "0.5"
+BallArithmetic = "0.1.2"
 CRlibm = "1"
 CUDA = "5.5"
-Documenter = "1"
 DualNumbers = "0.6"
 FFTW = "1"
 FastRounding = "0.3"
@@ -63,11 +63,3 @@ TaylorModels = "0.7"
 TaylorSeries = "0.17"
 julia = "1.9"
 
-[extras]
-Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
-Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
-Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
-SymbolicUtils = "d1185830-fcd6-423d-90d6-eec64667417b"
-
-[targets]
-test = ["Test", "Documenter", "Symbolics", "SymbolicUtils"]

@@ -51,6 +51,8 @@ function is_dual_element_empty(::Ulam, d)
     return isempty(d[1]) || isempty(d[2])
 end
 
+projection(::Ulam, f::Function) = @error "Needs the TaylorModel extension"
+
 #Base.length(S::DualComposedWithDynamic{<:Ulam, <:Dynamic}) = length(S.basis) * nbranches(S.dynamic)
 
 # """
