@@ -42,36 +42,36 @@ Return the size of the C2 basisBase.length(S::AverageZero) = length(S.basis)-1
 Base.length(b::C2Basis) = 2 * length(b.p)
 
 function ϕ(x::Interval{T}) where {T}
-    if x ∩ Interval{T}(-1, 1) == ∅
+    if x ∩ interval(T, -1, 1) == ∅
         return zero(x)
     else
-        x₋ = x ∩ Interval{T}(-1, 0)
+        x₋ = x ∩ interval(T, -1, 0)
         val₋ = evalpoly(x₋, (1, 0, 0, 10, 15, 6))
-        x₊ = x ∩ Interval{T}(0, 1)
+        x₊ = x ∩ interval(T, 0, 1)
         val₊ = evalpoly(x₊, (1, 0, 0, -10, 15, -6))
         return val₋ ∪ val₊
     end
 end
 
 function ϕprime(x::Interval{T}) where {T}#Derivative of ϕ
-    if x ∩ Interval{T}(-1, 1) == ∅
+    if x ∩ interval(T, -1, 1) == ∅
         return zero(x)
     else
-        x₋ = x ∩ Interval{T}(-1, 0)
+        x₋ = x ∩ interval(T, -1, 0)
         val₋ = evalpoly(x₋, (0, 0, 30, 60, 30))
-        x₊ = x ∩ Interval{T}(0, 1)
+        x₊ = x ∩ interval(T, 0, 1)
         val₊ = evalpoly(x₊, (0, 0, -30, 60, -30))
         return val₋ ∪ val₊
     end
 end
 
 function ν(x::Interval{T}) where {T}
-    if x ∩ Interval{T}(-1, 1) == ∅
+    if x ∩ interval(T, -1, 1) == ∅
         return zero(x)
     else
-        x₋ = x ∩ Interval{T}(-1, 0)
+        x₋ = x ∩ interval(T, -1, 0)
         val₋ = evalpoly(x₋, (0, 1, 0, -6, -8, -3))
-        x₊ = x ∩ Interval{T}(0, 1)
+        x₊ = x ∩ interval(T, 0, 1)
         val₊ = evalpoly(x₊, (0, 1, 0, -6, 8, -3))
         return val₋ ∪ val₊
     end
@@ -79,12 +79,12 @@ end
 
 function νprime(x::Interval{T}) where {T} #Derivative of ν
 
-    if x ∩ Interval{T}(-1, 1) == ∅
+    if x ∩ interval(T, -1, 1) == ∅
         return zero(x)
     else
-        x₋ = x ∩ Interval{T}(-1, 0)
+        x₋ = x ∩ interval(T, -1, 0)
         val₋ = evalpoly(x₋, (1, 0, -18, -32, -15))
-        x₊ = x ∩ Interval{T}(0, 1)
+        x₊ = x ∩ interval(T, 0, 1)
         val₊ = evalpoly(x₊, (1, 0, -18, 32, -15))
         return val₋ ∪ val₊
     end

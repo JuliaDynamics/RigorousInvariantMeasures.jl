@@ -16,7 +16,7 @@ function PwDynamicApproxInducedLSV(α, k; T = Float64, rescaled = false)
         left = RigorousInvariantMeasures.ShootingLSV(i, 0.5, α; T = T)[1]
         push!(
             branches,
-            MonotonicBranch(f, (left, right), (Interval{}(0.5), Interval{T}(1.0))),
+            MonotonicBranch(f, (left, right), (Interval{T}(0.5), Interval{T}(1.0))),
         )
         f = f_left ∘ f
         right = left

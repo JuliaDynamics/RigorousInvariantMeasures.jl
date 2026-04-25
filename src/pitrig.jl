@@ -18,7 +18,7 @@ sinpi(a...) = Base.Math.sinpi(a...)
 function sinpi(a::Interval{T}) where {T}
     isempty(a) && return a
 
-    whole_range = Interval{T}(-1, 1)
+    whole_range = interval(T, -1, 1)
 
     diam(a) > 2 && return whole_range
 
