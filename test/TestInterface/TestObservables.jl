@@ -25,7 +25,7 @@ const TMExt = Base.get_extension(RigorousInvariantMeasures, :TaylorModelsExt)
     # infbound/inf_bound rename drifting again.
     B = Ulam(4)
     Obs = TMExt.Observable(B, x -> x)
-    f = [Interval(1.0), Interval(1.0), Interval(1.0), Interval(1.0)]
+    f = [interval(1.0), interval(1.0), interval(1.0), interval(1.0)]
     val = TMExt.integrateobservable(B, Obs, f, 0.0)
     @test 0.5 ∈ val
 end
@@ -50,7 +50,7 @@ end
 
     # f(x) = x: cell averages are 1/8, 3/8, 5/8, 7/8.
     # With VarBound = 1 (true total variation of x ↦ x), err_bound = 1/4.
-    pf = TMExt.ProjectedFunction(B, x -> x; VarBound = Interval(1.0))
+    pf = TMExt.ProjectedFunction(B, x -> x; VarBound = interval(1.0))
 
     @test 0.125 ∈ pf.v[1]
     @test 0.375 ∈ pf.v[2]
@@ -70,7 +70,7 @@ end
 
     # `projection` is the public entry point; extension routes it to
     # ProjectedFunction. Make sure dispatch actually reaches the extension.
-    pf_via_api = projection(B, x -> x; VarBound = Interval(1.0))
+    pf_via_api = projection(B, x -> x; VarBound = interval(1.0))
     @test pf_via_api isa TMExt.ProjectedFunction
     @test 0.125 ∈ pf_via_api.v[1]
 end

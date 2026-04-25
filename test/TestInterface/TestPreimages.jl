@@ -9,19 +9,19 @@ using IntervalArithmetic
     a1 = LinRange(0, 1, 12)
     a2 = [
         0,
-        0 .. 0.1,
-        0 .. 0.2,
-        0.1 .. 0.3,
-        0.2 .. 0.4,
-        0.3 .. 0.5,
-        0.3 .. 0.6,
-        0.6 .. 0.8,
-        0.8 .. 1,
-        1 .. 1,
+        interval(0, 0.1),
+        interval(0, 0.2),
+        interval(0.1, 0.3),
+        interval(0.2, 0.4),
+        interval(0.3, 0.5),
+        interval(0.3, 0.6),
+        interval(0.6, 0.8),
+        interval(0.8, 1),
+        interval(1, 1),
     ] #tricky weakly sorted vector
 
-    x1 = 0.25 .. 0.25
-    x2 = 0.1 .. 0.8
+    x1 = interval(0.25, 0.25)
+    x2 = interval(0.1, 0.8)
     x3 = 2
     x4 = -1
     x5 = 0
@@ -29,10 +29,10 @@ using IntervalArithmetic
 
     # test for the for wide intervals and 0 derivative 
 
-    @test RigorousInvariantMeasures.range_estimate_monotone(x -> x, Interval(0, 1)) ==
-          Interval(0, 1)
-    @test RigorousInvariantMeasures.range_estimate_monotone(x -> exp(x), Interval(0, 1)) ==
-          Interval(1, exp(Interval(1)).hi)
+    @test RigorousInvariantMeasures.range_estimate_monotone(x -> x, interval(0, 1)) ==
+          interval(0, 1)
+    @test RigorousInvariantMeasures.range_estimate_monotone(x -> exp(x), interval(0, 1)) ==
+          interval(1, exp(interval(1)).hi)
 
     begin
         preim_branch = RigorousInvariantMeasures.preimage
@@ -46,23 +46,23 @@ using IntervalArithmetic
 
 
         # if X is the search interval we test when f(X) ⊂ y
-        root = preim_branch(Interval(-5, 5), br, @interval(0.0, 1.0); ϵ, max_iter = 100)
+        root = preim_branch(interval(-5, 5), br, @interval(0.0, 1.0); ϵ, max_iter = 100)
         @test root ⊂ (@interval(0.0, 1.0) + @interval(-ϵ, ϵ))
 
         # if X is the search interval we test when y ⊂ f(X)
-        root = preim_branch(Interval(0.0, 0.04), br, @interval(0.0, 1.0); ϵ, max_iter = 100)
+        root = preim_branch(interval(0.0, 0.04), br, @interval(0.0, 1.0); ϵ, max_iter = 100)
         @test root ⊂ (@interval(0, 0.2) + @interval(-ϵ, ϵ))
 
         # if X is the search interval we test when y ∩ f(X) ≂̸ ∅, the expected result is
         # f^{-1}(y) ∩ X
-        root = preim_branch(Interval(0.0, 0.04), br, @interval(0.1, 1.0); ϵ, max_iter = 100)
+        root = preim_branch(interval(0.0, 0.04), br, @interval(0.1, 1.0); ϵ, max_iter = 100)
         @test root ⊂ (@interval(0.1, 0.2) + @interval(-ϵ, ϵ))
 
-        root = preim_branch(Interval(0.0, 0.04), br, @interval(0.2, 1.0); ϵ, max_iter = 100)
+        root = preim_branch(interval(0.0, 0.04), br, @interval(0.2, 1.0); ϵ, max_iter = 100)
         @test root ⊂ (@interval(0.2) + @interval(-ϵ, ϵ))
 
         # if X is the search interval we test when y ∩ f(X) = ∅ 
-        root = preim_branch(Interval(0.0, 0.04), br, @interval(0.3, 1.0); ϵ, max_iter = 10)
+        root = preim_branch(interval(0.0, 0.04), br, @interval(0.3, 1.0); ϵ, max_iter = 10)
         @test isempty(root)
 
         # we test when the domain of f contains the zero of the derivative
@@ -73,34 +73,34 @@ using IntervalArithmetic
         )
 
         # if X is the search interval we test when y ⊂ f(X)
-        root = preim_branch(Interval(0.0, 0.04), br, @interval(0.1, 1.0); ϵ, max_iter = 100)
+        root = preim_branch(interval(0.0, 0.04), br, @interval(0.1, 1.0); ϵ, max_iter = 100)
         @test root ⊂ (@interval(0.1, 0.3) + @interval(-ϵ, ϵ))
 
         # if X is the search interval we test when y ∩ f(X) ≂̸ ∅, the expected result is
         # f^{-1}(y) ∩ X
-        root = preim_branch(Interval(0.0, 0.04), br, @interval(0.2, 1.0); ϵ, max_iter = 100)
+        root = preim_branch(interval(0.0, 0.04), br, @interval(0.2, 1.0); ϵ, max_iter = 100)
         @test root ⊂ (@interval(0.2, 0.3) + @interval(-ϵ, ϵ))
 
-        root = preim_branch(Interval(0.0, 0.04), br, @interval(0.0); ϵ, max_iter = 100)
+        root = preim_branch(interval(0.0, 0.04), br, @interval(0.0); ϵ, max_iter = 100)
         @test root ⊂ (@interval(0.0) + @interval(-ϵ, ϵ))
 
         # if X is the search interval we test when y ∩ f(X) = ∅ 
-        root = preim_branch(Interval(0.0, 0.04), br, @interval(0.4, 1.0); ϵ, max_iter = 10)
+        root = preim_branch(interval(0.0, 0.04), br, @interval(0.4, 1.0); ϵ, max_iter = 10)
         @test isempty(root)
 
         # we test the exit rule for Krawczyk, i.e., if 0 ∈ f′(x_mid)
         # return x
         # remark that to bypass the unique increasing test we need to call 
         # the full MonotonicBranch constructor. In general this function would not be allowed
-        # by the constructor. MonotonicBranch are monotone in Interval(X[1].hi, X[2].lo)
+        # by the constructor. MonotonicBranch are monotone in interval(X[1].hi, X[2].lo)
         br = RigorousInvariantMeasures.MonotonicBranch(
             x -> x^2,
             (@interval(-1), @interval(1)),
-            (Interval(1), Interval(1)),
+            (interval(1), interval(1)),
             true,
         )
-        root = preim_branch(Interval(0.0), br, @interval(0.0); ϵ, max_iter = 10)
-        @test root == Interval(0.0)
+        root = preim_branch(interval(0.0), br, @interval(0.0); ϵ, max_iter = 10)
+        @test root == interval(0.0)
 
 
     end
@@ -108,12 +108,12 @@ using IntervalArithmetic
     for a in (a1, a2)
         for x in (x1, x2, x3, x4, x5, x6)
             i = RigorousInvariantMeasures.first_overlapping(a, x)
-            @test i == 0 || Interval(a[i]).hi <= Interval(x).lo
-            @test i == length(a) || !(Interval(a[i+1]).hi <= Interval(x).lo)
+            @test i == 0 || interval(a[i]).hi <= interval(x).lo
+            @test i == length(a) || !(interval(a[i+1]).hi <= interval(x).lo)
 
             j = RigorousInvariantMeasures.last_overlapping(a, x)
-            @test j == 0 || !(Interval(a[j]).lo >= Interval(x).hi)
-            @test j == length(a) || Interval(a[j+1]).lo >= Interval(x).hi
+            @test j == 0 || !(interval(a[j]).lo >= interval(x).hi)
+            @test j == length(a) || interval(a[j+1]).lo >= interval(x).hi
         end
     end
 
@@ -150,7 +150,7 @@ using IntervalArithmetic
     x = RigorousInvariantMeasures.preimage(
         0.04,
         b,
-        Interval(0.2, 0.7),
+        interval(0.2, 0.7),
         ϵ = 1e-14,
         max_iter = 100,
     )
@@ -160,13 +160,13 @@ using IntervalArithmetic
     x = RigorousInvariantMeasures.preimage(
         0.04,
         b,
-        Interval(0, 0.4),
+        interval(0, 0.4),
         ϵ = 1e-14,
         max_iter = 100,
     )
     @test 0.1 ∈ x
 
-    #@test_logs (:debug,"Not contracting, fallback to bisection") RigorousInvariantMeasures.preimage(0.04, b, Interval(0, 0.4), ϵ = 1e-14, max_iter = 100)
+    #@test_logs (:debug,"Not contracting, fallback to bisection") RigorousInvariantMeasures.preimage(0.04, b, interval(0, 0.4), ϵ = 1e-14, max_iter = 100)
 
     D = mod1_dynamic(x -> 2x)
     DD = ∘(D, D, D, D)
@@ -234,8 +234,8 @@ using IntervalArithmetic
 
     f = x -> x^2
     g = x -> 1 - x^2
-    Dinc = PwMap([f], [0 .. 0, 1 .. 1])
-    Ddec = PwMap([g], [0 .. 0, 1 .. 1])
+    Dinc = PwMap([f], [interval(0, 0), interval(1, 1)])
+    Ddec = PwMap([g], [interval(0, 0), interval(1, 1)])
 
     @test is_increasing(Dinc)
     @test !is_increasing(Ddec)
@@ -243,7 +243,7 @@ using IntervalArithmetic
     @test !is_increasing(Dinc ∘ Ddec)
     @test !is_increasing(Ddec ∘ Ddec ∘ Ddec)
 
-    z = [0 .. 0, 0.5 .. 0.5, 1 .. 1]
+    z = [interval(0, 0), interval(0.5, 0.5), interval(1, 1)]
     x, xlabel, x′ = RigorousInvariantMeasures.preimages_and_derivatives(
         z,
         Dinc ∘ Ddec;
@@ -272,12 +272,12 @@ using IntervalArithmetic
             x -> (34 * ((17 * x - 10) / 17) / 25 + 3) * ((17 * x - 10) / 17),
             x -> 17 * ((17 * x - 15) / 17) / 5,
         ],
-        [Interval(0), Interval(5) / 17, Interval(10) / 17, Interval(15) / 17, Interval(1)],
+        [interval(0), interval(5) / 17, interval(10) / 17, interval(15) / 17, interval(1)],
         [
-            Interval(0) Interval(1)
-            Interval(0) Interval(1)
-            Interval(0) Interval(1)
-            Interval(0) @interval(0.4)
+            interval(0) interval(1)
+            interval(0) interval(1)
+            interval(0) interval(1)
+            interval(0) @interval(0.4)
         ],
     )
 
@@ -294,12 +294,12 @@ using IntervalArithmetic
             x -> (34 * ((17 * x - 10) / 17) / 25 + 3) * ((17 * x - 10) / 17),
             x -> 17 * ((17 * x - 15) / 17) / 5,
         ],
-        [Interval(0), Interval(5) / 17, Interval(10) / 17, Interval(15) / 17, Interval(1)],
+        [interval(0), interval(5) / 17, interval(10) / 17, interval(15) / 17, interval(1)],
         [
-            Interval(0) Interval(1)
-            Interval(0) Interval(1)
-            Interval(0) Interval(1)
-            Interval(0) @interval(0.4)
+            interval(0) interval(1)
+            interval(0) interval(1)
+            interval(0) interval(1)
+            interval(0) @interval(0.4)
         ],
     )
 

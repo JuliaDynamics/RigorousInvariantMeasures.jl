@@ -13,13 +13,13 @@
     @test Ginv(-0.5 - 1 / 1024) == -1
 
     using IntervalArithmetic
-    @test 1 ∈ RigorousInvariantMeasures.Lorenz2D._Lorenz_one_dim_map(Interval(1), 2.0, 3.0)
+    @test 1 ∈ RigorousInvariantMeasures.Lorenz2D._Lorenz_one_dim_map(interval(1), 2.0, 3.0)
     @test -1 ∈ RigorousInvariantMeasures.Lorenz2D._Lorenz_right_one_dim_map(
-        Interval(0),
+        interval(0),
         2.0,
         3.0,
     )
     @test 1 ∈
-          RigorousInvariantMeasures.Lorenz2D._Lorenz_left_one_dim_map(Interval(0), 2.0, 3.0)
+          RigorousInvariantMeasures.Lorenz2D._Lorenz_left_one_dim_map(interval(0), 2.0, 3.0)
 
 end

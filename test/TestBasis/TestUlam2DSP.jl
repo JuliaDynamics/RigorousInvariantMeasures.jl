@@ -63,17 +63,17 @@
     #@test length(test_Dual) == 40
 
     G = D.G[1]
-    @test RigorousInvariantMeasures.check_image(B, G, Interval(0.1), Interval(0.2)) ==
+    @test RigorousInvariantMeasures.check_image(B, G, interval(0.1), interval(0.2)) ==
           (1, 2)
     B = Ulam2DSP(4, 1024)
-    @test RigorousInvariantMeasures.check_image(B, G, Interval(0.1), Interval(0.2)) ==
+    @test RigorousInvariantMeasures.check_image(B, G, interval(0.1), interval(0.2)) ==
           (256, 282)
 
 
     @test RigorousInvariantMeasures.preimage_fixed_x(D, 1, 0, 0.24, 0.26; ϵ, max_iter) ==
-          (Interval(0), Interval(1))
+          (interval(0), interval(1))
     @test RigorousInvariantMeasures.preimage_fixed_x(D, 1, 0, 0.24, 0.241; ϵ, max_iter) ==
-          (Interval(∅), Interval(∅))
+          (interval(∅), interval(∅))
     @test RigorousInvariantMeasures.preimage_fixed_x(
         D,
         1,
@@ -82,9 +82,9 @@
         0.275;
         ϵ,
         max_iter,
-    ) == (Interval(0), Interval(1))
+    ) == (interval(0), interval(1))
     @test RigorousInvariantMeasures.preimage_fixed_x(D, 1, 0.125, 0.5, 0.6; ϵ, max_iter) ==
-          (Interval(∅), Interval(∅))
+          (interval(∅), interval(∅))
     @test RigorousInvariantMeasures.preimage_fixed_x(
         D,
         1,
@@ -93,7 +93,7 @@
         0.275;
         ϵ,
         max_iter,
-    ) == (Interval(0), Interval(1))
+    ) == (interval(0), interval(1))
 
 
     P, err = RigorousInvariantMeasures.rectangle_preimage(
