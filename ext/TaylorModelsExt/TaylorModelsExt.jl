@@ -190,6 +190,9 @@ function ProjectedFunction(
     return ProjectedFunction(B, v, VarBound / length(B))
 end
 
+RigorousInvariantMeasures.projection(B::Ulam, f::Function; kwargs...) =
+    ProjectedFunction(B, f; kwargs...)
+
 
 
 

@@ -15,6 +15,7 @@ export Basis,
     opnormbound,
     normbound,
     bound_weak_norm_abstract,
+    projection,
     Dual
 
 abstract type Basis end
@@ -42,8 +43,15 @@ Base.length(S::ProjectDualElement{B,DT}) where {B,DT} = S.j_max - S.j_min + 1
 is_dual_element_empty(B::Basis, I) = @error "Not Implemented"
 nonzero_on(B::Basis, I) = @error "Not Implemented"
 
-projection(B::Basis, f::Function) = @error "Not implemented"
-    
+"""
+    projection(B::Basis, f::Function; kwargs...)
+
+Project a function `f` onto the basis `B`. The result type and available
+keyword arguments are basis-dependent. Currently implemented via the
+`TaylorModels` extension for the `Ulam` basis.
+"""
+function projection end
+
 function ProjectDualElement(B::Basis, y)
     j_min, j_max = nonzero_on(B, y)
     return ProjectDualElement(B, j_min, j_max, y)

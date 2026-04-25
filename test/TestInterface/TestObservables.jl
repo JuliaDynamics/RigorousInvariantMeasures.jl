@@ -67,4 +67,10 @@ end
     # tol propagates: tighter tol shouldn't break the enclosure.
     pf_tight = TMExt.ProjectedFunction(B, x -> x; tol = 2^-14)
     @test 0.125 ∈ pf_tight.v[1]
+
+    # `projection` is the public entry point; extension routes it to
+    # ProjectedFunction. Make sure dispatch actually reaches the extension.
+    pf_via_api = projection(B, x -> x; VarBound = Interval(1.0))
+    @test pf_via_api isa TMExt.ProjectedFunction
+    @test 0.125 ∈ pf_via_api.v[1]
 end
