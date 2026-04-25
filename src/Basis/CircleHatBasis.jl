@@ -40,7 +40,7 @@ struct IntervalOnTorus{T<:Real}
     function IntervalOnTorus{T}(I::Interval) where {T<:Real}
         # Note that this test may "expand" intervals such as 1e-30..1, to 0..1, but it is not a big issue anyway
         if diam(I) >= 1.0
-            new{T}(0 .. 1)
+            new{T}(interval(0, 1))
         else
             # Note that I - floor(I.lo) may return something smaller than zero in some rounding modes
             new{T}(max(I - floor(I.lo), 0))

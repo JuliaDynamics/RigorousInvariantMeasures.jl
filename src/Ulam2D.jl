@@ -218,7 +218,7 @@ F(v::IntervalBox) = Tfloat(v[1]) × Gfloat(v[1], v[2])
 image_ib = Array{IntervalBox}(undef, length(dx) * length(dy))
 
 noise_amplitude = 1 / 16
-noise_1d = -noise_amplitude .. noise_amplitude
+noise_1d = interval(-noise_amplitude, noise_amplitude)
 noise = noise_1d × noise_1d
 
 for (i, (x, y)) in enumerate(Base.Iterators.product(dx, dy))

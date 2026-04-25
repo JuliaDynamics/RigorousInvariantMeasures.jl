@@ -318,7 +318,7 @@ Piecewise-defined dynamic with 2 branches
 ```
 """
 function mod1_dynamic(f::Function; ϵ = 0.0, max_iter = 100, full_branch = false)
-    X = (0 .. 0, 1 .. 1)
+    X = (interval(0, 0), interval(1, 1))
     br = MonotonicBranch(f, X)
     @debug "Auxiliary branch" br
 
