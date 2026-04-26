@@ -28,12 +28,12 @@ using IntervalArithmetic
         end
     end
 
-    @test all(M .∈ real_P)
+    @test in_interval.(all(M, real_P))
 
     D = mod1_dynamic(x -> 2 * x)
 
     P = RigorousInvariantMeasures.assemble(B, D)
 
-    @test all(M .∈ real_P)
+    @test in_interval.(all(M, real_P))
 
 end

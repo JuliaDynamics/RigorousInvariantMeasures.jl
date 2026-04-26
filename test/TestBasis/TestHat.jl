@@ -7,29 +7,29 @@
 
     f = HatFunction(1.0, 2, 3)
     @test f(1.5) == 0.5
-    @test f(interval(1, 1.5)) == interval(0, 0.5)
+    @test isequal_interval(f(interval(1, 1.5)), interval(0, 0.5))
 
     f = HatFunctionOnTorus(0.125, 0.25, 0.375)
     x = IntervalOnTorus(interval(0.375, 1.1875))
-    @test f(x) == interval(0, 0.5)
+    @test isequal_interval(f(x), interval(0, 0.5))
 
-    @test f(IntervalOnTorus(interval(0, 1))) == interval(0, 1)
+    @test isequal_interval(f(IntervalOnTorus(interval(0, 1))), interval(0, 1))
 
     f = HatFunctionOnTorus(0.125, 0.25, 0.375)
     x = IntervalOnTorus(interval(3.1875, 3.25))
-    @test f(x) == interval(0.5, 1)
+    @test isequal_interval(f(x), interval(0.5, 1))
 
     f = HatFunctionOnTorus(0, 0.125, 0.25)
     x = IntervalOnTorus(interval(0, 0.0625))
-    @test f(x) == interval(0, 0.5)
+    @test isequal_interval(f(x), interval(0, 0.5))
 
     f = HatFunctionOnTorus(0.875, 0, 0.125)
     x = IntervalOnTorus(interval(0, 0.0625))
-    @test f(x) == interval(0.5, 1)
+    @test isequal_interval(f(x), interval(0.5, 1))
 
     f = HatFunctionOnTorus(0.875, 0, 0.125)
     x = IntervalOnTorus(interval(0.9375, 1))
-    @test f(x) == interval(0.5, 1)
+    @test isequal_interval(f(x), interval(0.5, 1))
 
     B = Hat(4)
     @test nonzero_on(B, (interval(0.1, 0.3), NaN)) == (1, 3)

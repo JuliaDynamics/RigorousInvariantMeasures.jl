@@ -7,15 +7,15 @@
 
     f = HatFunction(1.0, 2, 3)
     @test f(1.5) == 0.5
-    @test f(interval(1, 1.5)) == interval(0, 0.5)
+    @test isequal_interval(f(interval(1, 1.5)), interval(0, 0.5))
 
     f = HatFunction(0.125, 0.25, 0.375)
     x = interval(0.1875, 0.25)
-    @test f(x) == interval(0.5, 1)
+    @test isequal_interval(f(x), interval(0.5, 1))
 
     f = HatFunction(0, 0.125, 0.25)
     x = interval(0, 0.0625)
-    @test f(x) == interval(0, 0.5)
+    @test isequal_interval(f(x), interval(0, 0.5))
 
     B = HatNP(4)
 

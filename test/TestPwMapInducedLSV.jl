@@ -13,14 +13,14 @@
     test_br = reverse(branches(D))
 
     x = (test_br[2].X[1] + test_br[2].X[2]) / 2
-    @test 0.75 ∈ test_br[2].f(x)
+    @test in_interval(0.75, test_br[2].f(x))
 
     x = (test_br[3].X[1] + test_br[3].X[2]) / 2
-    @test 0.75 ∈ test_br[3].f(x)
+    @test in_interval(0.75, test_br[3].f(x))
 
     br = test_br[end]
     x = (br.X[1] + br.X[2]) / 2
-    @test 0.75 ∈ br.f(x)
+    @test in_interval(0.75, br.f(x))
 
     @test RigorousInvariantMeasures.LSV_left(0.0; α = 0.1) == 0.0
     @test RigorousInvariantMeasures.LSV_left(0.5; α = 0.1) == 1.0
@@ -47,7 +47,7 @@
         ϵ = 0.00001,
         max_iter = 100,
     )
-    @test all(part_half_one[1:end-1] .∈ preim_part_zero_one)
+    @test in_interval.(all(part_half_one[1:end-1], preim_part_zero_one))
 
     preim_part_half_one, label = RigorousInvariantMeasures.preimages(
         part_half_one,
@@ -56,7 +56,7 @@
         ϵ = 0.00001,
         max_iter = 100,
     )
-    @test all(part_zero_one[1:end-1] .∈ preim_part_half_one)
+    @test in_interval.(all(part_zero_one[1:end-1], preim_part_half_one))
 
 
     D = RigorousInvariantMeasures.RescaledApproxInducedLSV(0.0, 10; T = Float64)

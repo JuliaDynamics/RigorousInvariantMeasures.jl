@@ -5,8 +5,8 @@
 
     B = Hat(1024)
     Q = DiscretizedOperator(B, D)
-    @test 0.5 ∈ Q.L[1, 1]
-    @test 0.25 ∈ Q.L[2, 1]
+    @test in_interval(0.5, Q.L[1, 1])
+    @test in_interval(0.25, Q.L[2, 1])
 
     norms = powernormbounds(B, D, Q = Q)
     @test norms[10] < 1e-5

@@ -33,6 +33,6 @@ using IntervalArithmetic
     end
 
 
-    @test all(M .∈ real_P)
+    @test in_interval.(all(M, real_P))
 
 end

@@ -10,11 +10,11 @@ using RigorousInvariantMeasures: is_full_branch, is_increasing
     @test D.branches[1].f(0.1) == 0.2
     @test derivative(D.branches[1].f)(0.1) == 2.0
 
-    @test RigorousInvariantMeasures.intersect_domain(D, interval(0.0)) == [interval(0.0); ∅]
+    @test isequal_interval(RigorousInvariantMeasures.intersect_domain(D, interval(0.0)), [interval(0.0); ∅])
     @test RigorousInvariantMeasures.intersect_domain(D, interval(0.4, 0.6)) ==
           [interval(0.4, 0.5); interval(0.5, 0.6)]
 
-    @test RigorousInvariantMeasures.intersect_domain_bool(D, interval(0.0)) == [true; false]
+    @test isequal_interval(RigorousInvariantMeasures.intersect_domain_bool(D, interval(0.0)), [true; false])
     @test RigorousInvariantMeasures.intersect_domain_bool(D, interval(0.4, 0.6)) ==
           [true; true]
 
@@ -73,7 +73,7 @@ using RigorousInvariantMeasures: is_full_branch, is_increasing
 
     @test is_full_branch(D0) == true
     @test is_full_branch(D) == true
-    @test RigorousInvariantMeasures.domain(D) == (interval(0), interval(1))
+    @test isequal_interval(RigorousInvariantMeasures.domain(D), (interval(0), interval(1)))
 
     A, B, C = RigorousInvariantMeasures.preimages_and_derivatives(
         [0.0, 0.1],
@@ -152,13 +152,13 @@ using RigorousInvariantMeasures: is_full_branch, is_increasing
     @test derivative(D.branches[1].f, 0.1) == 2.0
     @test derivative(D.branches[2].f, 0.1) == 2.0
 
-    @test 0 ∈ D.branches[1].X[1]
-    @test 0 ∈ D.branches[1].Y[1]
+    @test in_interval(0, D.branches[1].X[1])
+    @test in_interval(0, D.branches[1].Y[1])
 
-    @test 0.5 ∈ D.branches[1].X[2]
-    @test 1 ∈ D.branches[1].Y[2]
+    @test in_interval(0.5, D.branches[1].X[2])
+    @test in_interval(1, D.branches[1].Y[2])
 
-    @test 0.5 ∈ max_inverse_derivative(D)
+    @test in_interval(0.5, max_inverse_derivative(D))
     @test 0 <= max_distortion(D)
 
     # Testing composedPwMap

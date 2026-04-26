@@ -5,7 +5,7 @@
     B = Ulam(1024)
 
     Q = DiscretizedOperator(B, D)
-    @test 0.5 ∈ Q.L[1, 1]
+    @test in_interval(0.5, Q.L[1, 1])
 
     norms = powernormbounds(B, D, Q = Q)
     @test norms[10] < 1e-10
@@ -20,9 +20,9 @@
     # using TaylorModels
 
     # logder = discretizationlogder(B, D)
-    # @test log(2) ∈ logder.v[1]
+    # @test in_interval(log(2), logder.v[1])
 
     # lyap = integrateobservable(B, logder, w, error)
-    # @test log(2) ∈ lyap
+    # @test in_interval(log(2), lyap)
 
 end

@@ -88,7 +88,7 @@ using IntervalArithmetic
         root = preim_branch(interval(0.0, 0.04), br, @interval(0.4, 1.0); ϵ, max_iter = 10)
         @test isempty(root)
 
-        # we test the exit rule for Krawczyk, i.e., if 0 ∈ f′(x_mid)
+        # we test the exit rule for Krawczyk, i.e., if in_interval(0, f)′(x_mid)
         # return x
         # remark that to bypass the unique increasing test we need to call 
         # the full MonotonicBranch constructor. In general this function would not be allowed
@@ -100,7 +100,7 @@ using IntervalArithmetic
             true,
         )
         root = preim_branch(interval(0.0), br, @interval(0.0); ϵ, max_iter = 10)
-        @test root == interval(0.0)
+        @test isequal_interval(root, interval(0.0))
 
 
     end
@@ -108,18 +108,18 @@ using IntervalArithmetic
     for a in (a1, a2)
         for x in (x1, x2, x3, x4, x5, x6)
             i = RigorousInvariantMeasures.first_overlapping(a, x)
-            @test i == 0 || interval(a[i]).hi <= interval(x).lo
-            @test i == length(a) || !(interval(a[i+1]).hi <= interval(x).lo)
+            @test isequal_interval(i, 0 || interval(a[i]).hi <= interval(x).lo)
+            @test isequal_interval(i, length(a) || !(interval(a[i+1]).hi <= interval(x).lo))
 
             j = RigorousInvariantMeasures.last_overlapping(a, x)
-            @test j == 0 || !(interval(a[j]).lo >= interval(x).hi)
-            @test j == length(a) || interval(a[j+1]).lo >= interval(x).hi
+            @test isequal_interval(j, 0 || !(interval(a[j]).lo >= interval(x).hi))
+            @test isequal_interval(j, length(a) || interval(a[j+1]).lo >= interval(x).hi)
         end
     end
 
     # checking for equality with looser tolerance
     function approxintervals(a, b)
-        return a.lo ≈ b.lo && a.hi ≈ b.hi
+        return inf(a) ≈ inf(b) && sup(a) ≈ sup(b)
     end
 
     for y in (a1, a2)
@@ -154,7 +154,7 @@ using IntervalArithmetic
         ϵ = 1e-14,
         max_iter = 100,
     )
-    @test 0.5 ∈ x
+    @test in_interval(0.5, x)
 
     b = RigorousInvariantMeasures.MonotonicBranch(f, (@interval(0), @interval(0.3)))
     x = RigorousInvariantMeasures.preimage(
@@ -164,7 +164,7 @@ using IntervalArithmetic
         ϵ = 1e-14,
         max_iter = 100,
     )
-    @test 0.1 ∈ x
+    @test in_interval(0.1, x)
 
     #@test_logs (:debug,"Not contracting, fallback to bisection") RigorousInvariantMeasures.preimage(0.04, b, interval(0, 0.4), ϵ = 1e-14, max_iter = 100)
 
