@@ -62,7 +62,7 @@ function preimage_monotonic(
 
         fm::typeof(x) = emptyinterval(typeof(x))  # both Newton and Krawczyk will compute f(x_mid) as a byproduct; we save it here.
         enc_der = derivative(f, x)
-        if 0 ∉ enc_der
+        if !in_interval(0, enc_der)
             # Interval Newton step on x -> f(x) - y
             @debug "Step $i, Newton method:
             - the interval $x, 
@@ -98,11 +98,11 @@ function preimage_monotonic(
 
         # Notice that this bisection strategy works also when f is not monotonic outside [a,b]; 
         # see https://github.com/JuliaDynamics/RigorousInvariantMeasures.jl/issues/140#issuecomment-1413541452 for a proof
-        if y ∉ hull(y1, fm)
+        if !in_interval(y, hull(y1, fm))
             x = interval(sup(x_mid), sup(x))
             continue
         end
-        if y ∉ hull(fm, y2)
+        if !in_interval(y, hull(fm, y2))
             x = interval(inf(x), inf(x_mid))
             continue
         end
@@ -112,12 +112,12 @@ function preimage_monotonic(
         # If we cannot chop off even 1/2^6th of `x`, at the next outer loop iteration `x == x_old` and we will return.
         for k = 2:6
             c = inf(x) + diam(x) / 2^k
-            if y ∉ hull(y1, f(interval(c)))
+            if !in_interval(y, hull(y1, f(interval(c))))
                 x = interval(c, sup(x))
                 break
             end
             c = sup(x) - diam(x) / 2^k
-            if y ∉ hull(f(interval(c)), y2)
+            if !in_interval(y, hull(f(interval(c)), y2))
                 x = interval(inf(x), c)
                 break
             end

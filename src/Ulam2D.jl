@@ -210,7 +210,7 @@ function Tfloat(x::Interval; α = 1.75, s = 3.0)
     yl = -α * (-xl)^s + 1
     @debug yl
 
-    return yl ∪ yr
+    return hull(yl, yr)
 end
 
 F(v::IntervalBox) = Tfloat(v[1]) × Gfloat(v[1], v[2])

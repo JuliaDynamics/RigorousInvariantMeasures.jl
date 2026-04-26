@@ -189,7 +189,7 @@ function (D::PwMap)(x::Taylor1)
         x_restricted[0] = intersect_interval(x[0], hull(D[i].X[1], D[i].X[2]))
         if !isempty_interval(x_restricted[0])
             fx_restricted = D[i].f(x_restricted)
-            fx = fx .∪ fx_restricted.coeffs
+            fx = hull.(fx, fx_restricted.coeffs)
         end
     end
     @debug "Piecewise f($(x)) = $(Taylor1(fx, x.order))"

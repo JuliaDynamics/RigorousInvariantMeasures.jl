@@ -368,7 +368,7 @@ function infnormoffunction(B::Chebyshev, v)
         print("Refining grid")
         f(x) = abs(evalChebyshevCentered(v, x))
         ran = range_estimate(f, interval(0, 1), 5)
-        Bval = union(val, ran)
+        Bval = hull(val, ran)
     end
     return val
 end
@@ -381,7 +381,7 @@ function infnormofderivative(B::Chebyshev, v)
         print("Refining grid")
         f(x) = abs(evalChebyshevDerivative(v, x))
         ran = range_estimate(f, interval(0, 1), 5)
-        val = union(val, ran)
+        val = hull(val, ran)
     end
     return val
 end

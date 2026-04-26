@@ -126,7 +126,7 @@ function discretizationlogder(B::Ulam, D::PwMap; degree = 7)
             Tint = TaylorSeries.Taylor1([I, interval(1)], degree)
             Fmid = log(abs(fprime(Tmid)))
             Fint = log(abs(fprime(Tint)))
-            infbound = infbound ∪ abs(Fint[0])
+            infbound = hull(infbound, abs(Fint[0]))
             ϵ = mag(Fint[degree] - Fmid[degree])
 
             for k = 0:Int64(floor(Float64(degree) / 2))
@@ -209,7 +209,7 @@ RigorousInvariantMeasures.projection(B::Ulam, f::Function; kwargs...) =
             Tint = TaylorSeries.Taylor1([I, interval(1)], degree)
             Fmid = log(TaylorModels.derivative(D.Ts[i](Tmid)))
             Fint = log(TaylorModels.derivative(D.Ts[i](Tint)))   
-            infbound = infbound ∪ abs(Fint[0])
+            infbound = hull(infbound, abs(Fint[0]))
             ϵ = mag(Fint[degree]-Fmid[degree]) 
 
             for k in 0:Int64(floor(Float64(degree)/2))
@@ -234,7 +234,7 @@ end =#
 
 function integrateobservable(B::Ulam, ϕ::Observable, f::Vector, error)
     val = (ϕ.v)' * f
-    return val / length(B) + (ϕ.sup(inf_bound)) * interval(-error, error)
+    return val / length(B) + sup(ϕ.inf_bound) * interval(-error, error)
 end
 
 

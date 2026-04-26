@@ -54,13 +54,13 @@ function GetDomains(branches, α; T = Float64)
     left = Interval{T}(0.5)
     for i = branches:-1:2
         right = ShootingLSV(i, 0.5, α; T = T)[1]
-        push!(domains, union(left, right))
+        push!(domains, hull(left, right))
         left = right
         #for i=2:branches
         #    push!(domains, interval(ShootingLSV(i, 0.5, α)[1].lo, ShootingLSV(i-1, 0.5, α)[1].hi))
     end
-    push!(domains, union(left, Interval{T}(0.75)))
-    push!(domains, union(Interval{T}(0.75), Interval{T}(1)))
+    push!(domains, hull(left, Interval{T}(0.75)))
+    push!(domains, hull(Interval{T}(0.75), Interval{T}(1)))
 
     return domains
 end

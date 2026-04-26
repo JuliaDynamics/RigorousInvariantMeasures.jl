@@ -49,7 +49,7 @@ function ϕ(x::Interval{T}) where {T}
         val₋ = evalpoly(x₋, (1, 0, 0, 10, 15, 6))
         x₊ = intersect_interval(x, interval(T, 0, 1))
         val₊ = evalpoly(x₊, (1, 0, 0, -10, 15, -6))
-        return val₋ ∪ val₊
+        return hull(val₋, val₊)
     end
 end
 
@@ -61,7 +61,7 @@ function ϕprime(x::Interval{T}) where {T}#Derivative of ϕ
         val₋ = evalpoly(x₋, (0, 0, 30, 60, 30))
         x₊ = intersect_interval(x, interval(T, 0, 1))
         val₊ = evalpoly(x₊, (0, 0, -30, 60, -30))
-        return val₋ ∪ val₊
+        return hull(val₋, val₊)
     end
 end
 
@@ -73,7 +73,7 @@ function ν(x::Interval{T}) where {T}
         val₋ = evalpoly(x₋, (0, 1, 0, -6, -8, -3))
         x₊ = intersect_interval(x, interval(T, 0, 1))
         val₊ = evalpoly(x₊, (0, 1, 0, -6, 8, -3))
-        return val₋ ∪ val₊
+        return hull(val₋, val₊)
     end
 end
 
@@ -86,7 +86,7 @@ function νprime(x::Interval{T}) where {T} #Derivative of ν
         val₋ = evalpoly(x₋, (1, 0, -18, -32, -15))
         x₊ = intersect_interval(x, interval(T, 0, 1))
         val₊ = evalpoly(x₊, (1, 0, -18, 32, -15))
-        return val₋ ∪ val₊
+        return hull(val₋, val₊)
     end
 end
 
