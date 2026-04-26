@@ -15,13 +15,13 @@ using IntervalArithmetic
 Smallest possible i such that a is in the semi-open interval [y[i], y[i+1]).
 
 This should work properly even if `a, y` are intervals; in this case it returns the *smallest* possible value of i over all possible "assignments" of a, y inside those intervals.
-Assumes y is sorted, i.e., map(y, x->interval(x).lo) and map(y, x->interval(x).hi) are sorted.
+Assumes y is sorted, i.e., map(y, x->inf(interval(x)) and map(y, x->sup(interval(x)) are sorted.
 """
 function first_overlapping(y, a)
     if iszero(a) # avoids -0 crap
         a = zero(a)
     end
-    searchsortedlast(y, interval(a).lo, by = x -> interval(x).hi)
+    searchsortedlast(y, inf(interval(a)), by = x -> sup(interval(x)))
 end
 
 """
@@ -30,44 +30,44 @@ end
 Largest possible j such that a-ε is in the semi-open interval [y[j], y[j+1]).
 
 This should work properly even if `a, y` are intervals; in this case it returns the *largest* possible value of i over all possible "assignments" of a, y inside those intervals.
-Assumes y is sorted, i.e., map(y, x->interval(x).lo) and map(y, x->interval(x).hi) are sorted.
+Assumes y is sorted, i.e., map(y, x->inf(interval(x)) and map(y, x->sup(interval(x)) are sorted.
 """
 function last_overlapping(y, a)
     if iszero(a) # avoids -0 crap
         a = zero(a)
     end
-    searchsortedfirst(y, interval(a).hi, by = x -> interval(x).lo) - 1
+    searchsortedfirst(y, sup(interval(a)), by = x -> inf(interval(x))) - 1
 end
 
 """
 Utility function that estimates the range of a monotone function
 """
-range_estimate_monotone(f, X) = hull(f(interval(X.lo)), f(interval(X.hi)))
+range_estimate_monotone(f, X) = hull(f(interval(inf(X))), f(interval(sup(X))))
 
 """
 Compute the preimage f⁻¹(y), knowing that it lies inside `search_interval`.
 """
 function preimage(y, br::MonotonicBranch, search_interval = hull(br.X...); ϵ, max_iter)
-    # Since the branch is monotonic, we can compute the preimages of y.lo and y.hi separately
+    # Since the branch is monotonic, we can compute the preimages of inf(y) and sup(y) separately
     # This should give slightly thinner intervals.
 
-    Y = intersect(range_estimate_monotone(br.f, search_interval), interval(y))
+    Y = intersect_interval(range_estimate_monotone(br.f, search_interval), interval(y))
 
-    if isempty(Y)
-        return interval(∅)
+    if isempty_interval(Y)
+        return emptyinterval()
     end
 
-    xlo = preimage_monotonic(Y.lo, br.f, search_interval, br.Y; ϵ, max_iter)
+    xlo = preimage_monotonic(inf(Y), br.f, search_interval, br.Y; ϵ, max_iter)
 
     if isthin(Y)
         @debug "preimage of $y on $search_interval: $xlo"
         return xlo
     end
 
-    xhi = preimage_monotonic(Y.hi, br.f, search_interval, br.Y; ϵ, max_iter)
+    xhi = preimage_monotonic(sup(Y), br.f, search_interval, br.Y; ϵ, max_iter)
 
     @debug "preimage of $y on $search_interval: $(hull(xlo, xhi))"
-    return hull(xlo, xhi) ∩ search_interval
+    return intersect_interval(hull(xlo, xhi), search_interval)
 end
 
 
@@ -124,7 +124,7 @@ function preimages(y, br::MonotonicBranch, ylabel = 1:length(y); ϵ, max_iter)
         i = first_overlapping(y, br.Y[1])  # smallest possible i such that a = br.Y[1] is in the semi-open interval [y[i], y[i+1]).
         j = last_overlapping(y, br.Y[2]) # largest possible j such that b-ε, where b = br.Y[2] is in the semi-open interval [y[j], y[j+1]).
         n = j - i + 1
-        x = fill((-∞ .. ∞)::typeof(br.X[1]), n)
+        x = fill(interval(-Inf, Inf)::typeof(br.X[1]), n)
         xlabel = collect(ylabel[i:j]) # we collect to avoid potential type instability, since this may be an UnitRange while in the other branch we could have a StepRange
         x[1] = br.X[1]
         if n == 1
@@ -141,7 +141,7 @@ function preimages(y, br::MonotonicBranch, ylabel = 1:length(y); ϵ, max_iter)
             # fill in v[i] using x[i-stride].lo and x[i+stride].hi as range for the preimage search
             for k = 1+stride:2*stride:n
                 search_range =
-                    interval(x[k-stride].lo, (k + stride <= n ? x[k+stride] : br.X[2]).hi)
+                    interval(inf(x[k-stride]), sup(k + stride <= n ? x[k+stride] : br.X[2]))
                 x[k] = preimage(y[i-1+k], br, search_range; ϵ, max_iter)
             end
             stride = stride ÷ 2

@@ -1,10 +1,10 @@
-function IntervalArithmetic.midpoint_radius(v::Vector{Complex{Interval{T}}}) where {T}
+function IntervalArithmetic.midradius(v::Vector{Complex{Interval{T}}}) where {T}
     n = length(v)
     mid_vector = zeros(Complex{T}, n)
     rad_vector = zeros(Complex{T}, n)
     for i = 1:n
-        real_m, real_r = midpoint_radius(real(v[i]))
-        imag_m, imag_r = midpoint_radius(imag(v[i]))
+        real_m, real_r = midradius(real(v[i]))
+        imag_m, imag_r = midradius(imag(v[i]))
         real_r = Float64(real_r, RoundUp)
         imag_r = Float64(imag_r, RoundUp)
         mid_vector[i] = real_m + im * imag_m
@@ -30,7 +30,7 @@ function interval_fft(
     rel_err_fft = (t ⊗₊ η) ⊘₊ (1.0 ⊖₋ η)
 
     norm_FFT_normalized_2 = 1.0 ⊘₊ (sqrt(n, RoundUp))
-    vector_mid, vector_radius = midpoint_radius(v)
+    vector_mid, vector_radius = midradius(v)
     norm_obs = opnormbound(L2, vector_mid)
     norm_rad = opnormbound(L2, vector_radius)
     err_fft =

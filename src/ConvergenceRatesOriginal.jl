@@ -89,16 +89,16 @@ function convergencerateabstract(Bas::Ulam, D::Dynamic, norms)
 
     for i = 1:length(small_matrices)
         ρ, v = eig_costants_small_matrix(small_matrices[i])
-        if ρ < 1 && ρ != ∅
+        if ρ < 1 && !isempty_interval(ρ)
             #@info ρ
             strong_norms_here = [
                 strong_norms[1:i-1]
-                [((1 / v[1] + B / v[2]) * ρ^floor(j ÷ i)).hi for j = i:length(norms)]
+                [sup((1 / v[1] + B / v[2]) * ρ^floor(j ÷ i)) for j = i:length(norms)]
             ]
             strong_norms = min.(strong_norms_here, strong_norms)
             weak_norms_here = [
                 weak_norms[1:i-1]
-                [((B / v[2]) * ρ^floor(j ÷ i)).hi for j = i:length(norms)]
+                [sup((B / v[2]) * ρ^floor(j ÷ i)) for j = i:length(norms)]
             ]
             weak_norms = min.(weak_norms_here, weak_norms)
         end

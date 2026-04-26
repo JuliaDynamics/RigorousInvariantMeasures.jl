@@ -301,7 +301,7 @@ function dfly(
     for i = 1:D.nbranches
         if i == 1
             right = ShootingLSV(D.nbranches - 1, 0.5, D.α)[1]
-            lam = max(lam, 2 * (right - 0.5).hi)
+            lam = max(lam, 2 * sup(right - 0.5))
             dist = max(dist, 0)
         elseif i == D.nbranches
             lam = max(lam, 0.5)
@@ -312,11 +312,11 @@ function dfly(
             fsecond(x) = f(Taylor1([x, 1], 2))[2] / 2
             distortion(x) = abs(fsecond(x) / (fprime(x)^2))
             lambda(x) = abs(1 / fprime(x))
-            dist = max(dist, maximise(distortion, D.domains[i])[1].hi)
-            lam = max(lam, maximise(lambda, D.domains[i])[1].hi)
+            dist = max(dist, sup(maximise(distortion, D.domains[i])[1]))
+            lam = max(lam, sup(maximise(lambda, D.domains[i])[1]))
         end
     end
-    return lam.hi, dist.hi
+    return sup(lam), sup(dist)
 end
 
 import TaylorSeries
@@ -331,7 +331,7 @@ function derivatives_D(α, k, l; T = Float64)
         f(x) = iterate_LSV(x, i, α)
         g(x) = 1 / (TaylorSeries.derivative(f(Taylor1([x, 1], l))))
 
-        dom = interval(left.lo, right.hi)
+        dom = interval(inf(left), sup(right))
         tol = diam(dom) * 2^(-10)
         for i = 0:l-1, j = 0:l-1
             h(x) = abs((factorial(i) * g(x)[i]) * g(x)[0]^j) # \partial^i (1/T') * (1/T')^j
@@ -357,7 +357,7 @@ end
 #		f_prime_α(x) = f(DualNumbers.Dual(α, 1), x).epsilon
 #		f_prime_x(x) = f(α, DualNumbers.Dual(x, 1)).epsilon
 #		h(x) = -f_prime_α(x)/f_prime_x(x)
-#		dom = interval(left.lo, right.hi)
+#		dom = interval(inf(left), sup(right))
 #		tol = diam(dom)*2^(-10)
 #		val = maximise(h, dom, tol = tol)[1]
 #		@info val

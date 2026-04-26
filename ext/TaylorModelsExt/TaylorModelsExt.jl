@@ -9,8 +9,8 @@ using IntervalOptimisation: maximise
 import TaylorModels
 
 function integrate(f, I; steps = 1024, degree = 6)
-    lo = I.lo
-    hi = I.hi
+    lo = inf(I)
+    hi = sup(I)
     l = 2 * radius(I)
     int_center = interval(0.0)
     int_error = interval(0.0)
@@ -31,8 +31,8 @@ function integrate(f, I; steps = 1024, degree = 6)
 end
 
 function adaptive_integration(f, I::Interval; tol = 2^-10, steps = 8, degree = 6) # tol 2^-10, steps = 8 are default values
-    lo = I.lo
-    hi = I.hi
+    lo = inf(I)
+    hi = sup(I)
     l = 2 * radius(I)
     int_value = interval(0.0)
     for i = 1:steps
@@ -115,12 +115,12 @@ function discretizationlogder(B::Ulam, D::PwMap; degree = 7)
     infbound = emptyinterval()
 
     for (i, br) in enumerate(D.branches)
-        ind_X1 = Int64(floor(length(B) * br.X[1].lo)) + 1
-        ind_X2 = min(Int64(floor(length(B) * br.X[2].lo)) + 1, length(B))
+        ind_X1 = Int64(floor(length(B) * inf(br.X[1]))) + 1
+        ind_X2 = min(Int64(floor(length(B) * inf(br.X[2]))) + 1, length(B))
         dom = hull(br.X[1], br.X[2])
           fprime = derivative(br.f)
         for i = ind_X1:ind_X2
-            I = interval(B.p[i], B.p[i+1]) ∩ dom
+            I = intersect_interval(interval(B.p[i], B.p[i+1]), dom)
             r = interval(radius(I))
             Tmid = TaylorSeries.Taylor1([interval(mid(I)), interval(1)], degree)
             Tint = TaylorSeries.Taylor1([I, interval(1)], degree)
@@ -200,7 +200,7 @@ RigorousInvariantMeasures.projection(B::Ulam, f::Function; kwargs...) =
     v = zeros(Interval{Float64}, length(B))
     infbound  = emptyinterval()
     endpoints = D.endpoints
-    delicate_indexes = Int64.(floor.(length(B)*[x.lo for x in endpoints])).+1
+    delicate_indexes = Int64.(floor.(length(B)*[inf(x) for x in endpoints])).+1
     for i in 1:(length(delicate_indexes)-1)
         for j in delicate_indexes[i]:delicate_indexes[i+1]-1
             I = interval(B.p[j], B.p[j+1])
@@ -234,7 +234,7 @@ end =#
 
 function integrateobservable(B::Ulam, ϕ::Observable, f::Vector, error)
     val = (ϕ.v)' * f
-    return val / length(B) + (ϕ.inf_bound.hi) * interval(-error, error)
+    return val / length(B) + (ϕ.sup(inf_bound)) * interval(-error, error)
 end
 
 

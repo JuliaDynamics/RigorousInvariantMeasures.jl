@@ -32,8 +32,8 @@ Base.length(B::Hat{T}) where {T} = Base.length(B.p) - 1
 A separate type for intervals on the torus (mod 1) to "remind" us of the quotient
 
 The interval is normalized in the constructor: the caller may assume that
-* 0 <= i.lo < 1
-* i.hi < i.lo + 1 OR i==interval(0,1)
+* 0 <= inf(i) < 1
+* sup(i) < inf(i) + 1 OR i==interval(0,1)
 """
 struct IntervalOnTorus{T<:Real}
     I::Interval{T}
@@ -42,8 +42,8 @@ struct IntervalOnTorus{T<:Real}
         if diam(I) >= 1.0
             new{T}(interval(0, 1))
         else
-            # Note that I - floor(I.lo) may return something smaller than zero in some rounding modes
-            new{T}(max(I - floor(I.lo), 0))
+            # Note that I - floor(inf(I)) may return something smaller than zero in some rounding modes
+            new{T}(max(I - floor(inf(I)), 0))
         end
     end
 end
@@ -176,15 +176,15 @@ function nonzero_on(B::Hat, dual_element)
     y, absT′ = dual_element
     # Note that this cannot rely on arithmetic unless it is verified
 
-    y = y ∩ interval(0.0, 1.0) # we assume it's bona-fide interval in [0,1]
+    y = intersect_interval(y, interval(0.0, 1.0)) # we assume it's bona-fide interval in [0,1]
     # this should work for preims(), since they are supposed to return
     # a number in [0,1]
 
-    # finds in which semi-open interval [p[k], p[k+1]) y.lo and y.hi fall
-    lo = searchsortedlast(B.p, y.lo)
-    hi = searchsortedlast(B.p, y.hi)
-    lo = min(lo, length(B)) # lo may be n+1 if y.lo==1
-    hi = min(hi, length(B)) # hi may be n+1 if y.hi==1
+    # finds in which semi-open interval [p[k], p[k+1]) inf(y) and sup(y) fall
+    lo = searchsortedlast(B.p, inf(y))
+    hi = searchsortedlast(B.p, sup(y))
+    lo = min(lo, length(B)) # lo may be n+1 if inf(y)==1
+    hi = min(hi, length(B)) # hi may be n+1 if sup(y)==1
     hi = hi + 1 # because the hat centered in p[k] is also nonzero in the interval before
 
     if lo == 1 # 1:N+1 does not make sense and would mean that the first interval is counted twice

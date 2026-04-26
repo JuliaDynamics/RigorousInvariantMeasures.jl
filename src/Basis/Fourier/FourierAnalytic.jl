@@ -48,13 +48,13 @@ aux_norm(B::FourierAnalytic) = L1
 function weak_projection_error(B::FourierAnalytic{Aη})
     N = B.k
     η = interval(B.strong.η)
-    return exp(2 * interval(pi) * N * η).hi
+    return sup(exp(2 * interval(pi) * N * η))
 end
 
 function aux_normalized_projection_error(B::FourierAnalytic{Aη})
     N = B.k
     η = interval(B.strong.η)
-    return exp(2 * interval(pi) * N * η).hi
+    return sup(exp(2 * interval(pi) * N * η))
 end
 
 # W{k,1} strong norm: polynomial decay O(N^{-(k-1)}) for Fourier coefficient decay
@@ -65,7 +65,7 @@ function weak_projection_error(B::FourierAnalytic{W{k,l}}) where {k,l}
         return 1.0
     end
     denom = (2 * interval(pi) * N)^k
-    return (1 / denom).hi
+    return sup(1 / denom)
 end
 
 function aux_normalized_projection_error(B::FourierAnalytic{W{k,l}}) where {k,l}
@@ -74,7 +74,7 @@ function aux_normalized_projection_error(B::FourierAnalytic{W{k,l}}) where {k,l}
         return 1.0
     end
     denom = (2 * interval(pi) * N)^k
-    return (1 / denom).hi
+    return sup(1 / denom)
 end
 
 # --- Strong-weak bound: ||v||_s ≤ M₁n · ||v||_{L²} ---
@@ -93,7 +93,7 @@ function strong_weak_bound(B::FourierAnalytic{Aη})
     # Sum of geometric series: 1 + 2*(e^λ - e^{λ(N+1)})/(1 - e^λ)
     # = 1 + 2*e^λ*(1 - e^{λN})/(1 - e^λ)
     geo_sum = 1 + 2 * exp(λ) * (1 - exp(λ * k)) / (1 - exp(λ))
-    return sqrt(geo_sum).hi
+    return sup(sqrt(geo_sum))
 end
 
 @doc raw"""
@@ -107,7 +107,7 @@ function strong_weak_bound(B::FourierAnalytic{W{k,l}}) where {k,l}
     for j = 1:k
         M = M + (2 * interval(pi) * N)^j
     end
-    return M.hi
+    return sup(M)
 end
 
 ###############################################################################
@@ -164,7 +164,7 @@ function eval_on_dual(B::FourierAnalytic, computed_dual::FourierAnalyticDual, ϕ
     w = zeros(Complex{Interval{Float64}}, length(B.p))
     for j = 1:length(x)
         C = ϕ(x[j]) / abs(xp[j])
-        if real(C) != ∅ && imag(C) != ∅
+        if !isempty_interval(real(C)) && !isempty_interval(imag(C))
             w[labels[j]] += C
         end
     end

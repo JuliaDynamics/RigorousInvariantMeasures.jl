@@ -201,11 +201,11 @@ end
 
 using IntervalArithmetic
 function Tfloat(x::Interval; α = 1.75, s = 3.0)
-    xr = x ∩ @interval 0 1
+    xr = intersect_interval(x, interval(0, 1))
     @debug xr
     yr = α * (xr)^s - 1
     @debug yr
-    xl = x ∩ @interval -1 0
+    xl = intersect_interval(x, interval(-1, 0))
     @debug xl
     yl = -α * (-xl)^s + 1
     @debug yl

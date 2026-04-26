@@ -1,4 +1,5 @@
 [deps]
+BallArithmetic = "77e4f72b-b5a4-4fb0-ac2a-dcc32095a072"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 IntervalArithmetic = "d1acc4aa-44c8-5952-acd4-ba5d80a2a253"
 RigorousInvariantMeasures = "6103b61f-200f-420b-b397-2cbeef157920"
@@ -9,8 +10,8 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [compat]
 Documenter = "1"
-IntervalArithmetic = "0.20.9"
+IntervalArithmetic = "1"
 SymbolicUtils = "3"
 Symbolics = "6"
-TaylorModels = "0.7"
+TaylorModels = "0.10"
 julia = "1.9"

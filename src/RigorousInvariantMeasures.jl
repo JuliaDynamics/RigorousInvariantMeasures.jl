@@ -70,7 +70,7 @@ export PwMap,
     mod1_dynamic,
     is_refinement
 
-import IntervalArithmetic: Interval, @interval, @biginterval, midpoint_radius
+import IntervalArithmetic: Interval, @interval, @biginterval, midradius
 using IntervalArithmetic
 export Interval
 

@@ -133,11 +133,11 @@
 #         left_image_integer_x = k*(left_image_rectangle_x/2+1/2)
 #         left_image_integer_y = k*(left_image_rectangle_y/2+1/2)
 
-#         lo_x = floor(Int64, left_image_integer_x.lo)
-#         hi_x = ceil(Int64, left_image_integer_x.hi)
+#         lo_x = floor(Int64, inf(left_image_integer_x))
+#         hi_x = ceil(Int64, sup(left_image_integer_x))
 
-#         lo_y = floor(Int64, left_image_integer_y.lo)
-#         hi_y = ceil(Int64, left_image_integer_y.hi)
+#         lo_y = floor(Int64, inf(left_image_integer_y))
+#         hi_y = ceil(Int64, sup(left_image_integer_y))
 #         @debug "x ", lo_x, hi_x,  " y ", lo_y, hi_y
 
 #         for i in lo_x:min(hi_x, k)
@@ -170,11 +170,11 @@
 #         right_image_integer_x = k*(right_image_rectangle_x/2+1/2)
 #         right_image_integer_y = k*(right_image_rectangle_y/2+1/2)
 
-#         lo_x = floor(Int64, right_image_integer_x.lo)
-#         hi_x = ceil(Int64, right_image_integer_x.hi)
+#         lo_x = floor(Int64, inf(right_image_integer_x))
+#         hi_x = ceil(Int64, sup(right_image_integer_x))
 
-#         lo_y = floor(Int64, right_image_integer_y.lo)
-#         hi_y = ceil(Int64, right_image_integer_y.hi)
+#         lo_y = floor(Int64, inf(right_image_integer_y))
+#         hi_y = ceil(Int64, sup(right_image_integer_y))
 #         @debug "x ", lo_x, hi_x,  " y ", lo_y, hi_y
 
 #         for i in max(lo_x,0):hi_x
@@ -295,8 +295,8 @@
         
 #         # this computes the indexes with nonzero intersection with 
 #         # the preimage
-#         preim_a = searchsortedlast(part_x, y.lo)
-#         preim_b = min(searchsortedlast(part_x, y.hi), k_x)
+#         preim_a = searchsortedlast(part_x, inf(y))
+#         preim_b = min(searchsortedlast(part_x, sup(y)), k_x)
 
 #         for ind_x in preim_a:preim_b         
 #             #this is the relative measure of T^{-1}I_i in I_j
@@ -323,15 +323,15 @@
 #                     # here we have to be careful, since the matrix has 
 #                     # as left upper corner (1, 1), while 
 #                     # the partitions part_x and part_y start at -1 
-#                     ind_y_lower = k_y-searchsortedlast(part_y, im_y.hi)
-#                     ind_y_upper = k_y-searchsortedlast(part_y, im_y.lo)
+#                     ind_y_lower = k_y-searchsortedlast(part_y, sup(im_y))
+#                     ind_y_upper = k_y-searchsortedlast(part_y, inf(im_y))
                     
 #                     indexes_y = ind_y_lower:ind_y_upper
 #                 else
 #                     # same, but for the right part of the domain
 #                     im_y = _Lorenz_left_fiber_map(I, interval(part_y[ind_y], part_y[ind_y+1]), r, c)
-#                     ind_y_lower = k_y-searchsortedlast(part_y, im_y.hi)
-#                     ind_y_upper = k_y-searchsortedlast(part_y, im_y.lo)
+#                     ind_y_lower = k_y-searchsortedlast(part_y, sup(im_y))
+#                     ind_y_upper = k_y-searchsortedlast(part_y, inf(im_y))
 #                     indexes_y = ind_y_lower:ind_y_upper
 #                 end
 

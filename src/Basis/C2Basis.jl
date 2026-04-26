@@ -42,36 +42,36 @@ Return the size of the C2 basisBase.length(S::AverageZero) = length(S.basis)-1
 Base.length(b::C2Basis) = 2 * length(b.p)
 
 function ϕ(x::Interval{T}) where {T}
-    if x ∩ interval(T, -1, 1) == ∅
+    if isempty_interval(intersect_interval(x, interval(T, -1, 1)))
         return zero(x)
     else
-        x₋ = x ∩ interval(T, -1, 0)
+        x₋ = intersect_interval(x, interval(T, -1, 0))
         val₋ = evalpoly(x₋, (1, 0, 0, 10, 15, 6))
-        x₊ = x ∩ interval(T, 0, 1)
+        x₊ = intersect_interval(x, interval(T, 0, 1))
         val₊ = evalpoly(x₊, (1, 0, 0, -10, 15, -6))
         return val₋ ∪ val₊
     end
 end
 
 function ϕprime(x::Interval{T}) where {T}#Derivative of ϕ
-    if x ∩ interval(T, -1, 1) == ∅
+    if isempty_interval(intersect_interval(x, interval(T, -1, 1)))
         return zero(x)
     else
-        x₋ = x ∩ interval(T, -1, 0)
+        x₋ = intersect_interval(x, interval(T, -1, 0))
         val₋ = evalpoly(x₋, (0, 0, 30, 60, 30))
-        x₊ = x ∩ interval(T, 0, 1)
+        x₊ = intersect_interval(x, interval(T, 0, 1))
         val₊ = evalpoly(x₊, (0, 0, -30, 60, -30))
         return val₋ ∪ val₊
     end
 end
 
 function ν(x::Interval{T}) where {T}
-    if x ∩ interval(T, -1, 1) == ∅
+    if isempty_interval(intersect_interval(x, interval(T, -1, 1)))
         return zero(x)
     else
-        x₋ = x ∩ interval(T, -1, 0)
+        x₋ = intersect_interval(x, interval(T, -1, 0))
         val₋ = evalpoly(x₋, (0, 1, 0, -6, -8, -3))
-        x₊ = x ∩ interval(T, 0, 1)
+        x₊ = intersect_interval(x, interval(T, 0, 1))
         val₊ = evalpoly(x₊, (0, 1, 0, -6, 8, -3))
         return val₋ ∪ val₊
     end
@@ -79,12 +79,12 @@ end
 
 function νprime(x::Interval{T}) where {T} #Derivative of ν
 
-    if x ∩ interval(T, -1, 1) == ∅
+    if isempty_interval(intersect_interval(x, interval(T, -1, 1)))
         return zero(x)
     else
-        x₋ = x ∩ interval(T, -1, 0)
+        x₋ = intersect_interval(x, interval(T, -1, 0))
         val₋ = evalpoly(x₋, (1, 0, -18, -32, -15))
-        x₊ = x ∩ interval(T, 0, 1)
+        x₊ = intersect_interval(x, interval(T, 0, 1))
         val₊ = evalpoly(x₊, (1, 0, -18, 32, -15))
         return val₋ ∪ val₊
     end
@@ -195,8 +195,8 @@ function nonzero_on(B::C2Basis, dual_element)
     y = dual_element[1]
     # Note that this cannot rely on arithmetic unless it is verified
     # searchsortedfirst(a, x) return the index of the first value in a greater than or equal to x
-    lo = max(searchsortedfirst(B.p, y.lo) - 1, 1)
-    hi = searchsortedfirst(B.p, y.hi)
+    lo = max(searchsortedfirst(B.p, inf(y)) - 1, 1)
+    hi = searchsortedfirst(B.p, sup(y))
     if lo == 1 # 1:N+1 does not make sense and becomes 1:N
         hi = min(hi, length(B))
     end

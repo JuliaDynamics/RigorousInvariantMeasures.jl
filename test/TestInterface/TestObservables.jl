@@ -11,7 +11,7 @@ const TMExt = Base.get_extension(RigorousInvariantMeasures, :TaylorModelsExt)
 
     Obs = TMExt.Observable(B, x -> x)
 
-    @test Obs.inf_bound.hi >= 1
+    @test sup(Obs.inf_bound) >= 1
     @test 0.125 ∈ Obs.v[1]
 
     D = mod1_dynamic(x -> 2 * x)

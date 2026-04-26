@@ -80,7 +80,7 @@ function norms_of_powers(
 )
 
     @assert eltype(f) <: Interval
-    T = typeof(zero(eltype(Q.L)).hi) # gets "Float64" from Q.L
+    T = typeof(sup(zero(eltype(Q.L)))) # gets "Float64" from Q.L
     n = size(Q.L, 1)
     M = mid.(Q.L)
     R = radius.(Q.L)

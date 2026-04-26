@@ -114,11 +114,11 @@ function PwMap(
 end
 
 function intersect_domain(D::PwMap, x)
-    return [(interval(x) ∩ hull(br.X[1], br.X[2])) for br in D.branches]
+    return [intersect_interval(interval(x), hull(br.X[1], br.X[2])) for br in D.branches]
 end
 
 function intersect_domain_bool(D::PwMap, x)
-    return [y != ∅ for y in intersect_domain(D, x)]
+    return [!isempty_interval(y) for y in intersect_domain(D, x)]
 end
 
 Base.show(io::IO, D::PwMap) =
@@ -158,8 +158,8 @@ end
 """
 Intersect an Interval or TaylorSeries with I
 """
-restrict(I, x) = I ∩ x
-restrict(I, x::Taylor1) = Taylor1([I ∩ x[0]; x[1:end]], x.order)
+restrict(I, x) = intersect_interval(I, x)
+restrict(I, x::Taylor1) = Taylor1([intersect_interval(I, x[0]); x[1:end]], x.order)
 
 """
 function that evaluates the k-th branch of a dynamic on a point x
@@ -173,7 +173,7 @@ end
 # """
 # hull of an iterable of intervals
 # """
-# common_hull(S) = interval(minimum(x.lo for x in S), maximum(x.hi for x in S))
+# common_hull(S) = interval(minimum(inf(x) for x in S), maximum(sup(x) for x in S))
 
 
 # Rather than defining derivatives of a PwMap, we define Taylor1 expansions directly
@@ -183,11 +183,11 @@ Note that this ignores discontinuities; users are free to shoot themselves
 in the foot and call this on a non-smooth piecewise map. No better solutions for now.
 """
 function (D::PwMap)(x::Taylor1)
-    fx = fill(∅, x.order + 1)
+    fx = fill(emptyinterval(), x.order + 1)
     x_restricted = deepcopy(x)
     for i = 1:length(D.branches)
-        x_restricted[0] = x[0] ∩ hull(D[i].X[1], D[i].X[2])
-        if !isempty(x_restricted[0])
+        x_restricted[0] = intersect_interval(x[0], hull(D[i].X[1], D[i].X[2]))
+        if !isempty_interval(x_restricted[0])
             fx_restricted = D[i].f(x_restricted)
             fx = fx .∪ fx_restricted.coeffs
         end
@@ -339,7 +339,7 @@ function mod1_dynamic(f::Function; ϵ = 0.0, max_iter = 100, full_branch = false
     end
 
     Yhull = hull(Interval.(br.Y)...)
-    possible_integer_parts = floor(Int, Yhull.lo):ceil(Int, Yhull.hi)
+    possible_integer_parts = floor(Int, inf(Yhull)):ceil(Int, sup(Yhull))
     @debug "Possible integer parts" possible_integer_parts
 
     x, integer_parts =
@@ -438,7 +438,7 @@ function dfly_inf_der(::Type{TotalVariation}, ::Type{L1}, D::PwMap, tol = 1e-3)
             I = hull(left_endpoint, right_endpoint)
             val_br = 2 * maximise(x -> abs(f(x)), I, tol = tol)[1]
             @debug "maximise on $I: $val_br"
-            val = max(val, val_br.hi)
+            val = max(val, sup(val_br))
 
             if left
                 # we work on the interval [br.X[1], left_endpoint] =: [a, b].
@@ -449,7 +449,7 @@ function dfly_inf_der(::Type{TotalVariation}, ::Type{L1}, D::PwMap, tol = 1e-3)
                 # int_a^b (distorsion) = f(b) - f(a) = f(b)
                 val_summand += abs(f(left_endpoint) / 2)
                 @debug "abs(f($left_endpoint)/2) = $val_summand"
-                l = max(l, abs(l_left).hi)
+                l = max(l, sup(abs(l_left)))
             end
             if right
                 # same reasoning as above but on the right endpoint
@@ -457,10 +457,10 @@ function dfly_inf_der(::Type{TotalVariation}, ::Type{L1}, D::PwMap, tol = 1e-3)
                 @debug "right endpoint: g($right_endpoint) = $l_right"
                 val_summand += abs(f(right_endpoint) / 2)
                 @debug "abs(f($right_endpoint)/2) = $val_summand"
-                l = max(l, abs(l_right).hi)
+                l = max(l, sup(abs(l_right)))
             end
         end
-        val = val ⊕₊ val_summand.hi
+        val = val ⊕₊ sup(val_summand)
         @debug "i=$i, A=$val, B=$l"
 
         if val < 1.0 && l ⊘₊ (1.0 ⊖₋ val) < est
@@ -473,7 +473,7 @@ function dfly_inf_der(::Type{TotalVariation}, ::Type{L1}, D::PwMap, tol = 1e-3)
     endpts = endpoints(D)
     min_width = minimum([endpts[i+1] - endpts[i] for i = 1:length(endpts)-1])
 
-    return A, B ⊕₊ (2 / min_width).hi
+    return A, B ⊕₊ sup(2 / min_width)
 end
 #    aux_der = (1-max_exp)/2
 #  @info "aux_der", aux_der

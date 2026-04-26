@@ -190,7 +190,7 @@ function preimage_fixed_x(D::SkewProductMap, branch_idx, x, y_min, y_max; ϵ, ma
         # disjoint
         if y_max < bound_Y[1] || y_min > bound_Y[2]
             @debug "disjoint"
-            return (interval(∅), interval(∅))
+            return (emptyinterval(), emptyinterval())
         end
 
         if y_min <= bound_Y[1] && y_max >= bound_Y[2]
@@ -207,10 +207,10 @@ function preimage_fixed_x(D::SkewProductMap, branch_idx, x, y_min, y_max; ϵ, ma
             preim_y_min, preim_y_max = preim_y_max, preim_y_min
         end
 
-        if preim_y_min == ∅
+        if isempty_interval(preim_y_min)
             preim_y_min = interval(0)
         end
-        if preim_y_max == ∅
+        if isempty_interval(preim_y_max)
             preim_y_max = interval(1)
         end
 
@@ -222,7 +222,7 @@ function preimage_fixed_x(D::SkewProductMap, branch_idx, x, y_min, y_max; ϵ, ma
         if val ⊆ interval(y_min, y_max)
             return (interval(0), interval(1))
         else
-            return (interval(∅), interval(∅))
+            return (emptyinterval(), emptyinterval())
         end
     end
 end
@@ -384,8 +384,8 @@ function check_image(B::Ulam2DSP, G, x_l, x_r)
     im_bound = hull(G(x, 0), G(x, 1))
     @debug im_bound
     y = im_bound * length(B.part_y)
-    y_ceil = Int64(ceil(y.hi))
-    y_floor = Int64(floor(y.lo))
+    y_ceil = Int64(ceil(sup(y)))
+    y_floor = Int64(floor(inf(y)))
     return y_floor, y_ceil
 end
 
@@ -394,11 +394,11 @@ end
 function nonzero_on_x(B::Ulam2DSP, a, b)
     y = hull(a, b)
 
-    # finds in which semi-open interval [p[k], p[k+1]) y.lo and y.hi fall
-    lo = searchsortedlast(B.part_x, y.lo)
-    hi = searchsortedlast(B.part_x, y.hi)
+    # finds in which semi-open interval [p[k], p[k+1]) inf(y) and sup(y) fall
+    lo = searchsortedlast(B.part_x, inf(y))
+    hi = searchsortedlast(B.part_x, sup(y))
 
-    # they may be n+1 if y.hi==1
+    # they may be n+1 if sup(y)==1
     lo = clamp(lo, 1, length(B.part_x))
     hi = clamp(hi, 1, length(B.part_x))
 

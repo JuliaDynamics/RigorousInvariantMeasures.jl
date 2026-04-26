@@ -62,17 +62,17 @@ Following Viviane Ledoux, Guillaume Moroz
 function eval_Clenshaw_BackwardFirst(coeff::Vector{Interval{S}}, x::Interval{T}) where {S,T}
     coeff_a = mid.(coeff)
     coeff_r = radius.(coeff)
-    a, r = midpoint_radius(x)
+    a, r = midradius(x)
     m = length(coeff)
     u = zeros(Interval{T}, m + 1)
     ϵ = zeros(Interval{T}, m + 1)
     u[m] = coeff_a[m]
     for k in reverse(2:m-1)
         u_temp = 2 * a * u[k+1] - u[k+2] + Interval{T}(coeff_a[k])
-        u[k], ϵ[k] = midpoint_radius(u_temp)
+        u[k], ϵ[k] = midradius(u_temp)
     end
     u_temp = a * u[2] - u[3] + Interval{T}(coeff_a[1])
-    u[1], ϵ[1] = midpoint_radius(u_temp)
+    u[1], ϵ[1] = midradius(u_temp)
 
     e = zeros(Interval{T}, m + 1)
     e[m] = coeff_r[m]
@@ -80,7 +80,7 @@ function eval_Clenshaw_BackwardFirst(coeff::Vector{Interval{S}}, x::Interval{T})
         e[k] = e[k+1] + 2 * r * abs(u[k+1]) + ϵ[k] + coeff_r[k]
     end
     e[1] = e[2] + r * abs(u[1]) + ϵ[1] + coeff_r[1]
-    γ = e[1].hi
+    γ = sup(e[1])
     return u[1] + interval(-γ, γ)
 end
 eval_Clenshaw_BackwardFirst(coeff::Vector{Float64}, x::Interval) =
@@ -92,17 +92,17 @@ function eval_Clenshaw_BackwardSecond(
 ) where {S,T}
     coeff_a = mid.(coeff)
     coeff_r = radius.(coeff)
-    a, r = midpoint_radius(x)
+    a, r = midradius(x)
     m = length(coeff)
     u = zeros(Interval{T}, m + 1)
     ϵ = zeros(Interval{T}, m + 1)
     u[m] = coeff_a[m]
     for k in reverse(2:m-1)
         u_temp = 2 * a * u[k+1] - u[k+2] + Interval{T}(coeff_a[k])
-        u[k], ϵ[k] = midpoint_radius(u_temp)
+        u[k], ϵ[k] = midradius(u_temp)
     end
     u_temp = 2 * a * u[2] - u[3] + Interval{T}(coeff_a[1])
-    u[1], ϵ[1] = midpoint_radius(u_temp)
+    u[1], ϵ[1] = midradius(u_temp)
 
     e = zeros(Interval{T}, m + 1)
     e[m] = coeff_r[m]
@@ -110,7 +110,7 @@ function eval_Clenshaw_BackwardSecond(
         e[k] = e[k+1] + (k + 1) * (2 * r * abs(u[k+1]) + ϵ[k] + coeff_r[k])
     end
     e[1] = e[2] + 2 * r * abs(u[1]) + ϵ[1] + coeff_r[1]
-    γ = e[1].hi
+    γ = sup(e[1])
     return u[1] + interval(-γ, γ)
 end
 
@@ -511,7 +511,7 @@ function opnormbound(B::Chebyshev, N::Type{C1}, A::Matrix{S}) where {S}
 end
 
 normbound(B::Chebyshev{T}, N::Type{C1}, v) where {T} =
-    Float64((infnormoffunction(B, v) + infnormofderivative(B, v)).hi, RoundUp)
+    Float64(sup(infnormoffunction(B, v) + infnormofderivative(B, v)), RoundUp)
 
 mutable struct NormCacherC1 <: NormCacher{C1}
     B::Basis

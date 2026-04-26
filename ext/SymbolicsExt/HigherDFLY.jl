@@ -191,7 +191,7 @@ function dfly(::Type{W{k,l}}, ::Type{L1}, D::PwMap) where {k,l}
     opt = optimize_coefficients(k, v, vals)
 
     # The A constant is λ^k (from the leading L_{k+1} term)
-    A = (lam^k).hi
+    A = sup(lam^k)
 
     # The B constant comes from the optimized lower-order terms
     # Extract the coefficient of f[1] from the optimized expression
@@ -216,14 +216,14 @@ function _compute_distortion_vals(D::PwMap, k::Int)
 
     # Row 1: DD_0 = 1/T', so vals[1,j] = ||1/(T')^j||_∞ = λ^j
     for j = 1:k+1
-        vals[1, j] = (lam^j).hi
+        vals[1, j] = sup(lam^j)
     end
 
     # Row 2: DD_1 = d/dx(1/T') = -T''/T'^2, so ||DD_1||_∞ ≤ distortion * λ
     # vals[2,j] bounds ||DD_1 / (T')^{j-1}||_∞
     if k >= 1
         for j = 1:k+1
-            vals[2, j] = (dist * lam^j).hi
+            vals[2, j] = sup(dist * lam^j)
         end
     end
 
@@ -231,7 +231,7 @@ function _compute_distortion_vals(D::PwMap, k::Int)
     # DD_i ≈ O(dist^i * lam) — this is conservative but correct
     for i = 3:k+1
         for j = 1:k+1
-            vals[i, j] = (dist^(i - 1) * lam^j).hi
+            vals[i, j] = sup(dist^(i - 1) * lam^j)
         end
     end
 

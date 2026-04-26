@@ -18,14 +18,14 @@ dfly(n1::NormKind, n2::Type{<:NormKind}, D::Dynamic) = dfly(typeof(n1), n2, D)
 #     end
 
 #     if is_full_branch(D)
-#         return lam.hi, dist.hi
+#         return sup(lam), sup(dist)
 #     else
 #         if !(abs(lam) < 0.5)
 #             @error "Expansivity is insufficient to prove a DFLY. Try with an iterate."
 #         end
 #         endpts = endpoints(D)
 #         min_width = minimum([endpts[i+1] - endpts[i] for i = 1:length(endpts)-1])
-#         return lam.hi, dist.hi ⊕₊ (2 / min_width).hi
+#         return sup(lam), sup(dist) ⊕₊ sup(2 / min_width)
 #     end
 # end
 
@@ -43,12 +43,12 @@ function dfly(N1::Type{TotalVariation}, N2::Type{L1}, D::PwMap)
         if !(abs(lam) < 1) # these are intervals, so this is *not* equal to abs(lam) >= 1.
             @error "The function is not expanding"
         end
-        return lam.hi, dist.hi
+        return sup(lam), sup(dist)
     else
         if !(abs(2 * lam) < 1)
             @error "Expansivity is insufficient to prove a DFLY. Try with an iterate."
         end
-        return (2 * lam).hi, (dist + disc).hi
+        return sup(2 * lam), sup(dist + disc)
     end
 end
 
@@ -76,14 +76,14 @@ function dfly(norm::Aη, ::Type{L1}, D::PwMap)
         if !(abs(lam) < 1)
             @error "The function is not expanding"
         end
-        return lam.hi, dist.hi
+        return sup(lam), sup(dist)
     else
         if !(abs(2 * lam) < 1)
             @error "Expansivity is insufficient to prove a DFLY. Try with an iterate."
         end
         vec = endpoints(D)
         disc = maximum(2 / abs(vec[i] - vec[i+1]) for i = 1:nbranches(D))
-        return (2 * lam).hi, (dist + disc).hi
+        return sup(2 * lam), sup(dist + disc)
     end
 end
 
@@ -96,5 +96,5 @@ function dfly(::Type{Lipschitz}, ::Type{L1}, D::Dynamic)
     lam = max_inverse_derivative(D)
     #@info lam
 
-    return ((lam * (2 * dist + 1)).hi, (dist * (dist + 1)).hi)
+    return (sup(lam * (2 * dist + 1)), sup(dist * (dist + 1)))
 end
