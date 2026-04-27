@@ -33,12 +33,12 @@ G(; x, r, c) =
     RigorousInvariantMeasures.MonotonicBranch(
         y -> 2^(-r) * y * x^r + c,
         y -> 2^(-r) * x^r,
-        (Interval(-1), Interval(1)),
+        (interval(-1), interval(1)),
     ) :
     RigorousInvariantMeasures.MonotonicBranch(
         y -> 2^(-r) * y * (-x)^r - c,
         y -> 2^(-r) * (-x)^r,
-        (Interval(-1), Interval(1)),
+        (interval(-1), interval(1)),
     )
 
 Gtrue = G(x = (preim_x[1])[10], r = 5.0, c = 0.5)
@@ -88,10 +88,10 @@ struct PolygonLorenz
 end
 
 function Square_PL(; x_left, x_right, y_lower, y_upper, k)
-    x_lo = [Interval(x_left) + i * Interval(x_right - x_left) / k for i = 0:k]
-    y_l = [Interval(y_lower) for i = 0:k]
-    x_up = [Interval(x_right) + i * Interval(x_left - x_right) / k for i = 0:k]
-    y_u = [Interval(y_upper) for i = 0:k]
+    x_lo = [interval(x_left) + i * interval(x_right - x_left) / k for i = 0:k]
+    y_l = [interval(y_lower) for i = 0:k]
+    x_up = [interval(x_right) + i * interval(x_left - x_right) / k for i = 0:k]
+    y_u = [interval(y_upper) for i = 0:k]
     return PolygonLorenz([x_lo; x_up], [y_l; y_u])
 end
 
@@ -123,7 +123,7 @@ import IntervalArithmetic
 Ginverse(; x, r, c) = x > 0 ? v -> ((v - c) * 2^r) / (x^r) : v -> ((v + c) * 2^r) / ((-x)^r)
 
 # function PreimageRectangleLorenz(; x_left, x_right, y_lower, y_upper, k)
-#     x = [Interval(-1); [Interval(x_left)+i*Interval(x_right-x_left)/k for i in 0:k]; Interval(1)]
+#     x = [interval(-1); [interval(x_left)+i*interval(x_right-x_left)/k for i in 0:k]; interval(1)]
 #     preim_x = RigorousInvarireantMeasures.preimages(x, Ttrue.branches[2])
 #     @info preim_x
 #     err_x = maximum(IntervalArithmetic.radius.(preim_x[1]))
@@ -152,7 +152,7 @@ Ginverse(; x, r, c) = x > 0 ? v -> ((v - c) * 2^r) / (x^r) : v -> ((v + c) * 2^r
 
 function PreimageRectangleLorenz(; preim_x_left, preim_x_right, y_lower, y_upper, k, r, c)
     x_grid = [
-        Interval(preim_x_left) + i * Interval(preim_x_right - preim_x_left) / k for i = 0:k
+        interval(preim_x_left) + i * interval(preim_x_right - preim_x_left) / k for i = 0:k
     ]
     err_x = maximum(IntervalArithmetic.radius.(x))
     y_s = NTuple{2,Interval}[]
@@ -201,16 +201,16 @@ end
 
 using IntervalArithmetic
 function Tfloat(x::Interval; α = 1.75, s = 3.0)
-    xr = x ∩ @interval 0 1
+    xr = intersect_interval(x, interval(0, 1))
     @debug xr
     yr = α * (xr)^s - 1
     @debug yr
-    xl = x ∩ @interval -1 0
+    xl = intersect_interval(x, interval(-1, 0))
     @debug xl
     yl = -α * (-xl)^s + 1
     @debug yl
 
-    return yl ∪ yr
+    return hull(yl, yr)
 end
 
 F(v::IntervalBox) = Tfloat(v[1]) × Gfloat(v[1], v[2])
@@ -218,11 +218,11 @@ F(v::IntervalBox) = Tfloat(v[1]) × Gfloat(v[1], v[2])
 image_ib = Array{IntervalBox}(undef, length(dx) * length(dy))
 
 noise_amplitude = 1 / 16
-noise_1d = -noise_amplitude .. noise_amplitude
+noise_1d = interval(-noise_amplitude, noise_amplitude)
 noise = noise_1d × noise_1d
 
 for (i, (x, y)) in enumerate(Base.Iterators.product(dx, dy))
-    v = (x + Interval(0, 0.01)) × (y + Interval(0, 0.01))
+    v = (x + interval(0, 0.01)) × (y + interval(0, 0.01))
     image_ib[i] = F(v) + noise_1d
 end
 

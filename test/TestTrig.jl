@@ -17,14 +17,14 @@
     @test RigorousInvariantMeasures.find_quadrantspi(1.7) == [3.0, 3.0]
     @test RigorousInvariantMeasures.find_quadrantspi(2.0) == [4.0, 4.0]
 
-    @test RigorousInvariantMeasures.sinpi(Interval(0, 2)) == Interval(-1, 1)
-    @test RigorousInvariantMeasures.sinpi(Interval(0, 1)) == Interval(0, 1)
-    @test RigorousInvariantMeasures.sinpi(Interval(1, 2)) == Interval(-1, 0)
+    @test isequal_interval(RigorousInvariantMeasures.sinpi(interval(0, 2)), interval(-1, 1))
+    @test isequal_interval(RigorousInvariantMeasures.sinpi(interval(0, 1)), interval(0, 1))
+    @test isequal_interval(RigorousInvariantMeasures.sinpi(interval(1, 2)), interval(-1, 0))
 
-    @test RigorousInvariantMeasures.cospi(Interval(0, 2)) == Interval(-1, 1)
-    @test RigorousInvariantMeasures.cospi(Interval(0, 1)) == Interval(-1, 1)
-    @test RigorousInvariantMeasures.cospi(Interval(0, 0.5)) == Interval(0, 1)
-    @test RigorousInvariantMeasures.cospi(Interval(0.5, 1)) == Interval(-1, 0)
+    @test isequal_interval(RigorousInvariantMeasures.cospi(interval(0, 2)), interval(-1, 1))
+    @test isequal_interval(RigorousInvariantMeasures.cospi(interval(0, 1)), interval(-1, 1))
+    @test isequal_interval(RigorousInvariantMeasures.cospi(interval(0, 0.5)), interval(0, 1))
+    @test isequal_interval(RigorousInvariantMeasures.cospi(interval(0.5, 1)), interval(-1, 0))
 
     using TaylorSeries
 

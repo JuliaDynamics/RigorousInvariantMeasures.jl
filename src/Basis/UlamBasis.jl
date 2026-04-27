@@ -48,7 +48,7 @@ function Base.getindex(B::Ulam, i::Int)
 end
 
 function is_dual_element_empty(::Ulam, d)
-    return isempty(d[1]) || isempty(d[2])
+    return isempty_interval(d[1]) || isempty_interval(d[2])
 end
 
 #Base.length(S::DualComposedWithDynamic{<:Ulam, <:Dynamic}) = length(S.basis) * nbranches(S.dynamic)
@@ -73,14 +73,14 @@ end
 # 	# a = preim(S.dynamic, k, S.basis.p[i], S.ϵ) # moved into state
 # 	b = preim(S.dynamic, k, S.basis.p[i+1], S.ϵ)
 
-# 	if isempty(a) && !isempty(b)
+# 	if isempty_interval(a) && !isempty_interval(b)
 # 		ep = endpoints(S.dynamic)
 # 		if orientation(S.dynamic, k) > 0
 # 			a = convert(typeof(b), ep[k])
 # 		else
 # 			a = convert(typeof(b), ep[k+1])
 # 		end
-# 	elseif isempty(b) && !isempty(a)
+# 	elseif isempty_interval(b) && !isempty_interval(a)
 # 		ep = endpoints(S.dynamic)
 # 		if orientation(S.dynamic, k) > 0
 # 			b = convert(typeof(a), ep[k+1])
@@ -110,11 +110,14 @@ of an interval in ``[0,1]``, i.e., we restrict to ``y \\cap [0,1]``
 function nonzero_on(B::Ulam, (a, b))
     y = hull(a, b)
 
-    # finds in which semi-open interval [p[k], p[k+1]) y.lo and y.hi fall
-    lo = searchsortedlast(B.p, y.lo)
-    hi = searchsortedlast(B.p, y.hi)
+    # finds in which semi-open interval [p[k], p[k+1]) inf(y) and sup(y) fall
+    # IA 1.0: inf/sup may return -0.0 for an interval starting at 0; that breaks
+    # `searchsortedlast` (cf. the `iszero(a) && (a = zero(a))` guard in Preimages.jl).
+    nz(x) = iszero(x) ? zero(x) : x
+    lo = searchsortedlast(B.p, nz(inf(y)))
+    hi = searchsortedlast(B.p, nz(sup(y)))
 
-    # they may be n+1 if y.hi==1
+    # they may be n+1 if sup(y)==1
     lo = clamp(lo, 1, length(B))
     hi = clamp(hi, 1, length(B))
 
@@ -151,7 +154,7 @@ function Base.iterate(S::ProjectDualElement{BT,DT}, state = S.j_min) where {BT<:
         return nothing
     end
     j = state
-    x = relative_measure(S.dual_element, (Interval(S.basis.p[j]), Interval(S.basis.p[j+1])))
+    x = relative_measure(S.dual_element, (interval(S.basis.p[j]), interval(S.basis.p[j+1])))
     return (j, x), state + 1
 end
 Base.eltype(f::ProjectDualElement{<:Ulam,DT}) where {DT} = Tuple{Int64,Interval{Float64}}

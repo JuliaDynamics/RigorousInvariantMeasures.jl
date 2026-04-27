@@ -23,7 +23,7 @@ using IntervalArithmetic
     ]
     Ptrue = Ptrue'
 
-    @test all(contains_zero.(P - Ptrue))
+    @test all(in_interval.(0, P - Ptrue))
 
     # @test opnormbound(B,L1, DiscretizedOperator(B, D)) == 1 # not defined anymore now that we include B in the signature
     @test opnormbound(B, Linf, DiscretizedOperator(B, D)) >= 1

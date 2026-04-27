@@ -5,27 +5,28 @@ to improve it so that sinpi(1) == 0
 
 
 
-using IntervalArithmetic: atomic, SVector, @round
+using IntervalArithmetic: @round
+using StaticArrays: SVector
 
 function find_quadrantspi(x::T) where {T}
-    temp = IntervalArithmetic.atomic(Interval{T}, x) * 2
+    temp = interval(T, x) * 2
 
-    return IntervalArithmetic.SVector(floor(temp.lo), floor(temp.hi))
+    return SVector(floor(inf(temp)), floor(sup(temp)))
 end
 
 sinpi(a...) = Base.Math.sinpi(a...)
 
 function sinpi(a::Interval{T}) where {T}
-    isempty(a) && return a
+    isempty_interval(a) && return a
 
-    whole_range = Interval{T}(-1, 1)
+    whole_range = interval(T, -1, 1)
 
     diam(a) > 2 && return whole_range
 
     # The following is equiavlent to doing temp = a / half_pi  and
-    # taking floor(a.lo), floor(a.hi)
-    lo_quadrant = minimum(find_quadrantspi(a.lo))
-    hi_quadrant = maximum(find_quadrantspi(a.hi))
+    # taking floor(inf(a)), floor(sup(a))
+    lo_quadrant = minimum(find_quadrantspi(inf(a)))
+    hi_quadrant = maximum(find_quadrantspi(sup(a)))
 
     if hi_quadrant - lo_quadrant > 4  # close to limits
         return whole_range
@@ -35,25 +36,25 @@ function sinpi(a::Interval{T}) where {T}
     hi_quadrant = mod(hi_quadrant, 4)
 
     # Different cases depending on the two quadrants:
+    # @round(T, lo, hi) returns a BareInterval{T} in IA 1.0; wrap with `interval`
+    # to upgrade to a decorated Interval{T}.
     if lo_quadrant == hi_quadrant
-        a.hi - a.lo > 1 && return whole_range  # in same quadrant but separated by almost 2pi
-        lo = @round(sinpi(a.lo), sinpi(a.lo)) # Interval(sin(a.lo, RoundDown), sin(a.lo, RoundUp))
-        hi = @round(sinpi(a.hi), sinpi(a.hi)) # Interval(sin(a.hi, RoundDown), sin(a.hi, RoundUp))
+        sup(a) - inf(a) > 1 && return whole_range  # in same quadrant but separated by almost 2pi
+        lo = interval(@round(T, sinpi(inf(a)), sinpi(inf(a))))
+        hi = interval(@round(T, sinpi(sup(a)), sinpi(sup(a))))
         return hull(lo, hi)
 
     elseif lo_quadrant == 3 && hi_quadrant == 0
-        return @round(sinpi(a.lo), sinpi(a.hi)) # Interval(sin(a.lo, RoundDown), sin(a.hi, RoundUp))
+        return interval(@round(T, sinpi(inf(a)), sinpi(sup(a))))
 
     elseif lo_quadrant == 1 && hi_quadrant == 2
-        return @round(sinpi(a.hi), sinpi(a.lo)) # Interval(sin(a.hi, RoundDown), sin(a.lo, RoundUp))
+        return interval(@round(T, sinpi(sup(a)), sinpi(inf(a))))
 
     elseif (lo_quadrant == 0 || lo_quadrant == 3) && (hi_quadrant == 1 || hi_quadrant == 2)
-        return @round(min(sinpi(a.lo), sinpi(a.hi)), 1)
-        # Interval(min(sin(a.lo, RoundDown), sin(a.hi, RoundDown)), one(T))
+        return interval(@round(T, min(sinpi(inf(a)), sinpi(sup(a))), 1))
 
     elseif (lo_quadrant == 1 || lo_quadrant == 2) && (hi_quadrant == 3 || hi_quadrant == 0)
-        return @round(-1, max(sinpi(a.lo), sinpi(a.hi)))
-        # Interval(-one(T), max(sin(a.lo, RoundUp), sin(a.hi, RoundUp)))
+        return interval(@round(T, -1, max(sinpi(inf(a)), sinpi(sup(a)))))
 
     else #if( lo_quadrant == 0 && hi_quadrant==3 ) || ( lo_quadrant == 2 && hi_quadrant==1 )
         return whole_range
@@ -63,17 +64,17 @@ end
 cospi(a...) = Base.Math.cospi(a...)
 
 function cospi(a::Interval{T}) where {T}
-    isempty(a) && return a
+    isempty_interval(a) && return a
 
-    whole_range = Interval(-one(T), one(T))
+    whole_range = interval(-one(T), one(T))
 
     diam(a) > 2 && return whole_range
 
-    lo_quadrant = minimum(find_quadrantspi(a.lo))
-    hi_quadrant = maximum(find_quadrantspi(a.hi))
+    lo_quadrant = minimum(find_quadrantspi(inf(a)))
+    hi_quadrant = maximum(find_quadrantspi(sup(a)))
 
     if hi_quadrant - lo_quadrant > 4  # close to limits
-        return Interval(-one(T), one(T))
+        return interval(-one(T), one(T))
     end
 
     lo_quadrant = mod(lo_quadrant, 4)
@@ -81,22 +82,22 @@ function cospi(a::Interval{T}) where {T}
 
     # Different cases depending on the two quadrants:
     if lo_quadrant == hi_quadrant # Interval limits in the same quadrant
-        a.hi - a.lo > 1 && return whole_range
-        lo = @round(cospi(a.lo), cospi(a.lo))
-        hi = @round(cospi(a.hi), cospi(a.hi))
+        sup(a) - inf(a) > 1 && return whole_range
+        lo = interval(@round(T, cospi(inf(a)), cospi(inf(a))))
+        hi = interval(@round(T, cospi(sup(a)), cospi(sup(a))))
         return hull(lo, hi)
 
     elseif lo_quadrant == 2 && hi_quadrant == 3
-        return @round(cospi(a.lo), cospi(a.hi))
+        return interval(@round(T, cospi(inf(a)), cospi(sup(a))))
 
     elseif lo_quadrant == 0 && hi_quadrant == 1
-        return @round(cospi(a.hi), cospi(a.lo))
+        return interval(@round(T, cospi(sup(a)), cospi(inf(a))))
 
     elseif (lo_quadrant == 2 || lo_quadrant == 3) && (hi_quadrant == 0 || hi_quadrant == 1)
-        return @round(min(cospi(a.lo), cospi(a.hi)), 1)
+        return interval(@round(T, min(cospi(inf(a)), cospi(sup(a))), 1))
 
     elseif (lo_quadrant == 0 || lo_quadrant == 1) && (hi_quadrant == 2 || hi_quadrant == 3)
-        return @round(-1, max(cospi(a.lo), cospi(a.hi)))
+        return interval(@round(T, -1, max(cospi(inf(a)), cospi(sup(a)))))
 
     else#if ( lo_quadrant == 3 && hi_quadrant==2 ) || ( lo_quadrant == 1 && hi_quadrant==0 )
         return whole_range

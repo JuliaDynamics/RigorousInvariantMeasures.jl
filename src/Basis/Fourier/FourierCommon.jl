@@ -88,7 +88,8 @@ bound_weak_norm_from_linalg_norm(B::Fourier) = (1.0, 0.0)
 
 # --- bound_linalg_norm_L1_from_weak: ||v̂||_{ℓ¹} ≤ A · ||v||_{L²} ---
 # Cauchy-Schwarz: ||v̂||_{ℓ¹} ≤ √n · ||v̂||_{ℓ²} = √n · ||v||_{L²}
-bound_linalg_norm_L1_from_weak(B::Fourier) = sqrt(Float64(length(B), RoundUp))
+bound_linalg_norm_L1_from_weak(B::Fourier) =
+    sqrt_round(Float64(length(B), RoundUp), RoundUp)
 
 # --- bound_linalg_norm_L∞_from_weak: ||v̂||_{ℓ∞} ≤ A · ||v||_{L²} ---
 # ||v̂||_{ℓ∞} ≤ ||v̂||_{ℓ²} = ||v||_{L²} → A = 1

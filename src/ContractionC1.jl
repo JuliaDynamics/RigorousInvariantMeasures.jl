@@ -13,7 +13,7 @@ function opnormbound(N::Type{<:C1}, M, B)
         z = C1Norm(B, v)
         est += C1Norm(B, M * v) / z
     end
-    return est.hi
+    return sup(est)
 end
 
 using ProgressMeter
@@ -31,7 +31,7 @@ function norms_of_powers_basis(
 )
 
     @assert eltype(f) <: Interval
-    T = typeof(zero(eltype(Q.L)).hi) # gets "Float64" from Q.L
+    T = typeof(sup(zero(eltype(Q.L)))) # gets "Float64" from Q.L
     n = size(Q.L, 1)
     M = mid.(Q.L)
     R = radius.(Q.L)
@@ -67,7 +67,7 @@ function norms_of_powers_basis(
             #@info "norm_$i" norm(v)*factor
             # @info infnormoffunction(B, v)
             # @info infnormofderivative(B, v)
-            norms[i] = max(norm(v).hi * factor, norms[i])
+            norms[i] = max(sup(norm(v)) * factor, norms[i])
         end
         #@info norms
     end

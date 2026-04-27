@@ -21,7 +21,7 @@ using IntervalArithmetic
     ]
     Ptrue = Ptrue'
 
-    @test all(contains_zero.(P - Ptrue))
+    @test all(in_interval.(0, P - Ptrue))
 
     # mod1_dynamic with a non-Markov dynamic
     D = mod1_dynamic(x -> x + 0.5)
@@ -39,7 +39,7 @@ using IntervalArithmetic
         0 0 0 1 0 0 0 0
     ]
 
-    @test all(contains_zero.(P - Ptrue))
+    @test all(in_interval.(0, P - Ptrue))
 
     @test opnormbound(B, L1, DiscretizedOperator(B, D)) >= 1
     # not defined anymore now that we include the basis

@@ -7,34 +7,34 @@
 
     f = HatFunction(1.0, 2, 3)
     @test f(1.5) == 0.5
-    @test f(1 .. 1.5) == 0 .. 0.5
+    @test isequal_interval(f(interval(1, 1.5)), interval(0, 0.5))
 
     f = HatFunctionOnTorus(0.125, 0.25, 0.375)
-    x = IntervalOnTorus(0.375 .. 1.1875)
-    @test f(x) == 0 .. 0.5
+    x = IntervalOnTorus(interval(0.375, 1.1875))
+    @test isequal_interval(f(x), interval(0, 0.5))
 
-    @test f(IntervalOnTorus(0 .. 1)) == 0 .. 1
+    @test isequal_interval(f(IntervalOnTorus(interval(0, 1))), interval(0, 1))
 
     f = HatFunctionOnTorus(0.125, 0.25, 0.375)
-    x = IntervalOnTorus(3.1875 .. 3.25)
-    @test f(x) == 0.5 .. 1
+    x = IntervalOnTorus(interval(3.1875, 3.25))
+    @test isequal_interval(f(x), interval(0.5, 1))
 
     f = HatFunctionOnTorus(0, 0.125, 0.25)
-    x = IntervalOnTorus(0 .. 0.0625)
-    @test f(x) == 0 .. 0.5
+    x = IntervalOnTorus(interval(0, 0.0625))
+    @test isequal_interval(f(x), interval(0, 0.5))
 
     f = HatFunctionOnTorus(0.875, 0, 0.125)
-    x = IntervalOnTorus(0 .. 0.0625)
-    @test f(x) == 0.5 .. 1
+    x = IntervalOnTorus(interval(0, 0.0625))
+    @test isequal_interval(f(x), interval(0.5, 1))
 
     f = HatFunctionOnTorus(0.875, 0, 0.125)
-    x = IntervalOnTorus(0.9375 .. 1)
-    @test f(x) == 0.5 .. 1
+    x = IntervalOnTorus(interval(0.9375, 1))
+    @test isequal_interval(f(x), interval(0.5, 1))
 
     B = Hat(4)
-    @test nonzero_on(B, (0.1 .. 0.3, NaN)) == (1, 3)
-    @test nonzero_on(B, (0 .. 1, NaN)) == (1, 4)
-    @test nonzero_on(B, (0.3 .. 0.31, NaN)) == (2, 3)
+    @test nonzero_on(B, (interval(0.1, 0.3), NaN)) == (1, 3)
+    @test nonzero_on(B, (interval(0, 1), NaN)) == (1, 4)
+    @test nonzero_on(B, (interval(0.3, 0.31), NaN)) == (2, 3)
 
     @test is_refinement(Hat(8), Hat(4))
     @test is_refinement(Hat(8), Hat(8))

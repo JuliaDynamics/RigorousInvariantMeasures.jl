@@ -47,14 +47,14 @@ aux_norm(B::FourierAnalytic) = L1
 # Aη strong norm: exponential decay of Fourier tail
 function weak_projection_error(B::FourierAnalytic{Aη})
     N = B.k
-    η = Interval(B.strong.η)
-    return exp(2 * Interval(pi) * N * η).hi
+    η = interval(B.strong.η)
+    return sup(exp(2 * interval(pi) * N * η))
 end
 
 function aux_normalized_projection_error(B::FourierAnalytic{Aη})
     N = B.k
-    η = Interval(B.strong.η)
-    return exp(2 * Interval(pi) * N * η).hi
+    η = interval(B.strong.η)
+    return sup(exp(2 * interval(pi) * N * η))
 end
 
 # W{k,1} strong norm: polynomial decay O(N^{-(k-1)}) for Fourier coefficient decay
@@ -64,8 +64,8 @@ function weak_projection_error(B::FourierAnalytic{W{k,l}}) where {k,l}
     if k == 0
         return 1.0
     end
-    denom = (2 * Interval(pi) * N)^k
-    return (1 / denom).hi
+    denom = (2 * interval(pi) * N)^k
+    return sup(1 / denom)
 end
 
 function aux_normalized_projection_error(B::FourierAnalytic{W{k,l}}) where {k,l}
@@ -73,8 +73,8 @@ function aux_normalized_projection_error(B::FourierAnalytic{W{k,l}}) where {k,l}
     if k == 0
         return 1.0
     end
-    denom = (2 * Interval(pi) * N)^k
-    return (1 / denom).hi
+    denom = (2 * interval(pi) * N)^k
+    return sup(1 / denom)
 end
 
 # --- Strong-weak bound: ||v||_s ≤ M₁n · ||v||_{L²} ---
@@ -87,13 +87,13 @@ Geometric series: ``\sum_{|k|\leq N} e^{4πη|k|} = 1 + 2(e^{4πη} - e^{4πη(N
 """
 function strong_weak_bound(B::FourierAnalytic{Aη})
     k = B.k
-    η = Interval(B.strong.η)
-    λ = 4 * Interval(pi) * η
+    η = interval(B.strong.η)
+    λ = 4 * interval(pi) * η
 
     # Sum of geometric series: 1 + 2*(e^λ - e^{λ(N+1)})/(1 - e^λ)
     # = 1 + 2*e^λ*(1 - e^{λN})/(1 - e^λ)
     geo_sum = 1 + 2 * exp(λ) * (1 - exp(λ * k)) / (1 - exp(λ))
-    return sqrt(geo_sum).hi
+    return sup(sqrt(geo_sum))
 end
 
 @doc raw"""
@@ -103,11 +103,11 @@ Sum: ``M₁n = \sum_{j=0}^{k} (2πN)^j``
 """
 function strong_weak_bound(B::FourierAnalytic{W{k,l}}) where {k,l}
     N = B.k
-    M = Interval(1.0)
+    M = interval(1.0)
     for j = 1:k
-        M = M + (2 * Interval(pi) * N)^j
+        M = M + (2 * interval(pi) * N)^j
     end
-    return M.hi
+    return sup(M)
 end
 
 ###############################################################################
@@ -164,7 +164,7 @@ function eval_on_dual(B::FourierAnalytic, computed_dual::FourierAnalyticDual, ϕ
     w = zeros(Complex{Interval{Float64}}, length(B.p))
     for j = 1:length(x)
         C = ϕ(x[j]) / abs(xp[j])
-        if real(C) != ∅ && imag(C) != ∅
+        if !isempty_interval(real(C)) && !isempty_interval(imag(C))
             w[labels[j]] += C
         end
     end

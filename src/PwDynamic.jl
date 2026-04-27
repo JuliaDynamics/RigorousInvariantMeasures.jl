@@ -98,8 +98,8 @@ function PwMap(
     Ts,
     endpoints,
     y_endpoints_in = hcat(
-        [Ts[k](Interval(endpoints[k])) for k = 1:length(Ts)],
-        [Ts[k](Interval(endpoints[k+1])) for k = 1:length(Ts)],
+        [Ts[k](interval(endpoints[k])) for k = 1:length(Ts)],
+        [Ts[k](interval(endpoints[k+1])) for k = 1:length(Ts)],
     );
     full_branch = false,
 )
@@ -114,18 +114,18 @@ function PwMap(
 end
 
 function intersect_domain(D::PwMap, x)
-    return [(Interval(x) ∩ hull(br.X[1], br.X[2])) for br in D.branches]
+    return [intersect_interval(interval(x), hull(br.X[1], br.X[2])) for br in D.branches]
 end
 
 function intersect_domain_bool(D::PwMap, x)
-    return [y != ∅ for y in intersect_domain(D, x)]
+    return [!isempty_interval(y) for y in intersect_domain(D, x)]
 end
 
 Base.show(io::IO, D::PwMap) =
     print(io, "Piecewise-defined dynamic with $(nbranches(D)) branches")
 
 domain(D::PwMap) = (D.branches[1].X[1], D.branches[end].X[2])
-#intersect_domain(T::PwMap, x) = [Interval(x) ∩ hull(br.X[1], br.X[2]) for br in T.branches]
+#intersect_domain(T::PwMap, x) = [interval(x) ∩ hull(br.X[1], br.X[2]) for br in T.branches]
 #intersect_domain_bool(T::PwMap, x) = [!(∅ == y) for y in intersect_domain(T, x)]
 
 
@@ -158,8 +158,8 @@ end
 """
 Intersect an Interval or TaylorSeries with I
 """
-restrict(I, x) = I ∩ x
-restrict(I, x::Taylor1) = Taylor1([I ∩ x[0]; x[1:end]], x.order)
+restrict(I, x) = intersect_interval(I, x)
+restrict(I, x::Taylor1) = Taylor1([intersect_interval(I, x[0]); x[1:end]], x.order)
 
 """
 function that evaluates the k-th branch of a dynamic on a point x
@@ -173,7 +173,7 @@ end
 # """
 # hull of an iterable of intervals
 # """
-# common_hull(S) = interval(minimum(x.lo for x in S), maximum(x.hi for x in S))
+# common_hull(S) = interval(minimum(inf(x) for x in S), maximum(sup(x) for x in S))
 
 
 # Rather than defining derivatives of a PwMap, we define Taylor1 expansions directly
@@ -183,13 +183,13 @@ Note that this ignores discontinuities; users are free to shoot themselves
 in the foot and call this on a non-smooth piecewise map. No better solutions for now.
 """
 function (D::PwMap)(x::Taylor1)
-    fx = fill(∅, x.order + 1)
+    fx = fill(emptyinterval(), x.order + 1)
     x_restricted = deepcopy(x)
     for i = 1:length(D.branches)
-        x_restricted[0] = x[0] ∩ hull(D[i].X[1], D[i].X[2])
-        if !isempty(x_restricted[0])
+        x_restricted[0] = intersect_interval(x[0], hull(D[i].X[1], D[i].X[2]))
+        if !isempty_interval(x_restricted[0])
             fx_restricted = D[i].f(x_restricted)
-            fx = fx .∪ fx_restricted.coeffs
+            fx = hull.(fx, fx_restricted.coeffs)
         end
     end
     @debug "Piecewise f($(x)) = $(Taylor1(fx, x.order))"
@@ -254,11 +254,11 @@ julia> D0 = mod1_dynamic(x->2*x+0.5*x*(1-x), full_branch = true)
 Piecewise-defined dynamic with 2 branches
 
 julia> max_distortion(D0)
-[0.444268, 0.444445]
+[0.444269, 0.444444]
 ```
 """
 function max_distortion(D::PwMap, tol = 1e-3)
-    # max_dist = Interval(0.0)
+    # max_dist = interval(0.0)
     # for br in branches(D)
     #     val = maximise(x -> abs(distortion(br.f, x)), hull(br.X[1], br.X[2]), tol=tol)[1]
     #     max_dist = max(val, max_dist)
@@ -272,7 +272,7 @@ function plottable(D::PwMap, x)
     for k = 1:nbranches(D)
         domain = hull(D[k].X[1], D[k].X[2])
         if x in domain
-            return mid(Interval(D[k].f(x)))
+            return mid(interval(D[k].f(x)))
         end
     end
 end
@@ -284,12 +284,12 @@ plottable(D::PwMap) = x -> plottable(D, x)
 Returns a pair (left::Bool, right::Bool) that tells if a branch has infinite derivative at any of its endpoints
 """
 function has_infinite_derivative_at_endpoints(branch::MonotonicBranch)
-    # the Interval(0, 1e-15) summand is there because for some reason TaylorSeries fails on point intervals of singularity but not on larger intervals containing them:
+    # the interval(0, 1e-15) summand is there because for some reason TaylorSeries fails on point intervals of singularity but not on larger intervals containing them:
     # derivative(x->x^(6/10), 0..0) # fails
     # derivative(x->x^(6/10), 0..1e-15) # succeeds
 
-    left = !isfinite(derivative(branch.f, branch.X[1] + Interval(0, 1e-15)))
-    right = !isfinite(derivative(branch.f, branch.X[2] - Interval(0, 1e-15)))
+    left = !isbounded(derivative(branch.f, branch.X[1] + interval(0, 1e-15)))
+    right = !isbounded(derivative(branch.f, branch.X[2] - interval(0, 1e-15)))
     return (left, right)
 end
 
@@ -318,7 +318,7 @@ Piecewise-defined dynamic with 2 branches
 ```
 """
 function mod1_dynamic(f::Function; ϵ = 0.0, max_iter = 100, full_branch = false)
-    X = (0 .. 0, 1 .. 1)
+    X = (interval(0, 0), interval(1, 1))
     br = MonotonicBranch(f, X)
     @debug "Auxiliary branch" br
 
@@ -339,7 +339,7 @@ function mod1_dynamic(f::Function; ϵ = 0.0, max_iter = 100, full_branch = false
     end
 
     Yhull = hull(Interval.(br.Y)...)
-    possible_integer_parts = floor(Int, Yhull.lo):ceil(Int, Yhull.hi)
+    possible_integer_parts = floor(Int, inf(Yhull)):ceil(Int, sup(Yhull))
     @debug "Possible integer parts" possible_integer_parts
 
     x, integer_parts =
@@ -417,7 +417,7 @@ function dfly_inf_der(::Type{TotalVariation}, ::Type{L1}, D::PwMap, tol = 1e-3)
     #@showprogress enabled=SHOW_PROGRESS_BARS  1 "Computing infinite-derivative DFLY..." 
     for i = 3:15
         val = 0.0
-        val_summand = Interval(0.0)
+        val_summand = interval(0.0)
         l = 0.0
 
         for (j, br) in enumerate(branches(D))
@@ -438,7 +438,7 @@ function dfly_inf_der(::Type{TotalVariation}, ::Type{L1}, D::PwMap, tol = 1e-3)
             I = hull(left_endpoint, right_endpoint)
             val_br = 2 * maximise(x -> abs(f(x)), I, tol = tol)[1]
             @debug "maximise on $I: $val_br"
-            val = max(val, val_br.hi)
+            val = max(val, sup(val_br))
 
             if left
                 # we work on the interval [br.X[1], left_endpoint] =: [a, b].
@@ -449,7 +449,7 @@ function dfly_inf_der(::Type{TotalVariation}, ::Type{L1}, D::PwMap, tol = 1e-3)
                 # int_a^b (distorsion) = f(b) - f(a) = f(b)
                 val_summand += abs(f(left_endpoint) / 2)
                 @debug "abs(f($left_endpoint)/2) = $val_summand"
-                l = max(l, abs(l_left).hi)
+                l = max(l, sup(abs(l_left)))
             end
             if right
                 # same reasoning as above but on the right endpoint
@@ -457,10 +457,10 @@ function dfly_inf_der(::Type{TotalVariation}, ::Type{L1}, D::PwMap, tol = 1e-3)
                 @debug "right endpoint: g($right_endpoint) = $l_right"
                 val_summand += abs(f(right_endpoint) / 2)
                 @debug "abs(f($right_endpoint)/2) = $val_summand"
-                l = max(l, abs(l_right).hi)
+                l = max(l, sup(abs(l_right)))
             end
         end
-        val = val ⊕₊ val_summand.hi
+        val = val ⊕₊ sup(val_summand)
         @debug "i=$i, A=$val, B=$l"
 
         if val < 1.0 && l ⊘₊ (1.0 ⊖₋ val) < est
@@ -473,7 +473,7 @@ function dfly_inf_der(::Type{TotalVariation}, ::Type{L1}, D::PwMap, tol = 1e-3)
     endpts = endpoints(D)
     min_width = minimum([endpts[i+1] - endpts[i] for i = 1:length(endpts)-1])
 
-    return A, B ⊕₊ (2 / min_width).hi
+    return A, B ⊕₊ sup(2 / min_width)
 end
 #    aux_der = (1-max_exp)/2
 #  @info "aux_der", aux_der

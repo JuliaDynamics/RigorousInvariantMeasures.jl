@@ -43,9 +43,14 @@ after `n-1` preimages through the left branch through the LSV map
 with exponent `α`
 """
 function ShootingLSV(n, y, α, rigstep = 10; T = Float64)
-    x = [Interval{T}(0.5, 1); Interval{T}(0, 0.5) * ones(Interval{T}, n - 1)]
-    f(x) = 0 <= x <= 0.5 ? x * (1 + (2 * x)^α) : 2x - 1
-    fprime(x) = 0 <= x <= 0.5 ? 1 + (α + 1) * (2 * x)^α : 2.0
+    x = [interval(T, 0.5, 1); interval(T, 0, 0.5) * ones(Interval{T}, n - 1)]
+    # IA 1.0 disallows `<=` / `==` between Interval and Real — extract the
+    # upper bound explicitly so the chained comparison works for both Real and
+    # Interval arguments.
+    _ub(z::Real) = z
+    _ub(z::Interval) = sup(z)
+    f(x) = _ub(x) <= 0.5 ? x * (1 + (2 * x)^α) : 2x - 1
+    fprime(x) = _ub(x) <= 0.5 ? 1 + (α + 1) * (2 * x)^α : 2.0
     return ShootingMethod(f, fprime, n, x, y, rigstep)
 end
 
@@ -54,13 +59,13 @@ function GetDomains(branches, α; T = Float64)
     left = Interval{T}(0.5)
     for i = branches:-1:2
         right = ShootingLSV(i, 0.5, α; T = T)[1]
-        push!(domains, union(left, right))
+        push!(domains, hull(left, right))
         left = right
         #for i=2:branches
         #    push!(domains, interval(ShootingLSV(i, 0.5, α)[1].lo, ShootingLSV(i-1, 0.5, α)[1].hi))
     end
-    push!(domains, union(left, Interval{T}(0.75)))
-    push!(domains, union(Interval{T}(0.75), Interval{T}(1)))
+    push!(domains, hull(left, Interval{T}(0.75)))
+    push!(domains, hull(Interval{T}(0.75), Interval{T}(1)))
 
     return domains
 end
@@ -139,7 +144,7 @@ end
 function preimwithder_derder(D::ApproxInducedLSV, k, y, ϵ) #::NTuple{Interval, 3}
     @assert 1 <= k <= D.nbranches
 
-    y = Interval(y) #hack, please check
+    y = interval(y) #hack, please check
     _y = InvCoordinateChange(y)
 
     if k == 1 # the manufactured branch
@@ -175,7 +180,7 @@ end
 function preimwithder(D::ApproxInducedLSV, k, y, ϵ) #::NTuple{Interval, 3}
     @assert 1 <= k <= D.nbranches
 
-    y = Interval(y) #hack, please check
+    y = interval(y) #hack, please check
     _y = InvCoordinateChange(y)
 
     if k == 1 # the manufactured branch
@@ -301,7 +306,7 @@ function dfly(
     for i = 1:D.nbranches
         if i == 1
             right = ShootingLSV(D.nbranches - 1, 0.5, D.α)[1]
-            lam = max(lam, 2 * (right - 0.5).hi)
+            lam = max(lam, 2 * sup(right - 0.5))
             dist = max(dist, 0)
         elseif i == D.nbranches
             lam = max(lam, 0.5)
@@ -312,18 +317,18 @@ function dfly(
             fsecond(x) = f(Taylor1([x, 1], 2))[2] / 2
             distortion(x) = abs(fsecond(x) / (fprime(x)^2))
             lambda(x) = abs(1 / fprime(x))
-            dist = max(dist, maximise(distortion, D.domains[i])[1].hi)
-            lam = max(lam, maximise(lambda, D.domains[i])[1].hi)
+            dist = max(dist, sup(maximise(distortion, D.domains[i])[1]))
+            lam = max(lam, sup(maximise(lambda, D.domains[i])[1]))
         end
     end
-    return lam.hi, dist.hi
+    return sup(lam), sup(dist)
 end
 
 import TaylorSeries
 
 function derivatives_D(α, k, l; T = Float64)
     w = zeros(Interval, (l, l))
-    right = Interval(1.0)
+    right = interval(1.0)
     for i = 1:k
         @info i
         left = ShootingLSV(i, 0.5, α; T = T)[1]
@@ -331,7 +336,7 @@ function derivatives_D(α, k, l; T = Float64)
         f(x) = iterate_LSV(x, i, α)
         g(x) = 1 / (TaylorSeries.derivative(f(Taylor1([x, 1], l))))
 
-        dom = Interval(left.lo, right.hi)
+        dom = interval(inf(left), sup(right))
         tol = diam(dom) * 2^(-10)
         for i = 0:l-1, j = 0:l-1
             h(x) = abs((factorial(i) * g(x)[i]) * g(x)[0]^j) # \partial^i (1/T') * (1/T')^j
@@ -348,7 +353,7 @@ end
 
 #import DualNumbers
 #function bound_b_ω(α, k; T = Float64)
-#	right = Interval(1.0)
+#	right = interval(1.0)
 #	for i in 1:k
 #		@info i
 #		left = ShootingLSV(i, 0.5, α; T = T)[1]
@@ -357,7 +362,7 @@ end
 #		f_prime_α(x) = f(DualNumbers.Dual(α, 1), x).epsilon
 #		f_prime_x(x) = f(α, DualNumbers.Dual(x, 1)).epsilon
 #		h(x) = -f_prime_α(x)/f_prime_x(x)
-#		dom = Interval(left.lo, right.hi)
+#		dom = interval(inf(left), sup(right))
 #		tol = diam(dom)*2^(-10)
 #		val = maximise(h, dom, tol = tol)[1]
 #		@info val

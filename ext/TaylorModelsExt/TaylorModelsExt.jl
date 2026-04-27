@@ -3,15 +3,17 @@ module TaylorModelsExt
 export Observable, discretizationlogder, integrateobservable
 
 using RigorousInvariantMeasures
+using IntervalArithmetic
+using IntervalOptimisation: maximise
 
 import TaylorModels
 
 function integrate(f, I; steps = 1024, degree = 6)
-    lo = I.lo
-    hi = I.hi
+    lo = inf(I)
+    hi = sup(I)
     l = 2 * radius(I)
-    int_center = Interval(0.0)
-    int_error = Interval(0.0)
+    int_center = interval(0.0)
+    int_error = interval(0.0)
     for i = 1:steps
         left = lo + (i - 1) * (l / steps)
         right = lo + i * l / steps
@@ -29,14 +31,14 @@ function integrate(f, I; steps = 1024, degree = 6)
 end
 
 function adaptive_integration(f, I::Interval; tol = 2^-10, steps = 8, degree = 6) # tol 2^-10, steps = 8 are default values
-    lo = I.lo
-    hi = I.hi
+    lo = inf(I)
+    hi = sup(I)
     l = 2 * radius(I)
-    int_value = Interval(0.0)
+    int_value = interval(0.0)
     for i = 1:steps
         left = lo + (i - 1) * (l / steps)
         right = lo + i * l / steps
-        Istep = Interval(left, right)
+        Istep = interval(left, right)
         val = integrate(f, Istep)
         if radius(val) < tol
             int_value += val
@@ -65,13 +67,11 @@ end
 struct Observable
     B::Any
     v::Vector
-    infbound::Any
+    inf_bound::Any
 end
-
 
 ### TODO: Actually some assumptions are made, as the fact that
 # the Ulam base is equispaced 
-
 """
     Observable(B::Ulam, ϕ::Function; tol = 2^-10)
 
@@ -93,10 +93,10 @@ Observable(Ulam{LinRange{Float64, Int64}}(LinRange{Float64}(0.0, 1.0, 5)), Inter
 function Observable(B::Ulam, ϕ::Function; tol = 2^-10)
     v = zeros(Interval{Float64}, length(B))
     for i = 1:length(B)
-        I = Interval(B.p[i], B.p[i+1])
+        I = interval(B.p[i], B.p[i+1])
         v[i] = adaptive_integration(ϕ, I; tol = tol, steps = 1, degree = 2) * length(B)
     end
-    infbound = maximise(x -> abs(ϕ(x)), Interval(0, 1))[1]
+    infbound = maximise(x -> abs(ϕ(x)), interval(0, 1))[1]
     return Observable(B, v, infbound)
 end
 
@@ -115,27 +115,27 @@ function discretizationlogder(B::Ulam, D::PwMap; degree = 7)
     infbound = emptyinterval()
 
     for (i, br) in enumerate(D.branches)
-        ind_X1 = Int64(floor(length(B) * br.X[1].lo)) + 1
-        ind_X2 = min(Int64(floor(length(B) * br.X[2].lo)) + 1, length(B))
+        ind_X1 = Int64(floor(length(B) * inf(br.X[1]))) + 1
+        ind_X2 = min(Int64(floor(length(B) * inf(br.X[2]))) + 1, length(B))
         dom = hull(br.X[1], br.X[2])
         fprime = derivative(br.f)
         for i = ind_X1:ind_X2
-            I = Interval(B.p[i], B.p[i+1]) ∩ dom
-            r = Interval(radius(I))
-            Tmid = TaylorSeries.Taylor1([Interval(mid(I)), Interval(1)], degree)
-            Tint = TaylorSeries.Taylor1([I, Interval(1)], degree)
+            I = intersect_interval(interval(B.p[i], B.p[i+1]), dom)
+            r = interval(radius(I))
+            Tmid = TaylorSeries.Taylor1([interval(mid(I)), interval(1)], degree)
+            Tint = TaylorSeries.Taylor1([I, interval(1)], degree)
             Fmid = log(abs(fprime(Tmid)))
             Fint = log(abs(fprime(Tint)))
-            infbound = infbound ∪ abs(Fint[0])
+            infbound = hull(infbound, abs(Fint[0]))
             ϵ = mag(Fint[degree] - Fmid[degree])
 
             for k = 0:Int64(floor(Float64(degree) / 2))
                 v[i] += 2 * (Fmid[2*k] * r^(2 * k + 1)) / (2 * k + 1)
             end
-            v[i] += Interval(-ϵ, ϵ) * r^(degree + 1) / (degree + 1)
+            v[i] += interval(-ϵ, ϵ) * r^(degree + 1) / (degree + 1)
         end
-        v[ind_X1] += 2 * Interval(radius(br.X[1])) * abs(log(fprime(br.X[1])))
-        v[ind_X2] += 2 * Interval(radius(br.X[2])) * abs(log(fprime(br.X[2])))
+        v[ind_X1] += 2 * interval(radius(br.X[1])) * abs(log(fprime(br.X[1])))
+        v[ind_X2] += 2 * interval(radius(br.X[2])) * abs(log(fprime(br.X[2])))
     end
 
     v *= length(B)
@@ -146,9 +146,52 @@ function discretizationlogder_fast(B, D::PwMap)
     v = zeros(Interval{Float64}, length(B))
 
     @error "Not implemented yet!"
-
-
 end
+
+struct ProjectedFunction
+    B::Any
+    v::Vector
+    err_bound::Any
+end
+
+"""
+    VariationBound(f; steps = 1024)
+
+Rigorous variation bound for a C¹ function on `[0,1]`, computed as
+``\\int_0^1 |f'(x)|\\,dx`` via a Riemann upper bound over a uniform
+partition with `steps` subintervals. `f'` is obtained from Taylor-series
+automatic differentiation, so `f` must be callable on a
+`TaylorSeries.Taylor1{Interval{Float64}}`.
+"""
+function VariationBound(f; steps = 1024)
+    total = interval(0.0)
+    h = interval(1.0) / steps
+    for i = 1:steps
+        I = interval((i - 1) / steps, i / steps)
+        Tx = TaylorSeries.Taylor1([I, interval(1.0)], 1)
+        fprime_I = f(Tx)[1]
+        total += abs(fprime_I) * h
+    end
+    return total
+end
+
+
+function ProjectedFunction(
+    B::Ulam,
+    f::Function;
+    tol = 2^-10,
+    VarBound = VariationBound(f),
+)
+    v = zeros(Interval{Float64}, length(B))
+    for i = 1:length(B)
+        I = interval(B.p[i], B.p[i+1])
+        v[i] = adaptive_integration(f, I; tol = tol, steps = 1, degree = 2) * length(B)
+    end
+    return ProjectedFunction(B, v, VarBound / length(B))
+end
+
+RigorousInvariantMeasures.projection(B::Ulam, f::Function; kwargs...) =
+    ProjectedFunction(B, f; kwargs...)
 
 
 
@@ -157,31 +200,31 @@ end
     v = zeros(Interval{Float64}, length(B))
     infbound  = emptyinterval()
     endpoints = D.endpoints
-    delicate_indexes = Int64.(floor.(length(B)*[x.lo for x in endpoints])).+1
+    delicate_indexes = Int64.(floor.(length(B)*[inf(x) for x in endpoints])).+1
     for i in 1:(length(delicate_indexes)-1)
         for j in delicate_indexes[i]:delicate_indexes[i+1]-1
-            I = Interval(B.p[j], B.p[j+1])
-            r = Interval(radius(I))
-            Tmid = TaylorSeries.Taylor1([Interval(mid(I)), Interval(1)], degree)
-            Tint = TaylorSeries.Taylor1([I, Interval(1)], degree)
+            I = interval(B.p[j], B.p[j+1])
+            r = interval(radius(I))
+            Tmid = TaylorSeries.Taylor1([interval(mid(I)), interval(1)], degree)
+            Tint = TaylorSeries.Taylor1([I, interval(1)], degree)
             Fmid = log(TaylorModels.derivative(D.Ts[i](Tmid)))
             Fint = log(TaylorModels.derivative(D.Ts[i](Tint)))   
-            infbound = infbound ∪ abs(Fint[0])
+            infbound = hull(infbound, abs(Fint[0]))
             ϵ = mag(Fint[degree]-Fmid[degree]) 
 
             for k in 0:Int64(floor(Float64(degree)/2))
                 v[j]+=2*(Fmid[2*k]*r^(2*k+1))/(2*k+1)            
             end
-            v[j]+=Interval(-ϵ, ϵ)*r^(degree+1)/(degree+1)
+            v[j]+=interval(-ϵ, ϵ)*r^(degree+1)/(degree+1)
         end
     end
 
     #correction since the endpoints may be wide intervals
     for i in 2:length(endpoints)-1
         x = endpoints[i]
-        Tx = TaylorSeries.Taylor1([x, Interval(1)], 1)
+        Tx = TaylorSeries.Taylor1([x, interval(1)], 1)
 
-        corr = 2*Interval(radius(x))*(abs(log(TaylorModels.derivative(D.Ts[i-1](Tx))))
+        corr = 2*interval(radius(x))*(abs(log(TaylorModels.derivative(D.Ts[i-1](Tx))))
                 +abs(log(TaylorModels.derivative(D.Ts[i](Tx)))))[0]
         v[delicate_indexes[i]]+=corr
     end
@@ -191,7 +234,7 @@ end =#
 
 function integrateobservable(B::Ulam, ϕ::Observable, f::Vector, error)
     val = (ϕ.v)' * f
-    return val / length(B) + (ϕ.infbound.hi) * Interval(-error, error)
+    return val / length(B) + sup(ϕ.inf_bound) * interval(-error, error)
 end
 
 

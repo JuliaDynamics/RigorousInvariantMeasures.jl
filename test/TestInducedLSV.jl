@@ -18,16 +18,16 @@
     mid = [0.5^(20 - i + 2) for i = 2:20]
     test = RigorousInvariantMeasures.ShootingLSV(20, 0.5, 0.0)
 
-    @test all(mid .∈ test[2:end])
+    @test all(in_interval.(mid, test[2:end]))
 
     D = ApproxInducedLSV(0.0, 10)
 
     @test RigorousInvariantMeasures.derleft(D, 0.0) == 2.0
 
     domains = RigorousInvariantMeasures.GetDomains(10, 0.0)
-    @test domains[end] == Interval(0.5 + (1 / 2^2), 0.5 + (1 / 2)^1)
-    @test domains[end-1] == Interval(0.5 + (1 / 2)^3, 0.5 + (1 / 2)^2)
-    @test domains[end-2] == Interval(0.5 + (1 / 2)^4, 0.5 + (1 / 2)^3)
+    @test isequal_interval(domains[end], interval(0.5 + (1 / 2^2), 0.5 + (1 / 2)^1))
+    @test isequal_interval(domains[end-1], interval(0.5 + (1 / 2)^3, 0.5 + (1 / 2)^2))
+    @test isequal_interval(domains[end-2], interval(0.5 + (1 / 2)^4, 0.5 + (1 / 2)^3))
 
 
 end

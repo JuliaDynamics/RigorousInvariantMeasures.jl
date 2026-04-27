@@ -10,9 +10,9 @@ Given intervals a, b, returns `true` if a < b, `false` if b < a, and raises an e
 """
 function unique_increasing(a::Interval, b::Interval)
     #@info a, b
-    if a.hi < b.lo
+    if sup(a) < inf(b)
         return true
-    elseif b.hi < a.lo
+    elseif sup(b) < inf(a)
         return false
     else
         error("Insufficient precision to check the monotonicity of this function")
@@ -46,23 +46,23 @@ function preimage_monotonic(
     y,
     f::Function,
     x::Interval,
-    (y1, y2) = (f(Interval(x.lo)), f(Interval(x.hi)));
+    (y1, y2) = (f(interval(inf(x))), f(interval(sup(x))));
     ϵ,
     max_iter,
 )
-    x_old::typeof(x) = ∅
+    x_old::typeof(x) = emptyinterval(typeof(x))
     for i = 1:max_iter
 
-        if diam(x) < ϵ || isempty(x) || x == x_old
+        if diam(x) < ϵ || isempty_interval(x) || isequal_interval(x, x_old)
             return x
         end
 
         x_old = x
-        x_mid = Interval(mid(x))
+        x_mid = interval(mid(x))
 
-        fm::typeof(x) = ∅  # both Newton and Krawczyk will compute f(x_mid) as a byproduct; we save it here.
+        fm::typeof(x) = emptyinterval(typeof(x))  # both Newton and Krawczyk will compute f(x_mid) as a byproduct; we save it here.
         enc_der = derivative(f, x)
-        if 0 ∉ enc_der
+        if !in_interval(0, enc_der)
             # Interval Newton step on x -> f(x) - y
             @debug "Step $i, Newton method:
             - the interval $x, 
@@ -89,8 +89,8 @@ function preimage_monotonic(
             @debug "Krawczyk Candidate", Nx
 
         end
-        x = intersect(x, Nx)
-        if !(x_old == x)  # Newton / Krawczyk was effective and improved the interval
+        x = intersect_interval(x, Nx)
+        if !isequal_interval(x_old, x)  # Newton / Krawczyk was effective and improved the interval
             continue
         end
         # otherwise, let us switch to a zero-th order method based on bisection
@@ -98,12 +98,12 @@ function preimage_monotonic(
 
         # Notice that this bisection strategy works also when f is not monotonic outside [a,b]; 
         # see https://github.com/JuliaDynamics/RigorousInvariantMeasures.jl/issues/140#issuecomment-1413541452 for a proof
-        if y ∉ hull(y1, fm)
-            x = Interval(x_mid.hi, x.hi)
+        if !in_interval(y, hull(y1, fm))
+            x = interval(sup(x_mid), sup(x))
             continue
         end
-        if y ∉ hull(fm, y2)
-            x = Interval(x.lo, x_mid.lo)
+        if !in_interval(y, hull(fm, y2))
+            x = interval(inf(x), inf(x_mid))
             continue
         end
 
@@ -111,14 +111,14 @@ function preimage_monotonic(
         # in this case, we try chopping off smaller and smaller parts of `x` at both ends
         # If we cannot chop off even 1/2^6th of `x`, at the next outer loop iteration `x == x_old` and we will return.
         for k = 2:6
-            c = x.lo + diam(x) / 2^k
-            if y ∉ hull(y1, f(Interval(c)))
-                x = Interval(c, x.hi)
+            c = inf(x) + diam(x) / 2^k
+            if !in_interval(y, hull(y1, f(interval(c))))
+                x = interval(c, sup(x))
                 break
             end
-            c = x.hi - diam(x) / 2^k
-            if y ∉ hull(f(Interval(c)), y2)
-                x = Interval(x.lo, c)
+            c = sup(x) - diam(x) / 2^k
+            if !in_interval(y, hull(f(interval(c)), y2))
+                x = interval(inf(x), c)
                 break
             end
         end
@@ -172,7 +172,7 @@ function ShootingMethod(f, fprime, n, x, y, rigstep = 10)
 
     for i = 1:rigstep
         x_mid = Interval{coeff_interval(x)}.(mid.(x))
-        x = intersect.(x, x_mid - Jac(fprime, x) \ F(x_mid))
+        x = intersect_interval.(x, x_mid - Jac(fprime, x) \ F(x_mid))
     end
     return x
 end

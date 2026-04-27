@@ -21,7 +21,7 @@ NoiseUlam(B, k, BC!, Ext, BC) = NoiseUlam(
     BC,
     zeros(length(B) + k - 1),
     zeros(length(B) + k - 1),
-    Interval(k) / (2 * length(B)),
+    interval(k) / (2 * length(B)),
 )
 
 
@@ -184,9 +184,9 @@ function Base.:*(N::NoiseUlam, v::Vector{Float64})
 end
 
 opnormbound(B::Ulam, ::Type{L1}, M::NoiseUlam) = 1.0
-opradius(::Type{L1}, N::NoiseUlam) = N.k * Interval(radius(Interval(1) / N.k)).hi
+opradius(::Type{L1}, N::NoiseUlam) = N.k * sup(interval(radius(interval(1) / N.k)))
 nonzero_per_row(N::NoiseUlam) = N.k
-dfly(::Type{TotalVariation}, ::Type{L1}, N::NoiseUlam) = (0.0, (1 / (2 * N.ξ)).hi)
+dfly(::Type{TotalVariation}, ::Type{L1}, N::NoiseUlam) = (0.0, sup(1 / (2 * N.ξ)))
 
 using CUDA
 
@@ -215,7 +215,7 @@ if has_cuda() && has_cuda_gpu()
         adapt(CUDA.CUSPARSE.CuSparseMatrixCSC, BC),
         CUDA.zeros(length(B) + k - 1),
         CUDA.zeros(length(B) + k - 1),
-        Interval(k) / (2 * length(B)),
+        interval(k) / (2 * length(B)),
         threads,
         blocks,
     )
@@ -322,9 +322,9 @@ if has_cuda() && has_cuda_gpu()
     end
 
     opnormbound(B::Ulam, ::Type{L1}, M::NoiseUlamCuda) = 1.0
-    opradius(::Type{L1}, N::NoiseUlamCuda) = N.k * Interval(radius(Interval(1) / N.k)).hi
+    opradius(::Type{L1}, N::NoiseUlamCuda) = N.k * sup(interval(radius(interval(1) / N.k)))
     nonzero_per_row(N::NoiseUlamCuda) = N.k
-    dfly(::Type{TotalVariation}, ::Type{L1}, N::NoiseUlamCuda) = (0.0, (1 / (2 * N.ξ)).hi)
+    dfly(::Type{TotalVariation}, ::Type{L1}, N::NoiseUlamCuda) = (0.0, sup(1 / (2 * N.ξ)))
 
     # function cuda_central_conv_shared!(w_conv, w_ext, l)
     #     n = length(w_ext)

@@ -191,8 +191,8 @@ function plot_noisy_system(
 
     # Extract domain bounds from PwMap
     dom = RigorousInvariantMeasures.domain(D)
-    x_min = Float64(mid(Interval(dom[1])))
-    x_max = Float64(mid(Interval(dom[2])))
+    x_min = Float64(mid(interval(dom[1])))
+    x_max = Float64(mid(interval(dom[2])))
 
     # Panel 1: Dynamic with noise point cloud
     xs = range(x_min, x_max, length = n_points)

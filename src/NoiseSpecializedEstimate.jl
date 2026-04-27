@@ -97,7 +97,7 @@ function prepare_Wnorm_estimate(D::PwMap, B_est::Ulam)
         bnum = 0
         for k in 1:nbranches(D)
             br_domain = hull(D.branches[k].X[1], D.branches[k].X[2])
-            if !isempty(TiI ∩ br_domain)
+            if !isempty_interval(intersect_interval(TiI, br_domain))
                 bnum = k
                 break
             end
@@ -115,18 +115,18 @@ function prepare_Wnorm_estimate(D::PwMap, B_est::Ulam)
         distortion_val = Float64(mag(abs(distortion(br.f, TiI))), RoundUp)
 
         # Check boundary terms: branch limits that overlap with interval I
-        I_interval = hull(Interval(B_est.p[ylabel]), Interval(B_est.p[ylabel + 1]))
+        I_interval = hull(interval(B_est.p[ylabel]), interval(B_est.p[ylabel + 1]))
         bterms = Tuple{Float64,Float64}[]
         for bl in branch_limits[bnum]
-            if !isempty(bl ∩ I_interval)
+            if !isempty_interval(intersect_interval(bl, I_interval))
                 bl_invtp = Float64(mag(abs(inverse_derivative(br.f, bl))), RoundUp)
                 push!(bterms, (mid(bl), bl_invtp))
             end
         end
 
         pi = PreimageInfo(
-            Float64(Interval(A_val).lo, RoundDown),
-            Float64(Interval(B_val).hi, RoundUp),
+            Float64(inf(interval(A_val)), RoundDown),
+            Float64(sup(interval(B_val)), RoundUp),
             invtp_val,
             distortion_val,
             bterms,
@@ -380,13 +380,13 @@ function prepare_derivative_bounds(D::PwMap, B::Ulam)
     K = length(B)
     derivs = zeros(K)
     for i in 1:K
-        I = hull(Interval(B.p[i]), Interval(B.p[i + 1]))
+        I = hull(interval(B.p[i]), interval(B.p[i + 1]))
         # Evaluate |T'| on I by trying each branch that overlaps
         deriv_bound = 0.0
         for br in D.branches
             br_domain = hull(br.X[1], br.X[2])
-            J = I ∩ br_domain
-            if !isempty(J)
+            J = intersect_interval(I, br_domain)
+            if !isempty_interval(J)
                 d = Float64(mag(abs(derivative(br.f, J))), RoundUp)
                 deriv_bound = max(deriv_bound, d)
             end

@@ -24,6 +24,7 @@ makedocs(;
         "User guide" => [
             "General usage" => "userguide.md",
             "Implementing a new basis" => "implementingnewbasis.md",
+            "IntervalArithmetic 1.0 idioms" => "intervalarithmetic.md",
         ],
         "Interface" => [
             "Basis" => "Basis.md",
