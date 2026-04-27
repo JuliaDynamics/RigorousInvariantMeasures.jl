@@ -1,6 +1,5 @@
 module RigorousInvariantMeasures
 
-using IntervalArithmetic: range_atan
 import IntervalArithmetic: Interval, mid, radius, @interval
 using BallArithmetic: BallMatrix, BallVector, upper_bound_L2_opnorm, upper_bound_norm,
     compute_spectral_projector_schur, SchurSpectralProjectorResult
