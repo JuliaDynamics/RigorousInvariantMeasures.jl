@@ -7,7 +7,15 @@ using IntervalArithmetic: setdisplay
 # recognise plain Julia scalar multiplication as directed-rounding-safe; this is a
 # known conservatism that is being discussed upstream.  The numerical enclosures are
 # still correct; we suppress the cosmetic noise until IA resolves the issue.
-setdisplay(:infsup; decorations = false, ng_flag = false)
+#
+# `setdisplay` mutates global state in IntervalArithmetic. When run at the top level
+# of this module the call happens during precompilation but is not replayed when
+# the cached module is loaded — so doctests (and any other downstream user)
+# would see the decorated form. Calling it from `__init__` runs the side effect
+# every time the module is brought into a fresh session.
+function __init__()
+    setdisplay(:infsup; decorations = false, ng_flag = false)
+end
 using BallArithmetic: BallMatrix, BallVector, upper_bound_L2_opnorm, upper_bound_norm,
     compute_spectral_projector_schur, SchurSpectralProjectorResult
 using BallArithmetic.CertifScripts: CertifScripts
