@@ -14,7 +14,7 @@ using IntervalArithmetic
     M = 0.2 * randn(n, n)
     R = 1e-14 * rand(n, n)
 
-    LL = sparse(interval_from_midpoint_radius.(M, R))
+    LL = sparse(interval.(M .- R, M .+ R))
 
     Q = IntegralPreservingDiscretizedOperator(LL)
 
@@ -28,7 +28,7 @@ using IntervalArithmetic
 
     e = ones(n)
     f = adjoint(e) / n
-    intf = map(Interval, f)
+    intf = map(interval, f)
     Q = NonIntegralPreservingDiscretizedOperator(LL, e, f)
 
     @test norms_of_powers(Hat(9), Linf, m, Q, intf) ≈

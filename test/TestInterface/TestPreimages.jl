@@ -29,10 +29,14 @@ using IntervalArithmetic
 
     # test for the for wide intervals and 0 derivative 
 
-    @test RigorousInvariantMeasures.range_estimate_monotone(x -> x, interval(0, 1)) ==
-          interval(0, 1)
-    @test RigorousInvariantMeasures.range_estimate_monotone(x -> exp(x), interval(0, 1)) ==
-          interval(1, exp(interval(1)).hi)
+    @test isequal_interval(
+        RigorousInvariantMeasures.range_estimate_monotone(x -> x, interval(0, 1)),
+        interval(0, 1),
+    )
+    @test isequal_interval(
+        RigorousInvariantMeasures.range_estimate_monotone(x -> exp(x), interval(0, 1)),
+        interval(1, sup(exp(interval(1)))),
+    )
 
     begin
         preim_branch = RigorousInvariantMeasures.preimage
@@ -45,25 +49,25 @@ using IntervalArithmetic
         max_iter = 100
 
 
-        # if X is the search interval we test when f(X) ⊂ y
+        # if X is the search interval we test when issubset_interval(f(X), y)
         root = preim_branch(interval(-5, 5), br, @interval(0.0, 1.0); ϵ, max_iter = 100)
-        @test root ⊂ (@interval(0.0, 1.0) + @interval(-ϵ, ϵ))
+        @test issubset_interval(root, (@interval(0.0, 1.0) + @interval(-ϵ, ϵ)))
 
-        # if X is the search interval we test when y ⊂ f(X)
+        # if X is the search interval we test when issubset_interval(y, f(X))
         root = preim_branch(interval(0.0, 0.04), br, @interval(0.0, 1.0); ϵ, max_iter = 100)
-        @test root ⊂ (@interval(0, 0.2) + @interval(-ϵ, ϵ))
+        @test issubset_interval(root, (@interval(0, 0.2) + @interval(-ϵ, ϵ)))
 
         # if X is the search interval we test when y ∩ f(X) ≂̸ ∅, the expected result is
         # f^{-1}(y) ∩ X
         root = preim_branch(interval(0.0, 0.04), br, @interval(0.1, 1.0); ϵ, max_iter = 100)
-        @test root ⊂ (@interval(0.1, 0.2) + @interval(-ϵ, ϵ))
+        @test issubset_interval(root, (@interval(0.1, 0.2) + @interval(-ϵ, ϵ)))
 
         root = preim_branch(interval(0.0, 0.04), br, @interval(0.2, 1.0); ϵ, max_iter = 100)
-        @test root ⊂ (@interval(0.2) + @interval(-ϵ, ϵ))
+        @test issubset_interval(root, (@interval(0.2) + @interval(-ϵ, ϵ)))
 
         # if X is the search interval we test when y ∩ f(X) = ∅ 
         root = preim_branch(interval(0.0, 0.04), br, @interval(0.3, 1.0); ϵ, max_iter = 10)
-        @test isempty(root)
+        @test isempty_interval(root)
 
         # we test when the domain of f contains the zero of the derivative
 
@@ -72,21 +76,21 @@ using IntervalArithmetic
             (@interval(0.1), @interval(1)),
         )
 
-        # if X is the search interval we test when y ⊂ f(X)
+        # if X is the search interval we test when issubset_interval(y, f(X))
         root = preim_branch(interval(0.0, 0.04), br, @interval(0.1, 1.0); ϵ, max_iter = 100)
-        @test root ⊂ (@interval(0.1, 0.3) + @interval(-ϵ, ϵ))
+        @test issubset_interval(root, (@interval(0.1, 0.3) + @interval(-ϵ, ϵ)))
 
         # if X is the search interval we test when y ∩ f(X) ≂̸ ∅, the expected result is
         # f^{-1}(y) ∩ X
         root = preim_branch(interval(0.0, 0.04), br, @interval(0.2, 1.0); ϵ, max_iter = 100)
-        @test root ⊂ (@interval(0.2, 0.3) + @interval(-ϵ, ϵ))
+        @test issubset_interval(root, (@interval(0.2, 0.3) + @interval(-ϵ, ϵ)))
 
         root = preim_branch(interval(0.0, 0.04), br, @interval(0.0); ϵ, max_iter = 100)
-        @test root ⊂ (@interval(0.0) + @interval(-ϵ, ϵ))
+        @test issubset_interval(root, (@interval(0.0) + @interval(-ϵ, ϵ)))
 
         # if X is the search interval we test when y ∩ f(X) = ∅ 
         root = preim_branch(interval(0.0, 0.04), br, @interval(0.4, 1.0); ϵ, max_iter = 10)
-        @test isempty(root)
+        @test isempty_interval(root)
 
         # we test the exit rule for Krawczyk, i.e., if in_interval(0, f)′(x_mid)
         # return x
@@ -108,12 +112,12 @@ using IntervalArithmetic
     for a in (a1, a2)
         for x in (x1, x2, x3, x4, x5, x6)
             i = RigorousInvariantMeasures.first_overlapping(a, x)
-            @test isequal_interval(i, 0 || interval(a[i]).hi <= interval(x).lo)
-            @test isequal_interval(i, length(a) || !(interval(a[i+1]).hi <= interval(x).lo))
+            @test i == 0 || sup(interval(a[i])) <= inf(interval(x))
+            @test i == length(a) || !(sup(interval(a[i+1])) <= inf(interval(x)))
 
             j = RigorousInvariantMeasures.last_overlapping(a, x)
-            @test isequal_interval(j, 0 || !(interval(a[j]).lo >= interval(x).hi))
-            @test isequal_interval(j, length(a) || interval(a[j+1]).lo >= interval(x).hi)
+            @test j == 0 || !(inf(interval(a[j])) >= sup(interval(x)))
+            @test j == length(a) || inf(interval(a[j+1])) >= sup(interval(x))
         end
     end
 
@@ -128,12 +132,12 @@ using IntervalArithmetic
             ylabel = 1:length(y)
             x, xlabel =
                 RigorousInvariantMeasures.preimages(y, b, ylabel; ϵ = 1e-14, max_iter = 100)
-            @test x[1] == b.X[1]
-            @test x[end] != b.X[2] # to make sure the last entry isn't there
+            @test isequal_interval(x[1], b.X[1])
+            @test !isequal_interval(x[end], b.X[2]) # to make sure the last entry isn't there
             @test length(x) == length(xlabel)
             z1 = filter(
-                x -> !isempty(x),
-                intersect.(map(Interval, y), hull(b.Y[1], b.Y[2] + 1e-15)),
+                x -> !isempty_interval(x),
+                intersect_interval.(map(interval, y), hull(b.Y[1], b.Y[2] + 1e-15)),
             ) # the 1e-15 is there to simulate "disjoint intervals"
             z2 = f.(x)
             if !is_increasing(b)
@@ -173,7 +177,7 @@ using IntervalArithmetic
     p = [0, 0.2, 0.4, 0.6, 0.8]
 
     x, xlabel = preimages(p, DD; ϵ = 1e-13, max_iter = 100)
-    @test x ≈ 0:1/80:79/80
+    @test all(in_interval.(0:1/80:79/80, x))
     @test xlabel == repeat([1, 2, 3, 4, 5], 16)
 
     # test composing two different functions, to check that composition is handled in the correct order
@@ -189,8 +193,8 @@ using IntervalArithmetic
     y = 0:0.2:1
     x, xlabel = preimages(y, D1 ∘ D2; ϵ = 1e-13, max_iter = 100)
 
-    @test f.(g.(x)) ≈ 0:0.2:1.8
-    @test xlabel ≈ repeat(1:5, 2)
+    @test all(in_interval.(0:0.2:1.8, f.(g.(x))))
+    @test xlabel == repeat(1:5, 2)
 
     D1 = PwMap(
         [x -> 2x, x -> 6x - 3, x -> 3x - 2],
@@ -205,22 +209,25 @@ using IntervalArithmetic
     y, ylabel, y′ =
         RigorousInvariantMeasures.preimages_and_derivatives(z, D1; ϵ = 0.0, max_iter = 100)
 
-    @test y ≈ [
-        0,
-        0.15,
-        0.3,
-        0.45,
-        0.5,
-        0.5 + 0.05,
-        0.5 + 0.1,
-        0.5 + 0.15,
-        2 / 3,
-        2 / 3 + 0.1,
-        2 / 3 + 0.2,
-        2 / 3 + 0.3,
-    ]
+    @test all(in_interval.(
+        [
+            0,
+            0.15,
+            0.3,
+            0.45,
+            0.5,
+            0.5 + 0.05,
+            0.5 + 0.1,
+            0.5 + 0.15,
+            2 / 3,
+            2 / 3 + 0.1,
+            2 / 3 + 0.2,
+            2 / 3 + 0.3,
+        ],
+        y,
+    ))
     @test ylabel == repeat(1:4, 3)
-    @test y′ ≈ [2, 2, 2, 2, 6, 6, 6, 6, 3, 3, 3, 3]
+    @test all(in_interval.([2, 2, 2, 2, 6, 6, 6, 6, 3, 3, 3, 3], y′))
 
     x, xlabel, x′ = RigorousInvariantMeasures.preimages_and_derivatives(
         z,
@@ -229,7 +236,7 @@ using IntervalArithmetic
         max_iter = 100,
     )
 
-    @test all(x .≈ vcat(y / 2, 0.5 .+ y / 4, 0.75 .+ y / 4))
+    @test all(in_interval.(vcat(mid.(y) / 2, 0.5 .+ mid.(y) / 4, 0.75 .+ mid.(y) / 4), x))
     @test x′ == kron([4, 12, 6, 8, 24, 12, 8, 24, 12], [1, 1, 1, 1])
 
     f = x -> x^2
@@ -251,9 +258,9 @@ using IntervalArithmetic
         max_iter = 100,
     )
 
-    @test all(isapprox(x, [0, sqrt(1 - 1 / sqrt(2))]))
+    @test all(in_interval.([0, sqrt(1 - 1 / sqrt(2))], x))
     @test all(xlabel .== [2, 1])
-    @test all(isapprox.(x′, [0, -2 * sqrt(2 - sqrt(2))]))
+    @test all(in_interval.([0, -2 * sqrt(2 - sqrt(2))], x′))
 
     x, xlabel, x′ = RigorousInvariantMeasures.preimages_and_derivatives(
         z,
@@ -261,9 +268,9 @@ using IntervalArithmetic
         ϵ = 0.0,
         max_iter = 100,
     )
-    @test all(isapprox(x, [0, sqrt(1 - 1 / sqrt(2))]))
+    @test all(in_interval.([0, sqrt(1 - 1 / sqrt(2))], x))
     @test all(xlabel .== [1, 2])
-    @test all(isapprox.(x′, [0, 2 * sqrt(2 - sqrt(2))]))
+    @test all(in_interval.([0, 2 * sqrt(2 - sqrt(2))], x′))
 
     D = PwMap(
         [

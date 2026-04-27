@@ -7,7 +7,8 @@ function BZ()
         ),
     )
     BZA = Interval{Float64}(A_big)
-    B_big = Interval{BigFloat}(
+    B_big = interval(
+        BigFloat,
         BigFloat(
             "0.02328852830307032296813220750095076307514120085284790788241725176646123060202265",
         ),

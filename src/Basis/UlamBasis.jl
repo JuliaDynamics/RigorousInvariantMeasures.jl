@@ -111,8 +111,11 @@ function nonzero_on(B::Ulam, (a, b))
     y = hull(a, b)
 
     # finds in which semi-open interval [p[k], p[k+1]) inf(y) and sup(y) fall
-    lo = searchsortedlast(B.p, inf(y))
-    hi = searchsortedlast(B.p, sup(y))
+    # IA 1.0: inf/sup may return -0.0 for an interval starting at 0; that breaks
+    # `searchsortedlast` (cf. the `iszero(a) && (a = zero(a))` guard in Preimages.jl).
+    nz(x) = iszero(x) ? zero(x) : x
+    lo = searchsortedlast(B.p, nz(inf(y)))
+    hi = searchsortedlast(B.p, nz(sup(y)))
 
     # they may be n+1 if sup(y)==1
     lo = clamp(lo, 1, length(B))

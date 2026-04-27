@@ -90,7 +90,7 @@
         K = UniformKernelUlamPeriodic(B, 2)
         w_float = K * v
         w_interval = K * iv
-        @test in_interval(all(w_float[i], w_interval[i] for i = 1:length(v)))
+        @test all(in_interval(w_float[i], w_interval[i]) for i = 1:length(v))
     end
 
     #import Statistics   

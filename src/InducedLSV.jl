@@ -44,8 +44,13 @@ with exponent `α`
 """
 function ShootingLSV(n, y, α, rigstep = 10; T = Float64)
     x = [interval(T, 0.5, 1); interval(T, 0, 0.5) * ones(Interval{T}, n - 1)]
-    f(x) = 0 <= x <= 0.5 ? x * (1 + (2 * x)^α) : 2x - 1
-    fprime(x) = 0 <= x <= 0.5 ? 1 + (α + 1) * (2 * x)^α : 2.0
+    # IA 1.0 disallows `<=` / `==` between Interval and Real — extract the
+    # upper bound explicitly so the chained comparison works for both Real and
+    # Interval arguments.
+    _ub(z::Real) = z
+    _ub(z::Interval) = sup(z)
+    f(x) = _ub(x) <= 0.5 ? x * (1 + (2 * x)^α) : 2x - 1
+    fprime(x) = _ub(x) <= 0.5 ? 1 + (α + 1) * (2 * x)^α : 2.0
     return ShootingMethod(f, fprime, n, x, y, rigstep)
 end
 

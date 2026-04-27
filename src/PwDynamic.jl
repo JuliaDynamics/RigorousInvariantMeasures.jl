@@ -288,8 +288,8 @@ function has_infinite_derivative_at_endpoints(branch::MonotonicBranch)
     # derivative(x->x^(6/10), 0..0) # fails
     # derivative(x->x^(6/10), 0..1e-15) # succeeds
 
-    left = !isfinite(derivative(branch.f, branch.X[1] + interval(0, 1e-15)))
-    right = !isfinite(derivative(branch.f, branch.X[2] - interval(0, 1e-15)))
+    left = !isbounded(derivative(branch.f, branch.X[1] + interval(0, 1e-15)))
+    right = !isbounded(derivative(branch.f, branch.X[2] - interval(0, 1e-15)))
     return (left, right)
 end
 
