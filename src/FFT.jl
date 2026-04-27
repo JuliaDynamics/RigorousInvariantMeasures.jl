@@ -1,3 +1,4 @@
+using FastRounding
 function IntervalArithmetic.midradius(v::Vector{Complex{Interval{T}}}) where {T}
     n = length(v)
     mid_vector = zeros(Complex{T}, n)
@@ -9,7 +10,7 @@ function IntervalArithmetic.midradius(v::Vector{Complex{Interval{T}}}) where {T}
         imag_r = Float64(imag_r, RoundUp)
         mid_vector[i] = real_m + im * imag_m
         rad_vector[i] =
-            sqrt(square_round(real_r, RoundUp) ⊕₊ square_round(imag_r, RoundUp), RoundUp)
+            sqrt_round(square_round(real_r, RoundUp) ⊕₊ square_round(imag_r, RoundUp), RoundUp)
     end
     return mid_vector, rad_vector
 end
@@ -29,7 +30,7 @@ function interval_fft(
     t = ceil(log2(n))
     rel_err_fft = (t ⊗₊ η) ⊘₊ (1.0 ⊖₋ η)
 
-    norm_FFT_normalized_2 = 1.0 ⊘₊ (sqrt(n, RoundUp))
+    norm_FFT_normalized_2 = 1.0 ⊘₊ (sqrt_round(n, RoundUp))
     vector_mid, vector_radius = midradius(v)
     norm_obs = opnormbound(L2, vector_mid)
     norm_rad = opnormbound(L2, vector_radius)

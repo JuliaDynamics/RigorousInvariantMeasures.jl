@@ -18,7 +18,7 @@
     mid = [0.5^(20 - i + 2) for i = 2:20]
     test = RigorousInvariantMeasures.ShootingLSV(20, 0.5, 0.0)
 
-    @test in_interval.(all(mid, test[2:end]))
+    @test all(in_interval.(mid, test[2:end]))
 
     D = ApproxInducedLSV(0.0, 10)
 

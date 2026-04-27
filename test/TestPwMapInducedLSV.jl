@@ -47,7 +47,7 @@
         ϵ = 0.00001,
         max_iter = 100,
     )
-    @test in_interval.(all(part_half_one[1:end-1], preim_part_zero_one))
+    @test all(in_interval.(part_half_one[1:end-1], preim_part_zero_one))
 
     preim_part_half_one, label = RigorousInvariantMeasures.preimages(
         part_half_one,
@@ -56,7 +56,7 @@
         ϵ = 0.00001,
         max_iter = 100,
     )
-    @test in_interval.(all(part_zero_one[1:end-1], preim_part_half_one))
+    @test all(in_interval.(part_zero_one[1:end-1], preim_part_half_one))
 
 
     D = RigorousInvariantMeasures.RescaledApproxInducedLSV(0.0, 10; T = Float64)
