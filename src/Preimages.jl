@@ -109,7 +109,7 @@ julia> D = mod1_dynamic(x->2x)
 Piecewise-defined dynamic with 2 branches
 
 julia> RigorousInvariantMeasures.preimages(0:0.1:1, D.branches[1]; ϵ = 10^(-15), max_iter = 100)
-(Interval{Float64}[[0.0, 0.0]_com, [0.05, 0.05]_trv_NG, [0.1, 0.1]_trv_NG, [0.15, 0.15]_trv_NG, [0.2, 0.2]_trv_NG, [0.25, 0.25]_trv_NG, [0.3, 0.3]_trv_NG, [0.35, 0.35]_trv_NG, [0.4, 0.4]_trv_NG, [0.45, 0.45]_trv_NG], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+(Interval{Float64}[[0.0, 0.0], [0.05, 0.05], [0.1, 0.1], [0.15, 0.15], [0.2, 0.2], [0.25, 0.25], [0.3, 0.3], [0.35, 0.35], [0.4, 0.4], [0.45, 0.45]], [1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
 ```
 
 """

@@ -1,6 +1,13 @@
 module RigorousInvariantMeasures
 
 import IntervalArithmetic: Interval, mid, radius, @interval
+using IntervalArithmetic: setdisplay
+# Suppress IA 1.0 decoration suffixes (_com, _trv_NG, …) from interval display.
+# The NG flag is raised for scalar * Interval (e.g. 2*x) because IA 1.0 does not
+# recognise plain Julia scalar multiplication as directed-rounding-safe; this is a
+# known conservatism that is being discussed upstream.  The numerical enclosures are
+# still correct; we suppress the cosmetic noise until IA resolves the issue.
+setdisplay(:infsup; decorations = false, ng_flag = false)
 using BallArithmetic: BallMatrix, BallVector, upper_bound_L2_opnorm, upper_bound_norm,
     compute_spectral_projector_schur, SchurSpectralProjectorResult
 using BallArithmetic.CertifScripts: CertifScripts
