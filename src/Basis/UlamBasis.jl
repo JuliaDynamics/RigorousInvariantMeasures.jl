@@ -227,24 +227,38 @@ normbound(B::Ulam{T}, N::Type{L1}, v) where {T} = normbound(N, v)
 weak_dual_norm_bound(B::Ulam, v::AbstractVector) = maximum(abs, v)
 
 
+@doc raw"""
+    integral_pairing(ϕ::Observable{<:Ulam}, ρ::AbstractVector, ρ_w_error;
+                     ρ_dual_weak_bound = …)
+
+For Ulam the pairing simplifies: ``ρ_N`` is piecewise constant and
+``ϕ.v[i] = N\,\int_{I_i} ϕ\,dx`` is `N` times the exact cell integral, so
+
+```math
+\frac{1}{N}\sum_i ϕ.v[i]\,ρ_N[i]
+\;=\; \sum_i ρ_N[i]\,\int_{I_i} ϕ\,dx
+\;=\; \int_0^1 ϕ\,ρ_N\,dx.
+```
+
+There is no projection-error term ``\|ϕ - ϕ_N\|_w\,\|ρ_N\|_{w^*}`` to add
+here — the discrete pairing already equals ``\int ϕ\,ρ_N`` exactly
+(modulo floating-point rounding, which interval lifting of `ρ` covers).
+The only error contribution is from ``ρ \neq ρ_N``:
+``|\int ϕ\,(ρ - ρ_N)\,dx| \leq \|ϕ\|_{L^∞}\,\|ρ - ρ_N\|_{L^1}``.
+
+The `ρ_dual_weak_bound` kwarg is accepted for API symmetry with the
+Fourier method but is unused for Ulam.
+"""
 function integral_pairing(
     ϕ::Observable{<:Ulam},
     ρ::AbstractVector,
     ρ_w_error;
-    ρ_dual_weak_bound = weak_dual_norm_bound(ϕ.B, ρ),
+    ρ_dual_weak_bound = nothing,
 )
     @assert length(ϕ.v) == length(ρ)
-    # ϕ.v[i] = N · ∫_{I_i} ϕ; ρ[i] is the cell value of ρ on I_i.
-    # ⟨φ_ϕ, φ_ρ⟩_{L²} = ∫₀¹ φ_ϕ φ_ρ dx = (1/N) Σ ϕ.v[i] · ρ[i]. Lifting ρ to
-    # intervals here makes the dot-product enclosure rigorous (covers
-    # floating-point rounding when ρ is Float64).
     ρi = _lift_to_interval(ρ)
     val = (transpose(ϕ.v) * ρi) / interval(length(ϕ.B))
-    err_proj =
-        ϕ.proj_error === nothing ? 0.0 :
-        sup(ϕ.proj_error * ρ_dual_weak_bound)
-    err_density = sup(ϕ.inf_bound) * ρ_w_error
-    err = err_proj + err_density
+    err = sup(ϕ.inf_bound) * ρ_w_error
     return val + interval(-err, err)
 end
 
