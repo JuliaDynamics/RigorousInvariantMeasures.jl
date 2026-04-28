@@ -68,7 +68,8 @@ Dynamic  ──►  Basis  ──►  DiscretizedOperator (Q)  ──►  powern
 
 ### Weak-dependency extensions (`ext/`)
 
-Four extensions loaded via `Project.toml` `[weakdeps]` + `[extensions]`:
+Five extensions loaded via `Project.toml` `[weakdeps]` + `[extensions]`:
+- `FFTWExt` (triggered by `using FFTW`) — FFT-based assembly for `Fourier`, `FourierAdjoint`, `FourierAnalytic`, and `Chebyshev` bases. Without it the basis types still construct and most introspection methods (`length`, `getindex`, `weak_norm`, …) work, but `assemble(B, D)` raises a `MethodError`. Split into one file per topic: `IntervalFFT.jl` (the rigorously-enclosed FFT itself), `Fourier.jl`, `Chebyshev.jl`, `NoiseKernelFFT.jl` (the unused-but-preserved `DiscretizedNoiseKernelFFT`).
 - `PlotsExt` — plot recipes for bases, dynamics, noisy systems (`plot_noisy_system` stub declared in main module).
 - `CUDAExt` — GPU-accelerated noise kernel.
 - `SymbolicsExt` — higher-order DFLY via `Symbolics`/`SymbolicUtils` (`dfly(W{k,1}, L1, D)` for `k ≥ 2`).
