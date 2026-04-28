@@ -222,6 +222,46 @@ opnormbound(B::Ulam{T}, N::Type{L1}, A::AbstractVecOrMat{S}) where {T,S} = opnor
 #opnormbound(B::Ulam{T}, N::Type{L1}, Q::IntegralPreservingDiscretizedOperator) where {T} = opnormbound(N, Q.L)
 normbound(B::Ulam{T}, N::Type{L1}, v) where {T} = normbound(N, v)
 
+# Weak norm = L¹, dual = L^∞. For Ulam, v[i] is the constant value of the
+# reconstruction on cell i, so ‖φ_v‖_{L^∞} = max_i |v[i]|.
+weak_dual_norm_bound(B::Ulam, v::AbstractVector) = maximum(abs, v)
+
+
+@doc raw"""
+    integral_pairing(ϕ::Observable{<:Ulam}, ρ::AbstractVector, ρ_w_error;
+                     ρ_dual_weak_bound = …)
+
+For Ulam the pairing simplifies: ``ρ_N`` is piecewise constant and
+``ϕ.v[i] = N\,\int_{I_i} ϕ\,dx`` is `N` times the exact cell integral, so
+
+```math
+\frac{1}{N}\sum_i ϕ.v[i]\,ρ_N[i]
+\;=\; \sum_i ρ_N[i]\,\int_{I_i} ϕ\,dx
+\;=\; \int_0^1 ϕ\,ρ_N\,dx.
+```
+
+There is no projection-error term ``\|ϕ - ϕ_N\|_w\,\|ρ_N\|_{w^*}`` to add
+here — the discrete pairing already equals ``\int ϕ\,ρ_N`` exactly
+(modulo floating-point rounding, which interval lifting of `ρ` covers).
+The only error contribution is from ``ρ \neq ρ_N``:
+``|\int ϕ\,(ρ - ρ_N)\,dx| \leq \|ϕ\|_{L^∞}\,\|ρ - ρ_N\|_{L^1}``.
+
+The `ρ_dual_weak_bound` kwarg is accepted for API symmetry with the
+Fourier method but is unused for Ulam.
+"""
+function integral_pairing(
+    ϕ::Observable{<:Ulam},
+    ρ::AbstractVector,
+    ρ_w_error;
+    ρ_dual_weak_bound = nothing,
+)
+    @assert length(ϕ.v) == length(ρ)
+    ρi = _lift_to_interval(ρ)
+    val = (transpose(ϕ.v) * ρi) / interval(length(ϕ.B))
+    err = sup(ϕ.inf_bound) * ρ_w_error
+    return val + interval(-err, err)
+end
+
 function invariant_measure_strong_norm_bound(
     B::Ulam,
     D::Dynamic;

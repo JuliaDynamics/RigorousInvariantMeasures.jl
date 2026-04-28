@@ -1,6 +1,6 @@
 using IntervalArithmetic
 using ..RigorousInvariantMeasures: MonotonicBranch, PwMap, Dual, C1, NormCacher, Aη, W, L2, NormKind
-import ..RigorousInvariantMeasures: derivative, interval_fft, assemble
+import ..RigorousInvariantMeasures: derivative
 using LinearAlgebra
 
 export FourierAnalytic
@@ -173,7 +173,4 @@ function eval_on_dual(B::FourierAnalytic, computed_dual::FourierAnalyticDual, ϕ
 
 end
 
-using ProgressMeter
-function assemble(B::FourierAnalytic, D::Dynamic; ϵ = 0.0, max_iter = 100, T = Float64)
-    return assemble_common(B, D; ϵ, max_iter, T)
-end
+# assemble(::FourierAnalytic, D; …) is provided by the FFTWExt extension.

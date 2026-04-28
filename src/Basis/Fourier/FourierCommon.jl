@@ -1,4 +1,4 @@
-using .RigorousInvariantMeasures: Dual, interval_fft
+using .RigorousInvariantMeasures: Dual
 using .RigorousInvariantMeasures: NormKind, L1, L2, Aη, W, Cω, TotalVariation, dfly
 import .RigorousInvariantMeasures: opnormbound, normbound, restrict_to_average_zero
 
@@ -126,31 +126,52 @@ bound_weak_norm_abstract(
 # For Fourier, integral_covector = [1, 0, ..., 0], so restriction is just BM[2:end, 2:end]
 restrict_to_average_zero(B::Fourier, BM, f) = BM[2:end, 2:end]
 
+# --- weak_dual_norm_bound and integral_pairing ---
+#
+# Weak norm of the Fourier bases is L²; dual is L² (Hilbert). Parseval gives
+# ‖φ_v‖_{L²} = ‖v‖_{ℓ²} = √(Σ |v_n|²).
+
+import ..RigorousInvariantMeasures: weak_dual_norm_bound, integral_pairing,
+    Observable
+
+function weak_dual_norm_bound(B::Fourier, v::AbstractVector)
+    return sup(sqrt(sum(abs2(c) for c in v)))
+end
+
+@doc raw"""
+    integral_pairing(ϕ::Observable{<:Fourier}, ρ, ρ_w_error;
+                     ρ_dual_weak_bound = weak_dual_norm_bound(ϕ.B, ρ))
+
+For Fourier bases (weak `L²`), the pairing
+``\int_0^1 ϕ_N(x)\,ρ_N(x)\,dx`` equals ``\sum_n \hat ϕ_n\,\overline{\hat ρ_n}``.
+The result is real-valued for real signals; we return the real part of the
+sum.
+"""
+function integral_pairing(
+    ϕ::Observable{<:Fourier},
+    ρ::AbstractVector,
+    ρ_w_error;
+    ρ_dual_weak_bound = weak_dual_norm_bound(ϕ.B, ρ),
+)
+    @assert length(ϕ.v) == length(ρ)
+    # Lift ρ to interval arithmetic so the inner product encloses the
+    # floating-point rounding from the sum and the per-term multiplications.
+    ρi = _lift_to_interval(ρ)
+    pairing = sum(ϕ.v[i] * conj(ρi[i]) for i in eachindex(ϕ.v))
+    val = real(pairing)
+    err_proj =
+        ϕ.proj_error === nothing ? 0.0 :
+        sup(ϕ.proj_error * ρ_dual_weak_bound)
+    err_density = sup(ϕ.inf_bound) * ρ_w_error
+    err = err_proj + err_density
+    return val + interval(-err, err)
+end
+
 abstract type FourierDual <: Dual end
 
 function eval_on_dual(B::Fourier, computed_dual::FourierDual, ϕ) end
 
-using ProgressMeter
-function assemble_common(B::Fourier, D; ϵ = 0.0, max_iter = 100, T = Float64)
-    n = length(B)
-
-    @info n
-
-    k = (n - 1) ÷ 2
-
-    @info k
-
-    M = zeros(Complex{Interval{Float64}}, (n, n))
-    computed_dual = Dual(B, D; ϵ, max_iter)
-    #@showprogress enabled=SHOW_PROGRESS_BARS  
-    for i = 1:n
-        ϕ = B[i]
-        w = eval_on_dual(B, computed_dual, ϕ)
-        #@info w
-
-        FFTw = interval_fft(w)
-
-        M[:, i] = [FFTw[1:k+1]; FFTw[end-k+1:end]]
-    end
-    return M
-end
+# `assemble_common(::Fourier, D; …)` lives in the FFTWExt extension; loading
+# `using FFTW` makes it available. Without FFTW loaded, callers will hit a
+# MethodError on this name.
+function assemble_common end

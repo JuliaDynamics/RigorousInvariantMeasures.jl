@@ -6,8 +6,6 @@ using LinearAlgebra
 using SparseArrays
 using FastRounding
 
-using FFTW
-
 export norms_of_powers_noise
 
 """

@@ -1,10 +1,12 @@
 module TaylorModelsExt
 
-export Observable, discretizationlogder, integrateobservable
+export discretizationlogder
 
 using RigorousInvariantMeasures
 using IntervalArithmetic
 using IntervalOptimisation: maximise
+
+import RigorousInvariantMeasures: Observable, ProjectedFunction, integrateobservable
 
 import TaylorModels
 
@@ -64,14 +66,12 @@ function adaptive_integration(f, I::Interval; tol = 2^-10, steps = 8, degree = 6
     return int_value
 end
 
-struct Observable
-    B::Any
-    v::Vector
-    inf_bound::Any
-end
+# `Observable` and `ProjectedFunction` structs are defined in the main package
+# (src/Observables.jl). This extension supplies the Ulam-specific constructors
+# below.
 
 ### TODO: Actually some assumptions are made, as the fact that
-# the Ulam base is equispaced 
+# the Ulam base is equispaced
 """
     Observable(B::Ulam, ϕ::Function; tol = 2^-10)
 
@@ -146,12 +146,6 @@ function discretizationlogder_fast(B, D::PwMap)
     v = zeros(Interval{Float64}, length(B))
 
     @error "Not implemented yet!"
-end
-
-struct ProjectedFunction
-    B::Any
-    v::Vector
-    err_bound::Any
 end
 
 """

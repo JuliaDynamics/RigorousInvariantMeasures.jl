@@ -1,4 +1,5 @@
 using RigorousInvariantMeasures, IntervalArithmetic
+using FFTW  # triggers FFTWExt so Fourier/Chebyshev assemble methods are loaded
 using Test, Documenter
 
 DocMeta.setdocmeta!(
