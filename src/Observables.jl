@@ -1,4 +1,8 @@
-export Observable, ProjectedFunction, integrateobservable
+export Observable,
+    ProjectedFunction,
+    integrateobservable,
+    integral_pairing,
+    weak_dual_norm_bound
 
 @doc raw"""
     Observable{TB,TV,TIB,TPE}
@@ -75,7 +79,62 @@ end
     integrateobservable(B, ϕ::Observable, f, error)
 
 Integrate the discretized observable ``ϕ`` against a density coefficient vector
-`f`, with an upper bound on the basis-side projection error `error`. The
-formula is basis-specific; methods are provided by extensions.
+`f`, with an upper bound on the basis-side projection error `error`. Legacy
+two-term bound; prefer [`integral_pairing`](@ref). Methods provided by
+extensions.
 """
 function integrateobservable end
+
+"""
+    weak_dual_norm_bound(B::Basis, v::AbstractVector)
+
+Upper bound on ``\\|φ_v\\|_{w^*}`` where ``φ_v`` is the basis-`B` reconstruction
+of the coefficient vector `v` and ``w`` is `weak_norm(B)`. Methods are
+provided per basis (`Ulam`, `Fourier`, …); extensions add more.
+"""
+function weak_dual_norm_bound end
+
+@doc raw"""
+    integral_pairing(ϕ::Observable, ρ::AbstractVector, ρ_w_error;
+                     ρ_dual_weak_bound = weak_dual_norm_bound(ϕ.B, ρ))
+    integral_pairing(ϕ::Observable, ρ::ProjectedFunction)
+
+Compute a rigorous enclosure of ``\int_0^1 ϕ(x)\,ρ(x)\,dx``, where `ϕ` is an
+`Observable` discretized on basis `ϕ.B` and `ρ` is a density coefficient
+vector in the same basis (with `ρ_w_error` an upper bound on
+``\|ρ - ρ_N\|_w``).
+
+The error is decomposed as
+
+```math
+\Bigl|\int (ϕ\,ρ - ϕ_N\,ρ_N)\,dx\Bigr|
+\;\leq\; \|ϕ - ϕ_N\|_w\,\|ρ_N\|_{w^*}
+       + \|ϕ\|_{w^*}\,\|ρ - ρ_N\|_w
+```
+
+so the result is
+
+    ⟨ϕ.v, ρ⟩_basis
+        + [-(ϕ.proj_error · ρ_dual_weak_bound + ϕ.inf_bound · ρ_w_error),
+           +(…)]
+
+`ρ_dual_weak_bound` defaults to `weak_dual_norm_bound(ϕ.B, ρ)` (computed
+from the finite-dimensional coefficient vector); pass a tighter
+user-provided bound to override.
+
+Requires `ϕ.proj_error !== nothing` — i.e. an `Observable` constructed with
+enough information to bound ``\|ϕ - ϕ_N\|_w``. Methods are provided per
+basis.
+"""
+function integral_pairing end
+
+integral_pairing(ϕ::Observable, ρ::ProjectedFunction; kwargs...) =
+    integral_pairing(ϕ, ρ.v, ρ.err_bound; kwargs...)
+
+# Lift a real- or complex-typed coefficient vector to interval-typed so dot
+# products in `integral_pairing` run in interval arithmetic and the result
+# is a rigorous enclosure of the floating-point rounding error.
+_lift_to_interval(v::AbstractVector{<:Real}) = interval.(v)
+_lift_to_interval(v::AbstractVector{<:Complex{<:Real}}) =
+    [interval(real(z)) + im * interval(imag(z)) for z in v]
+_lift_to_interval(v::AbstractVector) = v  # Already interval-typed.

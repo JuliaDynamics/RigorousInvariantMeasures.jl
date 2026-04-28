@@ -222,6 +222,32 @@ opnormbound(B::Ulam{T}, N::Type{L1}, A::AbstractVecOrMat{S}) where {T,S} = opnor
 #opnormbound(B::Ulam{T}, N::Type{L1}, Q::IntegralPreservingDiscretizedOperator) where {T} = opnormbound(N, Q.L)
 normbound(B::Ulam{T}, N::Type{L1}, v) where {T} = normbound(N, v)
 
+# Weak norm = L¹, dual = L^∞. For Ulam, v[i] is the constant value of the
+# reconstruction on cell i, so ‖φ_v‖_{L^∞} = max_i |v[i]|.
+weak_dual_norm_bound(B::Ulam, v::AbstractVector) = maximum(abs, v)
+
+
+function integral_pairing(
+    ϕ::Observable{<:Ulam},
+    ρ::AbstractVector,
+    ρ_w_error;
+    ρ_dual_weak_bound = weak_dual_norm_bound(ϕ.B, ρ),
+)
+    @assert length(ϕ.v) == length(ρ)
+    # ϕ.v[i] = N · ∫_{I_i} ϕ; ρ[i] is the cell value of ρ on I_i.
+    # ⟨φ_ϕ, φ_ρ⟩_{L²} = ∫₀¹ φ_ϕ φ_ρ dx = (1/N) Σ ϕ.v[i] · ρ[i]. Lifting ρ to
+    # intervals here makes the dot-product enclosure rigorous (covers
+    # floating-point rounding when ρ is Float64).
+    ρi = _lift_to_interval(ρ)
+    val = (transpose(ϕ.v) * ρi) / interval(length(ϕ.B))
+    err_proj =
+        ϕ.proj_error === nothing ? 0.0 :
+        sup(ϕ.proj_error * ρ_dual_weak_bound)
+    err_density = sup(ϕ.inf_bound) * ρ_w_error
+    err = err_proj + err_density
+    return val + interval(-err, err)
+end
+
 function invariant_measure_strong_norm_bound(
     B::Ulam,
     D::Dynamic;

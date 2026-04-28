@@ -132,4 +132,23 @@ end
     # Refusing k = 1 (logarithmic-divergence regime, not in this commit).
     B1 = FourierAnalytic(4, 9, RigorousInvariantMeasures.W{1,1})
     @test_throws ArgumentError projection(B1, f; Wk1_seminorm = 8π)
+
+    # ----- integral_pairing -----
+    # Pair the discretized cos(2πx) against itself; ∫₀¹ cos²(2πx) dx = 1/2.
+    obs = RigorousInvariantMeasures.Observable(
+        B,
+        f;
+        inf_bound = 1.0,
+        Wk1_seminorm = 8π,
+    )
+    pf_ρ = projection(B, f; Wk1_seminorm = 8π)
+    val = integral_pairing(obs, pf_ρ)
+    @test in_interval(0.5, val)
+
+    # weak_dual_norm_bound of the discrete ρ_N (ℓ² of coefficients).
+    @test weak_dual_norm_bound(B, pf_ρ.v) ≥ 1 / sqrt(2) - 1e-3
+
+    # Vector form with explicit ρ_w_error and ρ_dual_weak_bound override.
+    val2 = integral_pairing(obs, pf_ρ.v, pf_ρ.err_bound; ρ_dual_weak_bound = 1.0)
+    @test in_interval(0.5, val2)
 end
