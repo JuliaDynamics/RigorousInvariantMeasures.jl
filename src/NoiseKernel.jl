@@ -1,7 +1,7 @@
 
 #export DiscretizedNoiseKernel, UniformNoise
 
-using FFTW, LinearAlgebra
+using LinearAlgebra
 
 abstract type NoiseKernel end
 function Base.:*(M::NoiseKernel, v)
@@ -12,44 +12,10 @@ opnormbound(N::NormKind, M::NoiseKernel) = @error "Not Implemented"
 opradius(N::NormKind, M::NoiseKernel) = @error "Not Implemented"
 nonzero_per_row(M::NoiseKernel) = @error "Not Implemented"
 
-struct DiscretizedNoiseKernelFFT{S<:AbstractVector,T<:AbstractVector} <: NoiseKernel
-    v::S
-    Mfft::T
-    rad::Any
-    P::Any
-end
-
-import RigorousInvariantMeasures: opnormbound, Linf
-DiscretizedNoiseKernelFFT(v::Vector{Real}) =
-    DiscretizedNoiseKernelFFT(v, fft(v), 0, plan_fft(mid.(v)))
-DiscretizedNoiseKernelFFT(v::Vector{Interval{T}}) where {T} = DiscretizedNoiseKernelFFT(
-    v,
-    fft(mid.(v)),
-    opnormbound(L2, radius.(v)),
-    plan_fft(mid.(v)),
-)
-Mfft(Q::DiscretizedNoiseKernelFFT) = Q.Mfft
-
-#this is the Ulam discretization of the uniform noise of size ξ, on a partition of size k
-function UniformNoiseFFT(ξ, k, boundarycondition = :periodic)
-    n = Int64(floor(ξ * k))
-    if boundarycondition == :periodic
-        v = Interval.([ones(n); zeros(k - n)]) * (1 / (2 * ξ))
-        v += Interval.([zeros(k - n); ones(n)]) * (1 / (2 * ξ))
-        v[n+1] += @interval (ξ - n * 1 / k) * k / (2 * ξ)
-        v[k-n-1] += @interval (ξ - n * 1 / k) * k / (2 * ξ)
-    end
-    return DiscretizedNoiseKernelFFT(v)
-end
-
-function Base.:*(M::DiscretizedNoiseKernelFFT, v)
-    P = M.P
-    w = P * v
-    @info w
-    w = M.Mfft .* w
-    @info w
-    return real.(P \ w) / length(v)
-end
+# DiscretizedNoiseKernelFFT, UniformNoiseFFT and Mfft are defined in the
+# FFTWExt extension (loaded via `using FFTW`). They were never wired into
+# any test or example, but kept in case someone wants the FFT-based
+# uniform-noise kernel later.
 
 struct DiscretizedNoiseKernelUlam{S<:AbstractVector} <: NoiseKernel
     B::Ulam

@@ -1,4 +1,4 @@
-using .RigorousInvariantMeasures: Dual, interval_fft
+using .RigorousInvariantMeasures: Dual
 using .RigorousInvariantMeasures: NormKind, L1, L2, Aη, W, Cω, TotalVariation, dfly
 import .RigorousInvariantMeasures: opnormbound, normbound, restrict_to_average_zero
 
@@ -130,27 +130,7 @@ abstract type FourierDual <: Dual end
 
 function eval_on_dual(B::Fourier, computed_dual::FourierDual, ϕ) end
 
-using ProgressMeter
-function assemble_common(B::Fourier, D; ϵ = 0.0, max_iter = 100, T = Float64)
-    n = length(B)
-
-    @info n
-
-    k = (n - 1) ÷ 2
-
-    @info k
-
-    M = zeros(Complex{Interval{Float64}}, (n, n))
-    computed_dual = Dual(B, D; ϵ, max_iter)
-    #@showprogress enabled=SHOW_PROGRESS_BARS  
-    for i = 1:n
-        ϕ = B[i]
-        w = eval_on_dual(B, computed_dual, ϕ)
-        #@info w
-
-        FFTw = interval_fft(w)
-
-        M[:, i] = [FFTw[1:k+1]; FFTw[end-k+1:end]]
-    end
-    return M
-end
+# `assemble_common(::Fourier, D; …)` lives in the FFTWExt extension; loading
+# `using FFTW` makes it available. Without FFTW loaded, callers will hit a
+# MethodError on this name.
+function assemble_common end

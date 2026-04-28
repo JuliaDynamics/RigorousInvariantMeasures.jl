@@ -1,10 +1,6 @@
-using FFTW
-using FastRounding
-using IntervalArithmetic
-
-# Per-element midpoint/radius split for Vector{Complex{Interval}}, used by
-# `interval_fft` below. The radius is widened up so that the disk it
-# describes contains the rectangular Complex{Interval} enclosure.
+# Per-element midpoint/radius split for `Vector{Complex{Interval}}`. The
+# radius is widened up so the disk it describes contains the rectangular
+# Complex{Interval} enclosure.
 function _midradius_complex_interval(v::Vector{Complex{Interval{T}}}) where {T}
     n = length(v)
     mid_vec = zeros(Complex{T}, n)
@@ -25,15 +21,10 @@ end
     interval_fft(v::Vector{Complex{Interval{Float64}}})
     interval_fft(v::Vector{Interval{Float64}})
 
-Rigorously enclosing FFT of `v`, normalized by `length(v)`.
-
-Uses FFTW for the floating-point FFT of the per-element midpoints and
-adds a Higham 1996 a-priori bound on the per-entry error. The bound has
-two contributions, both scaled by ``1/\sqrt{N}``: a relative-roundoff
-term proportional to ``\log_2(N)`` times the L² norm of the input
-midpoints, and a propagation term that picks up the L² norm of the input
-radii (with no log factor — interval propagation is exact, only the
-floating-point arithmetic carries the FFT roundoff).
+Rigorously enclosing FFT of `v`, normalized by `length(v)`. Higham 1996
+a-priori bound: a relative-roundoff term scaled by ``\log_2(N)/\sqrt{N}``
+times the L² norm of input midpoints, plus a ``1/\sqrt{N}`` term picking
+up the L² norm of the input radii.
 """
 function interval_fft(v::Vector{Complex{Interval{Float64}}})
     n = Float64(length(v), RoundUp)

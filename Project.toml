@@ -8,7 +8,6 @@ BallArithmetic = "77e4f72b-b5a4-4fb0-ac2a-dcc32095a072"
 Arpack = "7d9fca2a-8960-54d3-9f78-7d1dccf2cb97"
 CRlibm = "96374032-68de-5a5b-8d9e-752f78720389"
 DualNumbers = "fa6b7ba4-c1ee-5f82-b5fc-ecf0adba8f74"
-FFTW = "7a1cc6ca-52ef-59f5-83cd-3a7055c09341"
 FastRounding = "fa42c844-2597-5d31-933b-ebd51ab2693f"
 IntervalArithmetic = "d1acc4aa-44c8-5952-acd4-ba5d80a2a253"
 IntervalOptimisation = "c7c68f13-a4a2-5b9a-b424-07d005f8d9d2"
@@ -22,6 +21,7 @@ TaylorSeries = "6aa5eb33-94cf-58f4-a9d0-e4b2c4fc25ea"
 [weakdeps]
 Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
 CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
+FFTW = "7a1cc6ca-52ef-59f5-83cd-3a7055c09341"
 LaTeXStrings = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
 Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
 RecipesBase = "3cdcf5f2-1ef4-517c-9805-6587b60abb01"
@@ -32,6 +32,7 @@ TaylorModels = "314ce334-5f6e-57ae-acf6-00b6e903104a"
 
 [extensions]
 CUDAExt = ["CUDA", "Adapt"]
+FFTWExt = "FFTW"
 PlotsExt = ["Plots", "RecipesBase", "LaTeXStrings"]
 SymbolicsExt = ["Symbolics", "SymbolicUtils"]
 TaylorModelsExt = "TaylorModels"
