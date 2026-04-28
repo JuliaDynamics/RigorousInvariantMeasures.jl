@@ -71,6 +71,65 @@ end
     # `projection` is the public entry point; extension routes it to
     # ProjectedFunction. Make sure dispatch actually reaches the extension.
     pf_via_api = projection(B, x -> x; VarBound = interval(1.0))
-    @test pf_via_api isa TMExt.ProjectedFunction
+    @test pf_via_api isa RigorousInvariantMeasures.ProjectedFunction
     @test in_interval(0.125, pf_via_api.v[1])
+end
+
+@testset "Fourier Observable / ProjectedFunction (W^{k,1})" begin
+    # cos(2πx) has Fourier series ½(e^{2πix} + e^{-2πix}); only modes ±1 are
+    # nonzero, with f̂_{±1} = 1/2. ‖f''‖_{L¹} = 4π² · ∫₀¹|cos(2πx)|dx = 4π²·(2/π) = 8π.
+    B = FourierAnalytic(4, 9, RigorousInvariantMeasures.W{2,1})
+    f(x) = cos(2 * π * x)
+    pf = projection(B, f; Wk1_seminorm = 8π)
+    @test pf isa RigorousInvariantMeasures.ProjectedFunction
+    @test in_interval(0.0, real(pf.v[1]))            # DC = 0
+    @test in_interval(0.5, real(pf.v[2]))            # n=1 → ½
+    @test in_interval(0.5, real(pf.v[end]))          # n=-1 → ½
+    @test pf.err_bound > 0                            # nonzero L² tail bound
+
+    # Observable interface — same coefficients, plus user-supplied
+    # `inf_bound` (here ‖cos(2πx)‖_{L²} = 1/√2 ≤ 1) and the new
+    # `proj_error` field (L² weak-norm projection error of ϕ itself).
+    obs = RigorousInvariantMeasures.Observable(
+        B,
+        f;
+        inf_bound = 1.0,
+        Wk1_seminorm = 8π,
+    )
+    @test obs isa RigorousInvariantMeasures.Observable
+    @test in_interval(0.5, real(obs.v[2]))
+    @test obs.inf_bound == 1.0
+    @test obs.proj_error > 0
+    @test obs.proj_error == pf.err_bound  # same formula as ProjectedFunction
+
+    # FFT grid size: a larger `M` divides the per-coefficient aliasing
+    # inflation by (M_new/M_old)^k, so the resulting interval widths
+    # should shrink (the truncation tail / err_bound is unaffected since
+    # it depends only on k_freq, not on the FFT grid size).
+    pf_default_M = projection(B, f; Wk1_seminorm = 8π)  # M = 4*B.k = 16
+    pf_small_M = projection(B, f; Wk1_seminorm = 8π, M = length(B))
+    @test diam(real(pf_default_M.v[2])) < diam(real(pf_small_M.v[2]))
+    @test pf_default_M.err_bound == pf_small_M.err_bound
+
+    # Refusing M < length(B) (would mean fewer samples than basis modes).
+    @test_throws ArgumentError projection(B, f; Wk1_seminorm = 8π, M = 3)
+
+    # Legacy 3-arg Observable constructor still works (proj_error = nothing).
+    legacy = RigorousInvariantMeasures.Observable(B, pf.v, 1.0)
+    @test legacy.proj_error === nothing
+
+    # Both Fourier subtypes dispatch.
+    Bj = RigorousInvariantMeasures.FourierAdjoint(
+        FourierPoints(9, Float64),
+        4,
+        RigorousInvariantMeasures.W{2,1}(),
+        RigorousInvariantMeasures.L2(),
+    )
+    pf_adj = projection(Bj, f; Wk1_seminorm = 8π)
+    @test pf_adj isa RigorousInvariantMeasures.ProjectedFunction
+    @test in_interval(0.5, real(pf_adj.v[2]))
+
+    # Refusing k = 1 (logarithmic-divergence regime, not in this commit).
+    B1 = FourierAnalytic(4, 9, RigorousInvariantMeasures.W{1,1})
+    @test_throws ArgumentError projection(B1, f; Wk1_seminorm = 8π)
 end

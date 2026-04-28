@@ -32,6 +32,7 @@ export Dynamic, endpoints, nbranches, branch, max_inverse_derivative, max_distor
 
 include("Basis/BasisDefinition.jl")
 export opnormbound, weak_norm, strong_norm, aux_norm, integral_covector
+include("Observables.jl")
 include("NormBounds.jl")
 include("NormCacher.jl")
 

@@ -19,12 +19,13 @@ using IntervalArithmetic
 using FastRounding
 using FFTW
 
-import RigorousInvariantMeasures: assemble, assemble_common, opnormbound, L2,
+import RigorousInvariantMeasures: assemble, assemble_common, opnormbound, L2, W,
     Fourier, FourierAdjoint, FourierAnalytic, Chebyshev, Dynamic,
-    NoiseKernel, NormKind
+    NoiseKernel, NormKind, Observable, ProjectedFunction
 
 include("IntervalFFT.jl")
 include("Fourier.jl")
+include("FourierObservables.jl")
 include("Chebyshev.jl")
 include("NoiseKernelFFT.jl")
 
