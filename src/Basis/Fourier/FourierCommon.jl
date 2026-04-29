@@ -162,7 +162,7 @@ function integral_pairing(
     err_proj =
         ϕ.proj_error === nothing ? 0.0 :
         sup(ϕ.proj_error * ρ_dual_weak_bound)
-    err_density = sup(ϕ.inf_bound) * ρ_w_error
+    err_density = sup(ϕ.weak_dual_bound) * ρ_w_error
     err = err_proj + err_density
     return val + interval(-err, err)
 end

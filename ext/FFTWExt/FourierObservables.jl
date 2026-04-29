@@ -4,67 +4,71 @@ Fourier bases. They use the FFT to compute the coefficient vector and a
 user-supplied seminorm to bound the discretization error in the basis's
 weak norm.
 
-Observables and projected functions may live in a more regular space than
-the one preserved by the transfer operator; the user supplies the bound on
-the appropriate seminorm of the input. For a `Fourier{W{k,l},…}` basis
-with ``k ≥ 2``, the user passes `Wk1_seminorm` — an upper bound on
-``\|f^{(k)}\|_{L^1}``.
+For a `Fourier{W{k,l},…}` basis with ``k ≥ 1`` (so this also covers BV /
+``W^{1,1}``), the user passes `Wk1_seminorm` — an upper bound on
+``\|f^{(k)}\|_{L^1}`` (for ``k=1`` this is the BV seminorm, the total
+variation). The coefficient bound ``|\hat f_n| \leq S/(2π|n|)^k`` (where
+``S`` is the seminorm) drives every error formula on this page.
 
-For both `ProjectedFunction.err_bound` and `Observable.proj_error`, the
-quantity returned is an upper bound on the **weak-norm** projection error
-``\|f - \tilde P_N f\|_w`` (with weak norm `weak_norm(B)`); for the `L²`
-weak norm used by both `FourierAnalytic` and `FourierAdjoint`, this is
-the L² norm.
+# Error model
 
-`Observable.inf_bound` is an upper bound on the observable in the **dual
-of the weak norm** — the quantity that controls the integration error
-``|\int (\phi - \tilde P_N \phi)\,d\mu|`` against an invariant density
-``\mu`` expressed in the weak norm. For weak L², this is ``\|ϕ\|_{L²}``.
-
-# Aliasing control
-
-The DFT computes ``\tilde f_n = \hat f_n + \sum_{m\neq 0} \hat f_{n+mM}``
-where ``M`` is the FFT grid size. To control the aliasing error, callers
-choose `M` via a kwarg (default `M = 4 * B.k`, i.e. four times the basis
-cutoff frequency). With grid size `M`, the FFT samples at `M` equispaced
-points, the central `length(B) = 2*B.k + 1` Fourier modes are kept, and
-the aliasing bound uses `M` in place of `length(B)`. Larger `M` divides
-the per-coefficient aliasing bound by `(M / length(B))^k`; for the default
-`M = 4 * B.k`, that is roughly `2^k`.
-
-The aliasing bound used (loose but explicit): for ``k ≥ 2``,
+Let ``\varphi_N(x) = \sum_{|n|\leq k_\text{freq}} \tilde f_n e^{2π i n x}``
+be the discrete Fourier reconstruction returned by the constructor (the
+``\tilde f_n`` are the FFT-computed coefficients, encoded as complex
+intervals carrying only the FFT roundoff bound from `interval_fft`).
+Decompose
 
 ```math
-α \;\leq\; S\,\frac{2π^2}{3}\,\Bigl(\frac{1}{π M}\Bigr)^k
+f - \varphi_N \;=\; \underbrace{(f - P_N f)}_{\text{truncation}}
+\;+\; \underbrace{(P_N f - \varphi_N)}_{\text{aliasing}}.
 ```
 
-(``S = `` `Wk1_seminorm`). The L² truncation tail
+Both pieces have closed-form L² bounds:
 
 ```math
-\|f - P_N f\|_{L^2}
-\;\leq\; S\,\sqrt{\tfrac{2}{2k-1}}\,\Bigl(\tfrac{1}{2π}\Bigr)^k
-\,\Bigl(\tfrac{1}{k_\text{freq}}\Bigr)^{k-½}
+\|f - P_N f\|_{L^2}^2
+  \;=\; \sum_{|n|>k_\text{freq}} |\hat f_n|^2
+  \;\leq\; \frac{2 S^2}{(2π)^{2k}\,(2k-1)\,k_\text{freq}^{2k-1}}
+  \;=:\; T_1^2,
 ```
 
-does not depend on the FFT grid size — only on the kept basis modes
-``k_\text{freq} = `` `B.k`.
+```math
+\|P_N f - \varphi_N\|_{L^2}^2
+  \;\leq\; \|f - P_M f\|_{L^2}^2
+  \;\leq\; \frac{2 S^2}{(2π)^{2k}\,(2k-1)\,(M/2)^{2k-1}}
+  \;=:\; T_2^2,
+```
+
+(the aliasing energy on the kept ``|n| \leq k_\text{freq}`` modes is
+bounded by Parseval-aliasing's total energy, which is the M-point
+truncation tail). Combining,
+
+```math
+\|f - \varphi_N\|_{L^2} \;\leq\; \sqrt{T_1^2 + T_2^2}.
+```
+
+This works for any ``k ≥ 1``. For oversampling factor ``s = M/N \geq 1``
+the aliasing tail ``T_2`` shrinks like ``s^{-(k-½)}`` relative to
+``T_1``; the default `M = 4 * B.k` halves the relative aliasing
+contribution.
+
+# Coefficient interpretation
+
+`v[n]` encloses the **FFT-computed** coefficient ``\tilde f_n`` (with
+FFT roundoff but no aliasing inflation). It does **not** enclose the
+true continuous Fourier coefficient ``\hat f_n``. Aliasing is folded
+into `err_bound` / `proj_error` at the L² level — appropriate for
+integration via [`integral_pairing`](@ref), but if you need an enclosure
+of ``\hat f_n`` itself you have to inflate `v[n]` separately.
 """
 
 using RigorousInvariantMeasures: FourierPoints
 
-# -- Per-coefficient aliasing inflation for f ∈ W^{k,1} on an M-point FFT grid.
-function _fourier_aliasing_bound_Wk1(M::Integer, k::Integer, seminorm)
-    k ≥ 2 ||
-        throw(ArgumentError("W^{k,1} aliasing bound requires k ≥ 2; got k = $k"))
-    Si = interval(Float64(seminorm))
-    Mi = interval(Float64(M))
-    return sup(Si * (2 * interval(pi)^2 / 3) / (interval(pi) * Mi)^k)
-end
-
-# -- L² truncation-tail bound for f ∈ W^{k,1} truncated at frequency k_freq.
+# T₁: truncation-tail L² bound for f ∈ W^{k,1} truncated at frequency k_freq.
+# Works for any k ≥ 1.
 function _fourier_L2_tail_bound_Wk1(k_freq::Integer, k::Integer, seminorm)
-    k ≥ 2 ||
-        throw(ArgumentError("W^{k,1} truncation bound requires k ≥ 2; got k = $k"))
+    k ≥ 1 ||
+        throw(ArgumentError("W^{k,1} truncation bound requires k ≥ 1; got k = $k"))
     Si = interval(Float64(seminorm))
     kfi = interval(Float64(k_freq))
     inner = 2 * Si^2 / (2 * interval(pi))^(2k) /
@@ -72,111 +76,107 @@ function _fourier_L2_tail_bound_Wk1(k_freq::Integer, k::Integer, seminorm)
     return sup(sqrt(inner))
 end
 
-# -- Common path: oversampled FFT, truncate to basis modes, inflate by aliasing.
-function _fourier_coeffs_with_aliasing(
-    B::Fourier,
-    f::Function,
+# Combined L² error: √(T₁² + T₂²), where T₁ is the truncation tail at k_freq
+# and T₂ is the M-grid truncation tail bounding the L² aliasing energy.
+function _fourier_L2_total_error_Wk1(
+    k_freq::Integer,
     k::Integer,
     seminorm,
-    M::Integer,
+    M_grid::Integer,
 )
-    M ≥ length(B) ||
-        throw(ArgumentError("FFT grid size M = $M must be ≥ length(B) = $(length(B))"))
-    samples = [f(p) for p in FourierPoints(M, Float64)]
-    raw = interval_fft(samples)               # length M
+    k ≥ 1 ||
+        throw(ArgumentError("W^{k,1} total-error bound requires k ≥ 1; got k = $k"))
+    Si = interval(Float64(seminorm))
+    kfi = interval(Float64(k_freq))
+    half_grid = interval(Float64(M_grid ÷ 2))
+    T1_sq = 2 * Si^2 / (2 * interval(pi))^(2k) /
+            (interval(Float64(2k - 1)) * kfi^(2k - 1))
+    T2_sq = 2 * Si^2 / (2 * interval(pi))^(2k) /
+            (interval(Float64(2k - 1)) * half_grid^(2k - 1))
+    return sup(sqrt(T1_sq + T2_sq))
+end
+
+# Sample, FFT, take the central `length(B)` coefficients (in standard FFT
+# layout: DC at index 1, positives, then negatives). No per-coefficient
+# aliasing inflation — aliasing is folded into the L² total-error bound
+# returned alongside.
+function _fourier_coeffs_no_aliasing(B::Fourier, f::Function, M_grid::Integer)
+    M_grid ≥ length(B) || throw(
+        ArgumentError(
+            "FFT grid size M = $M_grid must be ≥ length(B) = $(length(B))",
+        ),
+    )
+    samples = [f(p) for p in FourierPoints(M_grid, Float64)]
+    raw = interval_fft(samples)
     k_freq = B.k
-    coeffs =
-        M == length(B) ? raw :
-        [raw[1:k_freq+1]; raw[M-k_freq+1:M]]
-    α = _fourier_aliasing_bound_Wk1(M, k, seminorm)
-    α_box = interval(-α, α) + im * interval(-α, α)
-    return coeffs .+ Ref(α_box)
+    return M_grid == length(B) ? raw :
+           [raw[1:k_freq+1]; raw[M_grid-k_freq+1:M_grid]]
 end
 
 # ---------------------------------------------------------------------------
-# Observable / ProjectedFunction for Fourier{W{k,l}, …}
+# ProjectedFunction for Fourier{W{k,l}, …}
 # ---------------------------------------------------------------------------
-
-@doc raw"""
-    Observable(B::FourierAnalytic{W{k,l},…}, ϕ::Function;
-               inf_bound, Wk1_seminorm, M = 4 * B.k)
-    Observable(B::FourierAdjoint{W{k,l},…}, ϕ::Function;
-               inf_bound, Wk1_seminorm, M = 4 * B.k)
-
-Discretize an observable `ϕ` on a Fourier basis whose strong norm is
-``W^{k,1}`` (``k ≥ 2``).
-
-`Wk1_seminorm` is an upper bound on ``\|ϕ^{(k)}\|_{L^1}``. `inf_bound`
-is an upper bound on `ϕ` in the dual of the basis's weak norm. `M` is
-the FFT grid size; default `4 * B.k` gives a roughly `2^k` reduction in
-aliasing relative to the un-oversampled `M = length(B)`. The
-`proj_error` field of the result is the L² truncation tail bound
-``\|ϕ - P_N ϕ\|_{L²}`` derived from `Wk1_seminorm`.
-"""
-function RigorousInvariantMeasures.Observable(
-    B::FourierAnalytic{W{k,l}},
-    ϕ::Function;
-    inf_bound,
-    Wk1_seminorm,
-    M::Integer = 4 * B.k,
-) where {k,l}
-    coeffs = _fourier_coeffs_with_aliasing(B, ϕ, k, Wk1_seminorm, M)
-    proj_err = _fourier_L2_tail_bound_Wk1(B.k, k, Wk1_seminorm)
-    return RigorousInvariantMeasures.Observable(B, coeffs, inf_bound, proj_err)
-end
-
-function RigorousInvariantMeasures.Observable(
-    B::FourierAdjoint{W{k,l}},
-    ϕ::Function;
-    inf_bound,
-    Wk1_seminorm,
-    M::Integer = 4 * B.k,
-) where {k,l}
-    coeffs = _fourier_coeffs_with_aliasing(B, ϕ, k, Wk1_seminorm, M)
-    proj_err = _fourier_L2_tail_bound_Wk1(B.k, k, Wk1_seminorm)
-    return RigorousInvariantMeasures.Observable(B, coeffs, inf_bound, proj_err)
-end
 
 @doc raw"""
     ProjectedFunction(B::FourierAnalytic{W{k,l},…}, f::Function;
-                      Wk1_seminorm, M = 4 * B.k)
+                      weak_dual_bound, Wk1_seminorm, M = 4 * B.k)
     ProjectedFunction(B::FourierAdjoint{W{k,l},…}, f::Function;
-                      Wk1_seminorm, M = 4 * B.k)
+                      weak_dual_bound, Wk1_seminorm, M = 4 * B.k)
 
-Project `f` onto a Fourier basis with strong norm ``W^{k,1}``
-(``k ≥ 2``). `Wk1_seminorm` is an upper bound on ``\|f^{(k)}\|_{L^1}``.
-`M` is the FFT grid size (see the module docstring for the aliasing
-formula).
+Discretize `f` on a Fourier basis with strong norm ``W^{k,1}`` (``k ≥ 1``,
+including BV / ``W^{1,1}``).
 
-`err_bound` is an upper bound on the **weak-norm** projection error
-``\|f - \tilde P_N f\|_{w}``; for `L²` weak, that is the L² truncation
-tail derived above.
+- `Wk1_seminorm` — upper bound on ``\|f^{(k)}\|_{L^1}`` (total variation
+  for ``k = 1``). Drives the L² truncation/aliasing tail formulas.
+- `weak_dual_bound` — upper bound on ``\|f\|_{w^*}`` (for the default
+  weak `L²` Fourier basis, this is ``\|f\|_{L^2}``). Required because
+  computing it from a callable `f` isn't generally cheap.
+- `M::Integer` — FFT grid size. Default `4 * B.k` controls the
+  aliasing tail (see module docstring).
+
+`proj_error` of the result is the combined L² error
+``\|f - φ_N\|_{L²} \leq \sqrt{T_1^2 + T_2^2}``.
+
+(`Observable` is a `const` alias for `ProjectedFunction`, so
+`Observable(B, ϕ; …)` calls the same constructor.)
 """
 function RigorousInvariantMeasures.ProjectedFunction(
     B::FourierAnalytic{W{k,l}},
     f::Function;
+    weak_dual_bound,
     Wk1_seminorm,
     M::Integer = 4 * B.k,
 ) where {k,l}
-    coeffs = _fourier_coeffs_with_aliasing(B, f, k, Wk1_seminorm, M)
-    err = _fourier_L2_tail_bound_Wk1(B.k, k, Wk1_seminorm)
-    return RigorousInvariantMeasures.ProjectedFunction(B, coeffs, err)
+    coeffs = _fourier_coeffs_no_aliasing(B, f, M)
+    proj_err = _fourier_L2_total_error_Wk1(B.k, k, Wk1_seminorm, M)
+    return RigorousInvariantMeasures.ProjectedFunction(
+        B,
+        coeffs,
+        weak_dual_bound,
+        proj_err,
+    )
 end
 
 function RigorousInvariantMeasures.ProjectedFunction(
     B::FourierAdjoint{W{k,l}},
     f::Function;
+    weak_dual_bound,
     Wk1_seminorm,
     M::Integer = 4 * B.k,
 ) where {k,l}
-    coeffs = _fourier_coeffs_with_aliasing(B, f, k, Wk1_seminorm, M)
-    err = _fourier_L2_tail_bound_Wk1(B.k, k, Wk1_seminorm)
-    return RigorousInvariantMeasures.ProjectedFunction(B, coeffs, err)
+    coeffs = _fourier_coeffs_no_aliasing(B, f, M)
+    proj_err = _fourier_L2_total_error_Wk1(B.k, k, Wk1_seminorm, M)
+    return RigorousInvariantMeasures.ProjectedFunction(
+        B,
+        coeffs,
+        weak_dual_bound,
+        proj_err,
+    )
 end
 
 # `projection` dispatches to `ProjectedFunction` for any Fourier basis;
-# the concrete subtype's constructor (W{k,l} above) handles the math
-# and the kwargs. Bases without a defined `ProjectedFunction` constructor
-# (e.g. `Aη`/`Cω` strong norm — not yet implemented) raise `MethodError`.
+# the concrete subtype's constructor handles the math and the kwargs.
+# Bases without a defined `ProjectedFunction` constructor (e.g. `Aη`/`Cω`
+# strong norm — not yet implemented) raise `MethodError`.
 RigorousInvariantMeasures.projection(B::Fourier, f::Function; kwargs...) =
     RigorousInvariantMeasures.ProjectedFunction(B, f; kwargs...)

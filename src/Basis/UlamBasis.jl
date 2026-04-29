@@ -258,8 +258,46 @@ function integral_pairing(
     @assert length(ϕ.v) == length(ρ)
     ρi = _lift_to_interval(ρ)
     val = (transpose(ϕ.v) * ρi) / interval(length(ϕ.B))
-    err = sup(ϕ.inf_bound) * ρ_w_error
+    err = sup(ϕ.weak_dual_bound) * ρ_w_error
     return val + interval(-err, err)
+end
+
+@doc raw"""
+    p1 * p2  for two `ProjectedFunction{<:Ulam}` on the same basis
+
+Componentwise multiplication of the cell-value vectors. For Ulam each
+``p_i.v`` is the cell-value vector of the piecewise-constant
+reconstruction; their pointwise product is again piecewise-constant on
+the same partition with cell value ``p_1.v[i] \cdot p_2.v[i]``.
+
+Bounds combine via Hölder:
+```math
+\|fg - φ_{p_1}φ_{p_2}\|_{L^1}
+  \;\leq\; \|f\|_{L^∞}\,\|g - φ_{p_2}\|_{L^1}
+        + \|φ_{p_2}\|_{L^∞}\,\|f - φ_{p_1}\|_{L^1}
+```
+
+so
+
+    weak_dual_bound = p1.weak_dual_bound * p2.weak_dual_bound
+    proj_error =
+        p1.weak_dual_bound * p2.proj_error
+        + p2.weak_dual_bound * p1.proj_error
+"""
+function Base.:*(
+    p1::RigorousInvariantMeasures.ProjectedFunction{<:Ulam},
+    p2::RigorousInvariantMeasures.ProjectedFunction{<:Ulam},
+)
+    @assert length(p1.v) == length(p2.v) "Multiplication requires same length"
+    return RigorousInvariantMeasures.ProjectedFunction(
+        p1.B,
+        p1.v .* p2.v,
+        RigorousInvariantMeasures._mul_bound(p1.weak_dual_bound, p2.weak_dual_bound),
+        RigorousInvariantMeasures._add_bound(
+            RigorousInvariantMeasures._mul_bound(p1.weak_dual_bound, p2.proj_error),
+            RigorousInvariantMeasures._mul_bound(p2.weak_dual_bound, p1.proj_error),
+        ),
+    )
 end
 
 function invariant_measure_strong_norm_bound(

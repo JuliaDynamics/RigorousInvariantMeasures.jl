@@ -72,33 +72,6 @@ end
 
 ### TODO: Actually some assumptions are made, as the fact that
 # the Ulam base is equispaced
-"""
-    Observable(B::Ulam, ϕ::Function; tol = 2^-10)
-
-Compute the Ulam discretization of an observable ``ϕ``,
-and ``||ϕ||_{∞}``, returns as an Observable object
-
-Example
-
-```jldoctest
-julia> using RigorousInvariantMeasures;
-
-julia> B = Ulam(4)
-Ulam{LinRange{Float64, Int64}}(LinRange{Float64}(0.0, 1.0, 5))
-
-julia> Observable(B, x->x)
-Observable(Ulam{LinRange{Float64, Int64}}(LinRange{Float64}(0.0, 1.0, 5)), Interval{Float64}[[0.125, 0.125], [0.375, 0.375], [0.625, 0.625], [0.875, 0.875]], [0.999734, 1])
-```
-"""
-function Observable(B::Ulam, ϕ::Function; tol = 2^-10)
-    v = zeros(Interval{Float64}, length(B))
-    for i = 1:length(B)
-        I = interval(B.p[i], B.p[i+1])
-        v[i] = adaptive_integration(ϕ, I; tol = tol, steps = 1, degree = 2) * length(B)
-    end
-    infbound = maximise(x -> abs(ϕ(x)), interval(0, 1))[1]
-    return Observable(B, v, infbound)
-end
 
 import TaylorSeries
 """
@@ -139,7 +112,7 @@ function discretizationlogder(B::Ulam, D::PwMap; degree = 7)
     end
 
     v *= length(B)
-    return Observable(B, v, infbound)
+    return ProjectedFunction(B, v, infbound, nothing)
 end
 
 function discretizationlogder_fast(B, D::PwMap)
@@ -170,18 +143,39 @@ function VariationBound(f; steps = 1024)
 end
 
 
+@doc raw"""
+    ProjectedFunction(B::Ulam, f::Function;
+                      tol = 2^-10,
+                      var_bound = VariationBound(f),
+                      weak_dual_bound = maximise(x -> abs(f(x)), interval(0,1))[1])
+
+Discretize `f` on the Ulam basis. Computes both:
+
+- `weak_dual_bound`: a Taylor-model-driven bound on ``\|f\|_{L^∞}``
+  (the dual of the weak `L¹` norm). Auto-computed via
+  `IntervalOptimisation.maximise`; can be overridden if a tighter
+  user-known bound is available.
+- `proj_error = var_bound / length(B)`: the L¹ projection error
+  ``\|f - π_N f\|_{L^1} \leq \mathrm{Var}(f)/N``. `var_bound` defaults
+  to the Riemann TV bound from `VariationBound`.
+
+The discrete coefficient vector `v[i] = N · ∫_{I_i} f dx` matches the
+old separate `Observable`/`ProjectedFunction` constructors.
+"""
 function ProjectedFunction(
     B::Ulam,
     f::Function;
     tol = 2^-10,
-    VarBound = VariationBound(f),
+    var_bound = VariationBound(f),
+    weak_dual_bound = maximise(x -> abs(f(x)), interval(0, 1))[1],
 )
     v = zeros(Interval{Float64}, length(B))
     for i = 1:length(B)
         I = interval(B.p[i], B.p[i+1])
         v[i] = adaptive_integration(f, I; tol = tol, steps = 1, degree = 2) * length(B)
     end
-    return ProjectedFunction(B, v, VarBound / length(B))
+    proj_error = var_bound / length(B)
+    return ProjectedFunction(B, v, weak_dual_bound, proj_error)
 end
 
 RigorousInvariantMeasures.projection(B::Ulam, f::Function; kwargs...) =
@@ -226,9 +220,9 @@ RigorousInvariantMeasures.projection(B::Ulam, f::Function; kwargs...) =
     return Observable(B, v, infbound)
 end =#
 
-function integrateobservable(B::Ulam, ϕ::Observable, f::Vector, error)
+function integrateobservable(B::Ulam, ϕ::ProjectedFunction, f::Vector, error)
     val = (ϕ.v)' * f
-    return val / length(B) + sup(ϕ.inf_bound) * interval(-error, error)
+    return val / length(B) + sup(ϕ.weak_dual_bound) * interval(-error, error)
 end
 
 
