@@ -129,6 +129,8 @@ Rigorous variation bound for a C¹ function on `[0,1]`, computed as
 partition with `steps` subintervals. `f'` is obtained from Taylor-series
 automatic differentiation, so `f` must be callable on a
 `TaylorSeries.Taylor1{Interval{Float64}}`.
+
+Equivalent to `WklSeminorm(f; k = 1, l = 1, steps = steps)`.
 """
 function VariationBound(f; steps = 1024)
     total = interval(0.0)
@@ -140,6 +142,46 @@ function VariationBound(f; steps = 1024)
         total += abs(fprime_I) * h
     end
     return total
+end
+
+@doc raw"""
+    WklSeminorm(f; k = 1, l = 1, steps = 1024)
+
+Rigorous bound on the Sobolev seminorm ``\|f^{(k)}\|_{L^l}`` for a
+function ``f: [0,1] \to ℝ``, computed as a Riemann-style upper bound
+over a uniform partition with `steps` panels. For `k = 1, l = 1` this
+returns the total variation and matches [`VariationBound`](@ref).
+
+Algorithm: on each panel ``I_i`` of width ``h = 1/\text{steps}``, expand
+`f` as an interval Taylor series of order `k`; the k-th Taylor
+coefficient times ``k!`` is an interval enclosure of ``f^{(k)}`` over
+``I_i``. The Riemann-box upper bound is
+
+```math
+\|f^{(k)}\|_{L^l}^l \;\leq\; \sum_i |f^{(k)}(I_i)|^l \cdot h,
+```
+
+then take the ``l``-th root. Result is an interval enclosure of an
+upper bound on the seminorm.
+
+`f` must be callable on `TaylorSeries.Taylor1{Interval{Float64}}`.
+Typical use: pass `Wk1_seminorm = WklSeminorm(f; k = 2, l = 1)` to the
+Fourier `ProjectedFunction` constructor for a `W^{2,1}` basis.
+"""
+function WklSeminorm(f; k::Integer = 1, l::Integer = 1, steps::Integer = 1024)
+    k ≥ 1 || throw(ArgumentError("WklSeminorm requires k ≥ 1; got k = $k"))
+    l ≥ 1 || throw(ArgumentError("WklSeminorm requires l ≥ 1; got l = $l"))
+    fact_k = interval(Float64(factorial(k)))
+    total = interval(0.0)
+    h = interval(1.0) / steps
+    for i = 1:steps
+        I = interval((i - 1) / steps, i / steps)
+        Tx = TaylorSeries.Taylor1([I, interval(1.0)], k)
+        f_kth = f(Tx)[k] * fact_k
+        contrib = l == 1 ? abs(f_kth) : abs(f_kth)^l
+        total += contrib * h
+    end
+    return l == 1 ? total : total^(interval(1.0) / interval(Float64(l)))
 end
 
 

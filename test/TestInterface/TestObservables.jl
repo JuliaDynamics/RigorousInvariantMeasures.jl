@@ -45,6 +45,25 @@ end
     @test in_interval(1.0, v)
 end
 
+@testset "WklSeminorm" begin
+    # k=1, l=1 reduces to VariationBound.
+    @test in_interval(1.0, TMExt.WklSeminorm(x -> x; k = 1, l = 1))
+    @test in_interval(1.0, TMExt.WklSeminorm(x -> x^2; k = 1, l = 1))
+
+    # f(x) = x^2: f'' = 2 ⇒ ‖f''‖_{L¹} = 2, ‖f''‖_{L²} = 2.
+    @test in_interval(2.0, TMExt.WklSeminorm(x -> x^2; k = 2, l = 1))
+    @test in_interval(2.0, TMExt.WklSeminorm(x -> x^2; k = 2, l = 2))
+
+    # f(x) = cos(2πx): f'' = -4π² cos(2πx), ‖f''‖_{L¹} = 4π² · (2/π) = 8π ≈ 25.1327.
+    # This is exactly the seminorm used in the Fourier projection tests.
+    cos_seminorm = TMExt.WklSeminorm(x -> cos(2 * π * x); k = 2, l = 1)
+    @test in_interval(8π, cos_seminorm)
+
+    # Argument validation.
+    @test_throws ArgumentError TMExt.WklSeminorm(x -> x; k = 0)
+    @test_throws ArgumentError TMExt.WklSeminorm(x -> x; l = 0)
+end
+
 @testset "ProjectedFunction" begin
     B = Ulam(4)
 
