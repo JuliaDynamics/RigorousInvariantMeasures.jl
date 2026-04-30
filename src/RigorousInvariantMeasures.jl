@@ -32,6 +32,7 @@ export Dynamic, endpoints, nbranches, branch, max_inverse_derivative, max_distor
 
 include("Basis/BasisDefinition.jl")
 export opnormbound, weak_norm, strong_norm, aux_norm, integral_covector
+include("Observables.jl")
 include("NormBounds.jl")
 include("NormCacher.jl")
 
@@ -58,7 +59,6 @@ include("pitrig.jl")
 include("NormsOfPowers.jl")
 
 include("Preimages.jl")
-include("FFT.jl")
 include("Basis/Fourier/FourierIndex.jl")
 export Fourier, FourierAnalytic, FourierAdjoint
 include("Basis/NewChebyshev.jl")

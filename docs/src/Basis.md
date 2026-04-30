@@ -46,28 +46,38 @@ Modules = [Base,
 Pages = ["C2Basis.jl"]
 ```
 
-# The Chebyshev basis
+# Fourier and Chebyshev bases (require `using FFTW`)
+
+The Fourier (`Fourier`, `FourierAdjoint`, `FourierAnalytic`) and Chebyshev
+(`Chebyshev`) basis types live in the main package, so they can be constructed
+and inspected without `FFTW`. Their `assemble(B, D)` methods, the
+`interval_fft` helper, and the optional FFT-based uniform-noise kernel
+(`DiscretizedNoiseKernelFFT`) are provided by the `FFTWExt` extension and
+become available once you load `using FFTW`. Calling `assemble` on a Fourier
+or Chebyshev basis without `FFTW` loaded raises a `MethodError`.
+
+## The Chebyshev basis
 ```@autodocs
 Modules = [Base, 
             RigorousInvariantMeasures]
 Pages = ["NewChebyshev.jl"]
 ```
 
-# Common Fourier interface
+## Common Fourier interface
 ```@autodocs
 Modules = [Base, 
             RigorousInvariantMeasures]
 Pages = ["FourierCommon.jl"]
 ```
 
-# The Fourier Adjoint basis 
+## The Fourier Adjoint basis 
 ```@autodocs
 Modules = [Base, 
             RigorousInvariantMeasures]
 Pages = ["FourierAdjoint.jl"]
 ```
 
-# The Fourier Analytic basis 
+## The Fourier Analytic basis 
 ```@autodocs
 Modules = [Base, 
             RigorousInvariantMeasures]

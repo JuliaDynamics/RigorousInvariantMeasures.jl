@@ -1,10 +1,12 @@
 module TaylorModelsExt
 
-export Observable, discretizationlogder, integrateobservable
+export discretizationlogder
 
 using RigorousInvariantMeasures
 using IntervalArithmetic
 using IntervalOptimisation: maximise
+
+import RigorousInvariantMeasures: Observable, ProjectedFunction, integrateobservable
 
 import TaylorModels
 
@@ -64,41 +66,12 @@ function adaptive_integration(f, I::Interval; tol = 2^-10, steps = 8, degree = 6
     return int_value
 end
 
-struct Observable
-    B::Any
-    v::Vector
-    inf_bound::Any
-end
+# `Observable` and `ProjectedFunction` structs are defined in the main package
+# (src/Observables.jl). This extension supplies the Ulam-specific constructors
+# below.
 
 ### TODO: Actually some assumptions are made, as the fact that
-# the Ulam base is equispaced 
-"""
-    Observable(B::Ulam, ϕ::Function; tol = 2^-10)
-
-Compute the Ulam discretization of an observable ``ϕ``,
-and ``||ϕ||_{∞}``, returns as an Observable object
-
-Example
-
-```jldoctest
-julia> using RigorousInvariantMeasures;
-
-julia> B = Ulam(4)
-Ulam{LinRange{Float64, Int64}}(LinRange{Float64}(0.0, 1.0, 5))
-
-julia> Observable(B, x->x)
-Observable(Ulam{LinRange{Float64, Int64}}(LinRange{Float64}(0.0, 1.0, 5)), Interval{Float64}[[0.125, 0.125], [0.375, 0.375], [0.625, 0.625], [0.875, 0.875]], [0.999734, 1])
-```
-"""
-function Observable(B::Ulam, ϕ::Function; tol = 2^-10)
-    v = zeros(Interval{Float64}, length(B))
-    for i = 1:length(B)
-        I = interval(B.p[i], B.p[i+1])
-        v[i] = adaptive_integration(ϕ, I; tol = tol, steps = 1, degree = 2) * length(B)
-    end
-    infbound = maximise(x -> abs(ϕ(x)), interval(0, 1))[1]
-    return Observable(B, v, infbound)
-end
+# the Ulam base is equispaced
 
 import TaylorSeries
 """
@@ -139,19 +112,13 @@ function discretizationlogder(B::Ulam, D::PwMap; degree = 7)
     end
 
     v *= length(B)
-    return Observable(B, v, infbound)
+    return ProjectedFunction(B, v, infbound, nothing)
 end
 
 function discretizationlogder_fast(B, D::PwMap)
     v = zeros(Interval{Float64}, length(B))
 
     @error "Not implemented yet!"
-end
-
-struct ProjectedFunction
-    B::Any
-    v::Vector
-    err_bound::Any
 end
 
 """
@@ -162,6 +129,8 @@ Rigorous variation bound for a C¹ function on `[0,1]`, computed as
 partition with `steps` subintervals. `f'` is obtained from Taylor-series
 automatic differentiation, so `f` must be callable on a
 `TaylorSeries.Taylor1{Interval{Float64}}`.
+
+Equivalent to `WklSeminorm(f; k = 1, l = 1, steps = steps)`.
 """
 function VariationBound(f; steps = 1024)
     total = interval(0.0)
@@ -175,19 +144,80 @@ function VariationBound(f; steps = 1024)
     return total
 end
 
+@doc raw"""
+    WklSeminorm(f; k = 1, l = 1, steps = 1024)
 
+Rigorous bound on the Sobolev seminorm ``\|f^{(k)}\|_{L^l}`` for a
+function ``f: [0,1] \to ℝ``, computed as a Riemann-style upper bound
+over a uniform partition with `steps` panels. For `k = 1, l = 1` this
+returns the total variation and matches [`VariationBound`](@ref).
+
+Algorithm: on each panel ``I_i`` of width ``h = 1/\text{steps}``, expand
+`f` as an interval Taylor series of order `k`; the k-th Taylor
+coefficient times ``k!`` is an interval enclosure of ``f^{(k)}`` over
+``I_i``. The Riemann-box upper bound is
+
+```math
+\|f^{(k)}\|_{L^l}^l \;\leq\; \sum_i |f^{(k)}(I_i)|^l \cdot h,
+```
+
+then take the ``l``-th root. Result is an interval enclosure of an
+upper bound on the seminorm.
+
+`f` must be callable on `TaylorSeries.Taylor1{Interval{Float64}}`.
+Typical use: pass `Wk1_seminorm = WklSeminorm(f; k = 2, l = 1)` to the
+Fourier `ProjectedFunction` constructor for a `W^{2,1}` basis.
+"""
+function WklSeminorm(f; k::Integer = 1, l::Integer = 1, steps::Integer = 1024)
+    k ≥ 1 || throw(ArgumentError("WklSeminorm requires k ≥ 1; got k = $k"))
+    l ≥ 1 || throw(ArgumentError("WklSeminorm requires l ≥ 1; got l = $l"))
+    fact_k = interval(Float64(factorial(k)))
+    total = interval(0.0)
+    h = interval(1.0) / steps
+    for i = 1:steps
+        I = interval((i - 1) / steps, i / steps)
+        Tx = TaylorSeries.Taylor1([I, interval(1.0)], k)
+        f_kth = f(Tx)[k] * fact_k
+        contrib = l == 1 ? abs(f_kth) : abs(f_kth)^l
+        total += contrib * h
+    end
+    return l == 1 ? total : total^(interval(1.0) / interval(Float64(l)))
+end
+
+
+@doc raw"""
+    ProjectedFunction(B::Ulam, f::Function;
+                      tol = 2^-10,
+                      var_bound = VariationBound(f),
+                      weak_dual_bound = maximise(x -> abs(f(x)), interval(0,1))[1])
+
+Discretize `f` on the Ulam basis. Computes both:
+
+- `weak_dual_bound`: a Taylor-model-driven bound on ``\|f\|_{L^∞}``
+  (the dual of the weak `L¹` norm). Auto-computed via
+  `IntervalOptimisation.maximise`; can be overridden if a tighter
+  user-known bound is available.
+- `proj_error = var_bound / length(B)`: the L¹ projection error
+  ``\|f - π_N f\|_{L^1} \leq \mathrm{Var}(f)/N``. `var_bound` defaults
+  to the Riemann TV bound from `VariationBound`.
+
+The discrete coefficient vector `v[i] = N · ∫_{I_i} f dx` matches the
+old separate `Observable`/`ProjectedFunction` constructors.
+"""
 function ProjectedFunction(
     B::Ulam,
     f::Function;
     tol = 2^-10,
-    VarBound = VariationBound(f),
+    var_bound = VariationBound(f),
+    weak_dual_bound = maximise(x -> abs(f(x)), interval(0, 1))[1],
 )
     v = zeros(Interval{Float64}, length(B))
     for i = 1:length(B)
         I = interval(B.p[i], B.p[i+1])
         v[i] = adaptive_integration(f, I; tol = tol, steps = 1, degree = 2) * length(B)
     end
-    return ProjectedFunction(B, v, VarBound / length(B))
+    proj_error = var_bound / length(B)
+    return ProjectedFunction(B, v, weak_dual_bound, proj_error)
 end
 
 RigorousInvariantMeasures.projection(B::Ulam, f::Function; kwargs...) =
@@ -232,9 +262,9 @@ RigorousInvariantMeasures.projection(B::Ulam, f::Function; kwargs...) =
     return Observable(B, v, infbound)
 end =#
 
-function integrateobservable(B::Ulam, ϕ::Observable, f::Vector, error)
+function integrateobservable(B::Ulam, ϕ::ProjectedFunction, f::Vector, error)
     val = (ϕ.v)' * f
-    return val / length(B) + sup(ϕ.inf_bound) * interval(-error, error)
+    return val / length(B) + sup(ϕ.weak_dual_bound) * interval(-error, error)
 end
 
 

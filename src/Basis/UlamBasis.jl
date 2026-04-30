@@ -222,6 +222,84 @@ opnormbound(B::Ulam{T}, N::Type{L1}, A::AbstractVecOrMat{S}) where {T,S} = opnor
 #opnormbound(B::Ulam{T}, N::Type{L1}, Q::IntegralPreservingDiscretizedOperator) where {T} = opnormbound(N, Q.L)
 normbound(B::Ulam{T}, N::Type{L1}, v) where {T} = normbound(N, v)
 
+# Weak norm = L¹, dual = L^∞. For Ulam, v[i] is the constant value of the
+# reconstruction on cell i, so ‖φ_v‖_{L^∞} = max_i |v[i]|.
+weak_dual_norm_bound(B::Ulam, v::AbstractVector) = maximum(abs, v)
+
+
+@doc raw"""
+    integral_pairing(ϕ::Observable{<:Ulam}, ρ::AbstractVector, ρ_w_error;
+                     ρ_dual_weak_bound = …)
+
+For Ulam the pairing simplifies: ``ρ_N`` is piecewise constant and
+``ϕ.v[i] = N\,\int_{I_i} ϕ\,dx`` is `N` times the exact cell integral, so
+
+```math
+\frac{1}{N}\sum_i ϕ.v[i]\,ρ_N[i]
+\;=\; \sum_i ρ_N[i]\,\int_{I_i} ϕ\,dx
+\;=\; \int_0^1 ϕ\,ρ_N\,dx.
+```
+
+There is no projection-error term ``\|ϕ - ϕ_N\|_w\,\|ρ_N\|_{w^*}`` to add
+here — the discrete pairing already equals ``\int ϕ\,ρ_N`` exactly
+(modulo floating-point rounding, which interval lifting of `ρ` covers).
+The only error contribution is from ``ρ \neq ρ_N``:
+``|\int ϕ\,(ρ - ρ_N)\,dx| \leq \|ϕ\|_{L^∞}\,\|ρ - ρ_N\|_{L^1}``.
+
+The `ρ_dual_weak_bound` kwarg is accepted for API symmetry with the
+Fourier method but is unused for Ulam.
+"""
+function integral_pairing(
+    ϕ::Observable{<:Ulam},
+    ρ::AbstractVector,
+    ρ_w_error;
+    ρ_dual_weak_bound = nothing,
+)
+    @assert length(ϕ.v) == length(ρ)
+    ρi = _lift_to_interval(ρ)
+    val = (transpose(ϕ.v) * ρi) / interval(length(ϕ.B))
+    err = sup(ϕ.weak_dual_bound) * ρ_w_error
+    return val + interval(-err, err)
+end
+
+@doc raw"""
+    p1 * p2  for two `ProjectedFunction{<:Ulam}` on the same basis
+
+Componentwise multiplication of the cell-value vectors. For Ulam each
+``p_i.v`` is the cell-value vector of the piecewise-constant
+reconstruction; their pointwise product is again piecewise-constant on
+the same partition with cell value ``p_1.v[i] \cdot p_2.v[i]``.
+
+Bounds combine via Hölder:
+```math
+\|fg - φ_{p_1}φ_{p_2}\|_{L^1}
+  \;\leq\; \|f\|_{L^∞}\,\|g - φ_{p_2}\|_{L^1}
+        + \|φ_{p_2}\|_{L^∞}\,\|f - φ_{p_1}\|_{L^1}
+```
+
+so
+
+    weak_dual_bound = p1.weak_dual_bound * p2.weak_dual_bound
+    proj_error =
+        p1.weak_dual_bound * p2.proj_error
+        + p2.weak_dual_bound * p1.proj_error
+"""
+function Base.:*(
+    p1::RigorousInvariantMeasures.ProjectedFunction{<:Ulam},
+    p2::RigorousInvariantMeasures.ProjectedFunction{<:Ulam},
+)
+    @assert length(p1.v) == length(p2.v) "Multiplication requires same length"
+    return RigorousInvariantMeasures.ProjectedFunction(
+        p1.B,
+        p1.v .* p2.v,
+        RigorousInvariantMeasures._mul_bound(p1.weak_dual_bound, p2.weak_dual_bound),
+        RigorousInvariantMeasures._add_bound(
+            RigorousInvariantMeasures._mul_bound(p1.weak_dual_bound, p2.proj_error),
+            RigorousInvariantMeasures._mul_bound(p2.weak_dual_bound, p1.proj_error),
+        ),
+    )
+end
+
 function invariant_measure_strong_norm_bound(
     B::Ulam,
     D::Dynamic;

@@ -104,6 +104,4 @@ function eval_on_dual(B::FourierAdjoint, computed_dual::FourierAdjointDual, ϕ)
     return ϕ.(Interval.(x))
 end
 
-function assemble(B::FourierAdjoint, D; ϵ = 0.0, max_iter = 100, T = Float64)
-    return assemble_common(B, D; ϵ = 0.0, max_iter = 100, T = Float64)'
-end
+# assemble(::FourierAdjoint, D; …) is provided by the FFTWExt extension.

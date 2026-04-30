@@ -20,7 +20,10 @@ export Basis,
 
 abstract type Basis end
 
-Base.length(B::Basis) = @error "Not Implemented"
+# `Base.length(::Basis)` is left to the concrete basis types — Julia's
+# native `MethodError` if a subtype forgets to provide one is the right
+# signal (was an `@error "Not Implemented"` stub that silently returned
+# nothing, see also the migration note for the other stubs below).
 
 struct DualComposedWithDynamic{B<:Basis,D<:Dynamic}
     basis::B
@@ -40,8 +43,8 @@ ProjectDualElement(basis::B, j_min, j_max, y::DT) where {B,DT} =
     ProjectDualElement{B,DT}(basis, j_min, j_max, y)
 Base.length(S::ProjectDualElement{B,DT}) where {B,DT} = S.j_max - S.j_min + 1
 
-is_dual_element_empty(B::Basis, I) = @error "Not Implemented"
-nonzero_on(B::Basis, I) = @error "Not Implemented"
+function is_dual_element_empty end
+function nonzero_on end
 
 """
     projection(B::Basis, f::Function; kwargs...)
@@ -64,14 +67,14 @@ end
 
 Evaluate the i-th basis element at x
 """
-evaluate(B::Basis, i, x) = @error "Not Implemented"
+function evaluate end
 
 """
 	evaluate_integral(B::Basis, i; T = Float64)
 
 Value of the integral on [0,1] of the i-th basis element
 """
-evaluate_integral(B::Basis, i; T = Float64) = @error "Not Implemented"
+function evaluate_integral end
 
 """
 	strong_norm(B::Basis)
@@ -90,7 +93,7 @@ julia> strong_norm(B)
 TotalVariation
 ```
 """
-strong_norm(B::Basis) = @error "Must be specialized"
+function strong_norm end
 
 """
 	weak_norm(B::Basis)
@@ -109,9 +112,9 @@ julia> weak_norm(B)
 L1
 ```
 """
-weak_norm(B::Basis) = @error "Must be specialized"
+function weak_norm end
 
-aux_norm(B::Basis) = @error "Must be specialized"
+function aux_norm end
 
 """
 	is_refinement(Bfine::Basis, Bcoarse::Basis)
@@ -139,21 +142,21 @@ false
 ```
 
 """
-is_refinement(Bfine::Basis, Bcoarse::Basis) = @error "Not Implemented"
+function is_refinement end
 
 """
 	integral_covector(B::Basis)
 
 Return a covector that represents the integral in the basis B
 """
-integral_covector(B::Basis) = @error "Must be specialized"
+function integral_covector end
 
 """
 	one_vector(B::Basis)
 
 Vector that represents the function 1 in the basis B
 """
-one_vector(B::Basis) = @error "Must be specialized"
+function one_vector end
 
 """
 	is_integral_preserving(B::Basis)
@@ -180,7 +183,7 @@ struct AverageZero{B<:Basis}
     basis::B
 end
 
-Base.iterate(S::AverageZero{B}, state) where {B} = @error "Not Implemented"
+# `Base.iterate(::AverageZero, state)` is left to the concrete bases.
 Base.length(S::AverageZero{T}) where {T} = length(S.basis) - 1
 
 """
@@ -205,28 +208,28 @@ julia> RigorousInvariantMeasures.weak_projection_error(B)
 0.00048828125
 ```
 """
-weak_projection_error(B::Basis) = @error "Not Implemented"
+function weak_projection_error end
 
 """
 	aux_normalized_projection_error(B::Basis)
 
-Return a constant Eh (typically scales as h ~ 1/n) such that 
+Return a constant Eh (typically scales as h ~ 1/n) such that
 
 ``|||P_h f|||\\leq |||f|||+ Eh * ||f||_s``
 
 Must be rounded up correctly!
 """
-aux_normalized_projection_error(B::Basis) = @error "Not Implemented"
+function aux_normalized_projection_error end
 
 """
     strong_weak_bound(B::Basis)
-Return a constant ``M₁n`` such that for a vector ``v ∈ Uₕ`` 
+Return a constant ``M₁n`` such that for a vector ``v ∈ Uₕ``
 
 ``||v||_s\\leq M1n*||v||``
 
 Must be rounded up correctly!
 """
-strong_weak_bound(B::Basis) = @error "Not Implemented"
+function strong_weak_bound end
 
 """
 	aux_weak_bound(B::Basis)
@@ -236,54 +239,54 @@ Return a constant ``M₂`` such that for a vector ``v ∈ Uₕ``
 
 Must be rounded up correctly!
 """
-aux_weak_bound(B::Basis) = @error "Not Implemented"
+function aux_weak_bound end
 
 """
-Return constants ``S₁, S₂`` such that for a vector ``v ∈ Uₕ`` 
+Return constants ``S₁, S₂`` such that for a vector ``v ∈ Uₕ``
 
 ``||v||\\leq S_1||v||_s+S_2|||v|||``
 
 Must be rounded up correctly!
 """
-weak_by_strong_and_aux_bound(B::Basis) = @error "Not Implemented"
+function weak_by_strong_and_aux_bound end
 
 """
 	bound_weak_norm_from_linalg_norm(B::Basis)
-Return constants W₁, W₂ such that for a vector ``v ∈ Uₕ`` 
+Return constants W₁, W₂ such that for a vector ``v ∈ Uₕ``
 
 ``||v||\\leq W_1||v||_1+W_2||v||_{\\infty}``
 
 Must be rounded up correctly!
 """
-bound_weak_norm_from_linalg_norm(B::Basis) = @error "Not Implemented"
+function bound_weak_norm_from_linalg_norm end
 
 @doc raw"""
 	bound_linalg_norm_L1_from_weak(B::Basis)
 
-Return a constant ``A`` such that for a vector ``v ∈ Uₕ`` 
+Return a constant ``A`` such that for a vector ``v ∈ Uₕ``
 
 ``||v||_1\leq A||v||``
 
 Must be rounded up correctly!
 """
-bound_linalg_norm_L1_from_weak(B::Basis) = @error "Not Implemented"
+function bound_linalg_norm_L1_from_weak end
 
 """
 	bound_linalg_norm_L∞_from_weak(B::Basis)
 
-Return a constant ``A`` such that for a vector ``v ∈ Uₕ`` 
+Return a constant ``A`` such that for a vector ``v ∈ Uₕ``
 ```||v||_\\infty \\leq A||v||```
 Must be rounded up correctly!
 """
-bound_linalg_norm_L∞_from_weak(B::Basis) = @error "Not Implemented"
+function bound_linalg_norm_L∞_from_weak end
 
 """
 	invariant_measure_strong_norm_bound(B::Basis, D::Dynamic)
 
-Bounds ``||u||_s``, where ``u`` is the invariant measure normalized with 
+Bounds ``||u||_s``, where ``u`` is the invariant measure normalized with
 ``i(u)=1``.
 """
-invariant_measure_strong_norm_bound(B::Basis, D::Dynamic) = @error "Must be specialized"
+function invariant_measure_strong_norm_bound end
 
 
 """
@@ -291,13 +294,15 @@ invariant_measure_strong_norm_bound(B::Basis, D::Dynamic) = @error "Must be spec
 
 Returns an a priori bound on the weak norm of the abstract operator ``L``
 """
-bound_weak_norm_abstract(B::Basis, D = nothing; dfly_coefficients = nothing) =
-    @error "Must be specialized"
+function bound_weak_norm_abstract end
+
+# `opnormbound` and `normbound` are first defined in `src/NormBounds.jl` (which
+# is `included` before this file). We don't need a per-`Basis` fallback method
+# here — concrete bases provide their own three-arg specializations, and any
+# call without a matching method now raises a `MethodError` instead of the
+# previous silent `@error "Must be specialized"`.
 
 using ..RigorousInvariantMeasures: NormKind
-opnormbound(B::Basis, N::Type{<:NormKind}, M::AbstractVecOrMat{S}) where {S} =
-    @error "Must be specialized"
-normbound(B::Basis, N::Type{<:NormKind}, v) = @error "Must be specialized"
 
 # careful, this is defined outside the module!!!
 
