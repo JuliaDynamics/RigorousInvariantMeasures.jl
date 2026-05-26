@@ -31,13 +31,18 @@ function RigorousInvariantMeasures.assemble(
     max_iter = 100,
     T = Float64,
 )
-    return RigorousInvariantMeasures.assemble_common(
-        B,
-        D;
-        ϵ = 0.0,
-        max_iter = 100,
-        T = Float64,
-    )'
+    # `'` produces a lazy `LinearAlgebra.Adjoint`; materialize to a plain
+    # matrix so downstream consumers (e.g. `BallMatrix(Q.L)` in
+    # `norms_of_powers`) can wrap it.
+    return Matrix(
+        RigorousInvariantMeasures.assemble_common(
+            B,
+            D;
+            ϵ = 0.0,
+            max_iter = 100,
+            T = Float64,
+        )',
+    )
 end
 
 function RigorousInvariantMeasures.assemble(

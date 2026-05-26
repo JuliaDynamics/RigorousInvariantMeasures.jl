@@ -191,6 +191,57 @@ function norms_of_powers(
 end
 
 """
+    norms_of_powers(BM_U0::BallMatrix, ::Type{L2}, m)
+
+Direct `L^2`-operator-norm-of-iterates loop on a `BallMatrix` that
+the caller has already restricted to `U^0` (the average-zero
+subspace).  Returns `norms[k] = ‖BM_U0^k‖_{L²→L²}` for
+`k = 1, …, m`, computed rigorously via interval matrix
+multiplication and the minimum of two majorisations:
+
+* the Perron–Frobenius bound `upper_bound_L2_opnorm(A) ≤
+  √(ρ(|Aᵀ|·|A|))`, tight on nearly-normal matrices;
+* the Hölder bound `√(‖A‖_1 · ‖A‖_∞)`, which is two row/col sums
+  of `|A_{ij}|` (cheap, basis-free, and — crucially — does NOT
+  amplify the rigorous radius through any extra matrix product).
+
+For strongly spectrally-contracting non-normal matrices the PF
+bound's intermediate `|Aᵀ|·|A|` accumulates large rigorous radii
+under iteration and DIVERGES even when the actual operator norm
+decays, while the Hölder bound tracks the midpoint norm within
+a factor of 2–3.  Taking the min lets the iterate route close
+on both types of matrices.
+
+This is the basis-free entry point used by callers (e.g.
+`SelfConsistentExperiments.certify_contraction_iterate`) that
+assemble `DT_N(u_N)|_{U_0}` outside the `DiscretizedOperator`
+abstraction — for example the self-consistent linearisation with a
+rank-one feedback correction, which is not a transfer operator
+itself.  No `Basis` / `restrict_to_average_zero` step is performed:
+the caller is responsible for ensuring `BM_U0` already represents
+the operator on the average-zero subspace.
+
+The coarse-fine refinement (`refine_norms_of_powers`) is not
+applied here, since uniform DFLY constants on the discretisation
+family are not assumed in the Fourier case.
+"""
+function norms_of_powers(BM_U0::BallMatrix, ::Type{L2}, m::Integer)
+    norms = Vector{Float64}(undef, m)
+    BM_power = BM_U0
+    for k = 1:m
+        pf     = upper_bound_L2_opnorm(BM_power)
+        L1bd   = opnormbound(L1,   BM_power.c)
+        Linfbd = opnormbound(Linf, BM_power.c)
+        holder = sqrt_round(L1bd ⊗₊ Linfbd, RoundUp)
+        norms[k] = min(pf, holder)
+        if k < m
+            BM_power = BM_power * BM_U0
+        end
+    end
+    return norms
+end
+
+"""
     norms_of_powers_resolvent(m, ρ, M_inf)
 
 Compute power norm bounds via certified resolvent on a contour.

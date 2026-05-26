@@ -65,6 +65,37 @@ function strong_weak_bound(B::FourierAdjoint{Cω})
     return sup(sqrt(geo_sum))
 end
 
+# W^{k,1} strong norm: same polynomial Fourier-tail estimates as the
+# `FourierAnalytic` realization — the basis is the same, only the matrix
+# representation differs (the adjoint is its transpose), and the basis-level
+# constants depend only on the truncation index `B.k` and the norm choice.
+function weak_projection_error(B::FourierAdjoint{W{k,l}}) where {k,l}
+    N = B.k
+    if k == 0
+        return 1.0
+    end
+    denom = (2 * interval(pi) * N)^k
+    return sup(1 / denom)
+end
+
+function aux_normalized_projection_error(B::FourierAdjoint{W{k,l}}) where {k,l}
+    N = B.k
+    if k == 0
+        return 1.0
+    end
+    denom = (2 * interval(pi) * N)^k
+    return sup(1 / denom)
+end
+
+function strong_weak_bound(B::FourierAdjoint{W{k,l}}) where {k,l}
+    N = B.k
+    M = interval(1.0)
+    for j = 1:k
+        M = M + (2 * interval(pi) * N)^j
+    end
+    return sup(M)
+end
+
 ###############################################################################
 # Dual and assembly (unchanged)
 ###############################################################################

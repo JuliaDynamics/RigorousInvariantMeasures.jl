@@ -64,6 +64,8 @@ export Fourier, FourierAnalytic, FourierAdjoint
 include("Basis/NewChebyshev.jl")
 export Chebyshev, certify_spectral_gap
 
+include("SpectralCertification.jl")
+
 
 include("precompile.jl")
 
