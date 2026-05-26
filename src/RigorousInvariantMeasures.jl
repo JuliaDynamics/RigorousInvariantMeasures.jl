@@ -132,7 +132,9 @@ export powernormboundsnoise,
     finepowernormboundsnoise,
     abstractpowernormboundsnoise,
     invariant_vector_noise,
-    distance_from_invariant_noise
+    distance_from_invariant_noise,
+    norms_of_powers_noise,
+    norms_of_powers_sequence_noise
 
 include("NoiseSpecializedEstimate.jl")
 export noise_error_aposteriori,

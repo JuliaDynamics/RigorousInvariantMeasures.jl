@@ -148,6 +148,150 @@ function norms_of_powers_noise(
 end
 
 """
+    norms_of_powers_sequence_noise(B, N, Q, MK, f, shifts)
+
+Like [`norms_of_powers_noise`](@ref), but for a *nonautonomous* (sequential)
+cocycle in which a different forcing acts at each step.  The k-th step is
+
+    v  ←  Shift(shifts[k]) ∘ MK ∘ Q  v ,
+
+where `Shift(s)` is the (fractional) circular shift by `s` Ulam bins on the torus.
+A fractional shift `Shift(s) = (1−f)·circshift(·,n₀) + f·circshift(·,n₀+1)`
+(`n₀ = ⌊s⌋`, `f = s − n₀`) is a convex combination of two basis permutations:
+mass-preserving, with L¹ operator norm 1.  An **integer** shift (`f = 0`) is an
+exact permutation and introduces **no** floating-point error; a fractional shift
+costs one extra rounded mul-add per entry, tracked in the accumulated radius `ϵ`
+exactly like the noise step (operator norm 1).  Either way the rigorous error
+propagation of `norms_of_powers_noise` carries over.
+
+Using *fractional* shifts lets the forcing track the real kick
+`s_n = A·k·sin(2π θ_n)` smoothly in the driving phase `θ_n = θ₀ + nω` (the
+irrational rotation), with no rounding of the kick.
+
+`shifts` has length `m` (one shift per step); the returned vector `norms[k]`
+bounds `‖ L_{shifts[k]} ⋯ L_{shifts[1]} |_{U⁰} ‖`, the norm of the length-`k`
+forced cocycle on the zero-average subspace.  With `shifts .= 0` it reproduces
+`norms_of_powers_noise` exactly.
+"""
+function norms_of_powers_sequence_noise(
+    B::Ulam,
+    N::Type{L1},
+    Q::DiscretizedOperator,
+    MK::NoiseKernel,
+    f::AbstractArray,
+    shifts::AbstractVector{<:Real};
+    normv0::Real = -1.0,
+    normQ::Real = -1.0,
+    normE::Real = -1.0,
+    normEF::Real = -1.0,
+    normIEF::Real = -1.0,
+    normN::Real = -1.0,
+    normρ::Real = -1.0,
+)
+    @assert eltype(f) <: Interval
+    m = length(shifts)
+    T = typeof(sup(zero(eltype(Q.L))))
+    n = size(Q.L, 1)
+    M = mid.(Q.L)
+
+    R = radius.(Q.L)
+    δ = opnormbound(B, N, R)
+
+    γz = gamma(T, max_nonzeros_per_row(Q.L))
+    γn = gamma(T, n + 3)
+
+    ϵ = zero(T)
+    nrmM = opnormbound(B, N, M)
+    δₖ = opradius(N, MK)
+    γₖ = gamma(T, nonzero_per_row(MK))
+    nrm_MK = opnormbound(B, N, MK)
+    normMK = nrm_MK ⊕₊ δₖ
+
+    # a fractional shift touches 2 entries per output row (one rounded mul-add)
+    γₛ = gamma(T, 2)
+
+    if !is_integral_preserving(Q)
+        if normE == -1.0
+            normE = opnormbound(B, N, Q.e)
+        end
+        if normEF == -1.0
+            normEF = opnormbound(B, N, Q.e * f)
+        end
+        if normIEF == -1.0
+            normIEF = opnormbound(B, N, [Matrix(UniformScaling{Float64}(1), n, n) Q.e * f])
+        end
+        if normN == -1.0
+            normN = opnormbound(B, N, Matrix(UniformScaling{Float64}(1), n, n) - Q.e * f)
+        end
+    end
+
+    if normQ == -1.0
+        if is_integral_preserving(Q)
+            normQ = nrmM ⊕₊ δ
+        else
+            defect = opnormbound(B, N, Q.w)
+            normQ = nrmM ⊕₊ δ ⊕₊ normE ⊗₊ defect
+        end
+    end
+
+    normcachers = [NormCacher{N}(B, n) for j = 1:m]
+    midf = map(mid, f)
+
+    v = zeros(T, n)
+
+    for j = 1:n-1
+        v .= zero(T)
+        v[1] = one(T)
+        v[j+1] = -one(T)
+        if normv0 == -1.0
+            nrmv = opnormbound(B, N, v)
+        else
+            nrmv = normv0
+        end
+        ϵ = 0.0
+        nrmw = nrmv
+        for k = 1:m
+            w = M * v
+            if is_integral_preserving(Q)
+                v = w
+                ϵ = (γz ⊗₊ nrmM ⊕₊ δ) ⊗₊ nrmv ⊕₊ normQ ⊗₊ ϵ
+            else
+                v = w - Q.e * (midf * w)
+                new_nrmw = opnormbound(B, N, w)
+                ϵ =
+                    γn ⊗₊ normIEF ⊗₊ (new_nrmw ⊕₊ normEF ⊗₊ nrmw) ⊕₊
+                    normN ⊗₊ (γz ⊗₊ nrmM ⊕₊ δ) ⊗₊ nrmv ⊕₊ normQ ⊗₊ ϵ
+                nrmw = new_nrmw
+            end
+
+            # the noise step
+            nrmv = opnormbound(B, N, v)
+            v = w
+            w = MK * v
+            v = w
+            ϵ = (γₖ ⊗₊ nrm_MK ⊕₊ δₖ) ⊗₊ nrmv ⊕₊ normMK ⊗₊ ϵ
+            nrmv = opnormbound(B, N, v)   # post-noise norm: input to the shift
+
+            # the forcing step: (fractional) circular shift Shift(shifts[k]).
+            # Convex combination of two permutations ⇒ mass-preserving, opnorm 1.
+            s = float(shifts[k])
+            n0 = floor(Int, s)
+            fr = s - n0
+            if fr == 0
+                v = circshift(v, n0)                                   # exact permutation
+            else
+                v = (1 - fr) .* circshift(v, n0) .+ fr .* circshift(v, n0 + 1)
+                ϵ = γₛ ⊗₊ nrmv ⊕₊ ϵ        # opnorm(shift)=1, radius 0; one extra mul-add/row
+            end
+
+            nrmv = opnormbound(B, N, v)
+            add_column!(normcachers[k], v, ϵ)
+        end
+    end
+    return map(get_norm, normcachers)
+end
+
+"""
 Array of "trivial" bounds for the powers of a DiscretizedOperator (on the whole space)
 coming from from ||Q^k|| ≤ ||Q||^k
 """
