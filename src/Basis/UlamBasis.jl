@@ -331,3 +331,52 @@ function Base.iterate(dual::UlamDual, state = 1)
         return nothing
     end
 end
+
+@doc raw"""
+    normbound(B::Ulam, ::Type{TotalVariation}, v)
+
+Rigorous upper bound for the total variation of the piecewise-constant
+function on ``[0,1]`` with Ulam coefficients `v` (its variation is exactly
+``\sum_j |v_{j+1}-v_j|``; the sum is evaluated in interval arithmetic).
+"""
+function normbound(B::Ulam{T}, ::Type{TotalVariation}, v) where {T}
+    return sup(sum(abs(interval(v[i+1]) - interval(v[i])) for i = 1:length(v)-1))
+end
+
+@doc raw"""
+    projection_defect_coefficients(B::Ulam, D::Dynamic; dfly_coefficients)
+
+Sharp Ulam discretization-defect constants ``(c_s, c_w) = (1 + A,\; B)``, i.e.
+
+```math
+\|(L - Q_h)\,v\|_{L^1} \le K_h\big[(1+A)\,\mathrm{Var}(v) + B\|v\|_{L^1}\big],
+\qquad K_h = 1/(2n).
+```
+
+*Proof.*  For Ulam the projection ``\Pi`` is the conditional expectation on
+the cells, so ``\|\Pi\|_{L^1} \le 1``, ``\|(I-\Pi)g\|_{L^1} \le K_h
+\mathrm{Var}(g)``, the discretized operator is integral preserving
+(``Q_h = \Pi L \Pi``, no correction term), and ``\|L\|_{L^1} \le 1``.
+Decomposing ``L - Q_h = (I-\Pi)L + \Pi L(I-\Pi)`` (on the range of ``\Pi``
+the second term even vanishes):
+
+```math
+\|(I-\Pi)Lv\|_{L^1} \le K_h \mathrm{Var}(Lv) \le K_h(A\,\mathrm{Var}(v) + B\|v\|_{L^1}),
+\qquad
+\|\Pi L(I-\Pi)v\|_{L^1} \le \|(I-\Pi)v\|_{L^1} \le K_h \mathrm{Var}(v). \qquad\square
+```
+
+This improves the generic compatible-discretization constants
+``(2(\|L\|_w+A), 2B)`` of Lemma 3.5 in [Galatolo–Monge–Nisoli–Poloni, Chaos
+Solitons & Fractals 170 (2023) 113329] by roughly a factor ``4``.
+"""
+function projection_defect_coefficients(
+    B::Ulam,
+    D::Dynamic;
+    dfly_coefficients = dfly(strong_norm(B), aux_norm(B), D),
+    normL = nothing,   # unused; kept for interface uniformity
+)
+    A = interval(dfly_coefficients[1])
+    Bd = interval(dfly_coefficients[2])
+    return (1 + A, Bd)
+end

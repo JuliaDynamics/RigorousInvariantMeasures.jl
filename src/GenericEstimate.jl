@@ -70,6 +70,203 @@ function distance_from_invariant(
            ε₂ ⊘₊ (1.0 ⊖₋ ε₂) ⊗₊ normw
 end
 
+@doc raw"""
+    projection_defect_coefficients(B::Basis, D::Dynamic;
+        dfly_coefficients = dfly(strong_norm(B), aux_norm(B), D),
+        normL = bound_weak_norm_abstract(B, D; dfly_coefficients = dfly_coefficients))
+
+Certified constants ``(c_s, c_w)`` such that the discretization defect of the
+(integral-preserving) discretized operator ``Q_h`` satisfies, for every ``v``
+in the strong space,
+
+```math
+\|(L - Q_h)\,v\|_w \;\le\; K_h \,\big( c_s \|v\|_s + c_w \|v\|_{L^1} \big),
+\qquad K_h = \texttt{weak\_projection\_error}(B).
+```
+
+Generic method, valid for every *compatible discretization* in the sense of
+[Galatolo–Monge–Nisoli–Poloni, Chaos Solitons & Fractals 170 (2023) 113329,
+Definition 2.7]: by Lemma 3.5 of that paper,
+``\|(Q_h - L)f\|_w \le 2K_h(\|L\|_w \|f\|_s + \|Lf\|_s)``, and the one-step
+Lasota–Yorke inequality (5) gives ``\|Lf\|_s \le A\|f\|_s + B\|f\|_{L^1}``,
+whence
+
+```math
+(c_s, c_w) = \big(2(\|L\|_w + A),\; 2B\big).
+```
+
+Sharper basis-specific methods may be provided (see the `Ulam` method, where
+``(c_s, c_w) = (1+A, B)``).
+"""
+function projection_defect_coefficients(
+    B::Basis,
+    D::Dynamic;
+    dfly_coefficients = dfly(strong_norm(B), aux_norm(B), D),
+    normL = bound_weak_norm_abstract(B, D; dfly_coefficients = dfly_coefficients),
+)
+    A = interval(dfly_coefficients[1])
+    Bd = interval(dfly_coefficients[2])
+    return (2 * (interval(normL) + A), 2 * Bd)
+end
+
+@doc raw"""
+    distance_from_invariant_residual(B::Basis, D::Dynamic, Q, w, norms;
+        ε₁ = residualbound(B, weak_norm(B), Q, w),
+        ε₂ = mag(integral_covector(B) * w - 1),
+        dfly_coefficients = dfly(strong_norm(B), aux_norm(B), D),
+        defect_coefficients = projection_defect_coefficients(B, D; dfly_coefficients))
+
+A posteriori (residual-based) rigorous upper bound for the weak-norm distance
+``\|h - w\|_w`` between the invariant density ``h`` of the *abstract* transfer
+operator ``L`` of the dynamic `D` and a computed candidate `w` in the
+approximating space of `B`.
+
+This is the "exchanged" version of [Galatolo–Monge–Nisoli–Poloni, Chaos
+Solitons & Fractals 170 (2023) 113329, Theorem 3.4] anticipated in Remark 3.9
+of that paper: there, the error ``v = h - w`` is expanded in powers of the
+*discretized* operator ``Q_h``, and one pays the a priori strong-norm bound
+``\|h\|_s \le B/(1-A)`` (Corollary 2.6) for the unknown density — that is
+[`distance_from_invariant`](@ref).  Here the error is instead expanded in
+powers of the *abstract* operator ``L``, driven by the computed residual of
+the candidate; Remark 3.9 notes this requires summing ``\|L^k r\|_w``, "a
+difficult task" a priori — the closed-form two-norm bound below performs that
+summation using only the computed norms ``C_k`` of the discretized operator,
+the one-step Lasota–Yorke inequality, and the discretization-defect constants.
+It is sharper than the a priori bound whenever ``\|w\|_s \ll B/(1-A)``, i.e.
+precisely when the Lasota–Yorke constants are poor (``A`` near ``1``, small
+branches) — the candidate's strong norm is *computed*, not estimated.
+
+# Framework and assumptions (notation of the cited paper)
+
+* ``L`` preserves the integral, ``\|L\|_{L^1}\le 1``, and satisfies the
+  one-step Lasota–Yorke inequality ``\|Lf\|_s \le A\|f\|_s + B\|f\|_{L^1}``
+  with ``A < 1`` (`dfly_coefficients`, cf. [`dfly`](@ref)); the norms satisfy
+  ``\|\cdot\|_{L^1} \le \|\cdot\|_w`` (Assumption 2.1(4) of the paper).
+* `Q` is the rigorously assembled, integral-preserving discretized operator
+  ``Q_h`` of a compatible discretization; `norms[k]` ``\ge
+  \|Q_h^k|_{V_h^0}\|_w`` are certified (cf. [`powernormbounds`](@ref),
+  [`finepowernormbounds`](@ref)); ``K_h`` = [`weak_projection_error`](@ref).
+* `defect_coefficients` ``= (c_s, c_w)`` satisfy
+  ``\|(L-Q_h)v\|_w \le K_h(c_s\|v\|_s + c_w\|v\|_{L^1})``
+  (see [`projection_defect_coefficients`](@ref)).
+* ``L`` has a **unique** invariant probability density ``h``; uniqueness
+  identifies the Neumann series below with ``\bar w - h`` (any integral-zero
+  fixed point of ``L`` vanishes by ergodic decomposition).  In practice this
+  is certified from the same `norms` by the small-matrix method
+  ([`convergencerateabstract`](@ref), Galatolo–Nisoli–Saussol).
+* The strong and ``L^1`` norms of the candidate are bounded rigorously via
+  `normbound(B, strong_norm(B), w)` and `normbound(B, aux_norm(B), w)`; the
+  basis must provide these methods.
+
+# Derivation
+
+Let ``\bar w = w/\int w`` (normalization defect ``\varepsilon_2`` accounted at
+the end) and ``r = L\bar w - \bar w`` the abstract residual, ``i(r) = 0``.
+Then
+
+```math
+\bar w - h = -(I-L)^{-1}\big|_{V^0}\, r = -\sum_{k\ge0} L^k r,
+\qquad \|h - \bar w\|_w \le \sum_{k\ge0} W_k,
+```
+
+with ``W_k := \|L^k r\|_w``, ``S_k := \|L^k r\|_s``.
+
+**(1) Both norms of the residual are computable.**  Writing
+``r = (L - Q_h)\bar w + (Q_h\bar w - \bar w)``, the second term is the
+computed eigen-residual (``\le \varepsilon_1/(1-\varepsilon_2)``) and the
+first pays the defect of the *explicit* candidate:
+
+```math
+W_0 \le \frac{\varepsilon_1 + K_h (c_s \|w\|_s + c_w \|w\|_{L^1})}{1-\varepsilon_2},
+\qquad
+S_0 \le \frac{(1+A)\|w\|_s + B\|w\|_{L^1}}{1-\varepsilon_2},
+```
+
+the latter from one Lasota–Yorke step applied to `w` and the triangle
+inequality.
+
+**(2) Two-channel recursion.**  Telescoping ``L^k = Q_h^k + \sum_{j<k} Q_h^j
+(L - Q_h) L^{k-1-j}`` (all vectors have zero integral, so the restricted
+norms apply) and iterating the Lasota–Yorke inequality:
+
+```math
+S_k \le A^k S_0 + B\sum_{i<k} A^i W_{k-1-i},\qquad
+W_k \le C_k W_0 + K_h \sum_{j<k} C_j\,\big(c_s S_{k-1-j} + c_w W_{k-1-j}\big).
+```
+
+**(3) Sound closed-form summation.**  Summing over ``k \ge 0`` (Fubini for
+nonnegative series), with ``\Sigma_C := \sum_{k\ge0} C_k`` bounded by
+[`infinite_sum_norms`](@ref):
+
+```math
+\Sigma_S \le \frac{S_0}{1-A} + \frac{B}{1-A}\Sigma_W,\qquad
+\Sigma_W \le \Sigma_C W_0 + K_h\Sigma_C\big(c_s\Sigma_S + c_w\Sigma_W\big),
+```
+
+whence, **provided the denominator below is positive** (checked; an error is
+thrown otherwise),
+
+```math
+\|h - \bar w\|_w \;\le\; \Sigma_W \;\le\;
+\frac{\Sigma_C W_0 + K_h \Sigma_C\, c_s\, S_0/(1-A)}
+     {1 - K_h \Sigma_C \big(c_s\, B/(1-A) + c_w\big)} .
+```
+
+The same bound applies to every partial sum, so the Neumann series converges
+absolutely and the identity above is justified.  Finally
+``\|h - w\|_w \le \Sigma_W + \tfrac{\varepsilon_2}{1-\varepsilon_2}\|w\|_w``.
+
+All arithmetic is carried out in interval arithmetic; the returned value is a
+rigorous `Float64` upper bound.
+
+!!! warning
+    Do not replace the closed-form total with a truncated recursion and a
+    heuristic geometric tail (e.g. capping an observed ratio): observed ratios
+    can exceed any a priori cap, and such tails are *not* rigorous.
+"""
+function distance_from_invariant_residual(
+    B::Basis,
+    D::Dynamic,
+    Q::DiscretizedOperator,
+    w::AbstractVector,
+    norms::Vector;
+    ε₁::Float64 = residualbound(B, weak_norm(B), Q, w),
+    ε₂::Float64 = mag(integral_covector(B) * w - 1),
+    dfly_coefficients = dfly(strong_norm(B), aux_norm(B), D),
+    defect_coefficients = projection_defect_coefficients(
+        B,
+        D;
+        dfly_coefficients = dfly_coefficients,
+    ),
+)
+    if ε₂ > 1e-8
+        @error "w does not seem normalized correctly"
+    end
+    A = interval(dfly_coefficients[1])
+    Bd = interval(dfly_coefficients[2])
+    sup(A) < 1 || error("distance_from_invariant_residual: DFLY A ≥ 1; use an iterate")
+    cs = interval(defect_coefficients[1])
+    cw = interval(defect_coefficients[2])
+
+    Kh = interval(weak_projection_error(B))
+    ΣC = interval(infinite_sum_norms(norms))
+    ns = interval(normbound(B, strong_norm(B), w))    # ‖w‖_s (computed candidate)
+    na = interval(normbound(B, aux_norm(B), w))       # ‖w‖_{L¹}
+    nw = interval(normbound(B, weak_norm(B), w))      # ‖w‖_w
+
+    scale = 1 / (1 - interval(ε₂))
+    W₀ = (interval(ε₁) + Kh * (cs * ns + cw * na)) * scale     # ‖r‖_w
+    S₀ = ((1 + A) * ns + Bd * na) * scale                      # ‖r‖_s
+
+    den = 1 - Kh * ΣC * (cs * Bd / (1 - A) + cw)
+    inf(den) > 0 || error(
+        "distance_from_invariant_residual: closed-form denominator not positive; refine the grid or the norms",
+    )
+    ΣW = (ΣC * W₀ + Kh * ΣC * cs * S₀ / (1 - A)) / den
+
+    return sup(ΣW + interval(ε₂) * scale * nw)
+end
+
 # """
 # This function returns a sequence of Cᵢ, \\tilde{C}ᵢ for a matrix P
 # on a subspace V such that ||P^i|_V||_1\\leq C_i and

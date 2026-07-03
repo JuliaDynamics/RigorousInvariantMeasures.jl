@@ -43,6 +43,7 @@ export DiscretizedOperator,
 
 include("GenericEstimate.jl")
 export invariant_vector, finepowernormbounds, powernormbounds, distance_from_invariant
+export distance_from_invariant_residual
 
 include("PwDynamic.jl")
 export PwMap, mod1_dynamic
