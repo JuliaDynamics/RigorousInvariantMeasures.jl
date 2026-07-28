@@ -45,3 +45,23 @@ using GenericFFT
         @test maximum(max(radius(real(w)), radius(imag(w))) for w in M) < 1e-28
     end
 end
+
+@testset "mod1_dynamic honours the T keyword" begin
+    D64 = mod1_dynamic(x -> 2 * x + 0.5 * x * (1 - x))
+    @test D64.branches[1].X[1] isa Interval{Float64}
+
+    setprecision(BigFloat, 256) do
+        # Coefficients must be written at the target precision: `T` sets the
+        # endpoints and hence the preimage bisection, not the literals in `f`.
+        Dbig = mod1_dynamic(
+            x -> 2 * x + interval(BigFloat, 1) / 2 * x * (1 - x);
+            T = BigFloat,
+        )
+        @test Dbig.branches[1].X[1] isa Interval{BigFloat}
+
+        B = FourierAnalytic(8, 64, W{3,1}; T = BigFloat)
+        M = RigorousInvariantMeasures.assemble(B, Dbig; ϵ = 1e-40, max_iter = 2000)
+        @test eltype(M) == Complex{Interval{BigFloat}}
+        @test maximum(max(radius(real(w)), radius(imag(w))) for w in M) < 1e-38
+    end
+end
