@@ -65,6 +65,7 @@ include("Basis/Fourier/FourierIndex.jl")
 export Fourier, FourierAnalytic, FourierAdjoint
 include("Basis/NewChebyshev.jl")
 export Chebyshev, certify_spectral_gap
+export gram_matrix, inv_gram_matrix, gram_sqrt, inv_gram_sqrt
 
 include("SpectralCertification.jl")
 

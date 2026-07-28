@@ -509,3 +509,98 @@ function get_norm(Cacher::NormCacherC1)
     n = length(Cacher.B)
     return Cacher.C ⊗₊ Float64(log(n + 1), RoundUp)
 end
+
+###############################################################################
+# Gram matrix
+###############################################################################
+
+@doc raw"""
+    gram_matrix(B::Chebyshev; T = Float64)
+    inv_gram_matrix(B::Chebyshev; T = Float64)
+
+Gram matrix ``G_{ij} = \langle φ_i, φ_j \rangle`` of the Chebyshev basis
+``φ_i(x) = T_{i-1}(2x-1)`` on ``[0,1]``, and its inverse.
+
+The inner product is taken against the **arcsine probability measure**
+
+```math
+dμ(x) = \frac{dx}{π\sqrt{x(1-x)}}, \qquad \int_0^1 dμ = 1,
+```
+
+the measure that makes the Chebyshev polynomials orthogonal. Substituting
+``t = 2x-1`` turns it into the familiar ``dt/(π\sqrt{1-t^2})``, so
+
+```math
+G = \operatorname{diag}(1, \tfrac12, \tfrac12, \dots, \tfrac12),
+\qquad
+G^{-1} = \operatorname{diag}(1, 2, 2, \dots, 2).
+```
+
+(Against the unnormalized weight ``1/\sqrt{1-t^2}`` every entry is ``π`` times
+these.) Both are returned as `Diagonal` of intervals; every entry is exactly
+representable, so the enclosures are thin.
+
+# Transporting an ``\ell^2`` bound to the function space
+
+For ``f = \sum_i c_i φ_i`` we have ``\|f\|_{L^2(μ)}^2 = c^* G c``, so an
+operator with coefficient matrix `Q` satisfies
+
+```math
+\|Q\|_{L^2(μ) \to L^2(μ)} = \|G^{1/2}\,Q\,G^{-1/2}\|_{\ell^2}.
+```
+
+This is the point of using this weight rather than Lebesgue: `G` is diagonal,
+so the similarity is a cheap rescaling and `BallArithmetic`'s ``\ell^2``
+estimators (`upper_bound_L2_opnorm`, `svd_bound_L2_opnorm_inverse`, …) apply to
+`gram_sqrt(B) * Q * inv_gram_sqrt(B)` directly. Under Lebesgue the Gram matrix
+is dense and ill-conditioned and no such shortcut exists.
+
+!!! warning
+    ``L^2(μ)`` is *not* ``L^2(\mathrm{Leb})``. The rest of the package — the
+    Lasota–Yorke constants, `integral_covector`, the invariant-density
+    normalization — is set in Lebesgue. Norms computed here refer to the
+    weighted space; the spectrum is unchanged by the similarity, but constants
+    are not interchangeable.
+
+See also [`gram_sqrt`](@ref), [`inv_gram_sqrt`](@ref).
+"""
+function gram_matrix(B::Chebyshev; T = Float64)
+    n = length(B)
+    d = fill(interval(T, 1) / interval(T, 2), n)
+    d[1] = interval(T, 1)
+    return LinearAlgebra.Diagonal(d)
+end
+
+function inv_gram_matrix(B::Chebyshev; T = Float64)
+    n = length(B)
+    d = fill(interval(T, 2), n)
+    d[1] = interval(T, 1)
+    return LinearAlgebra.Diagonal(d)
+end
+
+@doc raw"""
+    gram_sqrt(B::Chebyshev; T = Float64)
+    inv_gram_sqrt(B::Chebyshev; T = Float64)
+
+The symmetric factors ``G^{1/2}`` and ``G^{-1/2}`` of the Chebyshev
+[`gram_matrix`](@ref) — i.e. ``\operatorname{diag}(1, 1/\sqrt2, \dots)`` and
+``\operatorname{diag}(1, \sqrt2, \dots)``.
+
+These, not `G` itself, are what an ``\ell^2`` operator-norm estimator needs:
+``\|Q\|_{L^2(μ)} = \|G^{1/2} Q G^{-1/2}\|_{\ell^2}``. Unlike `G`, the entries
+are irrational, so the returned intervals are genuine (thin but not exact)
+enclosures.
+"""
+function gram_sqrt(B::Chebyshev; T = Float64)
+    n = length(B)
+    d = fill(interval(T, 1) / sqrt(interval(T, 2)), n)
+    d[1] = interval(T, 1)
+    return LinearAlgebra.Diagonal(d)
+end
+
+function inv_gram_sqrt(B::Chebyshev; T = Float64)
+    n = length(B)
+    d = fill(sqrt(interval(T, 2)), n)
+    d[1] = interval(T, 1)
+    return LinearAlgebra.Diagonal(d)
+end
