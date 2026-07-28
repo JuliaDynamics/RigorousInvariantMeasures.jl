@@ -128,6 +128,11 @@ function Dual(B::FourierAdjoint, T::Function; ϵ, max_iter)
     return FourierAdjointDual(x)
 end
 
+# The adjoint dual carries no weights and no relabelling: node `j` contributes
+# ϕ(x_j) to entry `j`. Cf. `eval_on_dual` below.
+dual_nodes(B::FourierAdjoint, computed_dual::FourierAdjointDual) =
+    (computed_dual.x, 1:length(computed_dual.x), ones(length(computed_dual.x)))
+
 function eval_on_dual(B::FourierAdjoint, computed_dual::FourierAdjointDual, ϕ)
 
     x = computed_dual.x

@@ -60,6 +60,7 @@ include("pitrig.jl")
 include("NormsOfPowers.jl")
 
 include("Preimages.jl")
+include("IntervalFFTCommon.jl")
 include("Basis/Fourier/FourierIndex.jl")
 export Fourier, FourierAnalytic, FourierAdjoint
 include("Basis/NewChebyshev.jl")

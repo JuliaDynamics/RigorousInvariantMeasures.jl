@@ -2,7 +2,7 @@ using .RigorousInvariantMeasures: Dual
 using .RigorousInvariantMeasures: NormKind, L1, L2, Aη, W, Cω, TotalVariation, dfly
 import .RigorousInvariantMeasures: opnormbound, normbound, restrict_to_average_zero
 
-export Fourier, evalFourier, FourierPoints, assemble_common, eval_on_dual
+export Fourier, evalFourier, FourierPoints, assemble_common, eval_on_dual, dual_nodes
 
 using IntervalArithmetic
 using FastRounding
@@ -277,6 +277,28 @@ end
 abstract type FourierDual <: Dual end
 
 function eval_on_dual(B::Fourier, computed_dual::FourierDual, ϕ) end
+
+@doc raw"""
+    dual_nodes(B::Fourier, computed_dual) -> (x, labels, weights)
+
+Flat description of a computed dual, used by the fast assembler.
+
+`eval_on_dual(B, computed_dual, ϕ_m)` for the basis function
+``ϕ_m(x) = e^{2πimx}`` is, for every Fourier basis, of the form
+
+```math
+w^{(m)}[\ell] = \sum_{j\,:\,\texttt{labels}[j] = \ell}
+                \texttt{weights}[j]\; e^{2πi m x_j},
+```
+
+with **real** weights. Exposing the three vectors lets `assemble_common`
+sweep all frequencies at once instead of re-evaluating a rigorous complex
+exponential for every (basis function, node) pair; see the comment there.
+
+Weights being real is what makes the ``m \mapsto -m`` conjugate symmetry
+valid, so any new `Fourier` dual must preserve that.
+"""
+function dual_nodes end
 
 # `assemble_common(::Fourier, D; …)` lives in the FFTWExt extension; loading
 # `using FFTW` makes it available. Without FFTW loaded, callers will hit a

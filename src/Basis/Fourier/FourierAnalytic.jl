@@ -157,6 +157,11 @@ function Dual(B::FourierAnalytic, D::PwMap; ϵ, max_iter)
     return FourierAnalyticDual(x, xlabel, xp)
 end
 
+# Node `j` contributes ϕ(x_j)/|T'(x_j)| to entry `xlabel[j]`, so the weight is
+# the (real) reciprocal derivative. Cf. `eval_on_dual` below.
+dual_nodes(B::FourierAnalytic, computed_dual::FourierAnalyticDual) =
+    (computed_dual.x, computed_dual.xlabel, [1 / abs(d) for d in computed_dual.xp])
+
 function eval_on_dual(B::FourierAnalytic, computed_dual::FourierAnalyticDual, ϕ)
 
     x, labels, xp = computed_dual.x, computed_dual.xlabel, computed_dual.xp
