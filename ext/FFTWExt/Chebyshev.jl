@@ -1,9 +1,24 @@
 # Assemble for the Chebyshev basis. Uses `interval_fft` via the `chebtransform`
 # helper (DCT-via-FFT round-trip).
 
+@doc raw"""
+    chebtransform(w)
+
+Chebyshev coefficients of the function taking the values `w` at the Chebyshev
+points, computed as a DCT via the FFT of the mirrored sequence.
+
+For values at the `N = n+1` Chebyshev points the coefficients are
+``a_k = \frac1n \Re (F_k)`` with `F` the **unnormalized** DFT of
+`[reverse(w); w[2:end-1]]` (length `2n`), and the two endpoint coefficients
+halved.
+
+`interval_fft` already divides by its own length `2n`, so the `/n` that used to
+sit here made the total normalization `2n²` instead of `n` — every Chebyshev
+assembly came out scaled by `1/(2n) = 1/(2(N-1))`. Multiplying by 2 undoes
+`interval_fft`'s normalization down to the `1/n` the transform actually wants.
+"""
 function chebtransform(w)
-    n = length(w) - 1
-    z = interval_fft([reverse(w); w[2:end-1]]) / n
+    z = 2 * interval_fft([reverse(w); w[2:end-1]])
     t = real.(z[1:length(w)])
     t[1] /= 2
     t[end] /= 2

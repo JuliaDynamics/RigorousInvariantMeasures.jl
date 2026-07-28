@@ -1,26 +1,42 @@
 using RigorousInvariantMeasures
 using IntervalArithmetic
 
-@testset "Chebyshev assembler" begin
+@testset "chebtransform recovers known Chebyshev coefficients" begin
+    # This used to be `all_true = true; @test all_true` with the real comparison
+    # commented out, which is how a factor-of-2(N-1) normalization error in
+    # `chebtransform` survived: it divided by n on top of interval_fft's own
+    # 1/(2n).  Ground truth here is a polynomial with known coefficients.
+    ext = Base.get_extension(RigorousInvariantMeasures, :FFTWExt)
 
-    N = 16
-    B = RigorousInvariantMeasures.Chebyshev(N, 2)
+    for k in (8, 16)
+        B = RigorousInvariantMeasures.Chebyshev(k, 2)
+        N = length(B)
+        t = 2 .* mid.(B.p) .- 1                       # Chebyshev points in [-1,1]
 
-    D = mod1_dynamic(x -> 2 * x)
-    L(ϕ, x) = (ϕ(x / 2) + ϕ(x / 2 + 0.5)) / 2
+        # f = 3*T_0 - 2*T_1 + 5*T_4
+        f(x) = 3 - 2 * x + 5 * cos(4 * acos(clamp(x, -1, 1)))
+        w = [interval(f(tt)) for tt in t]
 
-    M = assemble(B, D)
-    using LinearAlgebra
+        expected = zeros(N)
+        expected[1], expected[2], expected[5] = 3, -2, 5
 
-    all_true = true
-    # for i in 1:N
-    #  w = mid.(L.(B[i], B.p))
-    # z = RigorousInvariantMeasures.chebtransform(w)
-    #   all_true = all_true && norm(z-M[:, i], Inf)< 10^-13
-    # end
+        got = ext.chebtransform(w)
+        @test all(in_interval(expected[i], got[i]) for i = 1:N)
+        @test maximum(abs.(mid.(got) .- expected)) < 1e-13
+    end
+end
 
-    @test all_true
-
+@testset "Chebyshev assembler preserves the integral covector" begin
+    # The transfer operator satisfies ∫Lf = ∫f, so the integral covector is a
+    # left eigenvector of eigenvalue 1.  With the old normalization the
+    # eigenvalue came out as 1/(2(N-1)) instead, which is what flagged the bug.
+    D = mod1_dynamic(x -> 2 * x + 0.5 * x * (1 - x))
+    for k in (8, 16)
+        B = RigorousInvariantMeasures.Chebyshev(k, 3)
+        Q = mid.(assemble(B, D; ϵ = 1e-13, max_iter = 100))
+        v = vec(mid.(collect(integral_covector(B))))
+        @test maximum(abs.(transpose(Q) * v .- v)) < 1e-2
+    end
 end
 
 @testset "Chebyshev assemble agrees with the Clenshaw evaluation it replaces" begin
