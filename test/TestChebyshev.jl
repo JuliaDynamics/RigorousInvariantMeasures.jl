@@ -246,7 +246,8 @@ end
     for ρ in (1.5, 2.0)
         B16, B32 = Chebyshev(16, Eρ(ρ)), Chebyshev(32, Eρ(ρ))
         @test strong_norm(B16) == Eρ
-        @test weak_norm(B16) == L2
+        @test weak_norm(B16) == L2μ      # the analytic basis lives in the μ world
+        @test aux_norm(B16) == L1μ
         e16 = RIM.weak_projection_error(B16)
         e32 = RIM.weak_projection_error(B32)
         @test 0 < e32 < e16
@@ -254,4 +255,36 @@ end
         @test RIM.weak_by_strong_and_aux_bound(B16) == (1.0, 0.0)
         @test isfinite(RIM.strong_weak_bound(B16))
     end
+end
+
+@testset "L2(dμ) weak norm with L1(dμ) auxiliary" begin
+    RIM = RigorousInvariantMeasures
+
+    Bμ = Chebyshev(16, 3, L2μ)
+    @test weak_norm(Bμ) == L2μ
+    @test aux_norm(Bμ) == L1μ           # both against μ
+    @test aux_norm(Chebyshev(16, 3)) == L1
+
+    # Matching the measures makes aux_weak_bound a plain Cauchy-Schwarz 1;
+    # pairing L1(dx) with L2(dμ) instead would cost π/(2√2).
+    @test RIM.aux_weak_bound(Bμ) == 1.0
+
+    # Parseval constants: no conversion factor, unlike the Lebesgue weak norm,
+    # which pays C_n for the same quantities.
+    n = length(Bμ)
+    @test RIM.bound_linalg_norm_L1_from_weak(Bμ) ≈ sqrt(2n) rtol = 1e-12
+    @test RIM.bound_linalg_norm_L∞_from_weak(Bμ) ≈ sqrt(2) rtol = 1e-12
+    @test RIM.bound_linalg_norm_L1_from_weak(Bμ) <
+          RIM.bound_linalg_norm_L1_from_weak(Chebyshev(16, 3))
+    @test RIM.bound_weak_norm_from_linalg_norm(Bμ) == (1.0, 0.0)
+    @test RIM.weak_by_strong_and_aux_bound(Bμ) == (1.0, 0.0)
+
+    # μ is a probability measure, so the sup-norm projection bound carries over
+    # unchanged: same number as for L2(dx).
+    @test RIM.weak_projection_error(Bμ) == RIM.weak_projection_error(Chebyshev(16, 3))
+
+    # The analytic basis: geometric projection error under either weak norm.
+    BE = Chebyshev(16, Eρ(1.5))
+    @test RIM.weak_projection_error(BE) == RIM.aux_normalized_projection_error(BE)
+    @test isfinite(RIM.strong_weak_bound(BE)) && RIM.strong_weak_bound(BE) > 0
 end

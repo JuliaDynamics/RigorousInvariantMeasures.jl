@@ -56,9 +56,9 @@ Chebyshev(p::AbstractVector, k::Integer, ::Type{WK} = L2) where {WK<:NormKind} =
 # Analytic (Bernstein-ellipse) strong norm, weak L2 — the Chebyshev counterpart
 # of `FourierAnalytic(k, n; η)`. `k` is unused for this strong norm.
 function Chebyshev(n::Integer, strong::Eρ; T = Float64)
-    return Chebyshev(ChebPoints(n, T), 0, strong, L2())
+    return Chebyshev(ChebPoints(n, T), 0, strong, L2μ())
 end
-Chebyshev(p::AbstractVector, strong::Eρ) = Chebyshev(p, 0, strong, L2())
+Chebyshev(p::AbstractVector, strong::Eρ) = Chebyshev(p, 0, strong, L2μ())
 Base.show(io::IO, B::Chebyshev) =
     print(io, "Chebyshev basis on $(length(B)) points, highest degree $(length(B)-1)")
 
@@ -294,6 +294,10 @@ function bound_linalg_norm_L∞_from_weak(B::Chebyshev{S,C1}) where {S}
 end
 weak_norm(B::Chebyshev) = typeof(B.weak)
 aux_norm(B::Chebyshev) = L1
+# Weak L²(μ) pairs with auxiliary L¹(μ): both facts the estimates rest on --
+# Parseval and |b̂_k| ≤ 2‖f‖_{L¹(μ)} -- live against μ, and matching the two
+# measures makes aux_weak_bound a plain Cauchy-Schwarz 1.
+aux_norm(B::Chebyshev{S,L2μ}) where {S<:NormKind} = L1μ
 strong_norm(B::Chebyshev) = typeof(B.strong)
 
 """
@@ -904,12 +908,13 @@ form, since this basis interpolates at the Chebyshev points. `dx` is a
 probability measure on ``[0,1]``, so the sup-norm bound carries to ``L^2`` with
 constant 1.
 """
-function weak_projection_error(B::Chebyshev{Eρ,L2})
+function _bernstein_projection_error(B::Chebyshev)
     ρ = B.strong.ρ
     ρ > 1 || return Inf
     n = _cheb_degree(B)
     return (4.0 ⊘₊ (ρ ⊖₋ 1.0)) ⊗₊ (ρ^(-n))
 end
+weak_projection_error(B::Chebyshev{Eρ,L2}) = _bernstein_projection_error(B)
 
 aux_normalized_projection_error(B::Chebyshev{Eρ,L2}) = weak_projection_error(B)
 
@@ -1046,3 +1051,48 @@ live on ``[0,1]``, so this is what to wrap a branch in before handing it to
 [`bernstein_expansion`](@ref).
 """
 to_symmetric_interval(f) = t -> 2 * f((t + 1) / 2) - 1
+
+###############################################################################
+# Norm interface for weak L²(μ) / auxiliary L¹(μ)
+#
+# Parseval: ||f||²_{L²(μ)} = b̂₀² + ½ Σ_{k≥1} b̂ₖ², so
+# ||ĉ||_{ℓ²}/√2 ≤ ||f||_{L²(μ)} ≤ ||ĉ||_{ℓ²}.  Every constant below follows from
+# that alone, exactly as the Fourier ones follow from Parseval on the circle --
+# which is the point of measuring against μ rather than dx.
+###############################################################################
+
+# ||v||_{L¹(μ)} ≤ ||v||_{L²(μ)}: Cauchy-Schwarz, μ a probability measure.
+aux_weak_bound(B::Chebyshev{S,L2μ}) where {S<:NormKind} = 1.0
+
+# ||v||_{L²(μ)} ≤ ||v||_∞ ≤ ||v||_{W^{k,1}} by Sobolev embedding on [0,1].
+weak_by_strong_and_aux_bound(B::Chebyshev{S,L2μ}) where {S} = (1.0, 0.0)
+# ...and ≤ ||v||_{E_ρ}, since [-1,1] ⊂ E_ρ.
+weak_by_strong_and_aux_bound(B::Chebyshev{Eρ,L2μ}) = (1.0, 0.0)
+
+# ||v||_{L²(μ)} ≤ ||ĉ||_{ℓ²} ≤ ||ĉ||_{ℓ¹}
+bound_weak_norm_from_linalg_norm(B::Chebyshev{S,L2μ}) where {S} = (1.0, 0.0)
+
+# ||ĉ||_{ℓ¹} ≤ √n ||ĉ||_{ℓ²} ≤ √(2n) ||v||_{L²(μ)} — no conversion factor, this
+# is where measuring against μ pays for itself.
+bound_linalg_norm_L1_from_weak(B::Chebyshev{S,L2μ}) where {S} =
+    sqrt_round(2.0 ⊗₊ Float64(length(B), RoundUp), RoundUp)
+
+# ||ĉ||_{ℓ∞} ≤ ||ĉ||_{ℓ²} ≤ √2 ||v||_{L²(μ)}
+bound_linalg_norm_L∞_from_weak(B::Chebyshev{S,L2μ}) where {S} = sqrt_round(2.0, RoundUp)
+
+# μ is a probability measure, so ||·||_{L²(μ)} ≤ ||·||_∞ and the sup-norm
+# projection bounds carry over unchanged.
+weak_projection_error(B::Chebyshev{S,L2μ}) where {S} =
+    aux_normalized_projection_error(B)
+weak_projection_error(B::Chebyshev{Eρ,L2μ}) = _bernstein_projection_error(B)
+aux_normalized_projection_error(B::Chebyshev{Eρ,L2μ}) = _bernstein_projection_error(B)
+
+function strong_weak_bound(B::Chebyshev{S,L2μ}) where {S}
+    B_c1 = Chebyshev(B.p, B.k, C1)
+    W₁, _ = bound_weak_norm_from_linalg_norm(B_c1)
+    return strong_weak_bound(B_c1) ⊗₊ W₁ ⊗₊ bound_linalg_norm_L1_from_weak(B)
+end
+
+function strong_weak_bound(B::Chebyshev{Eρ,L2μ})
+    return (B.strong.ρ^_cheb_degree(B)) ⊗₊ bound_linalg_norm_L1_from_weak(B)
+end

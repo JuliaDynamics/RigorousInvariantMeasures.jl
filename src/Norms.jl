@@ -19,6 +19,33 @@ struct Aη <: NormKind
 end
 
 @doc raw"""
+    L2μ <: NormKind
+    L1μ <: NormKind
+
+``L^2`` and ``L^1`` against the arcsine measure ``dμ = dx/(π\sqrt{x(1-x)})`` on
+``[0,1]``, as opposed to [`L2`](@ref) and [`L1`](@ref), which are against ``dx``.
+
+These are the natural weak and auxiliary norms for the Chebyshev bases, because
+the two facts the analysis rests on both live against ``μ``:
+
+- the ``T_m`` are orthogonal in ``L^2(μ)``, so Parseval holds on the
+  coefficients and the norm interface reduces to the same one-liners as the
+  Fourier bases;
+- the coefficients obey ``|\hat b_k| = |2\int f T_k\,dμ| \le 2\|f\|_{L^1(μ)}``,
+  uniformly in ``k``. There is no such bound against ``L^1(dx)``: a width-``ε``
+  sliver at an endpoint has ``\|f\|_{L^1(dx)} \sim ε`` but
+  ``\|f\|_{L^1(μ)} \sim \sqrt{2ε}/π``.
+
+Keeping both against ``μ`` also makes ``\|v\|_{L^1(μ)} \le \|v\|_{L^2(μ)}`` a
+plain Cauchy–Schwarz with constant 1, since ``μ`` is a probability measure;
+pairing ``L^1(dx)`` with ``L^2(dμ)`` instead costs a factor ``π/(2\sqrt2)``.
+
+Use [`l2_measure_conversion_bounds`](@ref) to return to ``L^2(dx)``.
+"""
+struct L2μ <: NormKind end
+struct L1μ <: NormKind end
+
+@doc raw"""
     Eρ(ρ) <: NormKind
 
 Analytic norm on the **Bernstein ellipse** ``E_ρ`` — the image of the circle
