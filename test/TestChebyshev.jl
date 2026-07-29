@@ -157,3 +157,57 @@ end
     @test abs(ρs[1] - ρs[2]) < 1e-5             # converged second eigenvalue
     @test ρs[1] < 1                             # spectral gap on average-zero
 end
+
+@testset "Chebyshev norm parameterization" begin
+    RIM = RigorousInvariantMeasures
+
+    # Default is W^{k,1} strong / L2 weak, as for FourierAnalytic.
+    B = Chebyshev(16, 3)
+    @test strong_norm(B) == W{3,1}
+    @test weak_norm(B) == L2
+    @test aux_norm(B) == L1
+
+    # The measure is selectable, and the Taylor-Crush C1 path is untouched.
+    @test weak_norm(Chebyshev(16, 3, L2μ)) == L2μ
+    @test weak_norm(Chebyshev(16, 3, C1)) == C1
+    @test length(Chebyshev(16, 3)) == length(Chebyshev(16, 3, C1))
+
+    # The L2 projection error comes from the W^{k,1} coefficient decay via
+    # Theorems 3.12/3.13, and since dx and dμ are both probability measures the
+    # same bound serves either, with no conversion factor.
+    for n in (16, 32)
+        Bn, Bnμ = Chebyshev(n, 3), Chebyshev(n, 3, L2μ)
+        @test RIM.weak_projection_error(Bn) == RIM.weak_projection_error(Bnμ)
+        @test RIM.weak_projection_error(Bn) == RIM.aux_normalized_projection_error(Bn)
+    end
+
+    # ...and it decays like n^{-ν}: refining by 2 should gain about 2^3 = 8.
+    e16 = RIM.weak_projection_error(Chebyshev(16, 3))
+    e32 = RIM.weak_projection_error(Chebyshev(32, 3))
+    @test 5 < e16 / e32 < 12
+
+    # Parseval-based constants: tighter under the arcsine measure, since the
+    # Lebesgue ones carry the conversion factor C_n.
+    for (f, _) in ((RIM.bound_linalg_norm_L1_from_weak, nothing),
+                   (RIM.bound_linalg_norm_L∞_from_weak, nothing))
+        @test f(Chebyshev(16, 3, L2μ)) <= f(Chebyshev(16, 3))
+    end
+    @test RIM.bound_linalg_norm_L∞_from_weak(Chebyshev(16, 3, L2μ)) ≈ sqrt(2) rtol = 1e-12
+    # aux is L1(dx) while weak may be L2(dmu): then M2 = pi/(2*sqrt(2)), sharp,
+    # not 1. It is 1 for L2(dx) and for C1.
+    @test RIM.aux_weak_bound(Chebyshev(16, 3)) == 1.0
+    @test RIM.aux_weak_bound(Chebyshev(16, 3, C1)) == 1.0
+    @test RIM.aux_weak_bound(Chebyshev(16, 3, L2μ)) >= pi / (2 * sqrt(2))
+    @test RIM.aux_weak_bound(Chebyshev(16, 3, L2μ)) < 1.111
+    @test RIM.weak_by_strong_and_aux_bound(Chebyshev(16, 3)) == (1.0, 0.0)
+
+    # All interface constants finite and positive for every weak norm.
+    for Bx in (Chebyshev(16, 3), Chebyshev(16, 3, L2μ), Chebyshev(16, 3, C1))
+        for g in (RIM.weak_projection_error, RIM.aux_normalized_projection_error,
+                  RIM.strong_weak_bound, RIM.bound_linalg_norm_L1_from_weak,
+                  RIM.bound_linalg_norm_L∞_from_weak)
+            v = g(Bx)
+            @test isfinite(v) && v > 0
+        end
+    end
+end

@@ -75,7 +75,7 @@ include("SpectralCertification.jl")
 
 include("precompile.jl")
 
-export NormKind, L1, L2, Linf, Lipschitz, TotalVariation, C1, W, Aη, Cω
+export NormKind, L1, L2, L2μ, Linf, Lipschitz, TotalVariation, C1, W, Aη, Cω
 
 export PwMap,
     Basis,
