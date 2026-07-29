@@ -17,8 +17,10 @@ function __init__()
     setdisplay(:infsup; decorations = false, ng_flag = false)
 end
 using BallArithmetic: BallMatrix, BallVector, upper_bound_L2_opnorm, upper_bound_norm,
-    compute_spectral_projector_schur, SchurSpectralProjectorResult
+    compute_spectral_projector_schur, SchurSpectralProjectorResult,
+    krawczyk_linear_system, svd_bound_L2_opnorm_inverse
 using BallArithmetic.CertifScripts: CertifScripts
+import BallArithmetic
 
 const SHOW_PROGRESS_BARS = parse(Bool, get(ENV, "PROGRESS_BARS", "true"))
 
@@ -66,6 +68,7 @@ export Fourier, FourierAnalytic, FourierAdjoint
 include("Basis/NewChebyshev.jl")
 export Chebyshev, certify_spectral_gap
 export gram_matrix, inv_gram_matrix, gram_sqrt, inv_gram_sqrt
+export l2_measure_conversion_bounds, gram_restrict_to_average_zero
 
 include("SpectralCertification.jl")
 

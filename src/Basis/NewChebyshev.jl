@@ -564,18 +564,108 @@ is dense and ill-conditioned and no such shortcut exists.
 
 See also [`gram_sqrt`](@ref), [`inv_gram_sqrt`](@ref).
 """
-function gram_matrix(B::Chebyshev; T = Float64)
+function gram_matrix(B::Chebyshev; measure::Symbol = :arcsine, T = Float64)
     n = length(B)
-    d = fill(interval(T, 1) / interval(T, 2), n)
-    d[1] = interval(T, 1)
-    return LinearAlgebra.Diagonal(d)
+    if measure === :arcsine
+        d = fill(interval(T, 1) / interval(T, 2), n)
+        d[1] = interval(T, 1)
+        return LinearAlgebra.Diagonal(d)
+    elseif measure === :lebesgue
+        return _lebesgue_gram(n, T)
+    else
+        throw(ArgumentError("measure must be :arcsine or :lebesgue, got $measure"))
+    end
 end
 
-function inv_gram_matrix(B::Chebyshev; T = Float64)
+# G_ij = 1/2 [ 1/(1-(m+n)^2) + 1/(1-(m-n)^2) ] for m+n even, 0 otherwise,
+# with m = i-1, n = j-1. The denominators are exact integers, so each entry is
+# a single correctly-rounded division. m+n and m-n share parity, so the two
+# vanishing denominators (|m±n| = 1) only occur when the entry is 0 anyway.
+function _lebesgue_gram(n::Integer, ::Type{T}) where {T}
+    G = zeros(Interval{T}, n, n)
+    one_T = interval(T, 1)
+    half = one_T / interval(T, 2)
+    for i = 1:n, j = 1:n
+        m, k = i - 1, j - 1
+        isodd(m + k) && continue
+        G[i, j] =
+            half * (one_T / interval(T, 1 - (m + k)^2) + one_T / interval(T, 1 - (m - k)^2))
+    end
+    return G
+end
+
+function inv_gram_matrix(B::Chebyshev; measure::Symbol = :arcsine, T = Float64)
     n = length(B)
-    d = fill(interval(T, 2), n)
-    d[1] = interval(T, 1)
-    return LinearAlgebra.Diagonal(d)
+    if measure === :arcsine
+        d = fill(interval(T, 2), n)
+        d[1] = interval(T, 1)
+        return LinearAlgebra.Diagonal(d)
+    elseif measure === :lebesgue
+        return _verified_inverse(_lebesgue_gram(n, T))
+    else
+        throw(ArgumentError("measure must be :arcsine or :lebesgue, got $measure"))
+    end
+end
+
+# Verified inverse, one Krawczyk-verified linear solve per column. The Lebesgue
+# Gram matrix is only mildly ill-conditioned (cond ~ 1.3n measured), so this
+# converges comfortably.
+function _verified_inverse(G::Matrix{Interval{T}}) where {T}
+    n = size(G, 1)
+    GB = BallMatrix(G)
+    X = zeros(Interval{T}, n, n)
+    for j = 1:n
+        c = zeros(T, n)
+        c[j] = one(T)
+        res = krawczyk_linear_system(GB, BallVector(c, zeros(T, n)))
+        res.verified ||
+            error("Krawczyk verification failed for column $j of the Gram inverse")
+        col = res.solution
+        for i = 1:n
+            ci, ri = BallArithmetic.mid(col[i]), BallArithmetic.rad(col[i])
+            X[i, j] = interval(T, ci - ri, ci + ri)
+        end
+    end
+    return X
+end
+
+@doc raw"""
+    l2_measure_conversion_bounds(B::Chebyshev; T = Float64) -> (c_leb, C_n)
+
+The two constants relating the Lebesgue and arcsine ``L^2`` norms on the span
+of this basis:
+
+```math
+\|f\|_{L^2(dx)} \le c_{\mathrm{leb}}\,\|f\|_{L^2(μ)},
+\qquad
+\|f\|_{L^2(μ)} \le C_n\,\|f\|_{L^2(dx)}.
+```
+
+The first is uniform and needs no linear algebra: ``dx/dμ = π\sqrt{x(1-x)}`` is
+bounded by ``π/2``, so ``c_{\mathrm{leb}} = \sqrt{π/2}`` on all of ``L^2(μ)``.
+
+The second cannot hold uniformly — ``dμ/dx`` blows up at the endpoints — and is
+genuinely finite-dimensional:
+``C_n^2 = λ_{\max}(G_μ^{1/2} G_L^{-1} G_μ^{1/2})``. It is evaluated sharply here,
+from the verified inverse and the diagonal ``G_μ^{1/2}``. Bounding it instead by
+``\|G_L^{-1}\|_2`` — valid since ``\|G_μ^{1/2}\| = 1``, and cheaper in that it
+needs no inverse — costs a factor tending to ``\sqrt2``, the extremal direction
+lying in the ``\tfrac12``-eigenspace of ``G_μ``. Measured growth of the sharp
+constant is ``C_n \approx 0.75\sqrt{n}``.
+
+Use these to carry a resolvent or spectral bound proved in ``L^2(μ)`` — where
+Parseval makes it an ``\ell^2`` statement about the coefficient matrix — back to
+the ``L^2(dx)`` setting the rest of the package works in.
+"""
+function l2_measure_conversion_bounds(B::Chebyshev; T = Float64)
+    n = length(B)
+    c_leb = sqrt(interval(T, π) / interval(T, 2))
+
+    # C_n^2 = ||G_mu^{1/2} G_L^{-1} G_mu^{1/2}||_2, the middle factor verified
+    # and the outer ones diagonal, so the product is cheap and the constant sharp.
+    Ginv = _verified_inverse(_lebesgue_gram(n, T))
+    s = gram_sqrt(B; T = T)
+    return (sup(c_leb), sqrt(upper_bound_L2_opnorm(BallMatrix(s * Ginv * s))))
 end
 
 @doc raw"""
@@ -603,4 +693,58 @@ function inv_gram_sqrt(B::Chebyshev; T = Float64)
     d = fill(sqrt(interval(T, 2)), n)
     d[1] = interval(T, 1)
     return LinearAlgebra.Diagonal(d)
+end
+
+@doc raw"""
+    gram_restrict_to_average_zero(B::Chebyshev, BM::BallMatrix; T = Float64)
+
+Restrict `BM` to the average-zero subspace by the Gram change of variables,
+returning `(block, chol)` where `block` is an `(n-1) × (n-1)` `BallMatrix`.
+
+Unlike [`restrict_to_average_zero`](@ref), which builds a certified Riesz
+projector via a Schur decomposition, this uses the fact that in the
+Gram-transformed coordinates the restriction *is* a plain submatrix.
+
+Writing ``G`` for the Lebesgue Gram matrix ([`gram_matrix`](@ref) with
+`measure = :lebesgue`) and ``G = U^{*}U`` for its Cholesky factor:
+
+- ``T_0 = 1``, so the constant function is ``e_1`` and the integral covector is
+  exactly ``v = G e_1`` — the first column of ``G``;
+- ``U`` is upper triangular, hence ``U e_1 \parallel e_1`` and
+  ``U^{-*} v = U_{11} e_1``, so average-zero ``\{v \cdot c = 0\}`` becomes
+  ``\{y_1 = 0\}`` in the coordinates ``y = Uc``;
+- since the transfer operator preserves the integral, ``v^{*}Q = v^{*}``, and
+  therefore ``\tilde A = U Q U^{-1}`` has first row exactly ``e_1^{*}``.
+
+The restriction is then ``\tilde A[2:\mathrm{end}, 2:\mathrm{end}]`` — the same
+shape as `restrict_to_average_zero(B::Fourier, …)`, of which this is the
+special case ``G = I``. Because ``\|M\|_G = \|U M U^{-1}\|_2`` exactly, an
+``\ell^2`` bound on the returned block *is* the ``L^2(dx)`` bound on the
+average-zero subspace, with no condition-number penalty.
+
+!!! warning "What is and is not certified"
+    `chol` is the [`verified_cholesky`](@ref) result for the **midpoint** of
+    ``G``, so the enclosure covers the factorization but not the ≤1 ulp
+    enclosure radius of the Gram entries themselves. The induced norm is
+    therefore that of ``\tilde G = U^{*}U`` rather than of the exact ``G``;
+    `chol.residual_norm` and `maximum(radius.(gram_matrix(B; measure = :lebesgue)))`
+    quantify the gap. Closing it needs an interval-aware Cholesky, or
+    BallArithmetic's `gram_transform`, which reports `gram_residual` directly.
+"""
+function gram_restrict_to_average_zero(B::Chebyshev, BM::BallMatrix; T = Float64)
+    n = length(B)
+    size(BM, 1) == n ||
+        throw(DimensionMismatch("operator is $(size(BM,1))×$(size(BM,2)), basis has $n"))
+
+    G = _lebesgue_gram(n, T)
+    chol = BallArithmetic.verified_cholesky(T.(mid.(G)); use_bigfloat = false)
+    chol.success || error("verified Cholesky of the Lebesgue Gram matrix failed")
+
+    # G = U'U with U upper triangular. Move to intervals to invert, then back.
+    U = chol.G
+    Ui = Interval{T}[
+        interval(T, U.c[i, j] - U.r[i, j], U.c[i, j] + U.r[i, j]) for i = 1:n, j = 1:n
+    ]
+    Ã = BallMatrix(Ui) * BM * BallMatrix(_verified_inverse(Ui))
+    return (BallMatrix(Ã.c[2:end, 2:end], Ã.r[2:end, 2:end]), chol)
 end

@@ -113,3 +113,47 @@ end
     @test isfinite(bound)
     @test bound > 0
 end
+
+@testset "Lebesgue Gram matrix, inverse and average-zero restriction" begin
+    using LinearAlgebra
+    using BallArithmetic: BallMatrix
+
+    B = Chebyshev(16, 3)
+    n = length(B)
+
+    GL = gram_matrix(B; measure = :lebesgue)
+    @test in_interval(1, GL[1, 1])              # ∫ 1 dx
+    @test in_interval(1 // 3, GL[2, 2])         # ∫ (2x-1)^2 dx
+    # entries with (i-1)+(j-1) odd vanish
+    @test all(in_interval(0, GL[i, j]) for i = 1:n, j = 1:n if isodd(i + j))
+
+    # The identity the restriction rests on: the integral covector is the first
+    # column of the Lebesgue Gram matrix, because T_0 = 1.
+    v = collect(integral_covector(B))
+    @test all(!isempty_interval(intersect_interval(v[i], GL[i, 1])) for i = 1:n)
+
+    GLi = inv_gram_matrix(B; measure = :lebesgue)
+    P = GL * GLi
+    @test all(in_interval(i == j ? 1 : 0, P[i, j]) for i = 1:n, j = 1:n)
+
+    c_leb, C_n = l2_measure_conversion_bounds(B)
+    @test c_leb >= sqrt(pi / 2)                 # uniform direction
+    @test C_n > 1                               # finite-dimensional direction
+    @test C_n < 2 * sqrt(n)
+
+    # Restriction: (n-1)x(n-1) block, and the spectral radius must be stable in n
+    # (it is the second eigenvalue of the transfer operator).
+    D = mod1_dynamic(x -> 2 * x + 0.5 * x * (1 - x))
+    ρs = Float64[]
+    for k in (12, 24)
+        Bk = Chebyshev(k, 3)
+        Q = RigorousInvariantMeasures.assemble(Bk, D; ϵ = 1e-13, max_iter = 100)
+        blk, chol = gram_restrict_to_average_zero(Bk, BallMatrix(Q))
+        @test chol.success
+        @test size(blk.c) == (length(Bk) - 1, length(Bk) - 1)
+        @test maximum(blk.r) < 1e-10
+        push!(ρs, maximum(abs.(eigvals(blk.c))))
+    end
+    @test abs(ρs[1] - ρs[2]) < 1e-5             # converged second eigenvalue
+    @test ρs[1] < 1                             # spectral gap on average-zero
+end
