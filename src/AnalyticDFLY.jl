@@ -293,7 +293,10 @@ end
 function analytic_dfly_degenerate(strong::Eρ, ρ′::Real, C₂::Real)
     ρ′ > strong.ρ || error("need ρ′ > ρ")
     q = interval(strong.ρ) / interval(ρ′)
-    G = 1 / (1 - q)                            # Σ_{k ≥ 0} q^k
+    # Cauchy estimate on the ellipse (Trefethen, ATAP, Thm 8.1) is |b̂₀| ≤ M and
+    # |b̂_k| ≤ 2M ρ'^{-k} for k ≥ 1 — the factor 2 matters. Σ_k |b̂_k|ρ^k is then
+    # bounded by M(1 + 2Σ_{k≥1} q^k), the same G as the Fourier case.
+    G = 1 + 2 * q / (1 - q)
     return (sup(interval(C₂) * G), 0.0)
 end
 
