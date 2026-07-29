@@ -109,4 +109,52 @@ using IntervalArithmetic
         Kc, A, Bc = analytic_dfly_choose_K(Aη(η), 2η, 1.0; target_A = 0.5)
         @test A <= 0.5 && Bc > 1
     end
+
+    @testset "a priori constants from the complex neighbourhood" begin
+        # min |4z| over ∂E_ρ is attained on the minor axis, |z| = (ρ-1/ρ)/2,
+        # so the certified value must be 2(ρ - 1/ρ).
+        for ρ in (1.5, 2.0, 3.0)
+            md = min_modulus_on_ellipse(z -> 4 * z, ρ; n = 4096)
+            @test md <= 2 * (ρ - 1 / ρ) + 1e-9
+            @test md > 0.999 * 2 * (ρ - 1 / ρ)
+        end
+        @test min_modulus_on_circle(z -> complex(interval(2.0), interval(0.0)), 0.1;
+                                    n = 32) ≈ 2.0 rtol = 1e-12
+
+        # C₂ = #branches / min|T'|, from the complex neighbourhood only.
+        @test analytic_transfer_bound(2.0, 2) ≈ 1.0 rtol = 1e-12
+        @test analytic_transfer_bound(4.0, 2) ≈ 0.5 rtol = 1e-12
+        @test_throws ErrorException analytic_transfer_bound(0.0, 2)
+
+        # The degenerate LY is the continuity constant of L on A_η: it holds for
+        # every f, carries no auxiliary term, and need not be < 1 — compactness,
+        # not contraction, is what drives the certification.
+        Tprime = z -> complex(interval(2.0), interval(0.0))
+        for η in (0.1, 0.2, 0.3)
+            η′ = strip_expansion(z -> z^2, η; n = 2048)
+            C₂ = analytic_transfer_bound(min_modulus_on_circle(Tprime, η; n = 64), 2)
+            @test C₂ ≈ 1.0 rtol = 1e-12
+            A, B = analytic_dfly_degenerate(Aη(η), η′, C₂)
+            @test B == 0.0
+            @test A >= C₂                       # G(δ) ≥ 1
+            @test isfinite(A)
+        end
+
+        # Bigger gain ⇒ smaller constant, monotonically.
+        As = map((0.1, 0.2, 0.3)) do η
+            η′ = strip_expansion(z -> z^2, η; n = 2048)
+            first(analytic_dfly_degenerate(Aη(η), η′, 1.0))
+        end
+        @test issorted(As; rev = true)
+
+        # Chebyshev side, same shape.
+        for ρ in (1.5, 2.0, 3.0)
+            ρ′ = bernstein_expansion(z -> 2z^2 - 1, ρ; n = 4096)
+            C₂ = analytic_transfer_bound(min_modulus_on_ellipse(z -> 4z, ρ; n = 2048), 2)
+            A, B = analytic_dfly_degenerate(Eρ(ρ), ρ′, C₂)
+            @test B == 0.0
+            @test isfinite(A) && A > 0
+        end
+    end
+
 end

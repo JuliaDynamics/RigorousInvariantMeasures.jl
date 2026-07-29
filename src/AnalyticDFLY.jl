@@ -183,3 +183,116 @@ function strip_expansion(f, η; n::Integer = 1024)
     η_in, η_out = annulus_expansion(f, η; n = n)
     return min(η_in, η_out)
 end
+
+###############################################################################
+# A priori operator bounds from the complex neighbourhood
+#
+# These must NOT be read off the assembled matrix: the DFLY is the a priori
+# input that justifies the discretization, so deriving it from the discretized
+# operator would be circular. Everything below is computed from the map and its
+# derivative on the enclosed complex neighbourhood.
+###############################################################################
+
+export min_modulus_on_ellipse, min_modulus_on_circle, analytic_transfer_bound,
+    analytic_dfly_degenerate
+
+@doc raw"""
+    min_modulus_on_ellipse(g, ρ; n = 1024)
+
+Rigorous lower bound on ``\min_{∂E_ρ} |g|``, by the same boundary covering as
+[`bernstein_expansion`](@ref).
+
+If `g` has no zero in the closed ellipse — which is the case for `T'` of an
+expanding map — the minimum modulus principle makes this a bound on the whole of
+``E_ρ``, not just its boundary.
+"""
+function min_modulus_on_ellipse(g, ρ; n::Integer = 1024)
+    ρi = ρ isa Interval ? ρ : interval(ρ)
+    lo = Inf
+    for j = 1:n
+        θ = interval((j - 1) / n, j / n)
+        lo = min(lo, inf(_cabs(g(bernstein_point(ρi, θ)))))
+    end
+    return lo
+end
+
+"""
+    min_modulus_on_circle(g, η; n = 1024)
+
+Lower bound on `|g|` over both circles `|z| = e^{±2πη}`, the strip counterpart
+of [`min_modulus_on_ellipse`](@ref).
+"""
+function min_modulus_on_circle(g, η; n::Integer = 1024)
+    ηi = η isa Interval ? η : interval(η)
+    twoπ = 2 * interval(π)
+    lo = Inf
+    for r in (exp(twoπ * ηi), exp(-twoπ * ηi)), j = 1:n
+        θ = interval((j - 1) / n, j / n)
+        lo = min(lo, inf(_cabs(g(complex(r * cos(twoπ * θ), r * sin(twoπ * θ))))))
+    end
+    return lo
+end
+
+@doc raw"""
+    analytic_transfer_bound(min_derivative, nbranches) -> C
+
+``C`` with ``\|Lf\|_{∞,\,\text{nbhd}} \le C\,\|f\|_{∞,\,\text{nbhd}}``, for the
+transfer operator ``Lf(z) = \sum_k f(g_k(z))\,g_k'(z)``.
+
+Since ``|g_k'| = 1/|T'\circ g_k|`` and the inverse branches land in the
+neighbourhood where `min_derivative` was certified,
+
+```math
+C \;\le\; \frac{\#\text{branches}}{\min |T'|} .
+```
+
+`min_derivative` comes from [`min_modulus_on_ellipse`](@ref) or
+[`min_modulus_on_circle`](@ref) — i.e. from the complex neighbourhood, never
+from the assembled matrix.
+"""
+function analytic_transfer_bound(min_derivative::Real, nbranches::Integer)
+    min_derivative > 0 || error("T' must be bounded away from 0 on the neighbourhood")
+    return Float64(nbranches, RoundUp) ⊘₊ min_derivative
+end
+
+@doc raw"""
+    analytic_dfly_degenerate(strong, gain, C₂) -> (A, 0.0)
+
+The degenerate Lasota–Yorke ``\|Lf\|_{A_η} \le A\,\|f\|_{A_η}``, with no
+auxiliary term — that is, `A` is simply the **continuity constant** of `L` on
+the analytic space, valid for every `f`, not on any subspace.
+
+`C₂` is the bound between the two domains,
+``\|L\|_{A_η \to A_{η'}}``, and the enlargement is converted into a constant by
+splitting the weight at the gain `δ`:
+
+```math
+\|Lf\|_{A_η} = \sum_k e^{-2πkδ}\,e^{2πkη'}|\hat c_k(Lf)|
+   \;\le\; \Big(\sum_k e^{-2πkδ}\Big)\,\|Lf\|_{A_{η'}}
+   \;\le\; G(δ)\,C_2\,\|f\|_{A_η},
+```
+
+the geometric sum converging exactly because the neighbourhood is enlarged. For
+`Eρ` the weight is `ρ^k` and the ratio is `ρ/ρ'`.
+
+This is the single-space setting of Nisoli, *Certified spectral approximation of
+transfer operators and the Gauss map*, arXiv:2602.19435, where the analytic
+(Hardy-space) case needs only ``\|L\|_{B \to B} \le C`` together with the
+truncation bound coming from the domain enlargement — the strong–weak DFLY
+scale of that paper's Appendix A being a separate setting. Compactness, not a
+contraction factor, is what drives the spectral certification, so `A` here need
+not be less than 1.
+"""
+function analytic_dfly_degenerate(strong::Aη, η′::Real, C₂::Real)
+    η′ > strong.η || error("need η′ > η")
+    q = exp(-2 * interval(π) * (interval(η′) - interval(strong.η)))
+    G = 1 + 2 * q / (1 - q)                    # Σ_{k ∈ ℤ} q^{|k|}
+    return (sup(interval(C₂) * G), 0.0)
+end
+
+function analytic_dfly_degenerate(strong::Eρ, ρ′::Real, C₂::Real)
+    ρ′ > strong.ρ || error("need ρ′ > ρ")
+    q = interval(strong.ρ) / interval(ρ′)
+    G = 1 / (1 - q)                            # Σ_{k ≥ 0} q^k
+    return (sup(interval(C₂) * G), 0.0)
+end
