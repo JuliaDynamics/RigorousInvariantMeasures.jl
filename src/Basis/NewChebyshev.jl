@@ -56,9 +56,9 @@ Chebyshev(p::AbstractVector, k::Integer, ::Type{WK} = L2) where {WK<:NormKind} =
 # Analytic (Bernstein-ellipse) strong norm, weak L2 — the Chebyshev counterpart
 # of `FourierAnalytic(k, n; η)`. `k` is unused for this strong norm.
 function Chebyshev(n::Integer, strong::Eρ; T = Float64)
-    return Chebyshev(ChebPoints(n, T), 0, strong, L2μ())
+    return Chebyshev(ChebPoints(n, T), 0, strong, L2())
 end
-Chebyshev(p::AbstractVector, strong::Eρ) = Chebyshev(p, 0, strong, L2μ())
+Chebyshev(p::AbstractVector, strong::Eρ) = Chebyshev(p, 0, strong, L2())
 Base.show(io::IO, B::Chebyshev) =
     print(io, "Chebyshev basis on $(length(B)) points, highest degree $(length(B)-1)")
 

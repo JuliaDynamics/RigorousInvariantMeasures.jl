@@ -12,7 +12,11 @@
     w = invariant_vector(B, Q)
 
     error = distance_from_invariant(B, D, Q, w, norms)
+    # Guards two bugs that used to cancel: the placeholder Aη dfly returned
+    # B = 0, so invariant_measure_strong_norm_bound was 0, which hid a sign error
+    # in weak_projection_error (it returned e^{+2πηN} instead of e^{-2πηN}).
     @test error < 1.0  # Lebesgue measure is invariant for doubling map
+    @test error < 1e-8
 end
 
 @testset "Full run FourierAnalytic + W{1,1}" begin

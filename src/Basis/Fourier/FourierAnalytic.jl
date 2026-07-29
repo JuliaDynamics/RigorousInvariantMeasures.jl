@@ -44,18 +44,27 @@ aux_norm(B::FourierAnalytic) = L1
 
 # --- Projection errors ---
 
-# Aη strong norm: exponential decay of Fourier tail
-function weak_projection_error(B::FourierAnalytic{Aη})
+# Aη strong norm: exponential decay of the Fourier tail.
+#
+# On the unit ball of ||f||_{Aη} = Σ|ĉ_k| e^{2πη|k|} we have |ĉ_k| ≤ e^{-2πη|k|},
+# so the truncation error is
+#
+#     Σ_{|k|>N} |ĉ_k| ≤ Σ_{|k|>N} e^{-2πη|k|} = 2 e^{-2πη(N+1)} / (1 - e^{-2πη}),
+#
+# which DECAYS in N. This used to return exp(+2πNη) — the sign was flipped, so
+# the "projection error" grew like e^{+2πηN} (2.9e17 at N=64, η=0.1, against the
+# 3.4e-18 it should be). It went unnoticed because the placeholder Aη dfly
+# returned B = 0, making invariant_measure_strong_norm_bound zero and killing the
+# product it appears in.
+function _aeta_tail_bound(B::FourierAnalytic{Aη})
     N = B.k
     η = interval(B.strong.η)
-    return sup(exp(2 * interval(pi) * N * η))
+    q = exp(-2 * interval(pi) * η)
+    return sup(2 * q^(N + 1) / (1 - q))
 end
 
-function aux_normalized_projection_error(B::FourierAnalytic{Aη})
-    N = B.k
-    η = interval(B.strong.η)
-    return sup(exp(2 * interval(pi) * N * η))
-end
+weak_projection_error(B::FourierAnalytic{Aη}) = _aeta_tail_bound(B)
+aux_normalized_projection_error(B::FourierAnalytic{Aη}) = _aeta_tail_bound(B)
 
 # W{k,1} strong norm: polynomial decay O(N^{-(k-1)}) for Fourier coefficient decay
 # ||P_h f - f||_{L²} ≤ (2πN)^{-k} ||f^{(k)}||_{L²} ≤ (2πN)^{-k} ||f||_{W^{k,1}}

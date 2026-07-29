@@ -246,8 +246,10 @@ end
     for ρ in (1.5, 2.0)
         B16, B32 = Chebyshev(16, Eρ(ρ)), Chebyshev(32, Eρ(ρ))
         @test strong_norm(B16) == Eρ
-        @test weak_norm(B16) == L2μ      # the analytic basis lives in the μ world
-        @test aux_norm(B16) == L1μ
+        # B = 0 in the analytic DFLY, so the auxiliary norm is multiplied by zero
+        # and the weak norm is free to be the one the approximation error uses.
+        @test weak_norm(B16) == L2
+        @test aux_norm(B16) == L1
         e16 = RIM.weak_projection_error(B16)
         e32 = RIM.weak_projection_error(B32)
         @test 0 < e32 < e16
@@ -285,6 +287,6 @@ end
 
     # The analytic basis: geometric projection error under either weak norm.
     BE = Chebyshev(16, Eρ(1.5))
-    @test RIM.weak_projection_error(BE) == RIM.aux_normalized_projection_error(BE)
-    @test isfinite(RIM.strong_weak_bound(BE)) && RIM.strong_weak_bound(BE) > 0
+    @test weak_norm(BE) == L2
+    @test isfinite(RIM.weak_projection_error(BE)) && RIM.weak_projection_error(BE) > 0
 end

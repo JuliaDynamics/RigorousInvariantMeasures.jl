@@ -296,3 +296,115 @@ function analytic_dfly_degenerate(strong::Eρ, ρ′::Real, C₂::Real)
     G = 1 / (1 - q)                            # Σ_{k ≥ 0} q^k
     return (sup(interval(C₂) * G), 0.0)
 end
+
+###############################################################################
+# dfly methods, so the analytic norms drop into the existing RIM pipeline
+###############################################################################
+
+import .RigorousInvariantMeasures: dfly, branches, derivative
+
+# Branch k, reparametrized so its domain is [-1,1]:  s ↦ x_k(s).
+_branch_chart(br) = s -> br.X[1] + (br.X[2] - br.X[1]) * (s + 1) / 2
+
+@doc raw"""
+    dfly(norm::Aη, ::Type{L1}, D::PwMap; C₂, n = 1024) -> (A, 0.0)
+    dfly(norm::Eρ, ::Type{L1}, D::PwMap; C₂, n = 1024) -> (A, 0.0)
+
+Degenerate Lasota–Yorke for the analytic norms: `A` is the continuity constant
+of `L` on the analytic space, and the auxiliary constant is `0`.
+
+Same call shape as every other `dfly`, so `powernormbounds`,
+`refine_norms_of_powers` and the coarse–fine workflow run unchanged once the
+basis fixes its strong and weak norms. Because `B = 0` the auxiliary norm is
+multiplied by zero and plays no part; the weak norm is free to be whatever the
+approximation error is measured in, which for these bases is `L2`.
+
+The geometry needs only **forward enclosures** — the branches of a `PwMap`
+evaluate at `Complex{Interval}` directly, so the enlarged neighbourhood is
+certified by [`strip_expansion`](@ref) / [`bernstein_expansion`](@ref) applied to
+each branch reparametrized onto its own domain. No complex derivative is
+involved.
+
+`C₂` bounds `L` between the two domains, ``\|L\|_{A_η \to A_{η'}}``; the Hölder
+factor `G(δ)` from the enlargement then gives `A = G(δ)C₂` (see
+[`analytic_dfly_degenerate`](@ref)).
+
+`C₂` is the one ingredient the forward enclosure does not determine on its own:
+the transfer operator carries the weight ``|g_k'| = 1/|T_k'\circ g_k|``, so by
+default it is computed as ``\sum_k 1/\min|T_k'|`` with the minimum taken over the
+enclosed neighbourhood — valid on the closed neighbourhood by the minimum
+modulus principle, ``T_k'`` being zero-free for an expanding map. Pass `C₂`
+explicitly to override it with a sharper estimate for your operator.
+
+!!! note "A ≥ 1 is expected"
+    `A` is a continuity constant, not a contraction factor: compactness is what
+    drives the certification. Helpers assuming the classical shape — notably
+    `invariant_measure_strong_norm_bound`, which forms `B/(1-A)` — do not apply
+    and say so rather than return a meaningless number.
+"""
+function dfly(norm::Aη, ::Type{L1}, D::PwMap; C₂::Union{Real,Nothing} = nothing,
+              n::Integer = 1024)
+    η = interval(norm.η)
+    η′, C = Inf, 0.0
+    for br in branches(D)
+        lo_der = Inf
+        for j = 1:n, σ in (1, -1)
+            t = br.X[1] + (br.X[2] - br.X[1]) * interval((j - 1) / n, j / n)
+            x = complex(t, σ * η)
+            η′ = min(η′, inf(abs(imag(br.f(x)))))
+            lo_der = min(lo_der, inf(_cabs(derivative(br.f, x))))
+        end
+        C = C ⊕₊ (1.0 ⊘₊ lo_der)
+    end
+    C₂ = C₂ === nothing ? C : C₂
+    η′ > norm.η ||
+        error("the strip is not enlarged (η′ = $η′ ≤ η = $(norm.η)); try a smaller η")
+    return analytic_dfly_degenerate(norm, η′, C₂)
+end
+
+function dfly(norm::Eρ, ::Type{L1}, D::PwMap; C₂::Union{Real,Nothing} = nothing,
+              n::Integer = 1024)
+    ρ = interval(norm.ρ)
+    ρ′, C = Inf, 0.0
+    for br in branches(D)
+        chart = _branch_chart(br)
+        # F_k maps [-1,1] onto [-1,1]; its ellipse image is what must expand
+        ρ′ = min(ρ′, bernstein_expansion(s -> 2 * br.f(chart(s)) - 1, ρ; n = n))
+        lo_der = Inf
+        for j = 1:n
+            x = chart(bernstein_point(ρ, interval((j - 1) / n, j / n)))
+            lo_der = min(lo_der, inf(_cabs(derivative(br.f, x))))
+        end
+        C = C ⊕₊ (1.0 ⊘₊ lo_der)
+    end
+    C₂ = C₂ === nothing ? C : C₂
+    ρ′ > norm.ρ ||
+        error("the ellipse is not enlarged (ρ′ = $ρ′ ≤ ρ = $(norm.ρ)); try a smaller ρ")
+    return analytic_dfly_degenerate(norm, ρ′, C₂)
+end
+
+@doc raw"""
+    invariant_measure_strong_norm_bound(B, D; dfly_coefficients)
+
+Strong-norm bound on the invariant density.
+
+The classical DFLY route is ``B/(1-A)``, which needs `A < 1` and `B > 0`. In the
+degenerate analytic case `B = 0` and `A` is a continuity constant, and the bound
+is simply **`A`** — the density lies in the image of `L`, so the continuity
+constant already controls it.
+"""
+function invariant_measure_strong_norm_bound(
+    B::FourierAnalytic{Aη},
+    D::Dynamic;
+    dfly_coefficients = dfly(strong_norm(B), aux_norm(B), D),
+)
+    return first(dfly_coefficients)
+end
+
+function invariant_measure_strong_norm_bound(
+    B::Chebyshev{Eρ},
+    D::Dynamic;
+    dfly_coefficients = dfly(strong_norm(B), aux_norm(B), D),
+)
+    return first(dfly_coefficients)
+end
