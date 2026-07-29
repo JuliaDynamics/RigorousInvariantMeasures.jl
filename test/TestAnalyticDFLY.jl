@@ -72,4 +72,41 @@ using IntervalArithmetic
         K, A, B = analytic_dfly_choose_K(Eρ(ρ), ρ′, 1.0; target_A = 0.4)
         @test A <= 0.4 && B > 0
     end
+
+    @testset "both halves of the DFLY are necessary (doubling map)" begin
+        # For x -> 2x the transfer operator acts on Fourier modes as
+        # L e_m = e_{m/2} for even m, 0 for odd.  That single fact pins the
+        # structure of the analytic DFLY from both sides.
+        D = mod1_dynamic(x -> 2 * x)
+        B = FourierAnalytic(16, 4096, W{3,1})
+        Q = mid.(RIM.assemble(B, D; ϵ = 1e-14, max_iter = 100))
+        n, K = length(B), B.k
+        idx(m) = m >= 0 ? m + 1 : n + m + 1
+
+        for m in (2, 4, 6, 8)
+            col = Q[:, idx(m)]
+            @test isapprox(col[idx(m ÷ 2)], 1.0; atol = 1e-12)
+            @test maximum(abs.(col[setdiff(1:n, [idx(m ÷ 2)])])) < 1e-14
+        end
+
+        # f = e_{2k} lies in L¹ ∩ A_η, with ||f||_{L¹} = 1 and Lf = e_k.
+        # ||Lf||_{A_η} = e^{2πηk} is unbounded in k, so there is no constant C
+        # with ||Lf||_{A_η} ≤ C||f||_{L¹}: the L¹ bound on the coefficients is
+        # uniform in k and cannot carry the weighted sum on its own.
+        η = 0.1
+        ratios_L1 = [exp(2π * η * k) for k in (2, 4, 8)]
+        @test issorted(ratios_L1)
+        @test ratios_L1[end] > 100
+
+        # The strong norm, on the other hand, contracts geometrically:
+        # ||Lf||_{A_η}/||f||_{A_η} = e^{-2πηk} -> 0. That is the analytic gain,
+        # and it is invisible to any real-variable quantity on [0,1].
+        ratios_strong = [exp(-2π * η * k) for k in (2, 4, 8)]
+        @test issorted(ratios_strong; rev = true)
+        @test ratios_strong[end] < 0.01
+
+        # Hence the split: A(K) from the analytic gain, B(K) from the L¹ bound.
+        Kc, A, Bc = analytic_dfly_choose_K(Aη(η), 2η, 1.0; target_A = 0.5)
+        @test A <= 0.5 && Bc > 1
+    end
 end
