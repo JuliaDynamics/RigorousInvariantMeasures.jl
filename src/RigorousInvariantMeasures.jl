@@ -72,6 +72,8 @@ export l2_measure_conversion_bounds, gram_restrict_to_average_zero
 export bernstein_point, bernstein_parameter, bernstein_expansion,
     expands_bernstein_ellipse, to_symmetric_interval
 
+include("AnalyticDFLY.jl")
+
 include("SpectralCertification.jl")
 
 

@@ -19,6 +19,7 @@ DocMeta.setdocmeta!(
     include("TestDynamic.jl")
     include("TestRun/TestRunIndex.jl")
     include("TestChebyshev.jl")
+    include("TestAnalyticDFLY.jl")
     include("TestSpectralCertification.jl")
 
     include("TestBasis/TestBasisIndex.jl")

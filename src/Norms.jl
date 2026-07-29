@@ -25,7 +25,11 @@ Analytic norm on the **Bernstein ellipse** ``E_ρ`` — the image of the circle
 ``|w| = ρ`` (``ρ > 1``) under the Joukowski map ``z = (w + w^{-1})/2``, i.e. the
 ellipse with foci ``\pm 1`` and semi-axes ``(ρ \pm ρ^{-1})/2``.
 
-``\|f\|_{E_ρ} = \sup_{E_ρ} |f|``. This is the Chebyshev counterpart of [`Aη`](@ref),
+``\|f\|_{E_ρ} = \sum_k |\hat b_k| ρ^k`` on the Chebyshev coefficients, matching the
+convention of [`Aη`](@ref), which is likewise a weighted ``\ell^1`` norm on the
+Fourier coefficients. Since ``|T_k| \le (ρ^k + ρ^{-k})/2 \le ρ^k`` on ``E_ρ``,
+this dominates ``\sup_{E_ρ}|f|``, so bounds stated for the sup norm (such as the
+Trefethen projection estimates) remain valid. This is the Chebyshev counterpart of [`Aη`](@ref),
 which measures analyticity on a strip for the Fourier bases: a strip is the
 natural neighbourhood of the circle, an ellipse the natural neighbourhood of
 ``[-1,1]``.

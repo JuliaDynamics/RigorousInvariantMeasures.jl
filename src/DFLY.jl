@@ -65,6 +65,12 @@ dfly(::W{1,1}, N2::Type{L1}, D::PwMap) = dfly(TotalVariation, L1, D)
 # For expanding full-branch maps: A = max|1/T'|, B = distortion bound
 # This is a conservative estimate; tighter bounds require complex interval evaluation
 function dfly(norm::Aη, ::Type{L1}, D::PwMap)
+    @warn """dfly(::Aη, L1, D) ignores the analytic structure entirely: it \
+    returns the real-variable (max_inverse_derivative, max_distortion) pair, \
+    the same constants as the BV/Lipschitz DFLY, and never reads `norm.η`. \
+    The contraction for an analytic norm comes from the transfer operator \
+    enlarging the domain of analyticity, which is invisible to L¹. Use \
+    `analytic_dfly(::Aη, η′, C, K)` with η′ from `strip_expansion`.""" maxlog = 1
     if has_infinite_derivative_at_endpoints(D)
         # Fall back to TotalVariation DFLY for infinite derivative maps
         return dfly(TotalVariation, L1, D)
