@@ -45,8 +45,8 @@ ChebCouples(n, T) = hcat(
 ChebPoints(n, T) = ChebCouples(n, T)[:, 2]
 
 # Strong W^{k,1}; weak L². As for FourierAnalytic the weak norm is L², but for
-# Chebyshev the measure has to be said: `L2` is L²(dx), `L2μ` is L²(dμ) with μ
-# the arcsine measure, and `C1` is the legacy Nisoli-Taylor-Crush norm.
+# `L2` here is L²(dx), the ambient measure of the rest of the package; `C1` is
+# the legacy Nisoli-Taylor-Crush norm.
 function Chebyshev(n::Integer, k::Integer, ::Type{WK} = L2; T = Float64) where {WK<:NormKind}
     return Chebyshev(ChebPoints(n, T), k, W{k,1}(), WK())
 end
@@ -226,16 +226,6 @@ end
 # For weak = L²(dx), Cauchy-Schwarz on the probability measure dx gives 1; for
 # weak = C1, ||v||_{L¹} ≤ ||v||_∞ ≤ ||v||_{C¹} gives 1 as well.
 aux_weak_bound(B::Chebyshev{S,WK}) where {S<:NormKind,WK<:NormKind} = 1.0
-
-# For weak = L²(dμ) it is NOT 1: the aux norm is against dx while the weak one
-# is against dμ, so with w = dx/dμ = π√(x(1-x)),
-#
-#   ||v||_{L¹(dx)} = ∫|v| w dμ ≤ ||v||_{L²(μ)} ||w||_{L²(μ)},
-#   ||w||²_{L²(μ)} = π ∫₀¹ √(x(1-x)) dx = π·(π/8) = π²/8,
-#
-# giving M₂ = π/(2√2) ≈ 1.1107, and this is sharp (attained at v = w/||w||).
-aux_weak_bound(B::Chebyshev{S,L2μ}) where {S<:NormKind} =
-    Float64(π, RoundUp) ⊘₊ (2.0 ⊗₋ sqrt_round(2.0, RoundDown))
 
 """
     weak_by_strong_and_aux_bound(B::Chebyshev)
@@ -799,14 +789,14 @@ end
 ###############################################################################
 # Norm interface for the L² weak norms
 #
-# Under `L2μ` the T_m are orthogonal, so with c the coefficient vector
+# The T_m are orthogonal against the arcsine measure μ, so with c the coefficient vector
 #
 #     ||f||_{L²(μ)}² = c₀² + ½ Σ_{m≥1} cₘ²,                                 (*)
 #
 # i.e. ||c||_{ℓ²}/√2 ≤ ||f||_{L²(μ)} ≤ ||c||_{ℓ²}.  Every bound below follows
 # from (*) alone, exactly as the Fourier ones follow from Parseval.
 #
-# Under `L2` (Lebesgue) each bound is the L2μ one composed with the conversion
+# Under `L2` (Lebesgue) each bound is the arcsine one composed with the conversion
 # constants of `l2_measure_conversion_bounds`:
 #
 #     ||f||_{L²(dx)} ≤ √(π/2) ||f||_{L²(μ)},   ||f||_{L²(μ)} ≤ Cₙ ||f||_{L²(dx)},
@@ -814,36 +804,32 @@ end
 # the first uniform (dx/dμ = π√(x(1-x)) ≤ π/2), the second finite-dimensional.
 ###############################################################################
 
-const _ChebL2 = Union{L2,L2μ}
-
 # ||v||_{L²} ≤ S₁ ||v||_s + S₂ ||v||_{L¹}: ||v||_{L²} ≤ ||v||_∞ ≤ ||v||_{W^{1,1}}
 # ≤ ||v||_{W^{k,1}} by Sobolev embedding on [0,1], for either measure.
-weak_by_strong_and_aux_bound(B::Chebyshev{S,WK}) where {S,WK<:_ChebL2} = (1.0, 0.0)
+weak_by_strong_and_aux_bound(B::Chebyshev{S,L2}) where {S} = (1.0, 0.0)
 
 # ||v||_{L²} ≤ W₁ ||ĉ||_{ℓ¹} + W₂ ||ĉ||_{ℓ∞}
 # Both measures are probability measures and |T_m| ≤ 1, so
 # ||v||_{L²} ≤ ||v||_∞ ≤ ||ĉ||_{ℓ¹} directly — no conversion factor.
-bound_weak_norm_from_linalg_norm(B::Chebyshev{S,WK}) where {S,WK<:_ChebL2} = (1.0, 0.0)
+bound_weak_norm_from_linalg_norm(B::Chebyshev{S,L2}) where {S} = (1.0, 0.0)
 
 # ||ĉ||_{ℓ¹} ≤ A ||v||_{L²}:  ||c||_{ℓ¹} ≤ √n ||c||_{ℓ²} ≤ √(2n) ||v||_{L²(μ)}
-function bound_linalg_norm_L1_from_weak(B::Chebyshev{S,L2μ}) where {S}
-    return sqrt_round(2.0 ⊗₊ Float64(length(B), RoundUp), RoundUp)
-end
 function bound_linalg_norm_L1_from_weak(B::Chebyshev{S,L2}) where {S}
+    # ||c||_{ℓ¹} ≤ √n ||c||_{ℓ²} ≤ √(2n) ||v||_{L²(μ)} ≤ √(2n) Cₙ ||v||_{L²(dx)},
+    # the last step by `l2_measure_conversion_bounds`.
     _, C_n = l2_measure_conversion_bounds(B)
     return sqrt_round(2.0 ⊗₊ Float64(length(B), RoundUp), RoundUp) ⊗₊ C_n
 end
 
 # ||ĉ||_{ℓ∞} ≤ A ||v||_{L²}:  ||c||_{ℓ∞} ≤ ||c||_{ℓ²} ≤ √2 ||v||_{L²(μ)}
-bound_linalg_norm_L∞_from_weak(B::Chebyshev{S,L2μ}) where {S} =
-    sqrt_round(2.0, RoundUp)
 function bound_linalg_norm_L∞_from_weak(B::Chebyshev{S,L2}) where {S}
+    # ||c||_{ℓ∞} ≤ ||c||_{ℓ²} ≤ √2 ||v||_{L²(μ)} ≤ √2 Cₙ ||v||_{L²(dx)}.
     _, C_n = l2_measure_conversion_bounds(B)
     return sqrt_round(2.0, RoundUp) ⊗₊ C_n
 end
 
 @doc raw"""
-    weak_projection_error(B::Chebyshev{S, <:Union{L2, L2μ}})
+    weak_projection_error(B::Chebyshev{S, L2})
 
 ``L^2`` projection error for the ``W^{ν,1}`` unit ball, ``ν`` = `B.k`.
 
@@ -871,11 +857,11 @@ aliasing is already accounted for.
     aliasing estimate which gives the half power straight back, so it is not
     used here.
 """
-weak_projection_error(B::Chebyshev{S,WK}) where {S,WK<:_ChebL2} =
+weak_projection_error(B::Chebyshev{S,L2}) where {S} =
     aux_normalized_projection_error(B)
 
 @doc raw"""
-    strong_weak_bound(B::Chebyshev{S, <:Union{L2, L2μ}})
+    strong_weak_bound(B::Chebyshev{S, L2})
 
 ``\|v\|_{W^{k,1}} \le M \|v\|_{L^2}`` on the span of the basis, obtained by
 composing the existing `C1` estimate with ``\|v\|_{C^1} \le M' \|v\|_{L^2}``,
@@ -883,7 +869,7 @@ where ``M'`` comes from ``\|v\|_∞ \le \|\hat c\|_{ℓ^1}`` and the Markov boun
 ``\|v'\|_∞ \le 2(n-1)^2 \|\hat c\|_{ℓ^1}`` already used by
 [`bound_weak_norm_from_linalg_norm`](@ref).
 """
-function strong_weak_bound(B::Chebyshev{S,WK}) where {S,WK<:_ChebL2}
+function strong_weak_bound(B::Chebyshev{S,L2}) where {S}
     B_c1 = Chebyshev(B.p, B.k, C1)
     W₁, _ = bound_weak_norm_from_linalg_norm(B_c1)      # ||v||_{C1} ≤ W₁ ||ĉ||_{ℓ¹}
     A = bound_linalg_norm_L1_from_weak(B)               # ||ĉ||_{ℓ¹} ≤ A ||v||_{L²}

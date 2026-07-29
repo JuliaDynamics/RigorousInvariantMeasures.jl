@@ -13,21 +13,6 @@ struct W{k,l} <: NormKind end
 order(::Type{W{k,l}}) where {k,l} = k
 regularity(::Type{W{k,l}}) where {k,l} = l
 
-@doc raw"""
-    L2μ <: NormKind
-
-``L^2`` against the arcsine measure ``dμ = dx/(π\sqrt{x(1-x)})`` on ``[0,1]``,
-as opposed to [`L2`](@ref), which is ``L^2(dx)``.
-
-The distinction matters for the Chebyshev basis: the ``T_m`` are orthogonal in
-``L^2(μ)`` and not in ``L^2(dx)``, so under `L2μ` Parseval holds on the
-coefficients and the norm interface reduces to the same one-liners as the
-Fourier bases, whereas under `L2` the (dense) Gram matrix enters. The two are
-related on polynomials of degree < n by
-[`l2_measure_conversion_bounds`](@ref).
-"""
-struct L2μ <: NormKind end
-
 # Analytic strip norm
 struct Aη <: NormKind
     η::Float64

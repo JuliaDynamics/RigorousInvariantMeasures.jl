@@ -92,8 +92,28 @@ function LinearAlgebra.mul!(
 end
 
 # these should be defined in terms of mul!, but it's simpler for now
+# Rigorous sparse-aware interval mat-vec via BallArithmetic.
+#
+# IntervalArithmetic's generic `SparseMatrixCSC{Interval} * Vector` densifies
+# the matrix (Rump midpoint-radius through BLAS `gemm`), which is O(n^2) memory
+# and OOMs already at n = 2^18.  A sparse-backed `BallMatrix` keeps `MMul4`'s
+# midpoint/radius products sparse (no BLAS, no densification), so the matvec is
+# O(nnz); `MMul4` is rigorous, so the enclosure is sound.
+#
+# The routing is dispatched on the *matrix* type, not on the operator type:
+# only a sparse interval `Q.L` (e.g. Ulam) takes the BallArithmetic path; dense
+# operators (Fourier/Chebyshev bases) fall through to the default `L * v`.
+_ball_sparse(L::SparseMatrixCSC{Interval{T}}) where {T} = BallMatrix(
+    SparseMatrixCSC(L.m, L.n, L.colptr, L.rowval, mid.(L.nzval)),
+    SparseMatrixCSC(L.m, L.n, L.colptr, L.rowval, radius.(L.nzval)),
+)
+
+_op_matvec(L::SparseMatrixCSC{Interval{T}}, v::AbstractVector{Float64}) where {T} =
+    interval.(_ball_sparse(L) * v)
+_op_matvec(L, v) = L * v   # dense / non-interval / interval-input: unchanged
+
 function Base.:*(Q::IntegralPreservingDiscretizedOperator, v::Array)
-    return Q.L * v
+    return _op_matvec(Q.L, v)
 end
 
 function Base.:*(Q::NonIntegralPreservingDiscretizedOperator, v::Array)

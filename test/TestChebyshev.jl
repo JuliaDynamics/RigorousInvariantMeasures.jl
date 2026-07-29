@@ -167,17 +167,15 @@ end
     @test weak_norm(B) == L2
     @test aux_norm(B) == L1
 
-    # The measure is selectable, and the Taylor-Crush C1 path is untouched.
-    @test weak_norm(Chebyshev(16, 3, L2μ)) == L2μ
+    # The Taylor-Crush C1 path is untouched.
     @test weak_norm(Chebyshev(16, 3, C1)) == C1
     @test length(Chebyshev(16, 3)) == length(Chebyshev(16, 3, C1))
 
     # The L2 projection error comes from the W^{k,1} coefficient decay via
-    # Theorems 3.12/3.13, and since dx and dμ are both probability measures the
-    # same bound serves either, with no conversion factor.
+    # Theorems 3.12/3.13; since dx is a probability measure ||.||_L2 <= ||.||_inf
+    # with constant 1, so it coincides with the aux (C0) bound.
     for n in (16, 32)
-        Bn, Bnμ = Chebyshev(n, 3), Chebyshev(n, 3, L2μ)
-        @test RIM.weak_projection_error(Bn) == RIM.weak_projection_error(Bnμ)
+        Bn = Chebyshev(n, 3)
         @test RIM.weak_projection_error(Bn) == RIM.aux_normalized_projection_error(Bn)
     end
 
@@ -186,23 +184,13 @@ end
     e32 = RIM.weak_projection_error(Chebyshev(32, 3))
     @test 5 < e16 / e32 < 12
 
-    # Parseval-based constants: tighter under the arcsine measure, since the
-    # Lebesgue ones carry the conversion factor C_n.
-    for (f, _) in ((RIM.bound_linalg_norm_L1_from_weak, nothing),
-                   (RIM.bound_linalg_norm_L∞_from_weak, nothing))
-        @test f(Chebyshev(16, 3, L2μ)) <= f(Chebyshev(16, 3))
-    end
-    @test RIM.bound_linalg_norm_L∞_from_weak(Chebyshev(16, 3, L2μ)) ≈ sqrt(2) rtol = 1e-12
-    # aux is L1(dx) while weak may be L2(dmu): then M2 = pi/(2*sqrt(2)), sharp,
-    # not 1. It is 1 for L2(dx) and for C1.
     @test RIM.aux_weak_bound(Chebyshev(16, 3)) == 1.0
     @test RIM.aux_weak_bound(Chebyshev(16, 3, C1)) == 1.0
-    @test RIM.aux_weak_bound(Chebyshev(16, 3, L2μ)) >= pi / (2 * sqrt(2))
-    @test RIM.aux_weak_bound(Chebyshev(16, 3, L2μ)) < 1.111
+    @test RIM.bound_weak_norm_from_linalg_norm(Chebyshev(16, 3)) == (1.0, 0.0)
     @test RIM.weak_by_strong_and_aux_bound(Chebyshev(16, 3)) == (1.0, 0.0)
 
     # All interface constants finite and positive for every weak norm.
-    for Bx in (Chebyshev(16, 3), Chebyshev(16, 3, L2μ), Chebyshev(16, 3, C1))
+    for Bx in (Chebyshev(16, 3), Chebyshev(16, 3, C1))
         for g in (RIM.weak_projection_error, RIM.aux_normalized_projection_error,
                   RIM.strong_weak_bound, RIM.bound_linalg_norm_L1_from_weak,
                   RIM.bound_linalg_norm_L∞_from_weak)
