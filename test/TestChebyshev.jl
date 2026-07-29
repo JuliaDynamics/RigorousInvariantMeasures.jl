@@ -199,3 +199,59 @@ end
         end
     end
 end
+
+@testset "Bernstein ellipses" begin
+    RIM = RigorousInvariantMeasures
+
+    # bernstein_parameter inverts bernstein_point exactly.
+    for ρ in (1.1, 1.3, 2.0, 4.0), θ in (0.0, 0.137, 0.25, 0.5, 0.9)
+        z = bernstein_point(interval(ρ), interval(θ))
+        @test in_interval(ρ, bernstein_parameter(z))
+    end
+
+    # [-1,1] is the degenerate ellipse ρ = 1.
+    for x in (-1.0, -0.4, 0.0, 0.7, 1.0)
+        @test in_interval(1, bernstein_parameter(complex(interval(x), interval(0.0))))
+    end
+
+    # Ground truth: the Chebyshev polynomials map E_ρ onto E_{ρ^m}.
+    T2(z) = 2z^2 - 1
+    T3(z) = 4z^3 - 3z
+    for ρ in (1.2, 1.5, 2.0), (m, f) in ((2, T2), (3, T3))
+        got = bernstein_expansion(f, ρ; n = 2048)
+        @test got <= ρ^m + 1e-12          # it is a rigorous LOWER bound
+        @test got > 0.95 * ρ^m            # ...and a tight one
+    end
+
+    # The gap is pure discretization: refining by 4 should shrink it ~4x or more.
+    gaps = [2.25 - bernstein_expansion(T2, 1.5; n = n) for n in (256, 1024, 4096)]
+    @test all(gaps .> 0)
+    @test gaps[2] < gaps[1] / 3
+    @test gaps[3] < gaps[2] / 3
+
+    # Expansion test: T_2 expands every ellipse, the identity expands none.
+    for ρ in (1.2, 2.0)
+        expands, ρ_img = expands_bernstein_ellipse(T2, ρ; n = 2048)
+        @test expands
+        @test ρ_img > ρ
+        @test !first(expands_bernstein_ellipse(identity, ρ; n = 256))
+    end
+
+    # The [0,1] -> [-1,1] conjugation: x -> 2x mod 1 becomes t -> 2t+1 on the
+    # first branch, and doubling the angle doubles the ellipse parameter.
+    f01 = x -> 2 * x
+    @test to_symmetric_interval(f01)(interval(0.0)) == interval(1.0)
+
+    # Eρ basis: geometric projection error, decaying like ρ^{-n}.
+    for ρ in (1.5, 2.0)
+        B16, B32 = Chebyshev(16, Eρ(ρ)), Chebyshev(32, Eρ(ρ))
+        @test strong_norm(B16) == Eρ
+        @test weak_norm(B16) == L2
+        e16 = RIM.weak_projection_error(B16)
+        e32 = RIM.weak_projection_error(B32)
+        @test 0 < e32 < e16
+        @test isapprox(e16 / e32, ρ^(length(B32) - length(B16)); rtol = 1e-8)
+        @test RIM.weak_by_strong_and_aux_bound(B16) == (1.0, 0.0)
+        @test isfinite(RIM.strong_weak_bound(B16))
+    end
+end

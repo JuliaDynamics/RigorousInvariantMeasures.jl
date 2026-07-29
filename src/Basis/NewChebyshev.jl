@@ -52,6 +52,13 @@ function Chebyshev(n::Integer, k::Integer, ::Type{WK} = L2; T = Float64) where {
 end
 Chebyshev(p::AbstractVector, k::Integer, ::Type{WK} = L2) where {WK<:NormKind} =
     Chebyshev(p, k, W{k,1}(), WK())
+
+# Analytic (Bernstein-ellipse) strong norm, weak L2 — the Chebyshev counterpart
+# of `FourierAnalytic(k, n; η)`. `k` is unused for this strong norm.
+function Chebyshev(n::Integer, strong::Eρ; T = Float64)
+    return Chebyshev(ChebPoints(n, T), 0, strong, L2())
+end
+Chebyshev(p::AbstractVector, strong::Eρ) = Chebyshev(p, 0, strong, L2())
 Base.show(io::IO, B::Chebyshev) =
     print(io, "Chebyshev basis on $(length(B)) points, highest degree $(length(B)-1)")
 
@@ -875,3 +882,167 @@ function strong_weak_bound(B::Chebyshev{S,L2}) where {S}
     A = bound_linalg_norm_L1_from_weak(B)               # ||ĉ||_{ℓ¹} ≤ A ||v||_{L²}
     return strong_weak_bound(B_c1) ⊗₊ W₁ ⊗₊ A
 end
+
+###############################################################################
+# Norm interface for the Bernstein-ellipse strong norm
+#
+# Trefethen, ATAP, Thm 8.1: f analytic in E_ρ with |f| ≤ M has Chebyshev
+# coefficients |a_0| ≤ M, |a_k| ≤ 2Mρ^{-k}; Thm 8.2 (8.3): the *interpolant*
+# through n+1 Chebyshev points then satisfies ||f - p_n||_∞ ≤ 4Mρ^{-n}/(ρ-1).
+# The basis interpolates, so (8.3) is the relevant one.
+###############################################################################
+
+# Degree of the interpolant: length(B) points carry degree length(B) - 1.
+_cheb_degree(B::Chebyshev) = Float64(length(B) - 1, RoundDown)
+
+@doc raw"""
+    weak_projection_error(B::Chebyshev{Eρ, L2})
+
+``\|f - p_n\|_{L^2(dx)} \le 4ρ^{-n}/(ρ-1)`` on the unit ball of the
+[`Eρ`](@ref) norm, from Trefethen, *ATAP*, Thm 8.2 (8.3) — the interpolation
+form, since this basis interpolates at the Chebyshev points. `dx` is a
+probability measure on ``[0,1]``, so the sup-norm bound carries to ``L^2`` with
+constant 1.
+"""
+function weak_projection_error(B::Chebyshev{Eρ,L2})
+    ρ = B.strong.ρ
+    ρ > 1 || return Inf
+    n = _cheb_degree(B)
+    return (4.0 ⊘₊ (ρ ⊖₋ 1.0)) ⊗₊ (ρ^(-n))
+end
+
+aux_normalized_projection_error(B::Chebyshev{Eρ,L2}) = weak_projection_error(B)
+
+# ||v||_{L²(dx)} ≤ ||v||_∞ ≤ ||v||_{E_ρ}, since [-1,1] ⊂ E_ρ.
+weak_by_strong_and_aux_bound(B::Chebyshev{Eρ,L2}) = (1.0, 0.0)
+
+@doc raw"""
+    strong_weak_bound(B::Chebyshev{Eρ, L2})
+
+``\|v\|_{E_ρ} \le M\,\|v\|_{L^2(dx)}`` on the span of the basis. On ``E_ρ`` one
+has ``|T_k| \le (ρ^k + ρ^{-k})/2 \le ρ^k``, so
+``\|v\|_{E_ρ} \le ρ^{n}\|\hat c\|_{ℓ^1}``, and
+[`bound_linalg_norm_L1_from_weak`](@ref) supplies ``\|\hat c\|_{ℓ^1}`` in terms
+of the weak norm.
+"""
+function strong_weak_bound(B::Chebyshev{Eρ,L2})
+    ρ = B.strong.ρ
+    n = _cheb_degree(B)
+    return (ρ^n) ⊗₊ bound_linalg_norm_L1_from_weak(B)
+end
+
+###############################################################################
+# Bernstein ellipses
+###############################################################################
+
+@doc raw"""
+    bernstein_point(ρ, θ)
+
+The point of the Bernstein ellipse ``∂E_ρ`` at parameter `θ ∈ [0,1]`, namely
+``z = (w + w^{-1})/2`` with ``w = ρ\,e^{2πiθ}``, which expands to
+
+```math
+z = \frac{ρ + ρ^{-1}}{2}\cos 2πθ \;+\; i\,\frac{ρ - ρ^{-1}}{2}\sin 2πθ .
+```
+
+`ρ` and `θ` may be intervals, in which case the result encloses the
+corresponding arc.
+"""
+function bernstein_point(ρ, θ)
+    a = (ρ + 1 / ρ) / 2
+    b = (ρ - 1 / ρ) / 2
+    twoπθ = 2 * interval(π) * θ
+    return complex(a * cos(twoπθ), b * sin(twoπθ))
+end
+
+@doc raw"""
+    bernstein_parameter(z)
+
+The parameter ``ρ ≥ 1`` of the Bernstein ellipse through the point `z`.
+
+``E_ρ`` has foci ``\pm 1`` and major axis ``ρ + ρ^{-1}``, so the focal-distance
+characterisation of the ellipse gives
+
+```math
+s := |z-1| + |z+1| = ρ + ρ^{-1},
+\qquad
+ρ = \frac{s + \sqrt{s^2-4}}{2}.
+```
+
+Working through `s` keeps everything real: no complex square root, and hence no
+branch cut to worry about (the two Joukowski preimages ``w`` and ``w^{-1}`` of
+`z` give the same answer by construction). `z` may be a complex interval, and
+the result then encloses the parameters of all points it contains.
+"""
+function bernstein_parameter(z)
+    s = _cabs(z - 1) + _cabs(z + 1)
+    disc = s * s - 4
+    # s ≥ 2 always; clip the rounding of s² - 4 at 0 for z on [-1,1], where ρ = 1.
+    disc = intersect_interval(disc, interval(0, Inf))
+    isempty_interval(disc) && (disc = interval(0, 0))
+    return (s + sqrt(disc)) / 2
+end
+
+_cabs(z) = sqrt(real(z) * real(z) + imag(z) * imag(z))
+
+@doc raw"""
+    bernstein_expansion(f, ρ; n = 1024) -> ρ_image
+
+Rigorous lower bound on
+
+```math
+\min_{z \in ∂E_ρ} \; \texttt{bernstein\_parameter}(f(z)) ,
+```
+
+obtained by covering the boundary parameter with `n` intervals, enclosing the
+image of each arc under `f`, and taking the smallest enclosure. `f` must accept
+a `Complex{Interval}`.
+
+`f` maps ``E_ρ`` strictly outside itself — it *expands* the ellipse — exactly
+when the returned value exceeds `ρ`; see [`expands_bernstein_ellipse`](@ref).
+This is the Chebyshev analogue of enclosing the image of an annulus and reading
+off its inner and outer radii, as done for the Fourier/analytic setting; an
+ellipse needs only the one number because ``∂E_ρ`` is a single curve.
+
+# Example
+
+The Chebyshev polynomials are exactly the maps ``T_m(E_ρ) = E_{ρ^m}``, so
+`bernstein_expansion(z -> 2z^2 - 1, ρ)` returns ``ρ^2``.
+"""
+function bernstein_expansion(f, ρ; n::Integer = 1024)
+    ρi = ρ isa Interval ? ρ : interval(ρ)
+    lo = Inf
+    for j = 1:n
+        θ = interval((j - 1) / n, j / n)
+        val = bernstein_parameter(f(bernstein_point(ρi, θ)))
+        lo = min(lo, inf(val))
+    end
+    return lo
+end
+
+@doc raw"""
+    expands_bernstein_ellipse(f, ρ; n = 1024) -> (expands, ρ_image)
+
+Whether `f` maps ``∂E_ρ`` strictly outside ``E_ρ``, together with the certified
+image parameter from [`bernstein_expansion`](@ref).
+
+For an interval map this is the analytic expansion condition behind an
+[`Eρ`](@ref) Lasota–Yorke inequality: if the forward map expands the ellipse
+then its inverse branches contract into it, so the transfer operator preserves
+analyticity on ``E_ρ``.
+"""
+function expands_bernstein_ellipse(f, ρ; n::Integer = 1024)
+    ρ_image = bernstein_expansion(f, ρ; n = n)
+    return (ρ_image > sup(ρ isa Interval ? ρ : interval(ρ)), ρ_image)
+end
+
+@doc raw"""
+    to_symmetric_interval(f)
+
+Conjugate a map of ``[0,1]`` into a map of ``[-1,1]``, `t ↦ 2f((t+1)/2) - 1`.
+
+Bernstein ellipses live around ``[-1,1]`` while the dynamics in this package
+live on ``[0,1]``, so this is what to wrap a branch in before handing it to
+[`bernstein_expansion`](@ref).
+"""
+to_symmetric_interval(f) = t -> 2 * f((t + 1) / 2) - 1
