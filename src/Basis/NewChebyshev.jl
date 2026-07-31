@@ -1096,3 +1096,61 @@ end
 function strong_weak_bound(B::Chebyshev{Eρ,L2μ})
     return (B.strong.ρ^_cheb_degree(B)) ⊗₊ bound_linalg_norm_L1_from_weak(B)
 end
+
+###############################################################################
+# L² norms for the Chebyshev basis
+#
+# The basis is not L²(dx)-orthonormal, so neither the vector nor the operator
+# norm is the plain ℓ² one: the Lebesgue Gram matrix has to enter. For vectors
+# this is just the quadratic form; for operators it is the Cholesky
+# conjugation ‖M‖_{L²} = ‖U M U⁻¹‖₂, exact rather than a cond(G) inflation.
+###############################################################################
+
+const _CHEB_CHOL_CACHE = Dict{Tuple{Int,DataType},Any}()
+
+# Cholesky factor U of the Lebesgue Gram matrix (G = U'U), cached by size.
+function _cheb_gram_factor(n::Integer, ::Type{T}) where {T}
+    get!(_CHEB_CHOL_CACHE, (Int(n), T)) do
+        G = _lebesgue_gram(n, T)
+        chol = BallArithmetic.verified_cholesky(T.(mid.(G)); use_bigfloat = false)
+        chol.success || error("verified Cholesky of the Lebesgue Gram matrix failed")
+        U = chol.G
+        Ui = Interval{T}[
+            interval(T, U.c[i, j] - U.r[i, j], U.c[i, j] + U.r[i, j]) for i = 1:n, j = 1:n
+        ]
+        (Ui, _verified_inverse(Ui))
+    end
+end
+
+@doc raw"""
+    normbound(B::Chebyshev, ::Type{L2}, v)
+
+``\|v\|_{L^2(dx)} = \sqrt{c^{*}G_L c}`` for the coefficient vector `c`, with
+`G_L` the Lebesgue Gram matrix — the basis is not orthonormal, so this is not
+`‖c‖_{ℓ²}`.
+"""
+function normbound(B::Chebyshev, ::Type{L2}, v)
+    G = _lebesgue_gram(length(B), Float64)
+    c = [as_interval(Float64, x) for x in v]
+    return sup(sqrt(abs(sum(c[i] * G[i, j] * c[j] for i in eachindex(c), j in eachindex(c)))))
+end
+
+@doc raw"""
+    opnormbound(B::Chebyshev, ::Type{L2}, M)
+
+``\|M\|_{L^2(dx)} = \|U M U^{-1}\|_2`` with `G_L = U^{*}U`; exact, with no
+condition-number penalty. See [`gram_restrict_to_average_zero`](@ref).
+
+The conjugated matrix is measured with [`_l2_opnorm_ball`](@ref), which prefers
+the verified-SVD enclosure over the cheap `min(Collatz, √(‖·‖₁‖·‖_∞))` bound.
+"""
+function opnormbound(B::Chebyshev, ::Type{L2}, M::AbstractMatrix)
+    n = length(B)
+    U, Uinv = _cheb_gram_factor(n, Float64)
+    Mi = [as_interval(Float64, x) for x in M]
+    P = BallMatrix(U) * BallMatrix(Mi) * BallMatrix(Uinv)
+    return _l2_opnorm_ball(P)
+end
+
+opnormbound(B::Chebyshev, N::Type{L2}, w::LinearAlgebra.Adjoint) =
+    normbound(B, N, vec(collect(w')))

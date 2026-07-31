@@ -68,11 +68,33 @@ end
 
 """
 Certified upper bound to the L2 operator norm of a matrix via BallArithmetic.
-Uses Collatz + sqrt(L1·L∞) interpolation for a tight bound.
+
+`upper_bound_L2_opnorm` is `min(Collatz, √(‖·‖₁‖·‖_∞))`: cheap, but on the
+matrices that arise here it overestimates the spectral norm by 1.4–1.7×. The
+verified-SVD enclosure is sharp to ~1e-8 relative and costs a few ms at the
+sizes we use, and the weak norm feeds straight into γ_N, so we prefer it and
+keep the `min` with the cheap bound — the result can only improve.
+
+Midpoints may be real or complex, and the element type may be `BigFloat` —
+`svdbox` handles it through BallArithmetic's `GenericSchurExt`, so load
+`GenericSchur` alongside this package to get the sharp bound in extended
+precision. Should the SVD be unavailable or fail, we fall back to the cheap
+bound; since we return the `min` of the two, the result is a valid upper bound
+either way.
 """
 function opnormbound(::Type{L2}, A::AbstractMatrix{T}) where {T}
     BM = BallMatrix(Matrix(A))  # materialize to handle Adjoint/Transpose types
-    return upper_bound_L2_opnorm(BM)
+    return _l2_opnorm_ball(BM)
+end
+
+function _l2_opnorm_ball(BM::BallMatrix)
+    cheap = upper_bound_L2_opnorm(BM)
+    sharp = try
+        BallArithmetic.svd_bound_L2_opnorm(BM)
+    catch
+        return cheap
+    end
+    return (isfinite(sharp) && sharp > 0) ? min(cheap, sharp) : cheap
 end
 
 """
