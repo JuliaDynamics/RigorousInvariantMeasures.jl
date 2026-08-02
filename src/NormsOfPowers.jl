@@ -182,7 +182,7 @@ function norms_of_powers(
     norms = Vector{Float64}(undef, m)
     BM_power = BM_U0
     for k = 1:m
-        norms[k] = upper_bound_L2_opnorm(BM_power)
+        norms[k] = _l2_opnorm_ball(BM_power)
         if k < m
             BM_power = BM_power * BM_U0
         end
@@ -195,22 +195,23 @@ end
 
 Direct `L^2`-operator-norm-of-iterates loop on a `BallMatrix` that
 the caller has already restricted to `U^0` (the average-zero
-subspace).  Returns `norms[k] = ‖BM_U0^k‖_{L²→L²}` for
+subspace).  Returns `norms[k] ≥ ‖BM_U0^k‖_{L²→L²}` for
 `k = 1, …, m`, computed rigorously via interval matrix
-multiplication and the minimum of two majorisations:
+multiplication and [`_l2_opnorm_ball`](@ref), which takes the best
+of the verified SVD enclosure, the Collatz/Perron–Frobenius bound,
+and the Hölder bound `√(‖A‖_1‖A‖_∞)` — the last two are what
+`upper_bound_L2_opnorm` already minimises over, using the
+radius-inflated `|c| + r`.
 
-* the Perron–Frobenius bound `upper_bound_L2_opnorm(A) ≤
-  √(ρ(|Aᵀ|·|A|))`, tight on nearly-normal matrices;
-* the Hölder bound `√(‖A‖_1 · ‖A‖_∞)`, which is two row/col sums
-  of `|A_{ij}|` (cheap, basis-free, and — crucially — does NOT
-  amplify the rigorous radius through any extra matrix product).
-
-For strongly spectrally-contracting non-normal matrices the PF
-bound's intermediate `|Aᵀ|·|A|` accumulates large rigorous radii
-under iteration and DIVERGES even when the actual operator norm
-decays, while the Hölder bound tracks the midpoint norm within
-a factor of 2–3.  Taking the min lets the iterate route close
-on both types of matrices.
+!!! note "Two earlier problems here"
+    This loop used to take `min(upper_bound_L2_opnorm(A), holder)`
+    with `holder = √(‖A.c‖_1‖A.c‖_∞)` computed from the **midpoints
+    alone**.  That discards the radii, so the `min` could fall below
+    the true norm — not a valid upper bound.  It was also redundant:
+    `upper_bound_L2_opnorm` already includes a rigorous Hölder bound.
+    Separately, both bounds are loose on these matrices (a factor
+    8–9 at `n = 512`, e.g. `‖Q|_{U⁰}‖ ≈ 9.3` reported against a true
+    value below 1), which the verified SVD removes.
 
 This is the basis-free entry point used by callers (e.g.
 `SelfConsistentExperiments.certify_contraction_iterate`) that
@@ -229,11 +230,7 @@ function norms_of_powers(BM_U0::BallMatrix, ::Type{L2}, m::Integer)
     norms = Vector{Float64}(undef, m)
     BM_power = BM_U0
     for k = 1:m
-        pf     = upper_bound_L2_opnorm(BM_power)
-        L1bd   = opnormbound(L1,   BM_power.c)
-        Linfbd = opnormbound(Linf, BM_power.c)
-        holder = sqrt_round(L1bd ⊗₊ Linfbd, RoundUp)
-        norms[k] = min(pf, holder)
+        norms[k] = _l2_opnorm_ball(BM_power)
         if k < m
             BM_power = BM_power * BM_U0
         end

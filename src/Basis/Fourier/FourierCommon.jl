@@ -52,7 +52,20 @@ function Base.getindex(B::Fourier, i::Int)
     end
 end
 
-is_refinement(Bc::Fourier, Bf::Fourier) = length(Bc) < length(Bf)
+@doc raw"""
+    is_refinement(Bf::Fourier, Bc::Fourier)
+
+Whether `Bf` refines `Bc`. The Fourier spaces are nested frequency truncations,
+``\mathcal U_{N_c} \subseteq \mathcal U_{N_f}`` iff ``N_c \le N_f``.
+
+Note the argument order: the contract of [`is_refinement`](@ref) is
+`(fine, coarse)`, as for `Ulam` and `HatNP`. This method used to be written
+`(Bc, Bf)`, so a correct `is_refinement(fine, coarse)` call returned `false`
+and `norms_of_powers_from_coarser_grid` logged "The fine basis is not a
+refinement of the coarse basis" on every coarse–fine run. It is also now `≤`,
+matching `Ulam`, so a basis refines itself.
+"""
+is_refinement(Bf::Fourier, Bc::Fourier) = length(Bc) <= length(Bf)
 integral_covector(B::Fourier; T = Float64) = [Interval{T}(1); zeros(length(B) - 1)]'
 one_vector(B::Fourier) = [1; zeros(length(B) - 1)]
 

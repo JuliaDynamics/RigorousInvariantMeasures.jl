@@ -163,7 +163,7 @@ end
 
     # Default is W^{k,1} strong / L2 weak, as for FourierAnalytic.
     B = Chebyshev(16, 3)
-    @test strong_norm(B) == W{3,1}
+    @test typeof(strong_norm(B)) == W{3,1}
     @test weak_norm(B) == L2
     @test aux_norm(B) == L1
 
@@ -245,7 +245,7 @@ end
     # Eρ basis: geometric projection error, decaying like ρ^{-n}.
     for ρ in (1.5, 2.0)
         B16, B32 = Chebyshev(16, Eρ(ρ)), Chebyshev(32, Eρ(ρ))
-        @test strong_norm(B16) == Eρ
+        @test typeof(strong_norm(B16)) == Eρ
         # B = 0 in the analytic DFLY, so the auxiliary norm is multiplied by zero
         # and the weak norm is free to be the one the approximation error uses.
         @test weak_norm(B16) == L2

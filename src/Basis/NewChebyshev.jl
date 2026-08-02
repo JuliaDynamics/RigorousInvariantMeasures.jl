@@ -298,7 +298,19 @@ aux_norm(B::Chebyshev) = L1
 # Parseval and |b̂_k| ≤ 2‖f‖_{L¹(μ)} -- live against μ, and matching the two
 # measures makes aux_weak_bound a plain Cauchy-Schwarz 1.
 aux_norm(B::Chebyshev{S,L2μ}) where {S<:NormKind} = L1μ
-strong_norm(B::Chebyshev) = typeof(B.strong)
+# Return the INSTANCE, not the type, exactly as `FourierAnalytic` does. The
+# analytic strong norms carry a parameter (`Eρ` its ρ, `Aη` its η), so the type
+# alone cannot reconstruct the norm: `dfly(Eρ, L1, D)` — a type — misses
+# `dfly(::Eρ, ::Type{L1}, D)` and falls through to the
+# `dfly(::Type{<:NormKind}, ::Type{<:NormKind}, ::Dynamic)` stub, which logs
+# "Not implemented" and returns `nothing`, surfacing far away as
+# `MethodError: no method matching iterate(::Nothing)` inside
+# `distance_from_invariant`.
+#
+# For the parameterless `W{k,l}` this changes nothing: the instance fallback
+# `dfly(n1::NormKind, n2, D) = dfly(typeof(n1), n2, D)` forwards to the type
+# method. (`weak_norm` keeps returning the type, as in `FourierAnalytic`.)
+strong_norm(B::Chebyshev) = B.strong
 
 """
 	Base.getindex(B::Chebyshev, i::Int)
@@ -313,7 +325,24 @@ function Base.getindex(B::Chebyshev, i::Int)
     return x -> evalChebyshev(v, x)
 end
 
-is_refinement(Bc::Chebyshev, Bf::Chebyshev) = length(Bc) < length(Bf)
+@doc raw"""
+    is_refinement(Bf::Chebyshev, Bc::Chebyshev)
+
+Whether `Bf` refines `Bc`, i.e. whether the Chebyshev points of `Bc` are a
+subset of those of `Bf`. With degrees ``n_f`` and ``n_c`` the points are
+``\cos(jπ/n)``, so nesting holds exactly when ``n_c \mid n_f``.
+
+Note the argument order: the contract of [`is_refinement`](@ref) is
+`(fine, coarse)`, as for `Ulam` and `HatNP`. This method used to be written
+`(Bc, Bf)` with the body `length(Bc) < length(Bf)`, so a correct
+`is_refinement(fine, coarse)` call returned `false` and
+`norms_of_powers_from_coarser_grid` logged "The fine basis is not a refinement
+of the coarse basis" on every coarse–fine run.
+"""
+function is_refinement(Bf::Chebyshev, Bc::Chebyshev)
+    nf, nc = length(Bf) - 1, length(Bc) - 1
+    return nf >= nc && nc > 0 && nf % nc == 0
+end
 integral_covector(B::Chebyshev; T = Float64) =
     [Interval{T}(1); 0; [0.5 * Interval{T}((-1)^n + 1) / (1 - n^2) for n = 2:length(B)-1]]'
 one_vector(B::Chebyshev) = [1; zeros(length(B) - 1)]
@@ -1097,6 +1126,71 @@ function strong_weak_bound(B::Chebyshev{Eρ,L2μ})
     return (B.strong.ρ^_cheb_degree(B)) ⊗₊ bound_linalg_norm_L1_from_weak(B)
 end
 
+@doc raw"""
+    invariant_measure_strong_norm_bound(B::Chebyshev{W{k,l}}, D; dfly_coefficients)
+
+The classical DFLY bound ``\|h\|_s \le B/(1-A)`` on the invariant density, as
+for `Ulam`, `Hat` and `Fourier`. The analytic (`Eρ`) strong norm is degenerate,
+`B = 0`, and is handled separately in `AnalyticDFLY.jl`, where the bound is `A`.
+
+Without this method `distance_from_invariant` fails with a `MethodError` on any
+`W^{k,1}` Chebyshev basis.
+"""
+function invariant_measure_strong_norm_bound(
+    B::Chebyshev{W{k,l}},
+    D::Dynamic;
+    dfly_coefficients = dfly(strong_norm(B), aux_norm(B), D),
+) where {k,l}
+    A, Bcoeff = dfly_coefficients
+    @assert A < 1.0
+    return Bcoeff ⊘₊ (1.0 ⊖₋ A)
+end
+
+@doc raw"""
+    bound_weak_norm_abstract(B::Chebyshev, D; dfly_coefficients)
+
+A priori bound on ``\|L\|_{L^2 \to L^2}``.
+
+Cauchy–Schwarz against the measure ``\sum_k |g_k'|\,δ_{g_k(x)}`` gives
+``|Lf|^2 \le (L\mathbf 1)(L|f|^2)``; integrating and using ``\int L|f|^2 =
+\int|f|^2`` yields
+
+```math
+\|L\|_{L^2\to L^2} \;\le\; \Big(\sup_{[0,1]} L\mathbf 1\Big)^{1/2}
+\;\le\; \Big(\sum_k \frac{1}{\min_{[X_1,X_2]}|T_k'|}\Big)^{1/2},
+```
+
+which is what we compute when the dynamic is available. For the Lanford map
+this gives 1.0732 against a measured ``\|Q\|_{L^2} = 1.0716``.
+
+The package-wide convention elsewhere (`Ulam`, `Hat`, `Fourier`) is `B + 1`
+from the Lasota–Yorke coefficients. That is fine when `B > 0`, but it
+**degenerates to exactly 1 for the analytic strong norms**, where `B = 0` by
+construction — and 1 is not an upper bound for ``\|L\|_{L^2}`` unless
+``\sup L\mathbf 1 \le 1``. Hence the direct computation here. We fall back to
+`B + 1` only when no dynamic is supplied or a branch derivative fails to be
+bounded away from zero.
+"""
+function bound_weak_norm_abstract(
+    B::Chebyshev,
+    D = nothing;
+    dfly_coefficients = dfly(strong_norm(B), aux_norm(B), D),
+    n::Integer = 1024,
+)
+    D === nothing && return dfly_coefficients[2] ⊕₊ 1.0
+    S = 0.0
+    for br in branches(D)
+        lo = Inf
+        for j = 1:n
+            x = br.X[1] + (br.X[2] - br.X[1]) * interval((j - 1) / n, j / n)
+            lo = min(lo, inf(abs(derivative(br.f, x))))
+        end
+        isfinite(lo) && lo > 0 || return dfly_coefficients[2] ⊕₊ 1.0
+        S = S ⊕₊ (1.0 ⊘₊ lo)
+    end
+    return sqrt_round(S, RoundUp)
+end
+
 ###############################################################################
 # L² norms for the Chebyshev basis
 #
@@ -1152,5 +1246,37 @@ function opnormbound(B::Chebyshev, ::Type{L2}, M::AbstractMatrix)
     return _l2_opnorm_ball(P)
 end
 
-opnormbound(B::Chebyshev, N::Type{L2}, w::LinearAlgebra.Adjoint) =
-    normbound(B, N, vec(collect(w')))
+@doc raw"""
+    opnormbound(B::Chebyshev, ::Type{L2}, v::AbstractVector)
+
+A column vector is the operator ``\mathbb R \to U_h``, ``t \mapsto t\,v``, whose
+operator norm is just ``\|v\|_{L^2(dx)}``. This is the `Q.e` of a
+[`NonIntegralPreservingDiscretizedOperator`](@ref).
+"""
+opnormbound(B::Chebyshev, N::Type{L2}, v::AbstractVector) = normbound(B, N, v)
+
+@doc raw"""
+    opnormbound(B::Chebyshev, ::Type{L2}, w::Adjoint)
+
+A covector is the operator ``U_h \to \mathbb R``, ``c \mapsto w^{*}c``, whose
+operator norm is the **dual** norm
+
+```math
+\|w\|_{*} = \sup_{c\neq 0}\frac{|w^{*}c|}{\|c\|_{L^2(dx)}}
+          = \sqrt{w^{*}G_L^{-1}w} = \|U^{-*}w\|_2 ,
+```
+
+with ``G_L = U^{*}U``. Note the ``G_L^{-1}``: measuring a covector with `G_L`,
+as if its entries were the coefficients of a function, is a different (and for
+an ill-conditioned Gram matrix a very different) quantity. This is the `Q.w` of
+a [`NonIntegralPreservingDiscretizedOperator`](@ref) — for Chebyshev that is
+the integral covector, which is genuinely not `e₁`.
+"""
+function opnormbound(B::Chebyshev, ::Type{L2}, w::LinearAlgebra.Adjoint)
+    n = length(B)
+    _, Uinv = _cheb_gram_factor(n, Float64)
+    wv = [as_interval(Float64, x) for x in vec(collect(w'))]
+    # ‖U^{-*} w‖₂ = ‖(Uinv)' w‖₂
+    y = BallMatrix(collect(transpose(Uinv))) * BallVector(wv)
+    return upper_bound_norm(y, 2.0)
+end

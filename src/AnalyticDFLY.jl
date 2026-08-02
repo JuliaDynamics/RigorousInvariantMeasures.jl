@@ -370,12 +370,25 @@ function dfly(norm::Eρ, ::Type{L1}, D::PwMap; C₂::Union{Real,Nothing} = nothi
     ρ = interval(norm.ρ)
     ρ′, C = Inf, 0.0
     for br in branches(D)
-        chart = _branch_chart(br)
-        # F_k maps [-1,1] onto [-1,1]; its ellipse image is what must expand
-        ρ′ = min(ρ′, bernstein_expansion(s -> 2 * br.f(chart(s)) - 1, ρ; n = n))
+        # The Bernstein ellipse lives around the GLOBAL interval, so the branch
+        # must be read in the global chart t = 2x - 1 (`to_symmetric_interval`),
+        # under which F_k maps the sub-arc [t₁,t₂] ONTO [-1,1].
+        #
+        # This used to use `_branch_chart`, rescaling each branch's own domain
+        # to [-1,1]. That makes F_k a bijection of [-1,1] with derivative
+        # f′(x)(X₂-X₁) — for the Lanford map 1.0961 → 1.0000 → 0.9039 across
+        # branch 1 — i.e. a near-isometry, never uniformly expanding, so the
+        # test failed for every ρ (ρ′/ρ ≈ 0.92, flat in ρ). The rescaling
+        # normalizes away exactly the contraction the argument needs: g_k
+        # carries all of [0,1] onto a subinterval, a factor ≈2 in the global
+        # coordinate. With the global chart the Lanford map expands for every
+        # ρ ≥ 1.2, with q = ρ/ρ′ minimal (0.8605) near ρ = 3.
+        F = to_symmetric_interval(br.f)
+        ρ′ = min(ρ′, bernstein_expansion(F, ρ; n = n))
         lo_der = Inf
         for j = 1:n
-            x = chart(bernstein_point(ρ, interval((j - 1) / n, j / n)))
+            # global chart: t ∈ ∂E_ρ  ↦  x = (t+1)/2
+            x = (bernstein_point(ρ, interval((j - 1) / n, j / n)) + 1) / 2
             lo_der = min(lo_der, inf(_cabs(derivative(br.f, x))))
         end
         C = C ⊕₊ (1.0 ⊘₊ lo_der)
