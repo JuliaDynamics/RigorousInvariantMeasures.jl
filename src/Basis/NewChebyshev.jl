@@ -842,13 +842,25 @@ average-zero subspace, with no condition-number penalty.
     quantify the gap. Closing it needs an interval-aware Cholesky, or
     BallArithmetic's `gram_transform`, which reports `gram_residual` directly.
 """
-function gram_restrict_to_average_zero(B::Chebyshev, BM::BallMatrix; T = Float64)
+function gram_restrict_to_average_zero(
+    B::Chebyshev,
+    BM::BallMatrix;
+    T = Float64,
+    precision_bits::Integer = _default_chol_bits(T),
+)
     n = length(B)
     size(BM, 1) == n ||
         throw(DimensionMismatch("operator is $(size(BM,1))×$(size(BM,2)), basis has $n"))
 
     G = _lebesgue_gram(n, T)
-    chol = BallArithmetic.verified_cholesky(T.(mid.(G)); use_bigfloat = false)
+    # See `_cheb_gram_factor`: verified_cholesky's `precision_bits` defaults to
+    # 256 no matter what `setprecision` says, which silently floors the
+    # enclosure of U at ~1e-75.
+    chol = BallArithmetic.verified_cholesky(
+        T.(mid.(G));
+        use_bigfloat = false,
+        precision_bits = Int(precision_bits),
+    )
     chol.success || error("verified Cholesky of the Lebesgue Gram matrix failed")
 
     # G = U'U with U upper triangular. Move to intervals to invert, then back.
@@ -1237,13 +1249,40 @@ end
 # conjugation ‖M‖_{L²} = ‖U M U⁻¹‖₂, exact rather than a cond(G) inflation.
 ###############################################################################
 
-const _CHEB_CHOL_CACHE = Dict{Tuple{Int,DataType},Any}()
+const _CHEB_CHOL_CACHE = Dict{Tuple{Int,DataType,Int},Any}()
 
 # Cholesky factor U of the Lebesgue Gram matrix (G = U'U), cached by size.
-function _cheb_gram_factor(n::Integer, ::Type{T}) where {T}
-    get!(_CHEB_CHOL_CACHE, (Int(n), T)) do
+@doc raw"""
+    _cheb_gram_factor(n, T; precision_bits = _default_chol_bits(T))
+
+Cholesky factor `U` of the Lebesgue Gram matrix and its verified inverse,
+cached by `(n, T, precision_bits)`.
+
+!!! warning "`precision_bits` must track `setprecision`"
+    `BallArithmetic.verified_cholesky` defaults to `precision_bits = 256`
+    *regardless* of the ambient `setprecision(BigFloat, ...)`. 256 bits is ~77
+    decimal digits, so leaving it at the default silently caps the enclosure of
+    `U` at ~1e-75 and, through it, every downstream quantity. In the
+    mixed-precision diffusion run this pinned the Poisson residual at
+    `‖r̃‖ ≈ 8.8e-77` whether the working precision was 333 or 800 bits — the
+    residual simply refused to improve. We therefore pass the *current* BigFloat
+    precision by default.
+"""
+_default_chol_bits(::Type{BigFloat}) = precision(BigFloat)
+_default_chol_bits(::Type{T}) where {T} = 256
+
+function _cheb_gram_factor(
+    n::Integer,
+    ::Type{T};
+    precision_bits::Integer = _default_chol_bits(T),
+) where {T}
+    get!(_CHEB_CHOL_CACHE, (Int(n), T, Int(precision_bits))) do
         G = _lebesgue_gram(n, T)
-        chol = BallArithmetic.verified_cholesky(T.(mid.(G)); use_bigfloat = false)
+        chol = BallArithmetic.verified_cholesky(
+            T.(mid.(G));
+            use_bigfloat = false,
+            precision_bits = Int(precision_bits),
+        )
         chol.success || error("verified Cholesky of the Lebesgue Gram matrix failed")
         U = chol.G
         Ui = Interval{T}[
