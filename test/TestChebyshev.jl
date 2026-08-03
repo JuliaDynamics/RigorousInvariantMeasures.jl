@@ -145,7 +145,11 @@ end
     # (it is the second eigenvalue of the transfer operator).
     D = mod1_dynamic(x -> 2 * x + 0.5 * x * (1 - x))
     ρs = Float64[]
-    for k in (12, 24)
+    # Degrees must be powers of two: the Chebyshev transform FFTs a mirrored
+    # sequence of length 2k, and the certified FFT error estimate only holds for
+    # power-of-two lengths. This loop used to run k = 12, 24 (lengths 24, 48),
+    # which merely warned and left the enclosure unjustified.
+    for k in (16, 32)
         Bk = Chebyshev(k, 3)
         Q = RigorousInvariantMeasures.assemble(Bk, D; ϵ = 1e-13, max_iter = 100)
         blk, chol = gram_restrict_to_average_zero(Bk, BallMatrix(Q))

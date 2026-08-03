@@ -18,6 +18,17 @@ assembly came out scaled by `1/(2n) = 1/(2(N-1))`. Multiplying by 2 undoes
 `interval_fft`'s normalization down to the `1/n` the transform actually wants.
 """
 function chebtransform(w)
+    # The mirrored sequence has length 2(N-1) = 2n. The certified FFT error
+    # estimate is only valid for power-of-two lengths — otherwise `interval_fft`
+    # merely WARNS ("The rigorous error estimate works for power of two sizes")
+    # once per column, which is easy to lose in the noise of a long run and
+    # leaves the operator enclosure unjustified. A run at n = 200 (length 400)
+    # produced a "certified" bound of 1e-134 on that basis. Fail instead.
+    m = 2 * (length(w) - 1)
+    ispow2(m) || throw(ArgumentError(
+        "Chebyshev transform length $m is not a power of two (basis has " *
+        "$(length(w)) points, degree $(length(w)-1)); the rigorous FFT error " *
+        "estimate does not apply. Use a basis whose degree is a power of two."))
     z = 2 * interval_fft([reverse(w); w[2:end-1]])
     t = real.(z[1:length(w)])
     t[1] /= 2
