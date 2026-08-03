@@ -1357,3 +1357,84 @@ function opnormbound(B::Chebyshev, ::Type{L2}, w::LinearAlgebra.Adjoint)
     y = BallMatrix(collect(transpose(Uinv))) * BallVector(wv)
     return upper_bound_norm(y, 2.0)
 end
+
+###############################################################################
+# The ℓ² Bernstein norm, and the resolvent in it
+#
+# ‖f‖_{E_ρ} = Σ|b_k|ρ^k is a weighted ℓ¹ norm, which the verified SVD cannot
+# reach. Its ℓ² companion
+#
+#     ‖f‖_{E_ρ^{(2)}} = (Σ |b_k|² ρ^{2k})^{1/2} = ‖D c‖₂,   D = diag(ρ^k),
+#
+# is a DIAGONAL reweighting, so every induced matrix norm is an SVD of a
+# conjugated matrix — exactly like the Gram conjugation used for L²(dx). On the
+# (n+1)-dimensional subspace the two are equivalent,
+#
+#     ‖f‖_{E_ρ^{(2)}} ≤ ‖f‖_{E_ρ} ≤ √(n+1) ‖f‖_{E_ρ^{(2)}},
+#
+# by Cauchy–Schwarz, so a certificate obtained in one transfers to the other at
+# a cost of √(n+1). Since the resolvent certificate is on the ABSTRACT operator
+# and hence reusable at any size, it is computed once at a small `n`, where that
+# factor — and the conditioning of `D` — are both mild.
+###############################################################################
+
+@doc raw"""
+    bernstein_l2_resolvent_bound(B::Chebyshev, block::BallMatrix, z = 1.0; T = Float64)
+
+Rigorous bound on ``\|(zI - Q_N)^{-1}\|`` in the ``ℓ^2`` Bernstein norm, for
+`block` the mean-zero restriction returned by
+[`gram_restrict_to_average_zero`](@ref).
+
+`block` lives in the Gram coordinates ``y = Uc``, so the Bernstein weight has to
+be pulled back: a mean-zero vector is ``c = U^{-1}[0; y']`` and its norm is
+``\|W y'\|_2`` with ``W = (D U^{-1})[:, 2:\mathrm{end}]``. Writing
+``S = W^{*}W = R^{*}R`` for the Cholesky factor `R`, the induced norm is
+``\|R\,M\,R^{-1}\|_2``, so the bound is the verified SVD of
+``R (zI - Q_N) R^{-1}`` inverted.
+
+!!! warning "Conditioning: use a small basis"
+    `D = diag(ρ^k)` has condition number `ρ^n` — 5^64 ≈ 5e44 — so the
+    conjugation amplifies any error in `Q_N` by that factor. With `Q_N`
+    assembled in `Float64` the result is meaningless beyond `n ≈ 32`
+    (at ρ=2.5, n=64 it returns 1.3e9 in place of 2.4, exactly `1e-16·2.5^64`).
+    This is not a limitation in practice: the certificate is on `L`, so it is
+    computed once at small `n` and reused.
+"""
+function bernstein_l2_resolvent_bound(
+    B::Chebyshev{Eρ},
+    block::BallMatrix,
+    z::Real = 1.0;
+    T = Float64,
+)
+    n = length(B)
+    ρ = T(B.strong.ρ)
+    U, _ = _cheb_gram_factor(n, T)
+    Uinv = _verified_inverse_upper_triangular(U)
+    Dw = Diagonal([T(ρ)^(k - 1) for k = 1:n])
+    W = (Dw * mid.(Uinv))[:, 2:end]                  # n × (n-1)
+
+    # As in `gram_restrict_to_average_zero`, the Cholesky is verified for the
+    # MIDPOINT of the metric; `chol.residual_norm` reports the gap.
+    S = T.(transpose(W) * W)
+    chol = BallArithmetic.verified_cholesky(S; use_bigfloat = false,
+                                            precision_bits = _default_chol_bits(T))
+    chol.success || error("verified Cholesky of the Bernstein metric failed")
+    Rc = chol.G
+    Ri = Interval{T}[
+        interval(T, Rc.c[i, j] - Rc.r[i, j], Rc.c[i, j] + Rc.r[i, j])
+        for i = 1:(n-1), j = 1:(n-1)
+    ]
+    Rinv = _verified_inverse_upper_triangular(Ri)
+
+    M = BallMatrix(Ri) * (block - z * I) * BallMatrix(Rinv)
+    return BallArithmetic.svd_bound_L2_opnorm_inverse(M)
+end
+
+@doc raw"""
+    bernstein_l1_l2_equivalence(B::Chebyshev{Eρ}) -> √n
+
+The constant in ``\|f\|_{E_ρ} \le \sqrt n\,\|f\|_{E_ρ^{(2)}}`` on the span of
+the basis (Cauchy–Schwarz, `n` coefficients). The reverse inequality holds with
+constant 1.
+"""
+bernstein_l1_l2_equivalence(B::Chebyshev{Eρ}) = sqrt_round(Float64(length(B)), RoundUp)

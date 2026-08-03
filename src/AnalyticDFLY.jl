@@ -424,3 +424,137 @@ function invariant_measure_strong_norm_bound(
 )
     return first(dfly_coefficients)
 end
+
+###############################################################################
+# Single-space certification: L is compact on the analytic space, so the
+# resolvent of the abstract operator follows from the resolvent of the
+# discretization plus ONE truncation number. No Lasota-Yorke enters.
+#
+# This is the setting of Nisoli, "Certified spectral approximation of transfer
+# operators and the Gauss map", arXiv:2602.19435, Section 2 (Assumption 2.1,
+# Corollary 2.3), as opposed to the strong-weak (DFLY) framework of its
+# Appendix A. For the analytic norms the single-space route is the right one and
+# is enormously sharper: on the Lanford map it gives R(1,L) <= 2.46, against
+# 1.3e52 from the Appendix A lifting, which has to buy `a < 1` by splitting the
+# coefficient series and pays b ~ rho^K in the numerator.
+###############################################################################
+
+export bernstein_geometry, strip_geometry, analytic_truncation_error,
+       single_space_resolvent_lift
+
+@doc raw"""
+    bernstein_geometry(strong::Eρ, D::PwMap; n = 1024) -> (ρ′, C₂)
+
+The two numbers the analytic theory rests on, computed once from the map:
+
+* `ρ′ > ρ` — the enlarged Bernstein parameter, certified by
+  [`bernstein_expansion`](@ref) applied to each branch in the GLOBAL chart
+  ``t = 2x-1``. It means the inverse branches contract: ``g_k(E_{ρ'}) ⊆ E_ρ``.
+* `C₂ = Σ_k 1/\min_{E_ρ}|T_k'|` — a bound for ``\|L\|_{A(E_ρ) → A(E_{ρ'})}``.
+
+These are exactly the quantities `dfly(::Eρ, ::Type{L1}, ::PwMap)` computes
+internally and then discards; exposing them avoids recomputing.
+"""
+function bernstein_geometry(strong::Eρ, D::PwMap; n::Integer = 1024)
+    ρ = interval(strong.ρ)
+    ρ′, C = Inf, 0.0
+    for br in branches(D)
+        ρ′ = min(ρ′, bernstein_expansion(to_symmetric_interval(br.f), ρ; n = n))
+        lo_der = Inf
+        for j = 1:n
+            x = (bernstein_point(ρ, interval((j - 1) / n, j / n)) + 1) / 2
+            lo_der = min(lo_der, inf(_cabs(derivative(br.f, x))))
+        end
+        C = C ⊕₊ (1.0 ⊘₊ lo_der)
+    end
+    ρ′ > strong.ρ ||
+        error("the ellipse is not enlarged (ρ′ = $ρ′ ≤ ρ = $(strong.ρ))")
+    return (ρ′, C)
+end
+
+@doc raw"""
+    strip_geometry(strong::Aη, D::PwMap; n = 1024) -> (η′, C₂)
+
+Fourier counterpart of [`bernstein_geometry`](@ref): the enlarged strip
+half-width and ``\|L\|_{A_η → A_{η'}}``.
+"""
+function strip_geometry(strong::Aη, D::PwMap; n::Integer = 1024)
+    η′, C = Inf, 0.0
+    for br in branches(D)
+        lo_der = Inf
+        for j = 1:n, σ in (1, -1)
+            t = br.X[1] + (br.X[2] - br.X[1]) * interval((j - 1) / n, j / n)
+            x = complex(t, σ * interval(strong.η))
+            η′ = min(η′, inf(abs(imag(br.f(x)))))
+            lo_der = min(lo_der, inf(_cabs(derivative(br.f, x))))
+        end
+        C = C ⊕₊ (1.0 ⊘₊ lo_der)
+    end
+    η′ > strong.η || error("the strip is not enlarged (η′ = $η′ ≤ η = $(strong.η))")
+    return (η′, C)
+end
+
+@doc raw"""
+    analytic_truncation_error(strong, gain, C₂, K) -> ε_K
+
+``ε_K \ge \|(I - Π_K)L\|_{\mathcal B \to \mathcal B}`` on the analytic space
+``\mathcal B``, i.e. the truncation number of Assumption 2.1(3).
+
+One line, from the domain gain alone. For `f` in the unit ball of ``E_ρ``,
+``Lf`` lies in ``A(E_{ρ'})`` with ``\|Lf\|_{E_{ρ'}} \le C_2``; writing
+``Lf = \sum_j b_j T_j``,
+
+```math
+\|(I-Π_K)Lf\|_{E_ρ} = \sum_{j>K}|b_j|ρ^j
+ = \sum_{j>K}|b_j|ρ'^j\Big(\frac{ρ}{ρ'}\Big)^{j} \le C_2\,q^{K+1},
+\qquad q = ρ/ρ' < 1 .
+```
+
+The Fourier case is identical with ``q = e^{-2π(η'-η)}``.
+
+!!! note "Where the compactness lives"
+    Not in `L` itself but in the INCLUSION ``A(E_{ρ'}) \hookrightarrow A(E_ρ)``,
+    whose approximation numbers decay like ``q^K``. Factoring
+    ``L = ι ∘ \tilde L`` with ``\tilde L : A(E_ρ) → A(E_{ρ'})`` bounded by `C₂`
+    gives the bound above immediately. There is no separate
+    ``\|L(I-Π_K)\|`` to estimate as long as the discretization is taken
+    one-sided, ``L_K := Π_K L``, which has the same nonzero spectrum as
+    ``Π_K L Π_K`` (since ``σ(AB)\setminus\{0\} = σ(BA)\setminus\{0\}``) and is
+    therefore represented by the same assembled matrix.
+"""
+function analytic_truncation_error(strong::Eρ, ρ′::Real, C₂::Real, K::Integer)
+    q = interval(strong.ρ) / interval(ρ′)
+    return sup(interval(C₂) * q^(K + 1))
+end
+
+function analytic_truncation_error(strong::Aη, η′::Real, C₂::Real, K::Integer)
+    q = exp(-2 * interval(π) * (interval(η′) - interval(strong.η)))
+    return sup(interval(C₂) * q^(K + 1))
+end
+
+@doc raw"""
+    single_space_resolvent_lift(R_K, ε_K) -> R
+
+Corollary 2.3 of the Gauss-map paper: if ``α := ε_K R(z,L_K) < 1`` then
+``z ∈ ρ(L)`` and
+
+```math
+R(z, L) \;\le\; \frac{R(z, L_K)}{1 - ε_K R(z, L_K)} .
+```
+
+Returns `Inf` when `α ≥ 1`.
+
+Both arguments must be measured in the SAME norm — for the analytic bases, the
+``ℓ^2`` Bernstein norm of [`bernstein_l2_resolvent_bound`](@ref), which is a
+diagonal reweighting and so is directly accessible to the verified SVD.
+
+The result is a certificate on the ABSTRACT operator `L`. It is therefore a
+property of the map, not of the discretization: computed once at a small `K` it
+may be reused at any basis size and any working precision, and never needs
+recomputing.
+"""
+function single_space_resolvent_lift(R_K::Real, ε_K::Real)
+    α = ε_K ⊗₊ R_K
+    α < 1 || return Inf
+    return R_K ⊘₊ (1.0 ⊖₋ α)
+end
