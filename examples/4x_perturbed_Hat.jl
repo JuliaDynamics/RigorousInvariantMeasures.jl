@@ -19,6 +19,9 @@ function runExperiment()
     time_norms = @elapsed norms = powernormbounds(B, D; Q = Q)
     time_eigen = @elapsed w = invariant_vector(B, Q)
     time_error = @elapsed error = distance_from_invariant(B, D, Q, w, norms)
+    time_error_residual = @elapsed error_residual =
+        distance_from_invariant_residual(B, D, Q, w, norms)
+    @info "coarse (n=$(length(B))): distance_from_invariant = $error, residual estimate = $error_residual"
 
     time_assembling_fine = @elapsed begin
         B_fine = Hat(2^16)
@@ -30,6 +33,9 @@ function runExperiment()
     time_eigen_fine = @elapsed w_fine = invariant_vector(B_fine, Q_fine)
     time_error_fine =
         @elapsed error_fine = distance_from_invariant(B_fine, D, Q_fine, w_fine, norms_fine)
+    time_error_residual_fine = @elapsed error_residual_fine =
+        distance_from_invariant_residual(B_fine, D, Q_fine, w_fine, norms_fine)
+    @info "fine (n=$(length(B_fine))): distance_from_invariant = $error_fine, residual estimate = $error_residual_fine"
 
     A, BB = dfly(strong_norm(B), aux_norm(B), D)
     p1 = plot(
@@ -39,7 +45,7 @@ function runExperiment()
         legend = :bottomright,
     )
     p2 = plot(B, w, title = "Invariant measure (n=$(length(B)))")
-    p2 = plot!(p2, B, error, w, label = "L-inf error $(round(error, sigdigits=2))")
+    p2 = plot!(p2, B, error, w, label = "L-inf error $(round(error, sigdigits=2)) / resid $(round(error_residual, sigdigits=2))")
 
     p3 = plot(B_fine, w_fine, title = "Invariant measure (n=$(length(B_fine)))")
     p3 = plot!(
@@ -47,7 +53,7 @@ function runExperiment()
         B_fine,
         error_fine,
         w_fine,
-        label = "L-inf error $(round(error_fine, sigdigits=2))",
+        label = "L-inf error $(round(error_fine, sigdigits=2)) / resid $(round(error_residual_fine, sigdigits=2))",
     )
 
     p4 = groupedbar(

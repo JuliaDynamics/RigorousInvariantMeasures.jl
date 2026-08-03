@@ -51,6 +51,9 @@ for Dyn in Dynamics
         norms_fine = finepowernormbounds(B, B_fine, D, norms; normQ_fine = normQ_fine)
         w_fine = invariant_vector(B_fine, Q_fine)
         error_fine = distance_from_invariant(B_fine, D, Q_fine, w_fine, norms_fine)
+        error_residual_fine =
+            distance_from_invariant_residual(B_fine, D, Q_fine, w_fine, norms_fine)
+        @info "fine (n=$(length(B_fine))): distance_from_invariant = $error_fine, residual estimate = $error_residual_fine"
         ϕ = discretizationlogder(B_fine, D, degree = 3)
         lyap = integrateobservable(B_fine, ϕ, w_fine, error_fine)
     end

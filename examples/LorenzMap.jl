@@ -31,6 +31,15 @@ function runExperiment()
         norms;
         dfly_coefficients = dfly_coefficients,
     )
+    time_error_residual = @elapsed error_residual = distance_from_invariant_residual(
+        B,
+        D,
+        Q,
+        w,
+        norms;
+        dfly_coefficients = dfly_coefficients,
+    )
+    @info "coarse (n=$(length(B))): distance_from_invariant = $error, residual estimate = $error_residual"
     time_assembling_fine = @elapsed begin
         B_fine = Ulam(2^18)
         Q_fine = DiscretizedOperator(B_fine, D)
@@ -57,6 +66,16 @@ function runExperiment()
         norms_fine;
         dfly_coefficients = dfly_coefficients,
     )
+    time_error_residual_fine =
+        @elapsed error_residual_fine = distance_from_invariant_residual(
+            B_fine,
+            D,
+            Q_fine,
+            w_fine,
+            norms_fine;
+            dfly_coefficients = dfly_coefficients,
+        )
+    @info "fine (n=$(length(B_fine))): distance_from_invariant = $error_fine, residual estimate = $error_residual_fine"
 
     A, BB = dfly_coefficients
     p1 = plot(
@@ -66,7 +85,13 @@ function runExperiment()
         legend = :bottomright,
     )
     p2 = plot(B, w, title = "Invariant measure (n=$(length(B)))")
-    p2 = plot!(p2, B, error, w, label = "L1 error $(round(error, sigdigits=2))")
+    p2 = plot!(
+        p2,
+        B,
+        error,
+        w,
+        label = "L1 err $(round(error, sigdigits=2)) / resid $(round(error_residual, sigdigits=2))",
+    )
 
     p3 = plot(B_fine, w_fine, title = "Invariant measure (n=$(length(B_fine)))")
     p3 = plot!(
@@ -74,7 +99,7 @@ function runExperiment()
         B_fine,
         error_fine,
         w_fine,
-        label = "L1 error $(round(error_fine, sigdigits=2))",
+        label = "L1 err $(round(error_fine, sigdigits=2)) / resid $(round(error_residual_fine, sigdigits=2))",
     )
 
     p4 = groupedbar(

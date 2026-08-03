@@ -22,6 +22,7 @@ better_norms = refine_norms_of_powers(norms, m_extend)
 
 w = invariant_vector(B, Q)
 @show distance_from_invariant(B, D, Q, w, better_norms)
+@show distance_from_invariant_residual(B, D, Q, w, better_norms)
 
 B_fine = Ulam(1024)
 Q_fine = DiscretizedOperator(B_fine, D)
@@ -39,3 +40,4 @@ better_norms_fine = refine_norms_of_powers(norms_fine, m_extend)
 
 w_fine = invariant_vector(B_fine, Q_fine)
 @show distance_from_invariant(B_fine, D, Q_fine, w_fine, better_norms_fine)
+@show distance_from_invariant_residual(B_fine, D, Q_fine, w_fine, better_norms_fine)
