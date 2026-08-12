@@ -23,7 +23,8 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - '1.10' #- 'nightly'
+          - '1.10'   # the declared [compat] floor, so it is actually tested
+          - '1'      # current stable
         os:
           - ubuntu-latest
         arch:
