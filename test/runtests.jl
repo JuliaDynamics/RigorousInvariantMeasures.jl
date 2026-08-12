@@ -19,6 +19,8 @@ DocMeta.setdocmeta!(
     include("TestDynamic.jl")
     include("TestRun/TestRunIndex.jl")
     include("TestChebyshev.jl")
+    include("TestAnalyticDFLY.jl")
+    include("TestSpectralCertification.jl")
 
     include("TestBasis/TestBasisIndex.jl")
     include("TestInterface/TestInterfaceIndex.jl")
@@ -29,6 +31,7 @@ DocMeta.setdocmeta!(
     include("TestTrig.jl")
     include("TestUniformNoiseUlam.jl")
     include("TestNoiseSpecializedEstimate.jl")
+    include("TestResidualEstimate.jl")
 
     #include("TestSkewProductMap.jl")
     #include("TestUlam2DSP.jl")

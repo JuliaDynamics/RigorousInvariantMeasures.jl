@@ -94,21 +94,60 @@ struct PwMap <: Dynamic
     end
 end
 
+"""
+    as_interval(T, v) -> Interval{T}
+
+Lift a bound, or re-type an existing interval, without relying on implicit
+`Real → Interval` conversion (which IntervalArithmetic rejects).
+"""
+as_interval(::Type{T}, v::Interval) where {T} = interval(T, inf(v), sup(v))
+as_interval(::Type{T}, v::Real) where {T} = interval(T, v)
+
+# Working precision implied by a set of endpoints: honour whatever the caller
+# passed, so an `Interval{BigFloat}` endpoint vector keeps its precision, and
+# fall back to Float64 for bare reals.
+endpoint_numtype(endpoints) = _numtype_or_default(eltype(endpoints))
+_numtype_or_default(::Type{Interval{S}}) where {S} = S
+_numtype_or_default(::Type) = Float64
+
+@doc raw"""
+    PwMap(Ts, endpoints, y_endpoints_in = nothing; full_branch = false, T)
+
+Build a piecewise map from the branch functions `Ts` and the `endpoints`
+separating them.
+
+`T` is the interval precision the branches are built at. It defaults to the
+precision of `endpoints`, so passing `Interval{BigFloat}` endpoints gives a
+BigFloat dynamic and everything downstream — notably `preimages` and hence the
+assemblers — runs at that precision.
+
+Note that `T` does not reach *inside* the branch functions: a coefficient
+written as a `Float64` literal in `Ts` stays a `Float64`, and rounds as one.
+Write the coefficients at the target precision if that matters.
+"""
 function PwMap(
     Ts,
     endpoints,
-    y_endpoints_in = hcat(
-        [Ts[k](interval(endpoints[k])) for k = 1:length(Ts)],
-        [Ts[k](interval(endpoints[k+1])) for k = 1:length(Ts)],
-    );
+    y_endpoints_in = nothing;
     full_branch = false,
+    T = endpoint_numtype(endpoints),
 )
+    # `y_endpoints_in` cannot default to an expression mentioning `T`: positional
+    # defaults are evaluated without the keyword arguments in scope.
+    ep = [as_interval(T, e) for e in endpoints]
+    yep =
+        y_endpoints_in === nothing ?
+        hcat(
+            [Ts[k](ep[k]) for k = 1:length(Ts)],
+            [Ts[k](ep[k+1]) for k = 1:length(Ts)],
+        ) : [as_interval(T, y) for y in y_endpoints_in]
+
     branches = MonotonicBranch[]
-    for k = 1:length(endpoints)-1
-        y_endpoints = (y_endpoints_in[k, 1], y_endpoints_in[k, 2])
-        push!(branches, MonotonicBranch(Ts[k], (endpoints[k], endpoints[k+1]), y_endpoints))
+    for k = 1:length(ep)-1
+        y_endpoints = (yep[k, 1], yep[k, 2])
+        push!(branches, MonotonicBranch(Ts[k], (ep[k], ep[k+1]), y_endpoints))
     end
-    X = (endpoints[begin], endpoints[end])
+    X = (ep[begin], ep[end])
     full_branch_detected = full_branch || all(is_full_branch(b, X) for b in branches)
     return PwMap(branches; full_branch = full_branch_detected)
 end
@@ -317,8 +356,14 @@ julia> D0 = mod1_dynamic(x->2*x+0.5*x*(1-x), full_branch = true)
 Piecewise-defined dynamic with 2 branches
 ```
 """
-function mod1_dynamic(f::Function; ϵ = 0.0, max_iter = 100, full_branch = false)
-    X = (interval(0, 0), interval(1, 1))
+function mod1_dynamic(
+    f::Function;
+    ϵ = 0.0,
+    max_iter = 100,
+    full_branch = false,
+    T = Float64,
+)
+    X = (interval(T, 0), interval(T, 1))
     br = MonotonicBranch(f, X)
     @debug "Auxiliary branch" br
 
@@ -349,23 +394,24 @@ function mod1_dynamic(f::Function; ϵ = 0.0, max_iter = 100, full_branch = false
     Ts = [x -> f(x) - k for k in integer_parts]
 
     n = Base.length(x)
+    zeroT, oneT = interval(T, 0), interval(T, 1)
     if is_increasing(br)
-        y_endpoints::Matrix{Interval{Float64}} = hcat(fill(0.0, n), fill(1.0, n))
+        y_endpoints::Matrix{Interval{T}} = hcat(fill(zeroT, n), fill(oneT, n))
     else
-        y_endpoints = hcat(fill(1.0, n), fill(0.0, n))
+        y_endpoints = hcat(fill(oneT, n), fill(zeroT, n))
     end
     y_endpoints[1, 1] = br.Y[begin] - integer_parts[begin]
-    if y_endpoints[1, 1] == 0.0
-        y_endpoints[1, 1] = 0.0 # hack to get rid of -0..0 intervals
+    if y_endpoints[1, 1] == 0
+        y_endpoints[1, 1] = zeroT # hack to get rid of -0..0 intervals
     end
     y_endpoints[end, end] = br.Y[end] - integer_parts[end]
-    if y_endpoints[end, end] == 0.0
-        y_endpoints[end, end] = 0.0 # hack to get rid of -0..0 intervals
+    if y_endpoints[end, end] == 0
+        y_endpoints[end, end] = zeroT # hack to get rid of -0..0 intervals
     end
     # not needed, since the check is moved into the PwMap() constructor
     # full_branch_detected = full_branch || all(equal_up_to_order(X, y_endpoints[i,:]) for i in 1:n)
 
-    return PwMap(Ts, ep, y_endpoints; full_branch = full_branch)
+    return PwMap(Ts, ep, y_endpoints; full_branch = full_branch, T = T)
 end
 
 """
@@ -404,8 +450,8 @@ The strategy to compute it follows a variant of Lemma 9.1 in the GMNP paper:
 """
 function dfly_inf_der(::Type{TotalVariation}, ::Type{L1}, D::PwMap, tol = 1e-3)
     leftrightsingularity = Tuple{Bool,Bool}[]
-    A = +∞
-    B = +∞
+    A = Inf
+    B = Inf
 
     # for each branch, we check if the derivative is infinite at any of the endpoints:
     for br in branches(D)
@@ -413,7 +459,7 @@ function dfly_inf_der(::Type{TotalVariation}, ::Type{L1}, D::PwMap, tol = 1e-3)
 
         push!(leftrightsingularity, (left, right))
     end
-    est = +∞
+    est = Inf
     #@showprogress enabled=SHOW_PROGRESS_BARS  1 "Computing infinite-derivative DFLY..." 
     for i = 3:15
         val = 0.0

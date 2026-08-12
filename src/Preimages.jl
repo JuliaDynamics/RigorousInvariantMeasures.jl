@@ -4,6 +4,15 @@ Compute preimages of monotonic sequences
 
 using IntervalArithmetic
 
+"""
+    unbounded_like(x::Interval{T}) -> Interval{T}
+
+The whole real line, in the same number type as `x`. Used as a placeholder for
+not-yet-computed preimages; keeping the type means the bisection below works at
+whatever precision the branch is defined in, not just `Float64`.
+"""
+unbounded_like(::Interval{T}) where {T} = interval(T, -Inf, Inf)
+
 
 ## Moved the definition of MonotonicBranch in PwDynamicDefinition, with the objective
 ## of transforming PwMap into an Array of MonotonicBranch
@@ -124,7 +133,11 @@ function preimages(y, br::MonotonicBranch, ylabel = 1:length(y); ϵ, max_iter)
         i = first_overlapping(y, br.Y[1])  # smallest possible i such that a = br.Y[1] is in the semi-open interval [y[i], y[i+1]).
         j = last_overlapping(y, br.Y[2]) # largest possible j such that b-ε, where b = br.Y[2] is in the semi-open interval [y[j], y[j+1]).
         n = j - i + 1
-        x = fill(interval(-Inf, Inf)::typeof(br.X[1]), n)
+        # A bare `interval(-Inf, Inf)` is an `Interval{Float64}`, so the
+        # typeassert used to reject any branch that was not Float64. Build the
+        # placeholder in the branch's own number type instead, so
+        # arbitrary-precision dynamics flow through.
+        x = fill(unbounded_like(br.X[1]), n)
         xlabel = collect(ylabel[i:j]) # we collect to avoid potential type instability, since this may be an UnitRange while in the other branch we could have a StepRange
         x[1] = br.X[1]
         if n == 1

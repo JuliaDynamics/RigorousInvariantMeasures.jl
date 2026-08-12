@@ -60,32 +60,8 @@ dfly(::W{1,1}, N2::Type{L1}, D::PwMap) = dfly(TotalVariation, L1, D)
 # Higher-order W{k,1} (k≥2) is provided by the SymbolicsExt extension.
 # Without Symbolics loaded, the generic dfly fallback will @error "Not implemented".
 
-# Aη DFLY: analytic strip norm
-# ||Lf||_{Aη'} ≤ A · ||f||_{Aη} + B · ||f||_{L¹}
-# For expanding full-branch maps: A = max|1/T'|, B = distortion bound
-# This is a conservative estimate; tighter bounds require complex interval evaluation
-function dfly(norm::Aη, ::Type{L1}, D::PwMap)
-    if has_infinite_derivative_at_endpoints(D)
-        # Fall back to TotalVariation DFLY for infinite derivative maps
-        return dfly(TotalVariation, L1, D)
-    end
-    dist = max_distortion(D)
-    lam = max_inverse_derivative(D)
-
-    if is_full_branch(D)
-        if !(abs(lam) < 1)
-            @error "The function is not expanding"
-        end
-        return sup(lam), sup(dist)
-    else
-        if !(abs(2 * lam) < 1)
-            @error "Expansivity is insufficient to prove a DFLY. Try with an iterate."
-        end
-        vec = endpoints(D)
-        disc = maximum(2 / abs(vec[i] - vec[i+1]) for i = 1:nbranches(D))
-        return sup(2 * lam), sup(dist + disc)
-    end
-end
+# Aη DFLY: analytic strip norm. Implemented in AnalyticDFLY.jl, which is
+# included later — it needs the complex-neighbourhood machinery.
 
 function dfly(::Type{Lipschitz}, ::Type{L1}, D::Dynamic)
     # TODO: should assert that D is globally C2 instead, but we don't have that kind of infrastructure yet.

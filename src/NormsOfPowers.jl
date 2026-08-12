@@ -182,7 +182,55 @@ function norms_of_powers(
     norms = Vector{Float64}(undef, m)
     BM_power = BM_U0
     for k = 1:m
-        norms[k] = upper_bound_L2_opnorm(BM_power)
+        norms[k] = _l2_opnorm_ball(BM_power)
+        if k < m
+            BM_power = BM_power * BM_U0
+        end
+    end
+    return norms
+end
+
+"""
+    norms_of_powers(BM_U0::BallMatrix, ::Type{L2}, m)
+
+Direct `L^2`-operator-norm-of-iterates loop on a `BallMatrix` that
+the caller has already restricted to `U^0` (the average-zero
+subspace).  Returns `norms[k] ≥ ‖BM_U0^k‖_{L²→L²}` for
+`k = 1, …, m`, computed rigorously via interval matrix
+multiplication and [`_l2_opnorm_ball`](@ref), which takes the best
+of the verified SVD enclosure, the Collatz/Perron–Frobenius bound,
+and the Hölder bound `√(‖A‖_1‖A‖_∞)` — the last two are what
+`upper_bound_L2_opnorm` already minimises over, using the
+radius-inflated `|c| + r`.
+
+!!! note "Two earlier problems here"
+    This loop used to take `min(upper_bound_L2_opnorm(A), holder)`
+    with `holder = √(‖A.c‖_1‖A.c‖_∞)` computed from the **midpoints
+    alone**.  That discards the radii, so the `min` could fall below
+    the true norm — not a valid upper bound.  It was also redundant:
+    `upper_bound_L2_opnorm` already includes a rigorous Hölder bound.
+    Separately, both bounds are loose on these matrices (a factor
+    8–9 at `n = 512`, e.g. `‖Q|_{U⁰}‖ ≈ 9.3` reported against a true
+    value below 1), which the verified SVD removes.
+
+This is the basis-free entry point used by callers (e.g.
+`SelfConsistentExperiments.certify_contraction_iterate`) that
+assemble `DT_N(u_N)|_{U_0}` outside the `DiscretizedOperator`
+abstraction — for example the self-consistent linearisation with a
+rank-one feedback correction, which is not a transfer operator
+itself.  No `Basis` / `restrict_to_average_zero` step is performed:
+the caller is responsible for ensuring `BM_U0` already represents
+the operator on the average-zero subspace.
+
+The coarse-fine refinement (`refine_norms_of_powers`) is not
+applied here, since uniform DFLY constants on the discretisation
+family are not assumed in the Fourier case.
+"""
+function norms_of_powers(BM_U0::BallMatrix, ::Type{L2}, m::Integer)
+    norms = Vector{Float64}(undef, m)
+    BM_power = BM_U0
+    for k = 1:m
+        norms[k] = _l2_opnorm_ball(BM_power)
         if k < m
             BM_power = BM_power * BM_U0
         end

@@ -17,8 +17,10 @@ function __init__()
     setdisplay(:infsup; decorations = false, ng_flag = false)
 end
 using BallArithmetic: BallMatrix, BallVector, upper_bound_L2_opnorm, upper_bound_norm,
-    compute_spectral_projector_schur, SchurSpectralProjectorResult
+    compute_spectral_projector_schur, SchurSpectralProjectorResult,
+    krawczyk_linear_system, svd_bound_L2_opnorm_inverse
 using BallArithmetic.CertifScripts: CertifScripts
+import BallArithmetic
 
 const SHOW_PROGRESS_BARS = parse(Bool, get(ENV, "PROGRESS_BARS", "true"))
 
@@ -43,6 +45,7 @@ export DiscretizedOperator,
 
 include("GenericEstimate.jl")
 export invariant_vector, finepowernormbounds, powernormbounds, distance_from_invariant
+export distance_from_invariant_residual
 
 include("PwDynamic.jl")
 export PwMap, mod1_dynamic
@@ -59,15 +62,24 @@ include("pitrig.jl")
 include("NormsOfPowers.jl")
 
 include("Preimages.jl")
+include("IntervalFFTCommon.jl")
 include("Basis/Fourier/FourierIndex.jl")
 export Fourier, FourierAnalytic, FourierAdjoint
 include("Basis/NewChebyshev.jl")
 export Chebyshev, certify_spectral_gap
+export gram_matrix, inv_gram_matrix, gram_sqrt, inv_gram_sqrt
+export l2_measure_conversion_bounds, gram_restrict_to_average_zero
+export bernstein_point, bernstein_parameter, bernstein_expansion,
+    expands_bernstein_ellipse, to_symmetric_interval
+
+include("AnalyticDFLY.jl")
+
+include("SpectralCertification.jl")
 
 
 include("precompile.jl")
 
-export NormKind, L1, L2, Linf, Lipschitz, TotalVariation, C1, W, Aη, Cω
+export NormKind, L1, L2, L1μ, L2μ, Linf, Lipschitz, TotalVariation, C1, W, Aη, Eρ, Cω
 
 export PwMap,
     Basis,
@@ -130,7 +142,9 @@ export powernormboundsnoise,
     finepowernormboundsnoise,
     abstractpowernormboundsnoise,
     invariant_vector_noise,
-    distance_from_invariant_noise
+    distance_from_invariant_noise,
+    norms_of_powers_noise,
+    norms_of_powers_sequence_noise
 
 include("NoiseSpecializedEstimate.jl")
 export noise_error_aposteriori,

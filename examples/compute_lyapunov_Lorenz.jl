@@ -64,6 +64,16 @@ error_fine = distance_from_invariant(
 
 @info "The fine error is $error_fine"
 
+error_residual_fine = distance_from_invariant_residual(
+    B_fine,
+    D,
+    Q_fine,
+    w_fine,
+    norms_fine;
+    dfly_coefficients = dfly_coefficients,
+)
+@info "The fine residual estimate is $error_residual_fine (vs distance_from_invariant $error_fine)"
+
 Bound = RigorousInvariantMeasures.invariant_measure_strong_norm_bound(
     B,
     D;

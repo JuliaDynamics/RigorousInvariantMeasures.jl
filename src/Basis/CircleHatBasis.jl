@@ -249,6 +249,54 @@ opnormbound(B::Hat{T}, N::Type{Linf}, A::AbstractVecOrMat{S}) where {S,T} =
     opnormbound(N, A)
 normbound(B::Hat{T}, N::Type{Linf}, v) where {T} = normbound(N, v)
 
+@doc raw"""
+    normbound(B::Hat, ::Type{Lipschitz}, v)
+
+Rigorous upper bound for the Lipschitz seminorm (the strong norm of the `Hat`
+basis) of the continuous piecewise-linear function on the torus ``S^1`` with
+`Hat` coefficients `v` (its values at the nodes ``p_1,\dots,p_n``).  On a linear
+piece the slope is constant, so the seminorm is exactly the largest absolute
+slope over the ``n`` pieces, including the wrap-around piece joining the last
+node to the first:
+
+```math
+\mathrm{Lip}(f) = \max_i \frac{|v_{i+1}-v_i|}{p_{i+1}-p_i},
+```
+
+with ``v_{n+1} := v_1`` and ``p_{n+1}-p_n`` the length of the wrap-around piece.
+The quotients are evaluated in interval arithmetic.
+"""
+function normbound(B::Hat{T}, ::Type{Lipschitz}, v) where {T}
+    n = length(B)
+    slope(a, b, h) = abs(interval(b) - interval(a)) / interval(h)
+    m = slope(v[n], v[1], B.p[n+1] - B.p[n])          # wrap-around piece
+    for i = 1:(n-1)
+        m = max(m, slope(v[i], v[i+1], B.p[i+1] - B.p[i]))
+    end
+    return sup(m)
+end
+
+@doc raw"""
+    normbound(B::Hat, ::Type{L1}, v)
+
+Rigorous upper bound for the ``L^1`` norm (the auxiliary norm of the `Hat`
+basis) of the continuous piecewise-linear function on the torus with `Hat`
+coefficients `v`.  On each piece ``[p_i,p_{i+1}]`` the trapezoidal value
+``(p_{i+1}-p_i)\,(|v_i|+|v_{i+1}|)/2`` is an upper bound for ``\int|f|`` (exact
+when ``f`` does not change sign, e.g. for a density); summing over the ``n``
+pieces, wrap-around included, bounds ``\|f\|_{L^1}``.  Evaluated in interval
+arithmetic.
+"""
+function normbound(B::Hat{T}, ::Type{L1}, v) where {T}
+    n = length(B)
+    piece(a, b, h) = interval(h) * (abs(interval(a)) + abs(interval(b))) / 2
+    s = piece(v[n], v[1], B.p[n+1] - B.p[n])          # wrap-around piece
+    for i = 1:(n-1)
+        s += piece(v[i], v[i+1], B.p[i+1] - B.p[i])
+    end
+    return sup(s)
+end
+
 function invariant_measure_strong_norm_bound(
     B::Hat,
     D::Dynamic;

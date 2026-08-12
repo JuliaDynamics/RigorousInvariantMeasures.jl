@@ -10,7 +10,8 @@ using IntervalArithmetic
     Bc = RigorousInvariantMeasures.FourierAdjoint(128, 1024)
     Bf = RigorousInvariantMeasures.FourierAdjoint(256, 1024)
 
-    @test RigorousInvariantMeasures.is_refinement(Bc, Bf) == true
+    @test RigorousInvariantMeasures.is_refinement(Bf, Bc) == true
+    @test RigorousInvariantMeasures.is_refinement(Bc, Bf) == false
     @test RigorousInvariantMeasures.integral_covector(Bc) == [1.0; zeros(256)]'
     @test RigorousInvariantMeasures.one_vector(Bc) == [1.0; zeros(256)]
 

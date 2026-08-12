@@ -21,7 +21,8 @@ using FFTW
 
 import RigorousInvariantMeasures: assemble, assemble_common, opnormbound, L2, W,
     Fourier, FourierAdjoint, FourierAnalytic, Chebyshev, Dynamic,
-    NoiseKernel, NormKind, Observable, ProjectedFunction
+    NoiseKernel, NormKind, Observable, ProjectedFunction,
+    interval_fft, interval_fft_via_ball
 
 include("IntervalFFT.jl")
 include("Fourier.jl")
