@@ -42,7 +42,7 @@ TaylorModelsExt = "TaylorModels"
 [compat]
 Adapt = "4"
 Arpack = "0.5"
-BallArithmetic = "0.2"
+BallArithmetic = "0.3"
 CRlibm = "1"
 CUDA = "5.5"
 DualNumbers = "0.6"
