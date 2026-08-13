@@ -75,6 +75,10 @@ Use [`l2_measure_conversion_bounds`](@ref) to return to ``L^2(dx)``.
 struct L2μ <: NormKind end
 struct L1μ <: NormKind end
 
+# The docstring above covers both measures; attach it to this binding too, so
+# that `[`L1μ`](@ref)` resolves.
+@doc (@doc L2μ) L1μ
+
 @doc raw"""
     Eρ(ρ) <: NormKind
 

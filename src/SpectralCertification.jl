@@ -441,7 +441,7 @@ the **coarse** matrix only (small enough for cheap Schur), and both
 fine-level quantities are then propagated.
 
 - `CertifScripts.run_certification` on the coarse `Q_coarse.L` with a
-  [`CertifScripts.CertificationCircle`](@extref) of radius `r` centred
+  `CertifScripts.CertificationCircle` of radius `r` centred
   at `eigenvalue` gives ``\sup_{z \in \Gamma} \mathcal{R}_w(z, L_{\rm coarse})``.
 - ``K(z) := \mathcal{R}_s(z, L)`` is obtained from the coarse weak
   resolvent via [`strong_resolvent_lift`](@ref) (Prop A.7), evaluated
