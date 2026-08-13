@@ -31,9 +31,14 @@ Pages = ["differentiation_interface.jl"]
 ```
 
 # Rigorously enclosed FFT
-Backend-independent parts of the interval FFT. The transforms themselves live
-in the `FFTWExt` and `GenericFFTExt` extensions, loaded by `using FFTW` and
-`using GenericFFT` respectively.
+
+The rigorous error bound is **not** computed here: it comes from
+`BallArithmetic`'s `fft(::BallVector)`, which implements the a-priori
+Brisebarre–Muller–Picot (ARITH 2023) bound. What lives in this package is the
+adapter — the `Complex{Interval}` ↔ `BallVector` conversion, the `1/N`
+normalization, and a generic function so that each extension can supply the
+floating-point kernel: `FFTWExt` (`using FFTW`) for `Interval{Float64}`,
+`GenericFFTExt` (`using GenericFFT`) for `Interval{BigFloat}`.
 
 ```@autodocs
 Modules = [Base, 
