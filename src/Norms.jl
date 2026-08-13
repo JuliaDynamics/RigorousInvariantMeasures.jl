@@ -1,5 +1,21 @@
 abstract type NormKind end
+
+@doc raw"""
+    L1 <: NormKind
+
+The ``L^1`` norm against Lebesgue measure ``dx`` on the domain. This is the
+weak norm of the Ulam and hat bases. See [`L1μ`](@ref) for the counterpart
+against the arcsine measure, which is what the Chebyshev bases use.
+"""
 struct L1 <: NormKind end
+
+@doc raw"""
+    L2 <: NormKind
+
+The ``L^2`` norm against Lebesgue measure ``dx`` on the domain, and the
+induced ``\ell^2`` operator norm on matrices. See [`L2μ`](@ref) for the
+counterpart against the arcsine measure.
+"""
 struct L2 <: NormKind end
 struct Linf <: NormKind end
 struct Lipschitz <: NormKind end
@@ -14,6 +30,20 @@ order(::Type{W{k,l}}) where {k,l} = k
 regularity(::Type{W{k,l}}) where {k,l} = l
 
 # Analytic strip norm
+@doc raw"""
+    Aη(η) <: NormKind
+
+Analytic norm on the **strip** of half-width ``η`` around the real axis, i.e.
+``\|f\|_{A_η} = \sum_k |\hat f_k| e^{η|k|}`` on the Fourier coefficients.
+
+Since ``|e^{2\pi i k z}| \le e^{2\pi |k| \operatorname{Im} z|}``, this weighted
+``\ell^1`` norm dominates ``\sup |f|`` on the strip, so bounds stated for the
+sup norm remain valid. It is the strong norm of [`FourierAnalytic`](@ref).
+
+[`Eρ`](@ref) is the Chebyshev counterpart: a strip is the natural
+neighbourhood of the circle, a Bernstein ellipse the natural neighbourhood of
+``[-1,1]``.
+"""
 struct Aη <: NormKind
     η::Float64
 end

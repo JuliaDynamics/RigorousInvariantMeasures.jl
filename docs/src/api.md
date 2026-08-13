@@ -30,5 +30,16 @@ Modules = [Base,
 Pages = ["differentiation_interface.jl"]
 ```
 
+# Rigorously enclosed FFT
+Backend-independent parts of the interval FFT. The transforms themselves live
+in the `FFTWExt` and `GenericFFTExt` extensions, loaded by `using FFTW` and
+`using GenericFFT` respectively.
+
+```@autodocs
+Modules = [Base, 
+            RigorousInvariantMeasures]
+Pages = ["IntervalFFTCommon.jl"]
+```
+
 
 

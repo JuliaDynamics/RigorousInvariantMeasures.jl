@@ -65,3 +65,14 @@ Modules = [Base,
             RigorousInvariantMeasures]
 Pages = ["ConvergenceRatesOriginal.jl"]
 ```
+
+# Spectral certification
+
+Certified spectral bounds for the discretized operator, and the coarse-fine
+resolvent estimates built on top of them.
+
+```@autodocs
+Modules = [Base, 
+            RigorousInvariantMeasures]
+Pages = ["SpectralCertification.jl"]
+```

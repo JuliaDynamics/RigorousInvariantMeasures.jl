@@ -9,6 +9,23 @@ export FourierAnalytic
 # to make it as coherent possible as the output of the FFT
 # [0:N; -N:-1]
 
+@doc raw"""
+    FourierAnalytic(k::Integer, n::Integer; η = 0.1, T = Float64)
+    FourierAnalytic(p::AbstractVector, k::Integer)
+    FourierAnalytic(k_freq::Integer, n::Integer, ::Type{W{j,l}}; T = Float64)
+
+Fourier basis of ``2k+1`` frequencies, collocated at `n` points, for densities
+that are **analytic on a strip**. Coefficients are stored in FFT order,
+``[0:k; -k:-1]``.
+
+The strong norm defaults to [`Aη`](@ref)`(η)` — the weighted ``\ell^1`` norm on
+a strip of half-width ``η`` — with [`L2`](@ref) as the weak norm; this is the
+setting in which the analytic Lasota-Yorke inequality is proved. The third
+constructor swaps the strong norm for the Sobolev `W{j,l}` seminorm instead.
+
+Assembly requires the `FFTWExt` extension: load `FFTW` alongside this package,
+or `assemble(B, D)` will raise a `MethodError`.
+"""
 struct FourierAnalytic{S<:NormKind,W<:NormKind,T<:AbstractVector} <: Fourier
     p::T
     k::Integer

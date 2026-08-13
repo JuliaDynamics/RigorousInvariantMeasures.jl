@@ -87,6 +87,21 @@ function opnormbound(::Type{L2}, A::AbstractMatrix{T}) where {T}
     return _l2_opnorm_ball(BM)
 end
 
+@doc raw"""
+    _l2_opnorm_ball(BM::BallMatrix)
+
+Rigorous upper bound on ``\|BM\|_2``, taking the best of the two estimators
+available: the cheap Collatz/Hölder bound `upper_bound_L2_opnorm`, and the
+sharp bound obtained from BallArithmetic's verified SVD,
+`svd_bound_L2_opnorm`.
+
+The cheap bound is ``\sqrt{\|A\|_1 \|A\|_\infty}``, which overestimates badly
+for the matrices arising here; the SVD bound is essentially tight but costs an
+``O(n^3)`` decomposition and needs `GenericSchur` loaded to work in extended
+precision. Should the SVD be unavailable or fail, the cheap bound is returned
+on its own. Because the result is the `min` of the two, it is a valid upper
+bound either way.
+"""
 function _l2_opnorm_ball(BM::BallMatrix)
     cheap = upper_bound_L2_opnorm(BM)
     sharp = try

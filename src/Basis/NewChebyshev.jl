@@ -717,10 +717,17 @@ function _verified_inverse_upper_triangular(U::AbstractMatrix{Interval{T}}) wher
     return V
 end
 
-# Verified inverse, one Krawczyk-verified linear solve per column. The Lebesgue
-# Gram matrix is only mildly ill-conditioned (cond ~ 1.3n measured), so this
-# converges comfortably. For a TRIANGULAR matrix prefer
-# `_verified_inverse_upper_triangular`, which is far cheaper and just as tight.
+"""
+    _verified_inverse(G::Matrix{Interval{T}}) where {T}
+
+Verified inverse of a general interval matrix, by one Krawczyk-verified linear
+solve per column. The Lebesgue Gram matrix is only mildly ill-conditioned
+(cond ~ 1.3n measured), so this converges comfortably.
+
+For a **triangular** matrix prefer
+[`_verified_inverse_upper_triangular`](@ref), which is far cheaper and just as
+tight.
+"""
 function _verified_inverse(G::Matrix{Interval{T}}) where {T}
     n = size(G, 1)
     GB = BallMatrix(G)
@@ -806,6 +813,10 @@ function inv_gram_sqrt(B::Chebyshev; T = Float64)
     return LinearAlgebra.Diagonal(d)
 end
 
+# The docstring above covers both factors; attach it to this binding too, so
+# that `[`inv_gram_sqrt`](@ref)` resolves.
+@doc (@doc gram_sqrt) inv_gram_sqrt
+
 @doc raw"""
     gram_restrict_to_average_zero(B::Chebyshev, BM::BallMatrix; T = Float64)
 
@@ -834,7 +845,7 @@ special case ``G = I``. Because ``\|M\|_G = \|U M U^{-1}\|_2`` exactly, an
 average-zero subspace, with no condition-number penalty.
 
 !!! warning "What is and is not certified"
-    `chol` is the [`verified_cholesky`](@ref) result for the **midpoint** of
+    `chol` is the `BallArithmetic.verified_cholesky` result for the **midpoint** of
     ``G``, so the enclosure covers the factorization but not the ≤1 ulp
     enclosure radius of the Gram entries themselves. The induced norm is
     therefore that of ``\tilde G = U^{*}U`` rather than of the exact ``G``;
