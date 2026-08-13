@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 `RigorousInvariantMeasures.jl` is a Julia package (module name `RigorousInvariantMeasures`, not `InvariantMeasures` as some older README snippets suggest) that computes **rigorously certified** approximations of absolutely continuous invariant measures for 1D dynamical systems. "Rigorous" here means every bound is a validated interval-arithmetic enclosure: the output is a numerical answer paired with a proven upper bound on its error. Any change that loses that guarantee (e.g. replacing `Interval`/`BallMatrix` math with `Float64` on a load-bearing path) is a correctness bug, not a performance choice.
 
-Julia compat is `julia = "1.9"`; CI runs on Julia 1.10 (Ubuntu, x64). The IntervalArithmetic 1.0 / BallArithmetic 0.2 stack landed in commit `ad03dcd` — see "Interval API conventions" below.
+Julia compat is `julia = "1.10"`; CI runs on 1.10 (the declared floor) and `1` (current stable), Ubuntu x64. The IntervalArithmetic 1.0 / BallArithmetic 0.2 stack landed in commit `ad03dcd` — see "Interval API conventions" below; the bump to BallArithmetic 0.3 came with the 0.3.0 release.
 
 ## Commands
 
