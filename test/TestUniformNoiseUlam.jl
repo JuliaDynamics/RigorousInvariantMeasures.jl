@@ -4,7 +4,7 @@
     using IntervalArithmetic
     using RigorousInvariantMeasures
 
-    import RigorousInvariantMeasures: wrap_idx, reflect_outward_idx, nonzero_per_row, opnormbound, opradius, dfly
+    import RigorousInvariantMeasures: wrap_idx, reflect_outward_idx, nonzero_per_row, opnormbound, opradius, dfly, normbound
     import RigorousInvariantMeasures: UniformKernelUlamPeriodic, UniformKernelUlamReflecting
 
 
@@ -130,12 +130,29 @@
     coeffs_p = dfly(TotalVariation, L1, Kp)
     coeffs_r = dfly(TotalVariation, L1, Kr)
 
-    # both kernels should have contraction coefficients (0, 1/(2ξ))
-    ξ = (2*2 + 1) / length(B)   # effective noise size
-    expected = (0.0, 1/(2ξ))
+    # Both kernels should have contraction coefficients (0, Var(ρ_ξ)) = (0, 1/ξ),
+    # by Lemma 47 of Galatolo-Monge-Nisoli. The half-width is ξ = (2l+1)/(2k),
+    # the support being 2l+1 cells wide. This test used to take the full width
+    # as ξ and then halve again, pinning a constant a quarter of the true one.
+    l = 2
+    ξ = (2l + 1) / (2 * length(B))
+    expected = (0.0, 1 / ξ)
 
+    @test coeffs_p[1] == 0.0
+    @test coeffs_r[1] == 0.0
     @test coeffs_p[2] ≈ expected[2]
     @test coeffs_r[2] ≈ expected[2]
+
+    # The constant must actually bound Var(Nv)/‖v‖_{L¹}, and a spike attains it.
+    let k = length(B), spike = zeros(k)
+        spike[k ÷ 2] = 1.0
+        for K in (Kp, Kr)
+            w = K * copy(spike)
+            ratio = normbound(B, TotalVariation, w) / normbound(B, L1, spike)
+            @test ratio <= dfly(TotalVariation, L1, K)[2] * (1 + 1e-12)
+            @test ratio ≈ dfly(TotalVariation, L1, K)[2]
+        end
+    end
 
     # run all
     test_identity()

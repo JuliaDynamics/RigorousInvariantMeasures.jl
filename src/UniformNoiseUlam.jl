@@ -73,8 +73,13 @@ For the uniform kernel on `k` bins with half-width `l`, the effective noise size
 """
 dfly(::Type{TotalVariation}, ::Type{L1}, N::UniformKernelUlam{BC}) where {BC} = begin
     k = length(N.B)
-    ξ = (2N.l + 1) / k
-    (0.0, 1 / (2ξ))
+    # `l` is the half-width in cells, so the support is 2l+1 cells wide and the
+    # half-width is ξ = (2l+1)/(2k); this read (2l+1)/k, the full width, which
+    # halved the constant a second time. With Var(ρ_ξ) = 1/ξ (Lemma 47 of
+    # Galatolo-Monge-Nisoli) the bound is 2k/(2l+1); it used to be a quarter of
+    # that, and so was not an upper bound.
+    ξ = (2N.l + 1) / (2k)
+    (0.0, 1 / ξ)
 end
 
 """
