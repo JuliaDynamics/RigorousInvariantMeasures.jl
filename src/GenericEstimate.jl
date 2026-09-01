@@ -1,4 +1,4 @@
-using LinearAlgebra, Arpack, FastRounding, IntervalArithmetic
+using LinearAlgebra, Arpack, IntervalArithmetic
 
 export invariant_vector,
     finepowernormbounds,

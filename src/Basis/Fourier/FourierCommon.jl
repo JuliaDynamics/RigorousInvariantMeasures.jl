@@ -5,7 +5,6 @@ import .RigorousInvariantMeasures: opnormbound, normbound, restrict_to_average_z
 export Fourier, evalFourier, FourierPoints, assemble_common, eval_on_dual, dual_nodes
 
 using IntervalArithmetic
-using FastRounding
 
 abstract type Fourier <: Basis end
 

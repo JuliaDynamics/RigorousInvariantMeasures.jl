@@ -24,6 +24,7 @@ import BallArithmetic
 
 const SHOW_PROGRESS_BARS = parse(Bool, get(ENV, "PROGRESS_BARS", "true"))
 
+include("RoundedArithmetic.jl")
 include("Norms.jl")
 include("differentiation_interface.jl")
 

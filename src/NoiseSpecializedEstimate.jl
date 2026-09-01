@@ -8,7 +8,6 @@ in `distance_from_invariant_noise` by exploiting the *actual computed
 density vector* to obtain data-dependent bounds.
 """
 
-using FastRounding
 using IntervalArithmetic
 
 # ──────────────────────────────────────────────────────────────────

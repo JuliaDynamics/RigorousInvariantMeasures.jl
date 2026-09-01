@@ -68,6 +68,41 @@
         end
     end
 
+    @testset "directed rounding is the package's own, and reaches BigFloat" begin
+        # FastRounding defines these for Float32/Float64 only. The package now
+        # owns them, delegating for those two and using setrounding for
+        # BigFloat, so that error bounds are not stuck at double precision.
+        import RigorousInvariantMeasures: ⊕₊, ⊕₋, ⊖₊, ⊖₋, ⊗₊, ⊗₋, ⊘₊, ⊘₋
+        # reached through the package, since FastRounding is not a test dependency
+        FastRounding = RigorousInvariantMeasures.FastRounding
+
+        for s in (:⊕₊, :⊖₋, :⊗₊, :⊘₊, :⊗₀)
+            @test parentmodule(getfield(RigorousInvariantMeasures, s)) ===
+                  RigorousInvariantMeasures
+        end
+
+        # Float32 and Float64 must still be exactly what FastRounding gives.
+        for (op, name) in ((⊕₊, :⊕₊), (⊖₋, :⊖₋), (⊗₊, :⊗₊), (⊘₊, :⊘₊))
+            fr = getfield(FastRounding, name)
+            for (x, y) in ((1.0, 0.1), (-3.25, 7.0), (1.0f0, 0.1f0))
+                @test op(x, y) === fr(x, y)
+            end
+        end
+
+        # BigFloat must round in the stated direction, and bracket the exact value.
+        setprecision(BigFloat, 64) do
+            x, y = BigFloat(1), BigFloat(3)
+            @test ⊘₊(x, y) != ⊘₋(x, y)
+            @test Rational{BigInt}(⊘₊(x, y)) >= 1 // 3
+            @test Rational{BigInt}(⊘₋(x, y)) <= 1 // 3
+            a, b = BigFloat(1), eps(BigFloat) / 4
+            @test ⊕₊(a, b) > a          # rounds away from a
+            @test ⊕₋(a, b) == a
+            @test ⊗₊(x, y) >= 3 && ⊗₋(x, y) <= 3
+            @test ⊖₊(x, y) >= -2 && ⊖₋(x, y) <= -2
+        end
+    end
+
     @testset "gamma is an upper bound at BigFloat too" begin
         # FastRounding covers Float32/Float64 only, so gamma could not run at
         # BigFloat; MPFR honours setrounding, which Julia dropped for Float64.
