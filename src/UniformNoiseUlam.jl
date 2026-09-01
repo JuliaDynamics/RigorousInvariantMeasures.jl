@@ -1,5 +1,5 @@
 """
-    struct UniformKernelUlam{BC} <: NoiseKernel
+    struct UniformKernelUlam{BC,T} <: NoiseKernel
 
 Ulam discretization of the uniform noise kernel with half-width `l` on a partition
 `B::Ulam`. The type parameter `BC` specifies the boundary condition:
@@ -7,28 +7,36 @@ Ulam discretization of the uniform noise kernel with half-width `l` on a partiti
 - `:periodic`   → periodic wrap-around
 - `:reflecting` → mirror reflection (projection π)
 
+`T` is the type of the bounds, `Float64` by default. The scratch buffers carry
+it, so applying a kernel to a `Vector{Interval{T′}}` with `T′` wider than `T`
+would narrow the midpoints on the way in, which the error term added afterwards
+does not account for; build the kernel at the type you mean to use.
+
 # Fields
-- `B::Ulam`              : the Ulam partition
-- `l::Int`               : half-width of the averaging window
-- `scratch_ext::Vector`  : workspace of length `k+2l` for building extended vector
-- `scratch_sum::Vector`  : workspace of length `k` for storing window sums
+- `B::Ulam`                 : the Ulam partition
+- `l::Int`                  : half-width of the averaging window
+- `scratch_ext::Vector{T}`  : workspace of length `k+2l` for building extended vector
+- `scratch_sum::Vector{T}`  : workspace of length `k` for storing window sums
 """
-struct UniformKernelUlam{BC} <: NoiseKernel
+struct UniformKernelUlam{BC,T<:Real} <: NoiseKernel
     B::Ulam
     l::Int
-    scratch_ext::Vector{Float64}
-    scratch_sum::Vector{Float64}
+    scratch_ext::Vector{T}
+    scratch_sum::Vector{T}
 end
 
 """
-    UniformKernelUlam(::Val{BC}, B::Ulam, l::Int)
+    UniformKernelUlam(::Val{BC}, [T,] B::Ulam, l::Int)
 
-Constructor for a `UniformKernelUlam{BC}` kernel on the partition `B` with half-width `l`.
+Constructor for a `UniformKernelUlam{BC,T}` kernel on the partition `B` with
+half-width `l`, bounds of type `T` (`Float64` by default).
 Allocates the necessary scratch buffers of sizes `k+2l` and `k` (`k = length(B)`).
 """
-function UniformKernelUlam(::Val{BC}, B::Ulam, l::Int) where {BC}
+UniformKernelUlam(bc::Val, B::Ulam, l::Int) = UniformKernelUlam(bc, Float64, B, l)
+
+function UniformKernelUlam(::Val{BC}, ::Type{T}, B::Ulam, l::Int) where {BC,T<:Real}
     k = length(B)
-    UniformKernelUlam{BC}(B, l, zeros(k + 2l), zeros(k))
+    UniformKernelUlam{BC,T}(B, l, zeros(T, k + 2l), zeros(T, k))
 end
 
 """
@@ -79,6 +87,8 @@ This operator acts as a stochastic convolution with uniform noise, where
 indices outside `[1,k]` wrap around periodically.
 """
 UniformKernelUlamPeriodic(B::Ulam, l::Int) = UniformKernelUlam(Val(:periodic), B, l)
+UniformKernelUlamPeriodic(::Type{T}, B::Ulam, l::Int) where {T<:Real} =
+    UniformKernelUlam(Val(:periodic), T, B, l)
 
 """
     UniformKernelUlamReflecting(B::Ulam, l::Int)
@@ -91,6 +101,8 @@ indices outside `[1,k]` are mapped back into `[1,k]` by the reflecting
 projection π (period-2 mirror).
 """
 UniformKernelUlamReflecting(B::Ulam, l::Int) = UniformKernelUlam(Val(:reflecting), B, l)
+UniformKernelUlamReflecting(::Type{T}, B::Ulam, l::Int) where {T<:Real} =
+    UniformKernelUlam(Val(:reflecting), T, B, l)
 
 """
     *(K::UniformKernelUlam, v::AbstractVector)
@@ -140,13 +152,13 @@ according to the projection π.
 end
 
 """
-    mul!(K::UniformKernelUlam, v::Vector{Float64})
+    mul!(K::UniformKernelUlam{BC,T}, v::Vector{T})
 
 In-place application of the uniform kernel to a real vector `v`.  
 Uses a preallocated scratch extension vector and sliding-window sum
 with Kahan summation for numerical stability.
 """
-function mul!(K::UniformKernelUlam{BC}, v::Vector{Float64}) where {BC}
+function mul!(K::UniformKernelUlam{BC,T}, v::Vector{T}) where {BC,T}
     k = length(v)
     l = K.l
     n = 2l + 1
@@ -161,7 +173,7 @@ function mul!(K::UniformKernelUlam{BC}, v::Vector{Float64}) where {BC}
 
     # initial sum
     s = sum(@view v_ext[1:n])
-    c = 0.0
+    c = zero(T)
     sums[1] = s
 
     # sliding window with Kahan
@@ -189,7 +201,7 @@ In-place application of the uniform kernel to a vector of intervals.
 The operation is performed on midpoints with sliding window sums,
 and then a uniform interval error bound is added to account for radii.
 """
-function mul!(K::UniformKernelUlam{BC}, v::Vector{Interval{T}}) where {BC,T}
+function mul!(K::UniformKernelUlam{BC,T}, v::Vector{Interval{T}}) where {BC,T}
     k = length(v)
     l = K.l
     n = 2l + 1
@@ -211,7 +223,7 @@ function mul!(K::UniformKernelUlam{BC}, v::Vector{Interval{T}}) where {BC,T}
 
     # initial sum
     s = sum(@view v_ext[1:n])
-    c = 0.0
+    c = zero(T)
     sums[1] = s
 
     # sliding window with Kahan
@@ -224,15 +236,28 @@ function mul!(K::UniformKernelUlam{BC}, v::Vector{Interval{T}}) where {BC,T}
         sums[i] = s
     end
 
-    # crude but safe error bound
-    δₖ = 0.0      # uniform kernel has exact opnorm = 1
-    γₖ = 1.0
-    normMK = 1.0
-    ϵ = (γₖ ⊗₊ normMK) ⊗₊ nrmv / n ⊕₊ (normMK ⊗₊ nrmrad) / n
+    # Error bound. The window sum is accumulated in floating point and then
+    # divided by n, so the error on one entry is bounded by
+    #
+    #     γ_{n+1} · Σ_j |mid(v_j)| / n  +  Σ_j radius(v_j) / n ,
+    #
+    # the n additions of the sum together with the final division on the left,
+    # the propagated input radii on the right. Kahan summation makes the true
+    # error much smaller than γ_{n+1} allows, so this is an over-estimate.
+    #
+    # γₖ was hard-coded to 1.0 here, which made ϵ equal to ‖v‖₁/n and left the
+    # enclosure vacuous; at k = 1024, ξ = 0.05 that gave a radius of 9.75 on
+    # entries of order one, against 2.4e-11 for the kernel in NoiseKernel.jl.
+    # One unit beyond the n additions covers the final division by n.
+    δₖ = zero(T)  # the weights are the exact rationals 1/n; no matrix radius
+    γₖ = gamma(T, n + 1)
+    normMK = one(T)  # ‖N‖_{L¹→L¹} = 1 exactly, the kernel being Markov
+    nT = T(n, RoundDown)
+    ϵ = ((γₖ ⊗₊ normMK) ⊗₊ nrmv) ⊘₊ nT ⊕₊ ((normMK ⊗₊ nrmrad) ⊘₊ nT)
 
     # normalize into intervals
     @inbounds for i = 1:k
-        v[i] = interval(sums[i] / n) + interval(-ϵ, ϵ)
+        v[i] = interval(T, sums[i] / n) + interval(T, -ϵ, ϵ)
     end
 
     return v
