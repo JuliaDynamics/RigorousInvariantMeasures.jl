@@ -68,6 +68,20 @@
         end
     end
 
+    @testset "gamma is an upper bound at BigFloat too" begin
+        # FastRounding covers Float32/Float64 only, so gamma could not run at
+        # BigFloat; MPFR honours setrounding, which Julia dropped for Float64.
+        setprecision(BigFloat, 256) do
+            for n in (13, 105, 6555)
+                for T in (Float64, BigFloat)
+                    u = Rational{BigInt}(eps(T))
+                    exact = (n * u) / (1 - n * u)
+                    @test Rational{BigInt}(gamma(T, n)) >= exact
+                end
+            end
+        end
+    end
+
     @testset "old periodic kernel does not allocate per entry" begin
         # `sum(M.v .* h)` allocated a length-n temporary on each of the k
         # iterations: 222 MB per application at k = 16384.

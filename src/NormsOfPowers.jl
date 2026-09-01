@@ -43,6 +43,23 @@ function gamma(T, n::Integer)
     return nu ⊘₊ (one(T) ⊖₋ nu)
 end
 
+# FastRounding supplies `⊗₊` and the rest for Float32 and Float64 only, so the
+# method above cannot run at BigFloat. MPFR does honour `setrounding`, which
+# Julia no longer supports for Float64, so the BigFloat case is written with the
+# `setrounding ... do` blocks used throughout BallArithmetic. The numerator is
+# rounded up and the denominator down, so that the quotient is an upper bound.
+function gamma(::Type{BigFloat}, n::Integer)
+    nu = setrounding(BigFloat, RoundUp) do
+        eps(BigFloat) * BigFloat(n)
+    end
+    den = setrounding(BigFloat, RoundDown) do
+        one(BigFloat) - nu
+    end
+    return setrounding(BigFloat, RoundUp) do
+        nu / den
+    end
+end
+
 using ProgressMeter
 """
 Estimates the norms ||Q||, ||Q^2||, ... ||Q^m|| on U^0.
