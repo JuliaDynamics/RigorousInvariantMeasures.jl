@@ -24,8 +24,13 @@ function BZ()
     )
     BZC = Interval{Float64}(C_big)
 
-    T_left_leq_1_8(x) = (BZA - (interval(1.0) / 8 - x)^(interval(1.0) / 3)) * exp(-x) + BZB
-    T_left_geq_1_8(x) = (BZA + (x - interval(1.0) / 8)^(interval(1.0) / 3)) * exp(-x) + BZB
+    # The cube root carries a rational exponent, not the interval one it used to have: the Newton
+    # step for the preimages takes the derivative through `Taylor1{Interval} ^ Interval`, where
+    # TaylorSeries truncates the exponent to an integer and throws. Writing it as exp(log(u)/3)
+    # also works and is tighter by a factor of two on thin arguments, at 1e-16 against Ulam radii of
+    # 1e-11, but returns the empty interval at u = 0, which is the branch point x = 1/8.
+    T_left_leq_1_8(x) = (BZA - (interval(1.0) / 8 - x)^(1//3)) * exp(-x) + BZB
+    T_left_geq_1_8(x) = (BZA + (x - interval(1.0) / 8)^(1//3)) * exp(-x) + BZB
     T_right(x) = BZC * (10x * exp(-interval(10) / 3 * x))^(19) + BZB
 
     return PwMap(

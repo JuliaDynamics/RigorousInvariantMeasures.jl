@@ -111,7 +111,6 @@ struct Cω <: NormKind end
 Functions to deal with various types of norms and seminorms
 """
 
-using FastRounding
 using IntervalArithmetic, IntervalOptimisation
 using TaylorSeries: Taylor1
 using SparseArrays: getcolptr

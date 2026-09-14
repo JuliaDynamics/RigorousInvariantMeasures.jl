@@ -1,4 +1,3 @@
-using FastRounding
 
 export coarse_fine_weak_resolvent,
     strong_resolvent_lift,
