@@ -1,5 +1,5 @@
 """
-    struct UniformKernelUlam{BC,T} <: NoiseKernel
+    struct UniformKernelUlam{BC,T,S} <: NoiseKernel
 
 Ulam discretization of the uniform noise kernel with half-width `l` on a partition
 `B::Ulam`. The type parameter `BC` specifies the boundary condition:
@@ -12,31 +12,61 @@ it, so applying a kernel to a `Vector{Interval{T′}}` with `T′` wider than `T
 would narrow the midpoints on the way in, which the error term added afterwards
 does not account for; build the kernel at the type you mean to use.
 
+`S` is the summation scheme of the window sums, `:sliding` by default:
+
+- `:sliding` → one running sum, updated by adding the entering entry and
+  subtracting the leaving one, with Kahan compensation. The error of an entry is
+  that of a compensated sum of every term processed so far, so it is bounded in
+  terms of the whole vector and not of the window.
+- `:block`   → the block scheme of van Herk (Pattern Recognit. Lett. 13 (1992)
+  517–521) and Gil and Werman (IEEE TPAMI 15 (1993) 504–507), written there for
+  running maxima and valid for any associative operation. The extended vector is
+  cut into blocks of length `n = 2l+1`, sums are accumulated inside each block
+  from the right and from the left, and every window, which meets at most two
+  blocks, is the sum of one right-accumulated and one left-accumulated partial
+  sum. No entry is subtracted, and each window sum is a floating-point sum of its
+  own `n` terms, so the error of an entry is at most `γₙ` times the kernel applied
+  to `|v|` at that entry. The cost is three additions per entry, as for `:sliding`.
+
 # Fields
 - `B::Ulam`                 : the Ulam partition
 - `l::Int`                  : half-width of the averaging window
 - `scratch_ext::Vector{T}`  : workspace of length `k+2l` for building extended vector
 - `scratch_sum::Vector{T}`  : workspace of length `k` for storing window sums
+- `scratch_suf::Vector{T}`  : workspace of length `k+2l` for the right-accumulated
+  block sums of the `:block` scheme (empty for `:sliding`)
 """
-struct UniformKernelUlam{BC,T<:Real} <: NoiseKernel
+struct UniformKernelUlam{BC,T<:Real,S} <: NoiseKernel
     B::Ulam
     l::Int
     scratch_ext::Vector{T}
     scratch_sum::Vector{T}
+    scratch_suf::Vector{T}
 end
 
 """
-    UniformKernelUlam(::Val{BC}, [T,] B::Ulam, l::Int)
+    UniformKernelUlam(::Val{BC}, [T,] B::Ulam, l::Int; summation = :sliding)
 
-Constructor for a `UniformKernelUlam{BC,T}` kernel on the partition `B` with
-half-width `l`, bounds of type `T` (`Float64` by default).
+Constructor for a `UniformKernelUlam{BC,T,S}` kernel on the partition `B` with
+half-width `l`, bounds of type `T` (`Float64` by default) and summation scheme
+`S = summation`, either `:sliding` or `:block`.
 Allocates the necessary scratch buffers of sizes `k+2l` and `k` (`k = length(B)`).
 """
-UniformKernelUlam(bc::Val, B::Ulam, l::Int) = UniformKernelUlam(bc, Float64, B, l)
+UniformKernelUlam(bc::Val, B::Ulam, l::Int; summation::Symbol = :sliding) =
+    UniformKernelUlam(bc, Float64, B, l; summation)
 
-function UniformKernelUlam(::Val{BC}, ::Type{T}, B::Ulam, l::Int) where {BC,T<:Real}
+function UniformKernelUlam(
+    ::Val{BC},
+    ::Type{T},
+    B::Ulam,
+    l::Int;
+    summation::Symbol = :sliding,
+) where {BC,T<:Real}
+    summation in (:sliding, :block) ||
+        throw(ArgumentError("summation must be :sliding or :block, got :$summation"))
     k = length(B)
-    UniformKernelUlam{BC,T}(B, l, zeros(T, k + 2l), zeros(T, k))
+    suf = summation === :block ? zeros(T, k + 2l) : T[]
+    UniformKernelUlam{BC,T,summation}(B, l, zeros(T, k + 2l), zeros(T, k), suf)
 end
 
 """
@@ -91,9 +121,10 @@ half-width `l` (window size = 2l+1).
 This operator acts as a stochastic convolution with uniform noise, where
 indices outside `[1,k]` wrap around periodically.
 """
-UniformKernelUlamPeriodic(B::Ulam, l::Int) = UniformKernelUlam(Val(:periodic), B, l)
-UniformKernelUlamPeriodic(::Type{T}, B::Ulam, l::Int) where {T<:Real} =
-    UniformKernelUlam(Val(:periodic), T, B, l)
+UniformKernelUlamPeriodic(B::Ulam, l::Int; summation::Symbol = :sliding) =
+    UniformKernelUlam(Val(:periodic), B, l; summation)
+UniformKernelUlamPeriodic(::Type{T}, B::Ulam, l::Int; summation::Symbol = :sliding) where {T<:Real} =
+    UniformKernelUlam(Val(:periodic), T, B, l; summation)
 
 """
     UniformKernelUlamReflecting(B::Ulam, l::Int)
@@ -105,9 +136,10 @@ This operator acts as a stochastic convolution with uniform noise, where
 indices outside `[1,k]` are mapped back into `[1,k]` by the reflecting
 projection π (period-2 mirror).
 """
-UniformKernelUlamReflecting(B::Ulam, l::Int) = UniformKernelUlam(Val(:reflecting), B, l)
-UniformKernelUlamReflecting(::Type{T}, B::Ulam, l::Int) where {T<:Real} =
-    UniformKernelUlam(Val(:reflecting), T, B, l)
+UniformKernelUlamReflecting(B::Ulam, l::Int; summation::Symbol = :sliding) =
+    UniformKernelUlam(Val(:reflecting), B, l; summation)
+UniformKernelUlamReflecting(::Type{T}, B::Ulam, l::Int; summation::Symbol = :sliding) where {T<:Real} =
+    UniformKernelUlam(Val(:reflecting), T, B, l; summation)
 
 """
     *(K::UniformKernelUlam, v::AbstractVector)
@@ -163,7 +195,7 @@ In-place application of the uniform kernel to a real vector `v`.
 Uses a preallocated scratch extension vector and sliding-window sum
 with Kahan summation for numerical stability.
 """
-function mul!(K::UniformKernelUlam{BC,T}, v::Vector{T}) where {BC,T}
+function mul!(K::UniformKernelUlam{BC,T,:sliding}, v::Vector{T}) where {BC,T}
     k = length(v)
     l = K.l
     n = 2l + 1
@@ -206,7 +238,7 @@ In-place application of the uniform kernel to a vector of intervals.
 The operation is performed on midpoints with sliding window sums,
 and then a uniform interval error bound is added to account for radii.
 """
-function mul!(K::UniformKernelUlam{BC,T}, v::Vector{Interval{T}}) where {BC,T}
+function mul!(K::UniformKernelUlam{BC,T,:sliding}, v::Vector{Interval{T}}) where {BC,T}
     k = length(v)
     l = K.l
     n = 2l + 1
@@ -265,5 +297,126 @@ function mul!(K::UniformKernelUlam{BC,T}, v::Vector{Interval{T}}) where {BC,T}
         v[i] = interval(T, sums[i] / n) + interval(T, -ϵ, ϵ)
     end
 
+    return v
+end
+
+# ---------------------------------------------------------------------------
+# The block scheme (van Herk; Gil and Werman)
+# ---------------------------------------------------------------------------
+
+"""
+    _block_window_sums!(sums, ext, suf, k, n)
+
+Write into `sums[i]`, for `i = 1:k`, the floating-point sum of `ext[i:i+n-1]`,
+computed without subtraction. The extended vector `ext` (length `k+n-1`) is cut
+into blocks `1:n`, `n+1:2n`, …; `suf[t]` is the sum from `t` to the end of its
+block, accumulated from the right. A window starting at a block start is that
+block, `suf[i]`; any other window starting in block `b` ends in block `b+1`, and
+is `suf[i]` plus the sum from the start of block `b+1` to the end of the window,
+accumulated from the left in `p`. Each window sum therefore uses `n-1` additions
+of its own `n` terms and nothing else.
+"""
+function _block_window_sums!(sums::AbstractVector{T}, ext::AbstractVector{T},
+                             suf::AbstractVector{T}, k::Int, n::Int) where {T}
+    N = k + n - 1
+    @inbounds for bstart = 1:n:N
+        bend = min(bstart + n - 1, N)
+        s = ext[bend]
+        suf[bend] = s
+        for t = (bend-1):-1:bstart
+            s = ext[t] + s
+            suf[t] = s
+        end
+    end
+    p = zero(T)
+    @inbounds for i = 1:k
+        e = i + n - 1
+        # `p` is reset at every block start, and it is read only for windows that
+        # do not start at a block start, whose end `e` lies in the next block and
+        # was reached from that block's start; the value it holds when `i` is a
+        # block start is never read.
+        p = (e - 1) % n == 0 ? ext[e] : p + ext[e]
+        sums[i] = (i - 1) % n == 0 ? suf[i] : suf[i] + p
+    end
+    return sums
+end
+
+function _fill_extension!(ext::AbstractVector{T}, v::AbstractVector, ::Val{BC},
+                          k::Int, l::Int) where {T,BC}
+    @inbounds for j = 1:(k+2l)
+        ext[j] = v[get_idx(Val(BC), j - l, k)]
+    end
+    return ext
+end
+
+"""
+    mul!(K::UniformKernelUlam{BC,T,:block}, v::Vector{T})
+
+In-place application of the kernel with the block scheme. Every entry of the
+result is a window sum of `n = 2l+1` terms, formed with `n-1` additions and no
+subtraction, divided by `n`; by the bound for summation in any order
+[Higham, *Accuracy and Stability of Numerical Algorithms*, 2nd ed., (4.3)],
+together with the final division,
+
+    |fl((Kv)_i) - (Kv)_i| ≤ γₙ (K|v|)_i ,
+
+so that the error is local and, in any monotone norm, at most `γₙ ‖K‖ ‖v‖`.
+"""
+function mul!(K::UniformKernelUlam{BC,T,:block}, v::Vector{T}) where {BC,T}
+    k = length(v)
+    l = K.l
+    n = 2l + 1
+    _fill_extension!(K.scratch_ext, v, Val(BC), k, l)
+    _block_window_sums!(K.scratch_sum, K.scratch_ext, K.scratch_suf, k, n)
+    @inbounds for i = 1:k
+        v[i] = K.scratch_sum[i] / n
+    end
+    return v
+end
+
+"""
+    mul!(K::UniformKernelUlam{BC,T,:block}, v::Vector{Interval{T}})
+
+In-place application of the kernel to a vector of intervals with the block
+scheme. With `m` and `r` the midpoints and radii of `v`, the result at entry `i`
+is centred at the computed `(Km)_i` with radius
+
+    γₙ (K|m|)_i + (K r)_i ,
+
+the first term the rounding of the centre, the second the propagated radii
+(`K` is entrywise nonnegative). Both `(K|m|)_i` and `(Kr)_i` are sums of
+nonnegative terms, which the block scheme computes with relative error at most
+`γₙ`, so each is bounded above by its computed value divided by `1 - γₙ`; the
+radius is formed with upward rounding from these. The radius is local to the
+window, unlike the uniform one of the `:sliding` scheme.
+"""
+function mul!(K::UniformKernelUlam{BC,T,:block}, v::Vector{Interval{T}}) where {BC,T}
+    k = length(v)
+    l = K.l
+    n = 2l + 1
+    ext, sums, suf = K.scratch_ext, K.scratch_sum, K.scratch_suf
+
+    midv = mid.(v)
+    absm = abs.(midv)
+    radv = radius.(v)
+
+    _fill_extension!(ext, midv, Val(BC), k, l)
+    _block_window_sums!(sums, ext, suf, k, n)
+    centre = sums ./ n
+
+    _fill_extension!(ext, absm, Val(BC), k, l)
+    _block_window_sums!(sums, ext, suf, k, n)
+    kabsm = sums ./ n
+
+    _fill_extension!(ext, radv, Val(BC), k, l)
+    _block_window_sums!(sums, ext, suf, k, n)
+    krad = sums ./ n
+
+    γₙ = gamma(T, n)
+    den = one(T) ⊖₋ γₙ
+    @inbounds for i = 1:k
+        ϵ = ((γₙ ⊗₊ kabsm[i]) ⊕₊ krad[i]) ⊘₊ den
+        v[i] = interval(T, centre[i]) + interval(T, -ϵ, ϵ)
+    end
     return v
 end
