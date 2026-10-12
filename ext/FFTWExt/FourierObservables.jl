@@ -106,11 +106,15 @@ function _fourier_coeffs_no_aliasing(B::Fourier, f::Function, M_grid::Integer)
             "FFT grid size M = $M_grid must be ≥ length(B) = $(length(B))",
         ),
     )
-    samples = [f(p) for p in FourierPoints(M_grid, Float64)]
+    # The transform is taken on a larger grid, of size a power of two, for which the
+    # error bound of the transform is proved; only the frequencies
+    # 0, 1, …, K, -K, …, -1 are kept. The caller's error bound is stated for the
+    # grid size it asked for, which is not larger.
+    M_fft = nextpow(2, M_grid)
+    samples = [f(p) for p in FourierPoints(M_fft, Float64)]
     raw = interval_fft(samples)
     k_freq = B.k
-    return M_grid == length(B) ? raw :
-           [raw[1:k_freq+1]; raw[M_grid-k_freq+1:M_grid]]
+    return [raw[1:k_freq+1]; raw[M_fft-k_freq+1:M_fft]]
 end
 
 # ---------------------------------------------------------------------------

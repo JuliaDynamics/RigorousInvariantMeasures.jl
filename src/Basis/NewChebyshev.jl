@@ -736,7 +736,7 @@ function _verified_inverse(G::Matrix{Interval{T}}) where {T}
         c = zeros(T, n)
         c[j] = one(T)
         res = krawczyk_linear_system(GB, BallVector(c, zeros(T, n)))
-        res.verified ||
+        res.certified ||
             error("Krawczyk verification failed for column $j of the Gram inverse")
         col = res.solution
         for i = 1:n
@@ -868,11 +868,11 @@ function gram_restrict_to_average_zero(
     # 256 no matter what `setprecision` says, which silently floors the
     # enclosure of U at ~1e-75.
     chol = BallArithmetic.verified_cholesky(
+        Float64,
         T.(mid.(G));
-        use_bigfloat = false,
         precision_bits = Int(precision_bits),
     )
-    chol.success || error("verified Cholesky of the Lebesgue Gram matrix failed")
+    chol.certified || error("verified Cholesky of the Lebesgue Gram matrix failed")
 
     # G = U'U with U upper triangular. Move to intervals to invert, then back.
     U = chol.G
@@ -1290,11 +1290,11 @@ function _cheb_gram_factor(
     get!(_CHEB_CHOL_CACHE, (Int(n), T, Int(precision_bits))) do
         G = _lebesgue_gram(n, T)
         chol = BallArithmetic.verified_cholesky(
+            Float64,
             T.(mid.(G));
-            use_bigfloat = false,
             precision_bits = Int(precision_bits),
         )
-        chol.success || error("verified Cholesky of the Lebesgue Gram matrix failed")
+        chol.certified || error("verified Cholesky of the Lebesgue Gram matrix failed")
         U = chol.G
         Ui = Interval{T}[
             interval(T, U.c[i, j] - U.r[i, j], U.c[i, j] + U.r[i, j]) for i = 1:n, j = 1:n
@@ -1427,9 +1427,9 @@ function bernstein_l2_resolvent_bound(
     # As in `gram_restrict_to_average_zero`, the Cholesky is verified for the
     # MIDPOINT of the metric; `chol.residual_norm` reports the gap.
     S = T.(transpose(W) * W)
-    chol = BallArithmetic.verified_cholesky(S; use_bigfloat = false,
+    chol = BallArithmetic.verified_cholesky(Float64, S;
                                             precision_bits = _default_chol_bits(T))
-    chol.success || error("verified Cholesky of the Bernstein metric failed")
+    chol.certified || error("verified Cholesky of the Bernstein metric failed")
     Rc = chol.G
     Ri = Interval{T}[
         interval(T, Rc.c[i, j] - Rc.r[i, j], Rc.c[i, j] + Rc.r[i, j])

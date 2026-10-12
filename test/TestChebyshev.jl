@@ -153,7 +153,7 @@ end
         Bk = Chebyshev(k, 3)
         Q = RigorousInvariantMeasures.assemble(Bk, D; ϵ = 1e-13, max_iter = 100)
         blk, chol = gram_restrict_to_average_zero(Bk, BallMatrix(Q))
-        @test chol.success
+        @test chol.certified
         @test size(blk.c) == (length(Bk) - 1, length(Bk) - 1)
         @test maximum(blk.r) < 1e-10
         push!(ρs, maximum(abs.(eigvals(blk.c))))
