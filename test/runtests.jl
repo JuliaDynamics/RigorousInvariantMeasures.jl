@@ -34,6 +34,7 @@ DocMeta.setdocmeta!(
     include("TestNoiseKernelRegression.jl")
     include("TestNoiseSpecializedEstimate.jl")
     include("TestResidualEstimate.jl")
+    include("TestNormsOfPowers.jl")
 
     #include("TestSkewProductMap.jl")
     #include("TestUlam2DSP.jl")

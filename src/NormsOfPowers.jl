@@ -387,11 +387,24 @@ end
 
 """
 Estimate ||I + Q + Q^2 + … || (infinite sum) using a list of computed norm bounds norms[k] ≥ ||Q^k||.
+
+The geometric tail is summed from the last entry, so a bound is only obtained when
+`norms[end] < 1` and every entry is finite.  When either fails the data do not bound
+the sum and `Inf` is returned, which is a true upper bound and makes any enclosure
+built from it fail visibly downstream; a finite value is never returned on data that
+does not support one.
 """
 function infinite_sum_norms(norms::Vector)
     m = length(norms)
+    bad = findfirst(x -> !isfinite(x), norms)
+    if bad !== nothing
+        @error "infinite_sum_norms: norms[$bad] = $(norms[bad]) is not finite; " *
+               "these bounds do not bound the sum, returning Inf"
+        return Inf
+    end
     if norms[m] >= 1
         @error "The last norm is >= 1: the bounds are not sufficient to show that the sum converges"
+        return Inf
     end
     S = 1.0
     for k = 1:m-1
