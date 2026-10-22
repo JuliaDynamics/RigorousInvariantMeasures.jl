@@ -5,7 +5,8 @@
     using RigorousInvariantMeasures
     using SparseArrays, LinearAlgebra
     import RigorousInvariantMeasures: correlation_sequence_noise, norms_of_powers_noise,
-        norms_of_powers_from_coarser_grid_noise, ProjectedFunction, L1, mid
+        norms_of_powers_from_coarser_grid_noise, norms_of_powers_recursive_noise,
+        ProjectedFunction, L1, mid
 
     @testset "correlation_sequence_noise encloses a 256-bit iteration" begin
         k = 256
@@ -67,10 +68,15 @@
         n = length(Bf)
         L = reduce(hcat, [NKf * (mid.(Qf.L) * Float64.(1:n .== j)) for j = 1:n])
         P = Matrix(1.0I(n))
+        recursive = norms_of_powers_recursive_noise(Bc, NKf, min.(coarse, 1.0); first = 1.0 + 1e-10)
         for kk = 1:m+1
             P = L * P
             truenorm = maximum(sum(abs.(P[:, i] .- P[:, j])) / 2 for i = 1:n for j = i+1:n)
             @test truenorm <= fine[kk] + 1e-12
+            @test truenorm <= recursive[kk] + 1e-12
         end
+        # with every slot equal to 1 the recursion is Lemma 29, so it is never larger
+        lemma29 = norms_of_powers_from_coarser_grid_noise(Bf, Bc, Qf, NKf, min.(coarse, 1.0))
+        @test all(recursive[k] <= lemma29[k] * (1 + 1e-9) + 1e-12 for k = 2:m+1)
     end
 end

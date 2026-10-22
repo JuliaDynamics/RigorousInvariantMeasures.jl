@@ -5,7 +5,8 @@ Functions to estimate Q|_{U^0}. See our paper for details.
 using LinearAlgebra
 using SparseArrays
 
-export norms_of_powers_noise, correlation_sequence_noise, noise_step, NoiseStepBound
+export norms_of_powers_noise, correlation_sequence_noise, noise_step, NoiseStepBound,
+    norms_of_powers_recursive_noise
 
 """
     NoiseStepBound(map_rounding, map_norm, noise_rounding, noise_norm)
@@ -473,6 +474,51 @@ function finepowernormboundsnoise(
 
     better_norms_fine = refine_norms_of_powers(norms_fine, m + 1)
     return better_norms_fine
+end
+
+@doc raw"""
+    norms_of_powers_recursive_noise(coarse_basis::Ulam, NK, coarse_norms; first = 1.0)
+
+Bounds ``F_k ≥ \|Λ^k|_V\|_{L^1}``, ``k = 1, …, m+1`` with `m = length(coarse_norms)`, for
+``Λ = σ N_ξ σ L σ``, where either ``σ = π_{δ'}`` is the Ulam projection of a refinement of
+`coarse_basis` (``Λ`` the finer discretisation) or ``σ = \mathrm{Id}`` (``Λ`` the true
+operator), from bounds ``C_k ≥ \|L_c^k|_V\|`` for the coarse ``L_c = π_δ N_ξ π_δ L π_δ``:
+
+```math
+F_{n+1} \le C_n F_1 + \frac{δ}{ξ}\Bigl(F_n + \sum_{i=0}^{n-1} C_i \bigl(F_{n-1-i} + F_{n-i}\bigr)\Bigr),
+\qquad C_0 = F_0 = 1,
+```
+
+with `first` ``≥ F_1`` and ``δ/ξ`` the product of `weak_projection_error(coarse_basis)` and the
+`dfly` constant of `NK`, i.e. ``\|(π_δ - 1)N_ξ\|_{L^1}`` and ``\|N_ξ(π_δ - 1)\|_{L^1}``
+(Galatolo, Monge, Nisoli, Nonlinearity 33 (2020) 4237, (17)-(18)).
+
+This is Lemma 29 with (36) there, keeping the norms of ``Λ^j`` where the proof bounds them
+by ``1``: ``L_c^n N_σ - Λ^n N_σ`` telescopes, with ``A = π_δ N_ξ π_δ L``, into
+``\sum_i A^i π_δ N_ξ [π_δ L π_δ - σ L σ] N_ξ σ (L σ N_σ)^{n-1-i} + (π_δ - σ) N_ξ σ (L σ N_σ)^n``,
+``π_δ L π_δ - σ L σ = π_δ L (π_δ - σ) + (π_δ - σ) L σ`` and ``π_δ - σ = (π_δ - 1)σ``; on
+``v = Lσu``, ``u ∈ V``, the factors ``(L σ N_σ)^j v = L σ Λ^j u`` are bounded by ``F_j``.
+With every ``F_j = 1`` it is the bound of [`norms_of_powers_from_coarser_grid_noise`](@ref);
+each ``F_{n+1}`` is also capped by ``F_n F_1``, and the result is extended by
+``F_{i+j} ≤ F_i F_j`` ([`refine_norms_of_powers`](@ref)).
+"""
+function norms_of_powers_recursive_noise(coarse_basis::Ulam, NK::NoiseKernel,
+                                         coarse_norms::Vector; first::Real = 1.0)
+    m = length(coarse_norms)
+    _, Bv = dfly(strong_norm(coarse_basis), aux_norm(coarse_basis), NK)
+    δξ = Bv ⊗₊ weak_projection_error(coarse_basis)
+    C(k) = k == 0 ? 1.0 : coarse_norms[k]
+    F = fill(NaN, m + 1)
+    F0(k) = k == 0 ? 1.0 : F[k]
+    F[1] = Float64(first, RoundUp)
+    for n = 1:m
+        s = F0(n)
+        for i = 0:n-1
+            s = s ⊕₊ C(i) ⊗₊ (F0(n - 1 - i) ⊕₊ F0(n - i))
+        end
+        F[n+1] = min(C(n) ⊗₊ F[1] ⊕₊ δξ ⊗₊ s, F[n] ⊗₊ F[1])
+    end
+    return refine_norms_of_powers(F, m + 1)
 end
 
 function abstractpowernormboundsnoise(B, NK, coarse_norms; m = length(coarse_norms))

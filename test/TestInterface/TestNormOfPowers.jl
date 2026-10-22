@@ -61,4 +61,32 @@ using IntervalArithmetic
 
     @test norms_of_powers_dfly(B_fine, D, 3) == ([512.0, 256.0, 128.0], [1.0, 1.0, 1.0])
 
+    # the recursive two-grid bound: never above the one of Theorem 4.5 with the Lasota-Yorke
+    # strong norms, and above the true norms of the fine operator on U⁰, computed densely as
+    # the largest column difference over 2 (the unit ball of U⁰ in L¹ is the hull of
+    # (e_i - e_j)/2); a nonlinear map, so that the strong norms matter
+    @testset "recursive two-grid bound" begin
+        D2 = mod1_dynamic(x -> 2x + 0.1 * RigorousInvariantMeasures.sinpi(2x))
+        Bc, Bf = Ulam(32), Ulam(128)
+        Qc, Qf = DiscretizedOperator(Bc, D2), DiscretizedOperator(Bf, D2)
+        coarse = powernormbounds(Bc, D2; Q = Qc)
+        nQ = opnormbound(Bf, weak_norm(Bf), Qf)
+        m = min(length(coarse), 40)
+        old = norms_of_powers_from_coarser_grid(Bf, Bc, D2, coarse[1:m], nQ)
+        rec = norms_of_powers_from_coarser_grid_recursive(Bf, Bc, D2, coarse[1:m], nQ)
+        @test all(rec .<= old)
+        @test rec[end] < old[end]
+        n = length(Bf)
+        L = mid.(Matrix(Qf.L))
+        P = Matrix{Float64}(I, n, n)
+        for k = 1:m
+            P = L * P
+            truenorm = maximum(sum(abs.(P[:, i] .- P[:, j])) / 2 for i = 1:n for j = i+1:n)
+            @test truenorm <= rec[k] + 1e-12
+        end
+        # the default normQ_fine used to read weak_norm(B_fine)DiscretizedOperator(...),
+        # a product of a type and an operator, which threw
+        @test length(finepowernormbounds(Bc, Bf, D2, coarse[1:m])) == m
+    end
+
 end
