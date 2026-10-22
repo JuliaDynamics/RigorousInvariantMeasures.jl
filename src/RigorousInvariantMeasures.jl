@@ -122,6 +122,7 @@ export UniformNoiseUlam
 
 include("UniformNoiseUlam.jl")
 export UniformKernelUlamPeriodic, UniformKernelUlamReflecting, UniformKernelUlam
+export UlamProjectedUniformKernel, UlamProjectedUniformKernelPeriodic, UlamProjectedUniformKernelReflecting
 
 # Function stub for plotting extension
 """

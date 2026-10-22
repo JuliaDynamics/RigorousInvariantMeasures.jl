@@ -420,3 +420,153 @@ function mul!(K::UniformKernelUlam{BC,T,:block}, v::Vector{Interval{T}}) where {
     end
     return v
 end
+
+# ---------------------------------------------------------------------------
+# The Ulam projection of the uniform kernel
+# ---------------------------------------------------------------------------
+
+"""
+    UlamProjectedUniformKernel{BC,T} <: NoiseKernel
+
+The operator `π N_ξ π` on the Ulam partition `B` of `k` intervals of width `δ = 1/k`:
+`N_ξ` is the convolution with the uniform density `ρ_ξ = ξ⁻¹ 1_{[-ξ/2, ξ/2]}` followed by
+the boundary condition `BC` (`:periodic` or `:reflecting`), and `π` the Ulam projection.
+It is the operator `π_δ N_ξ π_δ` of Galatolo, Monge, Nisoli, Nonlinearity 33 (2020) 4237,
+§2, for which the two-grid estimate of their Lemma 29 is written; in particular the same
+`ξ` can be used on a partition and on any refinement of it.
+
+The flat window [`UniformKernelUlam`](@ref) is a different operator: for `ξ = (2l+1)δ` its
+distance from this one in `L¹` is `δ/(2ξ)`, and on a dyadic refinement no flat window
+represents the same `ξ`, since `2l′+1 = 2ʲ(2l+1)` has no solution.
+
+With `s = ξ/δ`, the entry of the matrix at offset `d = i - j`, before the boundary
+condition, is
+
+    w_d = (F(s/2 - d) - F(-s/2 - d)) / s,
+
+`F` the primitive of the unit tent `Λ(t) = max(0, 1 - |t|)`, which is the density of the
+difference of two independent uniform points of a cell. So `w_d = 1/s` for
+`|d| ≤ m := ⌊s/2⌋ - 1`, the offsets `±(m+1)` and `±(m+2)` carry `c₁/s` and `c₂/s` with
+`c₁, c₂ ∈ [0, 1]`, and all the others vanish; `(2m+1) + 2(c₁ + c₂) = s`. For `s = 2l+1`
+the row is `(1/8, 7/8, 1, …, 1, 7/8, 1/8)/s`.
+
+The product is the flat window of `2m+1` cells, by the block scheme of
+[`UniformKernelUlam`](@ref), plus the two boundary corrections on each side, divided by
+`s`. Every entry is then a floating-point sum of `2m+5` nonnegative multiples of the
+input, each passing through at most `P = max(2m+3, 5)` roundings, so
+
+    |fl((Kv)_i) - (Kv)_i| ≤ γ_P (K|v|)_i ,
+
+[Higham, *Accuracy and Stability of Numerical Algorithms*, 2nd ed., §3.1 and (4.3)]; the
+error is local, and at most `γ_P ‖v‖₁` in `L¹`.
+
+`ξ k` must be exactly representable in `T`, and so must `c₁` and `c₂`, which are then exact
+dyadic numbers when `s` is; the constructor checks both, so pass `ξ` as a rational, e.g.
+`(2l+1)//k`. The support must cover at least two cells, `s ≥ 2`.
+"""
+struct UlamProjectedUniformKernel{BC,T<:Real} <: NoiseKernel
+    B::Ulam
+    s::T
+    m::Int
+    c₁::T
+    c₂::T
+    scratch_ext::Vector{T}
+    scratch_sum::Vector{T}
+    scratch_suf::Vector{T}
+end
+
+"Primitive of the unit tent Λ(t) = max(0, 1 - |t|), vanishing at -∞."
+_tent_primitive(x) =
+    x <= -1 ? zero(x) : x <= 0 ? (1 + x)^2 / 2 : x <= 1 ? 1 - (1 - x)^2 / 2 : one(x)
+
+function UlamProjectedUniformKernel(::Val{BC}, ::Type{T}, B::Ulam, ξ::Real) where {BC,T<:Real}
+    BC in (:periodic, :reflecting) ||
+        throw(ArgumentError("boundary condition must be :periodic or :reflecting, got :$BC"))
+    k = length(B)
+    sq = Rational{BigInt}(ξ) * k
+    s = T(sq)
+    Rational{BigInt}(s) == sq ||
+        throw(ArgumentError("ξk = $sq is not representable in $T; pass ξ as a rational with ξk representable"))
+    sq >= 2 || throw(ArgumentError("the support must cover at least two cells, got ξk = $sq"))
+    m = floor(Int, sq / 2) - 1
+    cq(d) = _tent_primitive(sq / 2 - d) - _tent_primitive(-sq / 2 - d)
+    c₁q, c₂q = cq(m + 1), cq(m + 2)
+    @assert (2m + 1) + 2 * (c₁q + c₂q) == sq
+    c₁, c₂ = T(c₁q), T(c₂q)
+    Rational{BigInt}(c₁) == c₁q && Rational{BigInt}(c₂) == c₂q ||
+        throw(ArgumentError("the boundary weights $c₁q, $c₂q are not representable in $T"))
+    D = m + 2
+    return UlamProjectedUniformKernel{BC,T}(B, s, m, c₁, c₂,
+        zeros(T, k + 2D), zeros(T, k), zeros(T, k + 2D))
+end
+UlamProjectedUniformKernel(bc::Val, B::Ulam, ξ::Real) = UlamProjectedUniformKernel(bc, Float64, B, ξ)
+
+UlamProjectedUniformKernelPeriodic(B::Ulam, ξ::Real) = UlamProjectedUniformKernel(Val(:periodic), B, ξ)
+UlamProjectedUniformKernelReflecting(B::Ulam, ξ::Real) = UlamProjectedUniformKernel(Val(:reflecting), B, ξ)
+
+"`L¹` operator norm: the matrix is nonnegative with unit row and column sums."
+opnormbound(B::Ulam, ::Type{L1}, M::UlamProjectedUniformKernel) = 1.0
+
+"The weights are stored exactly, so the matrix has no radius."
+opradius(::Type{L1}, M::UlamProjectedUniformKernel) = 0.0
+
+"""
+Number of terms of one entry, `2m+5`. Callers take `gamma(T, nonzero_per_row(K))` as the
+relative rounding of an entry, and `γ_{2m+5}` is at least the `γ_P` of the type docstring.
+"""
+nonzero_per_row(M::UlamProjectedUniformKernel) = 2M.m + 5
+
+"""
+    dfly(::Type{TotalVariation}, ::Type{L1}, N::UlamProjectedUniformKernel)
+
+`Var(π N_ξ π f) ≤ Var(N_ξ π f) ≤ ξ⁻¹ Var(ρ) ‖π f‖₁ ≤ (2/ξ) ‖f‖₁`, the projection not
+increasing the variation and `Var(ρ) = 2` for the uniform mother kernel on `[-1/2, 1/2]`
+(Galatolo, Monge, Nisoli, Nonlinearity 33 (2020) 4237, Lemma 47); `2/ξ = 2k/s`.
+"""
+dfly(::Type{TotalVariation}, ::Type{L1}, N::UlamProjectedUniformKernel) =
+    (0.0, 2 * length(N.B) / N.s)
+
+_rounding_depth(K::UlamProjectedUniformKernel) = max(2K.m + 3, 5)
+
+"Write `fl(K x)` into `out`; `out` may be `x`."
+function _projected_window!(out::AbstractVector{T}, K::UlamProjectedUniformKernel{BC,T},
+                            x::AbstractVector{T}) where {BC,T}
+    k = length(x)
+    m = K.m
+    D = m + 2
+    ext, sums = K.scratch_ext, K.scratch_sum
+    _fill_extension!(ext, x, Val(BC), k, D)
+    # the flat part: the window of 2m+1 cells centred at ext[i+D] starts at ext[i+2]
+    _block_window_sums!(sums, view(ext, 3:length(ext)), K.scratch_suf, k, 2m + 1)
+    @inbounds for i = 1:k
+        r = (sums[i] + K.c₁ * (ext[i+1] + ext[i+2D-1])) + K.c₂ * (ext[i] + ext[i+2D])
+        out[i] = r / K.s
+    end
+    return out
+end
+
+mul!(K::UlamProjectedUniformKernel{BC,T}, v::Vector{T}) where {BC,T} = _projected_window!(v, K, v)
+
+"""
+    mul!(K::UlamProjectedUniformKernel, v::Vector{Interval})
+
+With `m` and `r` the midpoints and radii of `v`, the result at entry `i` is centred at the
+computed `(Km)_i` with radius `γ_P (K|m|)_i + (Kr)_i`; the two sums are of nonnegative
+terms, computed with relative error at most `γ_P`, and are divided by `1 - γ_P` and
+combined with upward rounding, as for the `:block` flat window.
+"""
+function mul!(K::UlamProjectedUniformKernel{BC,T}, v::Vector{Interval{T}}) where {BC,T}
+    midv = mid.(v)
+    centre = _projected_window!(similar(midv), K, midv)
+    kabsm = _projected_window!(similar(midv), K, abs.(midv))
+    krad = _projected_window!(similar(midv), K, radius.(v))
+    γ = gamma(T, _rounding_depth(K))
+    den = one(T) ⊖₋ γ
+    @inbounds for i in eachindex(v)
+        ϵ = ((γ ⊗₊ kabsm[i]) ⊕₊ krad[i]) ⊘₊ den
+        v[i] = interval(T, centre[i]) + interval(T, -ϵ, ϵ)
+    end
+    return v
+end
+
+Base.:*(K::UlamProjectedUniformKernel, v::AbstractVector) = mul!(K, copy(v))
