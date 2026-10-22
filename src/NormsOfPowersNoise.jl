@@ -5,24 +5,101 @@ Functions to estimate Q|_{U^0}. See our paper for details.
 using LinearAlgebra
 using SparseArrays
 
-export norms_of_powers_noise
+export norms_of_powers_noise, correlation_sequence_noise, noise_step, NoiseStepBound
 
 """
-Estimates the norms ||Q||, ||Q^2||, ... ||Q^m|| on U^0.
+    NoiseStepBound(map_rounding, map_norm, noise_rounding, noise_norm)
 
-U is the matrix [ones(1,n-1); -I_(n-1,n-1)]. It is currently assumed that
-f*U==0 (i.e., all elements of f are equal).
+The four constants of the a priori rounding bound of one step `v ← MK(Mv)`, with `M` the
+midpoint of an integral-preserving `Q` (Galatolo, Nisoli, Numerical Remark 1 in §8.3 of
+"An elementary approach to rigorous approximation of invariant measures", SIAM J. Appl.
+Dyn. Syst. 13 (2014)): if `v` is within `ϵ` of the exact vector, the computed `M v` is within
+`map_rounding ‖v‖ + map_norm ϵ` of the exact `Q v`, where `map_rounding = γ_z ‖M‖ + ‖rad Q‖`
+and `map_norm ≥ ‖Q‖`; the noise step likewise, with `noise_rounding = γ_k ‖MK‖ + δ_k` and
+`noise_norm ≥ ‖MK‖`. The norms are those `opnormbound` returns for the basis.
+"""
+struct NoiseStepBound{T}
+    map_rounding::T
+    map_norm::T
+    noise_rounding::T
+    noise_norm::T
+end
 
-f must be an interval vector.
+function NoiseStepBound(B::Basis, N::Type{<:NormKind}, Q::DiscretizedOperator, MK::NoiseKernel)
+    is_integral_preserving(Q) ||
+        throw(ArgumentError("the step bound is written for an integral-preserving operator"))
+    T = typeof(sup(zero(eltype(Q.L))))
+    M = mid.(Q.L)
+    δ = opnormbound(B, N, radius.(Q.L))
+    γz = gamma(T, max_nonzeros_per_row(Q.L))
+    nrmM = opnormbound(B, N, M)
+    δₖ = opradius(N, MK)
+    γₖ = gamma(T, nonzero_per_row(MK))
+    nrm_MK = opnormbound(B, N, MK)
+    return NoiseStepBound(γz ⊗₊ nrmM ⊕₊ δ, nrmM ⊕₊ δ, γₖ ⊗₊ nrm_MK ⊕₊ δₖ, nrm_MK ⊕₊ δₖ)
+end
 
-The following constants may be specified as keyword arguments:
+"""
+    noise_step(B, N, M, MK, v, ϵ, nrmv, c::NoiseStepBound) -> (v, ϵ, nrmv)
 
-normQ, normE, normv0, normEF, normIEF, normN
+One step `v ← MK(Mv)` in floating point, `nrmv ≥ ‖v‖` on entry, and the bound `ϵ` on the
+distance from the exact iterate carried through it as in [`NoiseStepBound`](@ref); returns
+the new vector, its error bound and an upper bound on its norm.
+"""
+function noise_step(B, N, M, MK, v, ϵ, nrmv, c::NoiseStepBound)
+    v = M * v
+    ϵ = c.map_rounding ⊗₊ nrmv ⊕₊ c.map_norm ⊗₊ ϵ
+    nrmv = opnormbound(B, N, v)
+    v = MK * v
+    ϵ = c.noise_rounding ⊗₊ nrmv ⊕₊ c.noise_norm ⊗₊ ϵ
+    return v, ϵ, opnormbound(B, N, v)
+end
 
-otherwise they are computed (which may be slower).
+@doc raw"""
+    correlation_sequence_noise(ϕ::ProjectedFunction{<:Ulam}, Q, MK, g, nlags; g_error = 0.0)
 
-e and f must be specified in case is_integral_preserving==false
-In case is_integral_preserving is true, they may be specified but they are then ignored.
+Enclosures of ``\int ϕ\, \tilde L^n g\, dm`` for ``n = 0, …, `nlags`-1``, where
+``\tilde L = MK ∘ Q`` is the discretised annealed operator on the Ulam basis of `ϕ` and `Q`
+is integral preserving. The iterates are computed in floating point on the midpoint of
+`Q`, each within the bound of [`noise_step`](@ref) of the exact ``\tilde L^n g``, starting
+from `g_error ≥ \|g_{\mathrm{exact}} - g\|_{L^1}`, and are paired with `ϕ` by
+[`integral_pairing`](@ref), which charges ``\|ϕ\|_{L^∞}`` times that bound.
+
+What is enclosed is the correlation of the *discretised* operator: the distance between
+``\tilde L^n`` and the operator it discretises is not part of the result.
+"""
+function correlation_sequence_noise(ϕ::ProjectedFunction{<:Ulam}, Q::DiscretizedOperator,
+                                    MK::NoiseKernel, g::AbstractVector, nlags::Integer;
+                                    g_error::Real = 0.0)
+    B = ϕ.B
+    k = length(B)
+    c = NoiseStepBound(B, L1, Q, MK)
+    M = mid.(Q.L)
+    v = collect(float.(g))
+    # opnormbound counts Σ|vᵢ|, integral_pairing takes ∫|·| dm = Σ|vᵢ|/k
+    ϵ = Float64(g_error, RoundUp) ⊗₊ Float64(k, RoundUp)
+    nrmv = opnormbound(B, L1, v)
+    C = Vector{typeof(interval(0.0))}(undef, nlags)
+    for n = 1:nlags
+        C[n] = integral_pairing(ϕ, v, ϵ ⊘₊ Float64(k, RoundDown))
+        n < nlags && ((v, ϵ, nrmv) = noise_step(B, L1, M, MK, v, ϵ, nrmv, c))
+    end
+    return C
+end
+
+"""
+    norms_of_powers_noise(B::Ulam, N, m, Q, MK, f; normv0, normQ)
+
+Upper bounds on `‖(MK Q)^k|_{U⁰}‖`, `k = 1, …, m`, in the norm `N` as `opnormbound` counts
+it, for an integral-preserving `Q` (every Ulam operator is). Each basis vector
+`e₁ - e_{j+1}` of the zero-average space is iterated in floating point by
+[`noise_step`](@ref), its rounding carried by [`NoiseStepBound`](@ref); the result is
+the largest column norm plus its error, which bounds the norm on `U⁰` up to the factor
+`2` lost in writing an element of `U⁰` in this basis. Callers should take the minimum
+with the trivial bounds, as [`powernormboundsnoise`](@ref) does.
+
+`f`, the integral covector, must be an interval vector with equal entries.
+`normv0` and `normQ` may be passed to skip computing `‖e₁ - e_{j+1}‖` and `‖Q‖`.
 """
 function norms_of_powers_noise(
     B::Ulam,
@@ -33,114 +110,30 @@ function norms_of_powers_noise(
     f::AbstractArray;
     normv0::Real = -1.0, #used as "missing" value
     normQ::Real = -1.0,
-    normE::Real = -1.0,
-    normEF::Real = -1.0,
-    normIEF::Real = -1.0,
-    normN::Real = -1.0,
-    normρ::Real = -1.0,
 )
-
     @assert eltype(f) <: Interval
+    is_integral_preserving(Q) ||
+        throw(ArgumentError("norms_of_powers_noise is written for an integral-preserving Q"))
     T = typeof(sup(zero(eltype(Q.L)))) # gets "Float64" from Q.L
     n = size(Q.L, 1)
     M = mid.(Q.L)
 
-    R = radius.(Q.L)
-    δ = opnormbound(B, N, R)
-
-    # this is the operator radius of the noise operator,
-    # we use this function since the operator may be defined implictly
-
-    γz = gamma(T, max_nonzeros_per_row(Q.L))
-    γn = gamma(T, n + 3) # not n+2 like in the paper, because we wish to allow for f to be the result of rounding
-
-
-    ϵ = zero(T)
-
-    nrmM = opnormbound(B, N, M)
-
-    # these need to be implemented for each kernel
-    δₖ = opradius(N, MK) #this is the opnorm of the radius matrix
-
-    # essentially nonzero_per_row(MK) is
-    # the  number of mul_add needed to obtain one
-    # entry of MK*v
-    γₖ = gamma(T, nonzero_per_row(MK))
-
-    nrm_MK = opnormbound(B, N, MK)
-    normMK = nrm_MK ⊕₊ δₖ
-
-    # precompute norms
-    if !is_integral_preserving(Q)
-        if normE == -1.0
-            normE = opnormbound(B, N, Q.e)
-        end
-        if normEF == -1.0
-            normEF = opnormbound(B, N, Q.e * f)
-        end
-        if normIEF == -1.0
-            normIEF = opnormbound(B, N, [Matrix(UniformScaling{Float64}(1), n, n) Q.e * f])
-        end
-        if normN == -1.0
-            normN = opnormbound(B, N, Matrix(UniformScaling{Float64}(1), n, n) - Q.e * f)
-        end
+    c = NoiseStepBound(B, N, Q, MK)
+    if normQ != -1.0
+        c = NoiseStepBound(c.map_rounding, normQ, c.noise_rounding, c.noise_norm)
     end
 
-    if normQ == -1.0
-        if is_integral_preserving(Q)
-            normQ = nrmM ⊕₊ δ
-        else
-            defect = opnormbound(B, N, Q.w)
-            normQ = nrmM ⊕₊ δ ⊕₊ normE ⊗₊ defect
-        end
-    end
-
-    # initialize normcachers
     normcachers = [NormCacher{N}(B, n) for j = 1:m]
-
-    midf = map(mid, f)
-
-    # main loop
-
     v = zeros(T, n)
-
-    #@showprogress enabled=SHOW_PROGRESS_BARS  
     for j = 1:n-1
-        v .= zero(T) # TODO: check for type stability in cases with unusual types
-        v[1] = one(T) # TODO: in full generality, this should contain entries of f rather than ±1
+        v .= zero(T)
+        v[1] = one(T)
         v[j+1] = -one(T)
-        if normv0 == -1.0
-            nrmv = opnormbound(B, N, v)
-        else
-            nrmv = normv0
-        end
-        ϵ = 0.0
-        nrmw = nrmv # we assume that initial vectors are already integral-preserving
+        nrmv = normv0 == -1.0 ? opnormbound(B, N, v) : normv0
+        ϵ = zero(T)
         for k = 1:m
-            w = M * v
-            if is_integral_preserving(Q)
-                v = w
-                ϵ = (γz ⊗₊ nrmM ⊕₊ δ) ⊗₊ nrmv ⊕₊ normQ ⊗₊ ϵ
-            else
-                v = w - Q.e * (midf * w)  # TODO: we are currently assuming that f is not too large, to estimate the error (the result of only one floating point operation)
-                new_nrmw = opnormbound(B, N, w)
-                ϵ =
-                    γn ⊗₊ normIEF ⊗₊ (new_nrmw ⊕₊ normEF ⊗₊ nrmw) ⊕₊
-                    normN ⊗₊ (γz ⊗₊ nrmM ⊕₊ δ) ⊗₊ nrmv ⊕₊ normQ ⊗₊ ϵ
-                nrmw = new_nrmw
-            end
-
-            # the noise step
-            nrmv = opnormbound(B, N, v)
-
-            v = w
-            w = MK * v
-            v = w
-
-            ϵ = (γₖ ⊗₊ nrm_MK ⊕₊ δₖ) ⊗₊ nrmv ⊕₊ normMK ⊗₊ ϵ
-
-            nrmv = opnormbound(B, N, v)
-            add_column!(normcachers[k], v, ϵ) #TODO: Could pass and reuse nrmv in the case of norm-1
+            v, ϵ, nrmv = noise_step(B, N, M, MK, v, ϵ, nrmv, c)
+            add_column!(normcachers[k], v, ϵ)
         end
     end
     return map(get_norm, normcachers)
@@ -417,10 +410,18 @@ function norms_of_powers_from_coarser_grid_noise_abstract(
 end
 
 
+"""
+    powernormboundsnoise(B; Q, NK, threshold = 0.1)
+
+Bounds on `‖(NK Q)^k|_{U⁰}‖` for `k = 1, 2, …`: [`norms_of_powers_noise`](@ref) with `m`
+doubled from 8 until one bound is below `threshold`, the minimum with the trivial bounds
+`(‖Q‖‖NK‖ + δ)^k`, and the extension by `C_{i+j} ≤ C_i C_j`
+([`refine_norms_of_powers`](@ref)) until the last bound is below `1e-8`.
+"""
 function powernormboundsnoise(
     B;
-    Q = DiscretizedOperator(B, D),
-    NK = NK::NoiseKernel,
+    Q::DiscretizedOperator,
+    NK::NoiseKernel,
     threshold = 0.1,
 )
     m = 8
@@ -464,7 +465,7 @@ function finepowernormboundsnoise(
     m = length(coarse_norms)
 
     trivial_norms_fine =
-        norms_of_powers_trivial_noise(Bfine, weak_norm(B), Qfine, NKfine, m + 1)
+        norms_of_powers_trivial_noise(Bfine, weak_norm(Bfine), Qfine, NKfine, m + 1)
     twogrid_norms_fine =
         norms_of_powers_from_coarser_grid_noise(Bfine, B, Qfine, NKfine, coarse_norms)
 

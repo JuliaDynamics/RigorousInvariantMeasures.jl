@@ -5,7 +5,7 @@
     using RigorousInvariantMeasures
 
     import RigorousInvariantMeasures: wrap_idx, reflect_outward_idx, nonzero_per_row, opnormbound, opradius, dfly, normbound
-    import RigorousInvariantMeasures: UniformKernelUlamPeriodic, UniformKernelUlamReflecting
+    import RigorousInvariantMeasures: UniformKernelUlamPeriodic, UniformKernelUlamReflecting, mul!
 
 
     k = 5
