@@ -90,7 +90,7 @@ julia> B = Ulam(1024)
 Ulam{LinRange{Float64, Int64}}(LinRange{Float64}(0.0, 1.0, 1025))
 
 julia> strong_norm(B)
-TotalVariation
+VarInterval
 ```
 """
 function strong_norm end

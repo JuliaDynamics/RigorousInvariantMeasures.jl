@@ -448,7 +448,7 @@ The strategy to compute it follows a variant of Lemma 9.1 in the GMNP paper:
 * we compute the dfly coefficients as in the lemma.
 * we repeat the computation replacing 2^3 with 2^4, 2^5, ... 2^15 and take the best estimate among these.
 """
-function dfly_inf_der(::Type{TotalVariation}, ::Type{L1}, D::PwMap, tol = 1e-3)
+function dfly_inf_der(::Type{VarInterval}, ::Type{L1}, D::PwMap, tol = 1e-3)
     leftrightsingularity = Tuple{Bool,Bool}[]
     A = Inf
     B = Inf
@@ -519,7 +519,7 @@ function dfly_inf_der(::Type{TotalVariation}, ::Type{L1}, D::PwMap, tol = 1e-3)
     endpts = endpoints(D)
     min_width = minimum([endpts[i+1] - endpts[i] for i = 1:length(endpts)-1])
 
-    return A, B ⊕₊ sup(2 / min_width)
+    return DFLYCoefficients(VarInterval, L1, A, B ⊕₊ sup(2 / min_width))
 end
 #    aux_der = (1-max_exp)/2
 #  @info "aux_der", aux_der

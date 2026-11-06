@@ -97,6 +97,11 @@ whence
 
 Sharper basis-specific methods may be provided (see the `Ulam` method, where
 ``(c_s, c_w) = (1+A, B)``).
+
+The strong norm in which ``\|v\|_s`` is to be measured is the one of
+`dfly_coefficients`, not the one of the basis, and the two can differ: a pair stated for
+[`VarCircle`](@ref) makes ``c_s`` the coefficient of the variation on the circle.  Take it
+from [`strong_kind`](@ref), as [`distance_from_invariant_residual`](@ref) does.
 """
 function projection_defect_coefficients(
     B::Basis,
@@ -250,7 +255,11 @@ function distance_from_invariant_residual(
 
     Kh = interval(weak_projection_error(B))
     ΣC = interval(infinite_sum_norms(norms))
-    ns = interval(normbound(B, strong_norm(B), w))    # ‖w‖_s (computed candidate)
+    # the pair, and with it the defect coefficients, may be stated in a strong norm other
+    # than the basis's own: a DFLY for VarCircle has an A of its own and the vector has to
+    # be measured in that norm for the two to be multiplied together
+    skind = something(strong_kind(dfly_coefficients), strong_norm(B))
+    ns = interval(normbound(B, skind, w))             # ‖w‖_s (computed candidate)
     na = interval(normbound(B, aux_norm(B), w))       # ‖w‖_{L¹}
     nw = interval(normbound(B, weak_norm(B), w))      # ‖w‖_w
 

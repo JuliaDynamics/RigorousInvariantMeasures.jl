@@ -297,7 +297,7 @@ function RigorousInvariantMeasures.Dual(
 end
 
 function dfly(
-    ::Type{TotalVariation},
+    ::Type{VarInterval},
     ::Type{L1},
     D::RigorousInvariantMeasures.ApproxInducedLSV,
 )
@@ -321,7 +321,7 @@ function dfly(
             lam = max(lam, sup(maximise(lambda, D.domains[i])[1]))
         end
     end
-    return sup(lam), sup(dist)
+    return DFLYCoefficients(VarInterval, L1, sup(lam), sup(dist))
 end
 
 import TaylorSeries

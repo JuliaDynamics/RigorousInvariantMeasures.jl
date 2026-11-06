@@ -9,7 +9,7 @@ dfly(::Type{<:NormKind}, ::Type{<:NormKind}, ::Dynamic) = @error "Not implemente
 dfly(n1::NormKind, n2::Type{<:NormKind}, D::Dynamic) = dfly(typeof(n1), n2, D)
 
 # I don't think this is used in production anymore
-# function dfly(N1::Type{TotalVariation}, N2::Type{L1}, D::Dynamic)
+# function dfly(N1::Type{VarInterval}, N2::Type{L1}, D::Dynamic)
 #     dist = max_distortion(D)
 #     lam = max_inverse_derivative(D)
 
@@ -29,7 +29,7 @@ dfly(n1::NormKind, n2::Type{<:NormKind}, D::Dynamic) = dfly(typeof(n1), n2, D)
 #     end
 # end
 
-function dfly(N1::Type{TotalVariation}, N2::Type{L1}, D::PwMap)
+function dfly(N1::Type{VarInterval}, N2::Type{L1}, D::PwMap)
     if has_infinite_derivative_at_endpoints(D)
         return dfly_inf_der(N1, N2, D, 10^-3)
     end
@@ -43,19 +43,21 @@ function dfly(N1::Type{TotalVariation}, N2::Type{L1}, D::PwMap)
         if !(abs(lam) < 1) # these are intervals, so this is *not* equal to abs(lam) >= 1.
             @error "The function is not expanding"
         end
-        return sup(lam), sup(dist)
+        return DFLYCoefficients(VarInterval, L1, sup(lam), sup(dist))
     else
         if !(abs(2 * lam) < 1)
             @error "Expansivity is insufficient to prove a DFLY. Try with an iterate."
         end
-        return sup(2 * lam), sup(dist + disc)
+        return DFLYCoefficients(VarInterval, L1, sup(2 * lam), sup(dist + disc))
     end
 end
 
-# W{1,1} → TotalVariation bridge: W^{1,1} seminorm = total variation
+# W{1,1} → VarInterval bridge: the W^{1,1} seminorm is the total variation on the interval,
+# so the constants are the same numbers and only the name of the norm changes.
 # Accept both type and instance dispatch
-dfly(::Type{W{1,1}}, N2::Type{L1}, D::PwMap) = dfly(TotalVariation, L1, D)
-dfly(::W{1,1}, N2::Type{L1}, D::PwMap) = dfly(TotalVariation, L1, D)
+_as_w11(c) = DFLYCoefficients(W{1,1}, L1, c.A, c.B)
+dfly(::Type{W{1,1}}, N2::Type{L1}, D::PwMap) = _as_w11(dfly(VarInterval, L1, D))
+dfly(::W{1,1}, N2::Type{L1}, D::PwMap) = _as_w11(dfly(VarInterval, L1, D))
 
 # Higher-order W{k,1} (k≥2) is provided by the SymbolicsExt extension.
 # Without Symbolics loaded, the generic dfly fallback will @error "Not implemented".
@@ -72,5 +74,6 @@ function dfly(::Type{Lipschitz}, ::Type{L1}, D::Dynamic)
     lam = max_inverse_derivative(D)
     #@info lam
 
-    return (sup(lam * (2 * dist + 1)), sup(dist * (dist + 1)))
+    return DFLYCoefficients(Lipschitz, L1, sup(lam * (2 * dist + 1)),
+                            sup(dist * (dist + 1)))
 end

@@ -26,16 +26,27 @@ using RigorousInvariantMeasures: is_full_branch, is_increasing
           [true; true]
 
 
-    @test RigorousInvariantMeasures.dfly(
-        RigorousInvariantMeasures.Lipschitz,
-        RigorousInvariantMeasures.L1,
-        D,
+    @test Tuple(
+        RigorousInvariantMeasures.dfly(
+            RigorousInvariantMeasures.Lipschitz,
+            RigorousInvariantMeasures.L1,
+            D,
+        ),
     ) == (0.5, 0.0)
-    @test RigorousInvariantMeasures.dfly(
-        RigorousInvariantMeasures.TotalVariation,
-        RigorousInvariantMeasures.L1,
-        D,
+    @test Tuple(
+        RigorousInvariantMeasures.dfly(
+            RigorousInvariantMeasures.TotalVariation,
+            RigorousInvariantMeasures.L1,
+            D,
+        ),
     ) == (0.5, 0.0)
+    @test strong_kind(
+        RigorousInvariantMeasures.dfly(
+            RigorousInvariantMeasures.TotalVariation,
+            RigorousInvariantMeasures.L1,
+            D,
+        ),
+    ) === VarInterval
 
     D = PwMap([x -> x^2 + 0.25, x -> 4 * x - 2, x -> 4 * x - 3], [0, 0.5, 0.75, 1])
 

@@ -274,7 +274,7 @@ Base.:∘(D1::ComposedDynamic, D2::ComposedDynamic) =
     ComposedDynamic((D1, D2), composedPwMap(D1.E, D2.E))
 dfly(N1::Type{<:NormKind}, N2::Type{<:NormKind}, D::ComposedDynamic) = dfly(N1, N2, D.E)
 dfly(
-    N1::Type{RigorousInvariantMeasures.TotalVariation},
+    N1::Type{RigorousInvariantMeasures.VarInterval},
     N2::Type{RigorousInvariantMeasures.L1},
     D::ComposedDynamic,
 ) = dfly(N1, N2, D.E)

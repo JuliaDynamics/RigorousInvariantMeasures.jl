@@ -24,7 +24,7 @@
 # where A(K) → 0 geometrically and B(K) grows geometrically. So any contraction
 # factor can be bought, at a computable price in B. Letting K → ∞ formally is
 # the degenerate case A = 0, the same shape as the noise DFLY
-# (`dfly(TotalVariation, L1, ::DiscretizedNoiseKernelUlam)` returns `(0.0, …)`),
+# (`dfly(VarInterval, L1, ::DiscretizedNoiseKernelUlam)` returns `(0.0, …)`),
 # where the smoothing plays the role of the analytic gain.
 ###############################################################################
 
@@ -362,7 +362,7 @@ function dfly(norm::Aη, ::Type{L1}, D::PwMap; C₂::Union{Real,Nothing} = nothi
     C₂ = C₂ === nothing ? C : C₂
     η′ > norm.η ||
         error("the strip is not enlarged (η′ = $η′ ≤ η = $(norm.η)); try a smaller η")
-    return analytic_dfly_degenerate(norm, η′, C₂)
+    return DFLYCoefficients(norm, L1, analytic_dfly_degenerate(norm, η′, C₂)...)
 end
 
 function dfly(norm::Eρ, ::Type{L1}, D::PwMap; C₂::Union{Real,Nothing} = nothing,
@@ -396,7 +396,7 @@ function dfly(norm::Eρ, ::Type{L1}, D::PwMap; C₂::Union{Real,Nothing} = nothi
     C₂ = C₂ === nothing ? C : C₂
     ρ′ > norm.ρ ||
         error("the ellipse is not enlarged (ρ′ = $ρ′ ≤ ρ = $(norm.ρ)); try a smaller ρ")
-    return analytic_dfly_degenerate(norm, ρ′, C₂)
+    return DFLYCoefficients(norm, L1, analytic_dfly_degenerate(norm, ρ′, C₂)...)
 end
 
 @doc raw"""

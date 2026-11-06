@@ -94,14 +94,18 @@ with the discretized uniform noise kernel. This equals the window size `2l+1`.
 nonzero_per_row(M::UniformKernelUlam{BC}) where {BC} = 2*M.l + 1
 
 """
-    dfly(::Type{TotalVariation}, ::Type{L1}, N::UniformKernelUlam)
+    dfly(::Type{VarInterval}, ::Type{L1}, N::UniformKernelUlam)
 
 Return the Doeblin–Fortet–Lasota–Yorke inequality coefficients for the operator
-acting from L¹ to bounded variation (Total Variation).  
+acting from L¹ to bounded variation.  
 For the uniform kernel on `k` bins with half-width `l`, the effective noise size is
 ξ = (2l+1)/k, and the inequality is bounded by (0, 1/(2ξ)).
+
+The constant bounds the variation on the circle as well as on the interval, so it may be
+read in either convention: `Var(ρ_ξ) = 1/ξ` counts one rise and one fall of the kernel's
+density, and identifying the endpoints adds no jump to it.
 """
-dfly(::Type{TotalVariation}, ::Type{L1}, N::UniformKernelUlam{BC}) where {BC} = begin
+dfly(::Type{VarInterval}, ::Type{L1}, N::UniformKernelUlam{BC}) where {BC} = begin
     k = length(N.B)
     # `l` is the half-width in cells, so the support is 2l+1 cells wide and the
     # half-width is ξ = (2l+1)/(2k); this read (2l+1)/k, the full width, which
@@ -109,7 +113,7 @@ dfly(::Type{TotalVariation}, ::Type{L1}, N::UniformKernelUlam{BC}) where {BC} = 
     # Galatolo-Monge-Nisoli) the bound is 2k/(2l+1); it used to be a quarter of
     # that, and so was not an upper bound.
     ξ = (2N.l + 1) / (2k)
-    (0.0, 1 / ξ)
+    DFLYCoefficients(VarInterval, L1, 0.0, 1 / ξ)
 end
 
 """

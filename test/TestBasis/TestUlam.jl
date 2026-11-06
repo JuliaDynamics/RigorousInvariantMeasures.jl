@@ -49,4 +49,25 @@
 
     (i, dual_element) = iterate(UD)
 
+    # the two variations: VarInterval leaves the jump across 0 out, VarCircle counts it, and
+    # both are exact for a piecewise constant function, so the bound equals the sum
+    let B = Ulam(8)
+        v = [1.0, 1.0, 3.0, 3.0, -1.0, -1.0, 0.0, 0.5]
+        int_var = 2.0 + 4.0 + 1.0 + 0.5
+        @test normbound(B, VarInterval, v) == int_var
+        @test normbound(B, VarCircle, v) == int_var + 0.5
+        @test normbound(B, TotalVariation, v) == int_var        # the alias is the interval one
+        @test strong_norm(B) == VarInterval
+        for trial = 1:50
+            w = randn(1 + trial)
+            Bw = Ulam(length(w))
+            @test normbound(Bw, VarInterval, w) ≈
+                  sum(abs(w[i+1] - w[i]) for i = 1:length(w)-1)
+            @test normbound(Bw, VarCircle, w) ≈
+                  normbound(Bw, VarInterval, w) + abs(w[1] - w[end])
+        end
+        @test normbound(Ulam(1), VarCircle, [2.0]) == 0.0
+        @test normbound(B, VarCircle, ones(8)) == 0.0
+    end
+
 end

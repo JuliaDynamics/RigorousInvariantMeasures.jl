@@ -1,5 +1,5 @@
 using .RigorousInvariantMeasures: Dual
-using .RigorousInvariantMeasures: NormKind, L1, L2, Aη, W, Cω, TotalVariation, dfly
+using .RigorousInvariantMeasures: NormKind, L1, L2, Aη, W, Cω, VarInterval, dfly
 import .RigorousInvariantMeasures: opnormbound, normbound, restrict_to_average_zero
 
 export Fourier, evalFourier, FourierPoints, assemble_common, eval_on_dual, dual_nodes

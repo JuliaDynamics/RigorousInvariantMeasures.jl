@@ -201,7 +201,7 @@ function one_vector(B::Ulam)
     return ones(length(B))
 end
 
-strong_norm(B::Ulam) = TotalVariation
+strong_norm(B::Ulam) = VarInterval
 weak_norm(B::Ulam) = L1
 aux_norm(B::Ulam) = L1
 
@@ -300,6 +300,14 @@ function Base.:*(
     )
 end
 
+"""
+    invariant_measure_strong_norm_bound(B::Ulam, D::Dynamic; dfly_coefficients)
+
+The a priori bound `B/(1-A)` on the strong norm of the invariant density, in the strong
+norm of `dfly_coefficients`: a pair stated for `VarCircle` bounds the variation on the
+circle, which also bounds the variation on the interval, while a pair stated for
+`VarInterval` bounds only the latter.
+"""
 function invariant_measure_strong_norm_bound(
     B::Ulam,
     D::Dynamic;
@@ -333,14 +341,31 @@ function Base.iterate(dual::UlamDual, state = 1)
 end
 
 @doc raw"""
-    normbound(B::Ulam, ::Type{TotalVariation}, v)
+    normbound(B::Ulam, ::Type{VarInterval}, v)
 
-Rigorous upper bound for the total variation of the piecewise-constant
-function on ``[0,1]`` with Ulam coefficients `v` (its variation is exactly
-``\sum_j |v_{j+1}-v_j|``; the sum is evaluated in interval arithmetic).
+Rigorous upper bound for the total variation on the interval of the
+piecewise-constant function on ``[0,1]`` with Ulam coefficients `v` (its variation
+is exactly ``\sum_j |v_{j+1}-v_j|``; the sum is evaluated in interval arithmetic).
+The jump across the two endpoints of the domain is not counted; see
+[`VarCircle`](@ref) for the norm that counts it.
 """
-function normbound(B::Ulam{T}, ::Type{TotalVariation}, v) where {T}
+function normbound(B::Ulam{T}, ::Type{VarInterval}, v) where {T}
     return sup(sum(abs(interval(v[i+1]) - interval(v[i])) for i = 1:length(v)-1))
+end
+
+@doc raw"""
+    normbound(B::Ulam, ::Type{VarCircle}, v)
+
+Rigorous upper bound for the total variation on the circle of the piecewise-constant
+function with Ulam coefficients `v`, which is exactly
+``\sum_j |v_{j+1}-v_j| + |v_1-v_n|``, the last term being the jump across the
+identified endpoints of ``[0,1]``; the sum is evaluated in interval arithmetic.
+"""
+function normbound(B::Ulam{T}, ::Type{VarCircle}, v) where {T}
+    n = length(v)
+    n == 1 && return 0.0
+    s = sum(abs(interval(v[i+1]) - interval(v[i])) for i = 1:n-1)
+    return sup(s + abs(interval(v[1]) - interval(v[n])))
 end
 
 @doc raw"""

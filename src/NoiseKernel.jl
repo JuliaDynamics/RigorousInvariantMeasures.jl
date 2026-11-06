@@ -87,9 +87,11 @@ nonzero_per_row(M::DiscretizedNoiseKernelUlam) = length(M.v)
 # uniform kernel of half-width ξ the density is 1/(2ξ) on a support of length
 # 2ξ, so it rises once and falls once and Var(ρ_ξ) = 1/ξ. This returned 1/(2ξ),
 # which is half of that and so not an upper bound: a spike of unit L¹ mass is
-# spread to a box of height 1/(2ξ), whose variation is exactly 1/ξ.
-dfly(::Type{TotalVariation}, ::Type{L1}, N::DiscretizedNoiseKernelUlam) =
-    (0.0, sup(1 / N.ξ))
+# spread to a box of height 1/(2ξ), whose variation is exactly 1/ξ.  The number bounds
+# the variation on the circle as well, the box having one rise and one fall there too, so
+# the constant may be read in either convention.
+dfly(::Type{VarInterval}, ::Type{L1}, N::DiscretizedNoiseKernelUlam) =
+    DFLYCoefficients(VarInterval, L1, 0.0, sup(1 / N.ξ))
 
 
 function Base.:*(M::DiscretizedNoiseKernelUlam, v)

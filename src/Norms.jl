@@ -19,7 +19,97 @@ counterpart against the arcsine measure.
 struct L2 <: NormKind end
 struct Linf <: NormKind end
 struct Lipschitz <: NormKind end
-struct TotalVariation <: NormKind end
+@doc raw"""
+    VarInterval <: NormKind
+
+Total variation on the interval, ``\mathrm{Var}_{(0,1)}(f)``, taken as the supremum of
+``\sum_j |f(x_{j+1})-f(x_j)|`` over finite increasing sequences of ``(0,1)``, so that no jump
+across the two endpoints of the domain is counted.  This is the strong norm of the Ulam and
+hat bases, what `normbound(B::Ulam, VarInterval, v)` computes, and the convention in which
+`dfly(VarInterval, L1, ::PwMap)` is derived, its constant ``2/\min_i|I_i|`` being the price of
+bounding the supremum of ``f`` on the shortest branch.
+
+`TotalVariation` is an alias of this type, the name the rest of the library and its callers
+are written with.  See [`VarCircle`](@ref).
+"""
+struct VarInterval <: NormKind end
+const TotalVariation = VarInterval
+
+@doc raw"""
+    VarCircle <: NormKind
+
+Total variation on the circle,
+``\mathrm{Var}_{S^1}(f) = \mathrm{Var}_{(0,1)}(f) + |f(1^-)-f(0^+)|``, which counts the jump
+across the identified endpoints; it is what a map produced by [`mod1_dynamic`](@ref) and a
+kernel with periodic boundary conditions act on, and what `normbound(B::Ulam, VarCircle, v)`
+computes.
+
+A Doeblin-Fortet-Lasota-Yorke inequality in this norm is a different statement from one in
+[`VarInterval`](@ref), and the two cannot be substituted for one another: with
+``\mathrm{Var}_{(0,1)}\le\mathrm{Var}_{S^1}\le2\,\mathrm{Var}_{(0,1)}``, converting a pair
+``(A,B)`` in either direction doubles ``A``, so a hypothesis ``A<1`` need not survive the
+conversion and the convention has to be fixed before the constants are computed.  The
+constants of a uniform noise kernel are an exception, holding in both: the kernel's density
+rises once and falls once on the circle as well as on the interval, so ``\mathrm{Var}(\rho)``
+is the same number.
+"""
+struct VarCircle <: NormKind end
+
+@doc raw"""
+    DFLYCoefficients(strong, weak, A, B)
+
+The two constants of a Doeblin-Fortet-Lasota-Yorke inequality together with the norms the
+inequality is stated in,
+
+```math
+\|Lf\|_{\mathrm{strong}} \le A\|f\|_{\mathrm{strong}} + B\|f\|_{\mathrm{weak}} ,
+```
+
+which is what [`dfly`](@ref) returns.  The norms travel with the numbers because a pair is
+not a pair of numbers alone: for the two total variations of [`VarInterval`](@ref) and
+[`VarCircle`](@ref) the same operator has pairs differing by a factor of two in ``A``, so a
+hypothesis ``A<1`` can hold in one convention and fail in the other, and a routine that
+measures a vector alongside the pair has to measure it in the pair's own norm.
+
+It iterates and indexes as the bare `(A, B)` it replaces, so `A, B = dfly(...)` and
+`dfly(...)[2]` keep working, and a caller may still pass a plain tuple wherever
+`dfly_coefficients` is taken; [`strong_kind`](@ref) then returns `nothing` and the
+convention is the caller's responsibility.
+"""
+struct DFLYCoefficients{S,W,T<:Real}
+    strong::S
+    weak::W
+    A::T
+    B::T
+end
+function DFLYCoefficients(strong, weak, A::Real, B::Real)
+    a, b = promote(A, B)
+    return DFLYCoefficients{typeof(strong),typeof(weak),typeof(a)}(strong, weak, a, b)
+end
+
+Base.length(::DFLYCoefficients) = 2
+Base.iterate(c::DFLYCoefficients, i::Int = 1) =
+    i == 1 ? (c.A, 2) : i == 2 ? (c.B, 3) : nothing
+Base.firstindex(::DFLYCoefficients) = 1
+Base.lastindex(::DFLYCoefficients) = 2
+Base.getindex(c::DFLYCoefficients, i::Integer) =
+    i == 1 ? c.A : i == 2 ? c.B : throw(BoundsError(c, i))
+Base.show(io::IO, c::DFLYCoefficients) =
+    print(io, "DFLYCoefficients(", c.strong, " <- ", c.weak, ": A = ", c.A, ", B = ", c.B, ")")
+
+@doc raw"""
+    strong_kind(coefficients)
+    weak_kind(coefficients)
+
+The norms a [`DFLYCoefficients`](@ref) is stated in, and `nothing` for a bare `(A, B)`
+tuple, which carries no record of them.  A routine that measures a vector in the strong
+norm beside the pair takes the norm from here, falling back on the basis's own:
+`something(strong_kind(c), strong_norm(B))`.
+"""
+strong_kind(c::DFLYCoefficients) = c.strong
+strong_kind(::Any) = nothing
+weak_kind(c::DFLYCoefficients) = c.weak
+weak_kind(::Any) = nothing
 struct ℓ1 <: NormKind end
 struct ℓinf <: NormKind end
 
