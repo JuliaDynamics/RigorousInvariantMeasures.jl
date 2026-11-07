@@ -30,11 +30,40 @@ Base.size(p::EquispacedPartitionInterval) = (p.n + 1,)
 Base.IndexStyle(::Type{<:EquispacedPartitionInterval}) = IndexLinear()
 Base.issorted(p::EquispacedPartitionInterval) = true
 
-struct C2Basis{T<:AbstractVector} <: Basis
+@doc raw"""
+	C2Basis{S,W,T}
+
+C2 basis on [0,1] on the partition `p::T`, measured in the strong norm `S` and the
+weak norm `W`.
+
+The norm kinds are type parameters, as they are in [`Ulam`](@ref) and in
+[`Chebyshev`](@ref). This basis defines no `strong_norm` and no `weak_norm` method,
+so nothing reads the parameters yet; the defaults record the two kinds the routines
+in this file compute, `C1` through `C1Norm` and `Linf` through `infnormoffunction`,
+of which `C1` is the stronger.
+"""
+struct C2Basis{S<:NormKind,W<:NormKind,T<:AbstractVector} <: Basis
     p::T
     # TODO: check in constructor that p is sorted and starts with 0
 end
-C2Basis(n::Integer) = C2Basis(EquispacedPartitionInterval{Float64}(n))
+
+C2Basis{S,W}(p::T) where {S<:NormKind,W<:NormKind,T<:AbstractVector} = C2Basis{S,W,T}(p)
+
+"""
+	C2Basis(n::Integer; strong = C1, weak = Linf)
+	C2Basis(p::AbstractVector; strong = C1, weak = Linf)
+
+C2 basis on the equispaced partition of [0,1] of size n, or on the partition `p`,
+measured in the norms `strong` and `weak`.
+"""
+C2Basis(n::Integer; strong::Type{<:NormKind} = C1, weak::Type{<:NormKind} = Linf) =
+    C2Basis{strong,weak}(EquispacedPartitionInterval{Float64}(n))
+
+C2Basis(
+    p::AbstractVector;
+    strong::Type{<:NormKind} = C1,
+    weak::Type{<:NormKind} = Linf,
+) = C2Basis{strong,weak}(p)
 
 """
 Return the size of the C2 basisBase.length(S::AverageZero) = length(S.basis)-1

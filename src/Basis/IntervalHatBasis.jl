@@ -1,19 +1,43 @@
-"""
-Hat basis on the Torus [0,1]
-"""
+@doc raw"""
+	HatNP{S,W,T}
 
-struct HatNP{T<:AbstractVector} <: Basis
+Hat basis on the interval [0,1], the non-periodic counterpart of [`Hat`](@ref),
+measured in the strong norm `S` and the weak norm `W`; the single field `p::T` holds
+the nodes.
+
+The norm kinds are type parameters, as they are in [`Ulam`](@ref) and in
+[`Chebyshev`](@ref), so that a routine may dispatch on them. The defaults are the
+pair the basis carried before the parameters existed, `Lipschitz` against `Linf`.
+"""
+struct HatNP{S<:NormKind,W<:NormKind,T<:AbstractVector} <: Basis
     p::T
     # TODO: check in constructor that p is sorted, starts with 0 and ends with 1
 end
-HatNP(n::Integer) = HatNP(LinRange(0.0, 1.0, n + 1))
+
+HatNP{S,W}(p::T) where {S<:NormKind,W<:NormKind,T<:AbstractVector} = HatNP{S,W,T}(p)
+
+@doc """
+	HatNP(n::Integer; strong = Lipschitz, weak = Linf)
+	HatNP(p::AbstractVector; strong = Lipschitz, weak = Linf)
+
+Hat basis on [0,1] on `n+1` equispaced nodes, or on the nodes `p`, measured in the
+norms `strong` and `weak`.
+"""
+HatNP(n::Integer; strong::Type{<:NormKind} = Lipschitz, weak::Type{<:NormKind} = Linf) =
+    HatNP{strong,weak}(LinRange(0.0, 1.0, n + 1))
+
+HatNP(
+    p::AbstractVector;
+    strong::Type{<:NormKind} = Lipschitz,
+    weak::Type{<:NormKind} = Linf,
+) = HatNP{strong,weak}(p)
 
 """
 	Base.length(B::HatNP)
 
 Return the size of the HatNP basis
 """
-Base.length(B::HatNP{T}) where {T} = Base.length(B.p)
+Base.length(B::HatNP) = Base.length(B.p)
 
 
 """
@@ -135,13 +159,13 @@ function Base.iterate(S::ProjectDualElement{T,DT}, state = S.j_min) where {T<:Ha
     return ((j, S.basis[mod(j, 1:n)](y) / absT′), state + 1)
 end
 
-strong_norm(B::HatNP) = Lipschitz
-weak_norm(B::HatNP) = Linf
+strong_norm(B::HatNP{S,W}) where {S,W} = S
+weak_norm(B::HatNP{S,W}) where {S,W} = W
 aux_norm(B::HatNP) = L1
 
 evaluate_integral(B::HatNP, i, T) = T(1) / (length(B) - 1)
 
-function Base.iterate(S::AverageZero{HatNP{T}}, state = 1) where {T}
+function Base.iterate(S::AverageZero{<:HatNP}, state = 1)
     n = length(S.basis)
     if state == n
         return nothing
@@ -152,7 +176,7 @@ function Base.iterate(S::AverageZero{HatNP{T}}, state = 1) where {T}
     return (v, state + 1)
 end
 
-Base.length(S::AverageZero{HatNP{T}}) where {T} = length(S.basis) - 1
+Base.length(S::AverageZero{<:HatNP}) = length(S.basis) - 1
 
 weak_projection_error(B::HatNP) = 0.5 ⊘₊ Float64(length(B) - 1, RoundDown)
 aux_normalized_projection_error(B::HatNP) = 0.5 ⊘₊ Float64(length(B) - 1, RoundDown)
@@ -162,9 +186,9 @@ weak_by_strong_and_aux_bound(B::HatNP) = (1.0, 1.0)
 bound_weak_norm_from_linalg_norm(B::HatNP) = @error "TODO"
 bound_linalg_norm_L1_from_weak(B::HatNP) = @error "TODO"
 bound_linalg_norm_L∞_from_weak(B::HatNP) = @error "TODO"
-opnormbound(B::HatNP{T}, N::Type{Linf}, A::AbstractVecOrMat{S}) where {S,T} =
+opnormbound(B::HatNP, N::Type{Linf}, A::AbstractVecOrMat{S}) where {S} =
     opnormbound(N, A)
-normbound(B::HatNP{T}, N::Type{Linf}, v) where {T} = normbound(N, v)
+normbound(B::HatNP, N::Type{Linf}, v) = normbound(N, v)
 
 function invariant_measure_strong_norm_bound(B::HatNP, D::Dynamic)
     A, B = dfly(strong_norm(B), aux_norm(B), D)

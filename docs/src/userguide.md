@@ -14,7 +14,7 @@ julia> D = D0∘D0∘D0
 RigorousInvariantMeasures.ComposedDynamic((RigorousInvariantMeasures.ComposedDynamic((Piecewise-defined dynamic with 4 branches, Piecewise-defined dynamic with 4 branches), Piecewise-defined dynamic with 16 branches), Piecewise-defined dynamic with 4 branches), Piecewise-defined dynamic with 64 branches)
 
 julia> B = Hat(1024)
-Hat{LinRange{Float64, Int64}}(LinRange{Float64}(0.0, 1.0, 1025))
+Hat{Lipschitz, Linf, LinRange{Float64, Int64}}(LinRange{Float64}(0.0, 1.0, 1025))
 ```
 
 ## Building the discretized operator
