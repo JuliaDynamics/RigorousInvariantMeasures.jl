@@ -93,10 +93,18 @@ the norm of [`VarCircle`](@ref).  Two statements are proved below:
 [`_dfly_circle_from_lift`](@ref), under the hypothesis of
 [`has_monotone_mod1_lift`](@ref), which every map built by [`mod1_dynamic`](@ref)
 satisfies, and [`_dfly_circle_branchwise`](@ref), which assumes nothing beyond
-expansivity.  The second is returned when the first does not apply; where both apply the
-pair returned is the one with the smaller ``B/(1-A)``, the a priori bound on the strong
-norm of the invariant density that [`invariant_measure_strong_norm_bound`](@ref) reads off
-the pair, a pair failing ``A<1`` ranking last and a tie going to the lift.
+expansivity.  The second is returned when the first does not apply.
+
+Where both apply they are ranked on ``B/(1-A)``, the a priori bound on the strong norm of
+the invariant density that [`invariant_measure_strong_norm_bound`](@ref) reads off the
+pair, with a pair failing ``A<1`` ranking last; two values of it differing by less than
+``10^{-8}``, in absolute terms or relative to the larger of the two, count as equal, and
+the smaller ``A`` then decides.  The tolerance is what keeps the rounding residue in ``B``
+described under [`_dfly_circle_from_lift`](@ref) from deciding ``A``: on ``3x \bmod 1``
+the lift gives ``(1/3, 1.67\cdot10^{-16})`` and the branchwise statement ``(2/3, 0)``, so
+untolerated ranking returns ``A=2/3`` where ``A=1/3`` is proved, and the caller cannot see
+from the pair that it happened.  A caller who needs to know which statement the pair came
+from compares it with `_dfly_circle_from_lift(D)`; both routines may be called directly.
 
 Two terms separate these from `dfly(VarInterval, L1, D)`, which is derived from the same
 ingredients -- the minimum of ``|T'|``, the branch lengths and a bound on ``T''/(T')^2``.
@@ -149,11 +157,18 @@ end
 # Both pairs are proved, so either may be returned; `B/(1-A)` ranks them because that is
 # what the pair is used for downstream, and a pair that does not contract comes last.
 _dfly_apriori_bound(c) = c.A < 1.0 ? (c.B ⊘₊ (1.0 ⊖₋ c.A)) : Inf
+
+# Two a priori bounds count as the same when they differ by less than 1e-8, absolutely or
+# relative to the larger: a difference that small never reaches anything downstream, where
+# the bound is multiplied by the projection error and compared with quantities orders of
+# magnitude larger, and the absolute floor is far above the rounding residue that
+# `_dfly_circle_from_lift` carries in `B`, a few units in the last place per branch point.
+# Without it a residue of 1e-16 in `B` decides `A` by a factor two on `3x mod 1`.
+_dfly_same_bound(h1, h2) = isapprox(h1, h2; rtol = 1e-8, atol = 1e-8)
+
 function _better_dfly_pair(c1, c2)
     h1, h2 = _dfly_apriori_bound(c1), _dfly_apriori_bound(c2)
-    if isinf(h1) && isinf(h2)
-        return c1.A <= c2.A ? c1 : c2
-    end
+    _dfly_same_bound(h1, h2) && return c1.A <= c2.A ? c1 : c2
     return h1 <= h2 ? c1 : c2
 end
 
@@ -265,6 +280,27 @@ which is the pair of the full-branch case of `dfly(VarInterval, L1, D)`: for
 invariant density, Lebesgue.  The beta shift ``\beta x \bmod 1`` has a linear lift, so
 ``\mathrm{dist}=\theta=0``, and one partial branch, so
 ``\kappa=\lambda_L+\lambda_R=2/\beta``, giving ``A=B=2/\beta``.
+
+The computed ``\theta``, and in the closing case the computed ``|\lambda_L-\lambda_R|``,
+carry a rounding residue.  The two one-sided values at a branch point are evaluated as
+separate enclosures of ``1/|T'|``, one from each branch's own formula, and interval
+subtraction of an enclosure from itself returns an interval symmetric about zero rather
+than zero; so a branch point where the true jump vanishes still contributes about one unit
+in the last place of ``\lambda``.  For ``3x \bmod 1`` the two interior branch points and
+the two ends of the domain give ``\kappa=1.67\cdot10^{-16}``, hence
+``B=1.67\cdot10^{-16}`` where the true ``B`` is ``0``, while for ``2x`` and ``4x`` it is
+exactly ``0`` because ``1/2`` and ``1/4`` are representable.  The pair is a valid bound
+either way; what the residue costs is ``10^{-16}`` in ``B``, and the tolerance in the
+ranking of `dfly(VarCircle, L1, D)`.
+
+Testing the two enclosures for equality would not remove it, since two different numbers
+can share an enclosure and so equal enclosures do not prove the jump is zero.  What proves
+it is that the branches come from one ``C^1`` lift, which [`mod1_dynamic`](@ref) knows when
+it builds them, reducing a single ``f`` mod ``1``, and which the `PwMap` does not record:
+[`has_monotone_mod1_lift`](@ref) establishes continuity of the circle map at the branch
+points, not differentiability of the lift across them.  A record of that, written where the
+branches are built, is what would let ``\theta`` be zero by hypothesis instead of by an
+inexact subtraction.
 """
 function _dfly_circle_from_lift(D::PwMap)
     _assert_unit_circle_domain(D)

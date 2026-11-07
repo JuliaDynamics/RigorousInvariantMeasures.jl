@@ -207,7 +207,9 @@ an enclosure around ``1`` does not qualify, and `false` is then the answer that 
 caller on a statement needing no hypothesis.  It is the hypothesis of one of the two
 statements `dfly(VarCircle, L1, D)` computes, the lift being what makes the jumps of the
 inverse branches at the interior branch points pair with the jumps of ``f`` there instead
-of being paid for separately.
+of being paid for separately.  It does not establish that the lift is ``C^1`` across the
+branch points, which is a separate property of how the branches were built and is what
+would make the ``\theta`` of that statement zero.
 """
 function has_monotone_mod1_lift(D::PwMap)
     brs = branches(D)

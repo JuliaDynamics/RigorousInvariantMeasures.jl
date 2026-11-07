@@ -121,16 +121,52 @@ using Random
         @test RIM.invariant_measure_strong_norm_bound(Ulam(64), Dj; dfly_coefficients = c) ==
               0.0
 
-        # a tie goes to the lift, and a pair that does not contract ranks last
+        # a real gap in B/(1-A) decides, in either argument order, even against a
+        # smaller A: 1.0 against 2.0 here
         p1 = DFLYCoefficients(VarCircle, L1, 0.5, 0.5)
-        p2 = DFLYCoefficients(VarCircle, L1, 0.75, 0.25)
+        p2 = DFLYCoefficients(VarCircle, L1, 0.25, 1.5)
         @test RIM._better_dfly_pair(p1, p2) === p1
-        @test RIM._better_dfly_pair(p2, p1) === p2
+        @test RIM._better_dfly_pair(p2, p1) === p1
+        # a pair that does not contract ranks last, and between two such the smaller A wins
         @test RIM._better_dfly_pair(DFLYCoefficients(VarCircle, L1, 1.5, 0.0), p1) === p1
         @test RIM._better_dfly_pair(
             DFLYCoefficients(VarCircle, L1, 1.5, 0.0),
             DFLYCoefficients(VarCircle, L1, 2.5, 0.0),
         ).A == 1.5
+        # and B/(1-A) within the tolerance is a tie, settled on A: a residue of 1e-16 in B
+        # must not decide A by a factor two
+        residue = DFLYCoefficients(VarCircle, L1, 1 / 3, 1.6653345369377348e-16)
+        exact = DFLYCoefficients(VarCircle, L1, 2 / 3, 0.0)
+        @test RIM._better_dfly_pair(residue, exact) === residue
+        @test RIM._better_dfly_pair(exact, residue) === residue
+        # equal B/(1-A), here 2.0 both ways, is settled on A as well
+        @test RIM._better_dfly_pair(
+            DFLYCoefficients(VarCircle, L1, 0.5, 1.0),
+            DFLYCoefficients(VarCircle, L1, 0.25, 1.5),
+        ).A == 0.25
+    end
+
+    @testset "the dyadic and triadic maps" begin
+        # Where the two statements disagree only by a rounding residue in B the pair with
+        # the smaller A comes back. The lift B is exactly zero for 2x and 4x, where 1/2 and
+        # 1/4 are representable, and a few units in the last place for 3x and 5x; see the
+        # note in the docstring of _dfly_circle_from_lift.
+        for d in (2, 3, 4, 5)
+            Dd = mod1_dynamic(x -> d * x)
+            cl, cb = RIM._dfly_circle_from_lift(Dd), RIM._dfly_circle_branchwise(Dd)
+            c = dfly(VarCircle, L1, Dd)
+            @test cl.A ≈ 1 / d
+            @test cl.B < 1e-15
+            @test cb.A ≈ 2 / d
+            @test cb.B == 0.0
+            # the lift pair, the one with A = 1/d, is what comes back
+            @test (c.A, c.B) == (cl.A, cl.B)
+            @test c.A ≈ 1 / d
+        end
+        # the residue is there and is not zero for 3x: two interior branch points and the
+        # two ends of the domain, about one unit in the last place of λ each
+        @test 0 < RIM._dfly_circle_from_lift(mod1_dynamic(x -> 3 * x)).B < 1e-15
+        @test RIM._dfly_circle_from_lift(mod1_dynamic(x -> 4 * x)).B == 0.0
     end
 
     @testset "what has no circle statement" begin
