@@ -1,6 +1,12 @@
 using RigorousInvariantMeasures
 using IntervalArithmetic
 
+# The alias used throughout for the names that are not exported. It was assigned inside three of
+# the testsets below, so the `RIM._verification_succeeded` of the Lebesgue Gram testset, which
+# comes before all three, resolved to nothing; the testset had been aborting earlier, on the
+# `verified_cholesky` of BallArithmetic 0.3, so the error was never reached.
+const RIM = RigorousInvariantMeasures
+
 @testset "chebtransform recovers known Chebyshev coefficients" begin
     # This used to be `all_true = true; @test all_true` with the real comparison
     # commented out, which is how a factor-of-2(N-1) normalization error in
@@ -163,7 +169,6 @@ end
 end
 
 @testset "Chebyshev norm parameterization" begin
-    RIM = RigorousInvariantMeasures
 
     # Default is W^{k,1} strong / L2 weak, as for FourierAnalytic.
     B = Chebyshev(16, 3)
@@ -205,7 +210,6 @@ end
 end
 
 @testset "Bernstein ellipses" begin
-    RIM = RigorousInvariantMeasures
 
     # bernstein_parameter inverts bernstein_point exactly.
     for ρ in (1.1, 1.3, 2.0, 4.0), θ in (0.0, 0.137, 0.25, 0.5, 0.9)
@@ -264,7 +268,6 @@ end
 end
 
 @testset "L2(dμ) weak norm with L1(dμ) auxiliary" begin
-    RIM = RigorousInvariantMeasures
 
     Bμ = Chebyshev(16, 3, L2μ)
     @test weak_norm(Bμ) == L2μ
