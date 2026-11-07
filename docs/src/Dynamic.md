@@ -21,3 +21,10 @@ Modules = [Base,
         RigorousInvariantMeasures]
 Pages = ["InducedLSV.jl"]
 ```
+
+# Sample dynamics
+```@autodocs
+Modules = [Base, 
+        RigorousInvariantMeasures]
+Pages = ["sample_dynamics.jl"]
+```

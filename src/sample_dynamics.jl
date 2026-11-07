@@ -1,5 +1,26 @@
 export BZ, Lorenz, FastLorenz
 
+"""
+    BZ()
+
+The three-branch model of the Belousov-Zhabotinsky reaction, as the `PwMap` with branches
+
+```
+T(x) = (A - (1/8 - x)^(1/3)) e^(-x) + B,            0 ≤ x ≤ 1/8,
+T(x) = (A + (x - 1/8)^(1/3)) e^(-x) + B,          1/8 ≤ x ≤ 3/10,
+T(x) = C (10 x e^(-10x/3))^19 + B,               3/10 ≤ x ≤ 1,
+```
+
+on the partition `0 < 1/8 < 3/10 < 1`. The three constants are enclosed from the decimal
+expansions written in the source, `A` and `C` as thin `BigFloat` intervals rounded to `Float64`
+and `B` as the interval between the two expansions given for it, and the branch endpoints are
+the images of the partition points under the branch they belong to, so that the map is built
+from enclosures throughout.
+
+The cube root is written with the rational exponent `1//3`: the Newton step for the preimages
+takes the derivative through `Taylor1{Interval} ^ Interval`, where TaylorSeries truncates the
+exponent to an integer and throws.
+"""
 function BZ()
     A_big = Interval{BigFloat}(
         BigFloat(
