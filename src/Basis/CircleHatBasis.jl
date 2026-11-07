@@ -1,30 +1,42 @@
-"""
-Hat basis on the Torus [0,1]
-"""
+@doc raw"""
+	Hat{S,W,T}
 
-@doc """
-	Hat
+Hat basis on the torus ``S^1``, measured in the strong norm `S` and the weak norm
+`W`; the single field `p::T` holds the midpoints of the hats.
 
-This type represents a Hat basis on ``S^1``. It contains a vector with the midpoints of the hats.
+The norm kinds are type parameters, as they are in [`Ulam`](@ref) and in
+[`Chebyshev`](@ref), so that a routine may dispatch on them. The defaults are the
+pair the basis carried before the parameters existed, `Lipschitz` against `Linf`.
 """
-struct Hat{T<:AbstractVector} <: Basis
+struct Hat{S<:NormKind,W<:NormKind,T<:AbstractVector} <: Basis
     p::T
     # TODO: check in constructor that p is sorted, starts with 0 and ends with 1
 end
 
+Hat{S,W}(p::T) where {S<:NormKind,W<:NormKind,T<:AbstractVector} = Hat{S,W,T}(p)
+
 @doc """
-	Hat(n::Integer)
+	Hat(n::Integer; strong = Lipschitz, weak = Linf)
+	Hat(p::AbstractVector; strong = Lipschitz, weak = Linf)
 
-This constructs a Hat basis on ``S^1`` on equispaced points
+Hat basis on ``S^1`` on `n` equispaced points, or on the midpoints `p`, measured in
+the norms `strong` and `weak`.
 """
-Hat(n::Integer) = Hat(LinRange(0.0, 1.0, n + 1))
+Hat(n::Integer; strong::Type{<:NormKind} = Lipschitz, weak::Type{<:NormKind} = Linf) =
+    Hat{strong,weak}(LinRange(0.0, 1.0, n + 1))
+
+Hat(
+    p::AbstractVector;
+    strong::Type{<:NormKind} = Lipschitz,
+    weak::Type{<:NormKind} = Linf,
+) = Hat{strong,weak}(p)
 
 """
-	Base.length(B::Hat{T})
+	Base.length(B::Hat)
 
 Return the size of the Hat basis
 """
-Base.length(B::Hat{T}) where {T} = Base.length(B.p) - 1
+Base.length(B::Hat) = Base.length(B.p) - 1
 
 """
 	IntervalOnTorus
@@ -212,13 +224,13 @@ function Base.iterate(S::ProjectDualElement{T,DT}, state = S.j_min) where {T<:Ha
     return ((j, S.basis[mod(j, 1:n)](y_normalized) / absT′), state + 1)
 end
 
-strong_norm(B::Hat) = Lipschitz
-weak_norm(B::Hat) = Linf
+strong_norm(B::Hat{S,W}) where {S,W} = S
+weak_norm(B::Hat{S,W}) where {S,W} = W
 aux_norm(B::Hat) = L1
 
 evaluate_integral(B::Hat, i, T) = T(i) / length(B)
 
-function Base.iterate(S::AverageZero{Hat{T}}, state = 1) where {T}
+function Base.iterate(S::AverageZero{<:Hat}, state = 1)
     n = length(S.basis)
     if state == n
         return nothing
@@ -229,7 +241,7 @@ function Base.iterate(S::AverageZero{Hat{T}}, state = 1) where {T}
     return (v, state + 1)
 end
 
-Base.length(S::AverageZero{Hat{T}}) where {T} = length(S.basis) - 1
+Base.length(S::AverageZero{<:Hat}) = length(S.basis) - 1
 
 weak_projection_error(B::Hat) = 0.5 ⊘₊ Float64(length(B), RoundDown)
 aux_normalized_projection_error(B::Hat) = 0.5 ⊘₊ Float64(length(B), RoundDown)
@@ -245,9 +257,9 @@ bound_weak_norm_abstract(
     dfly_coefficients = dfly(strong_norm(B), aux_norm(B), D),
 ) = dfly_coefficients[2] ⊕₊ 1.0
 
-opnormbound(B::Hat{T}, N::Type{Linf}, A::AbstractVecOrMat{S}) where {S,T} =
+opnormbound(B::Hat, N::Type{Linf}, A::AbstractVecOrMat{S}) where {S} =
     opnormbound(N, A)
-normbound(B::Hat{T}, N::Type{Linf}, v) where {T} = normbound(N, v)
+normbound(B::Hat, N::Type{Linf}, v) = normbound(N, v)
 
 @doc raw"""
     normbound(B::Hat, ::Type{Lipschitz}, v)
@@ -266,7 +278,7 @@ node to the first:
 with ``v_{n+1} := v_1`` and ``p_{n+1}-p_n`` the length of the wrap-around piece.
 The quotients are evaluated in interval arithmetic.
 """
-function normbound(B::Hat{T}, ::Type{Lipschitz}, v) where {T}
+function normbound(B::Hat, ::Type{Lipschitz}, v)
     n = length(B)
     slope(a, b, h) = abs(interval(b) - interval(a)) / interval(h)
     m = slope(v[n], v[1], B.p[n+1] - B.p[n])          # wrap-around piece
@@ -287,7 +299,7 @@ when ``f`` does not change sign, e.g. for a density); summing over the ``n``
 pieces, wrap-around included, bounds ``\|f\|_{L^1}``.  Evaluated in interval
 arithmetic.
 """
-function normbound(B::Hat{T}, ::Type{L1}, v) where {T}
+function normbound(B::Hat, ::Type{L1}, v)
     n = length(B)
     piece(a, b, h) = interval(h) * (abs(interval(a)) + abs(interval(b))) / 2
     s = piece(v[n], v[1], B.p[n+1] - B.p[n])          # wrap-around piece

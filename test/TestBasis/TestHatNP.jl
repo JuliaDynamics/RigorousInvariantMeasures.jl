@@ -19,6 +19,12 @@
 
     B = HatNP(4)
 
+    @test B isa HatNP{Lipschitz,Linf}
+    @test strong_norm(B) == Lipschitz
+    @test weak_norm(B) == Linf
+    @test aux_norm(B) == L1
+    @test HatNP(4; strong = Lipschitz, weak = L1) isa HatNP{Lipschitz,L1}
+    @test HatNP(LinRange(0.0, 1.0, 5)).p == B.p
     @test length(B) == 5
     @test nonzero_on(B, (interval(0.1, 0.3), NaN)) == (1, 3)
     @test nonzero_on(B, (interval(0, 1), NaN)) == (1, 5)

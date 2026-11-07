@@ -41,6 +41,13 @@
     @test !is_refinement(Hat(4), Hat(8))
 
     B8 = Hat(8)
+    @test B8 isa Hat{Lipschitz,Linf}
+    @test strong_norm(B8) == Lipschitz
+    @test weak_norm(B8) == Linf
+    @test aux_norm(B8) == L1
+    @test Hat(8; strong = Lipschitz, weak = L1) isa Hat{Lipschitz,L1}
+    @test weak_norm(Hat(8; weak = L1)) == L1
+    @test Hat(LinRange(0.0, 1.0, 9)).p == B8.p
     @test RigorousInvariantMeasures.aux_normalized_projection_error(B8) == 1 / 16
     @test RigorousInvariantMeasures.strong_weak_bound(B8) == Float64(16)
     @test RigorousInvariantMeasures.aux_weak_bound(B8) == 1.0

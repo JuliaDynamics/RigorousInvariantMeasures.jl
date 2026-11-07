@@ -1,21 +1,42 @@
 using IntervalArithmetic, LinearAlgebra
 
-"""
-	Ulam
+@doc raw"""
+	Ulam{S,W,T}
+
 Ulam basis on [0,1] associated to the partition
-``p = \\{x_0 = 0, x_1, \\ldots, x_n=1\\}``
+``p = \{x_0 = 0, x_1, \ldots, x_n=1\}``, measured in the strong norm `S` and the
+weak norm `W`; the partition itself is the single field `p::T`.
+
+The norm kinds are type parameters, as they are in [`Chebyshev`](@ref) and
+[`FourierAnalytic`](@ref), so that a routine may dispatch on them. The Ulam space
+carries two distinct variations, [`VarInterval`](@ref) and [`VarCircle`](@ref), and
+which of the two a run bounds is a property of the basis rather than of the vector
+handed to `normbound`; `strong_norm` reads the parameter and the estimates that
+call it follow. The defaults are the pair the basis carried before the parameters
+existed, `VarInterval` against `L1`.
 """
-struct Ulam{T<:AbstractVector} <: Basis
+struct Ulam{S<:NormKind,W<:NormKind,T<:AbstractVector} <: Basis
     p::T
     # TODO: check in constructor that p is sorted, starts with 0 and ends with 1
 end
 
+Ulam{S,W}(p::T) where {S<:NormKind,W<:NormKind,T<:AbstractVector} = Ulam{S,W,T}(p)
+
 """
-	Ulam(n::Integer)
-	
-Equispaced Ulam basis on [0,1] of size n
+	Ulam(n::Integer; strong = VarInterval, weak = L1)
+	Ulam(p::AbstractVector; strong = VarInterval, weak = L1)
+
+Equispaced Ulam basis on [0,1] of size n, or the Ulam basis on the partition `p`,
+measured in the norms `strong` and `weak`.
 """
-Ulam(n::Integer) = Ulam(LinRange(0.0, 1.0, n + 1))
+Ulam(n::Integer; strong::Type{<:NormKind} = VarInterval, weak::Type{<:NormKind} = L1) =
+    Ulam{strong,weak}(LinRange(0.0, 1.0, n + 1))
+
+Ulam(
+    p::AbstractVector;
+    strong::Type{<:NormKind} = VarInterval,
+    weak::Type{<:NormKind} = L1,
+) = Ulam{strong,weak}(p)
 
 @doc raw"""
 	Base.length(B::Ulam)
@@ -33,7 +54,7 @@ Returns the i-th element of the Ulam basis as a function.
 julia> using RigorousInvariantMeasures
 
 julia> B = Ulam(16)
-Ulam{LinRange{Float64, Int64}}(LinRange{Float64}(0.0, 1.0, 17))
+Ulam{VarInterval, L1, LinRange{Float64, Int64}}(LinRange{Float64}(0.0, 1.0, 17))
 
 julia> B[1](1/32)
 1
@@ -159,18 +180,17 @@ function Base.iterate(S::ProjectDualElement{BT,DT}, state = S.j_min) where {BT<:
 end
 Base.eltype(f::ProjectDualElement{<:Ulam,DT}) where {DT} = Tuple{Int64,Interval{Float64}}
 
-evaluate(B::Ulam{T}, i, x) where {T} =
-    (x > (i - 1) / length(B)) && (x < i / length(B)) ? 1 : 0
+evaluate(B::Ulam, i, x) = (x > (i - 1) / length(B)) && (x < i / length(B)) ? 1 : 0
 
-evaluate_integral(B::Ulam{S}, i, T::Type) where {S} = T(1) / length(B)
+evaluate_integral(B::Ulam, i, T::Type) = T(1) / length(B)
 
 """
-	iterate(S::AverageZero{Ulam{T}}, state = 1) where{T}
+	iterate(S::AverageZero{<:Ulam}, state = 1)
 
 Return the elements of the basis of average ``0`` functions in the Ulam 
 Basis
 """
-function Base.iterate(S::AverageZero{Ulam{T}}, state = 1) where {T}
+function Base.iterate(S::AverageZero{<:Ulam}, state = 1)
     n = length(S.basis)
     if state == n
         return nothing
@@ -186,23 +206,23 @@ end
 
 Return the size of the Average Zero space
 """
-Base.length(S::AverageZero{Ulam{T}}) where {T} = length(S.basis) - 1
+Base.length(S::AverageZero{<:Ulam}) = length(S.basis) - 1
 
 is_refinement(Bf::Ulam, Bc::Ulam) = Bc.p ⊆ Bf.p
 
-function integral_covector(B::Ulam{T}) where {T}
+function integral_covector(B::Ulam)
     n = length(B)
     return 1 / n * ones(Interval{Float64}, n)'
 end
 
-is_integral_preserving(B::Ulam{T}) where {T} = true
+is_integral_preserving(B::Ulam) = true
 
 function one_vector(B::Ulam)
     return ones(length(B))
 end
 
-strong_norm(B::Ulam) = VarInterval
-weak_norm(B::Ulam) = L1
+strong_norm(B::Ulam{S,W}) where {S,W} = S
+weak_norm(B::Ulam{S,W}) where {S,W} = W
 aux_norm(B::Ulam) = L1
 
 # See BasisDefinition for docs on these constants
@@ -236,9 +256,9 @@ bound_linalg_norm_L1_from_weak(B::Ulam) = 1.0
 bound_linalg_norm_L∞_from_weak(B::Ulam) = Float64(length(B), RoundUp)
 bound_weak_norm_abstract(B::Ulam, D = nothing; dfly_coefficients = nothing) = 1.0
 
-opnormbound(B::Ulam{T}, N::Type{L1}, A::AbstractVecOrMat{S}) where {T,S} = opnormbound(N, A)
-#opnormbound(B::Ulam{T}, N::Type{L1}, Q::IntegralPreservingDiscretizedOperator) where {T} = opnormbound(N, Q.L)
-normbound(B::Ulam{T}, N::Type{L1}, v) where {T} = normbound(N, v)
+opnormbound(B::Ulam, N::Type{L1}, A::AbstractVecOrMat{S}) where {S} = opnormbound(N, A)
+#opnormbound(B::Ulam, N::Type{L1}, Q::IntegralPreservingDiscretizedOperator) = opnormbound(N, Q.L)
+normbound(B::Ulam, N::Type{L1}, v) = normbound(N, v)
 
 # Weak norm = L¹, dual = L^∞. For Ulam, v[i] is the constant value of the
 # reconstruction on cell i, so ‖φ_v‖_{L^∞} = max_i |v[i]|.
@@ -367,7 +387,7 @@ is exactly ``\sum_j |v_{j+1}-v_j|``; the sum is evaluated in interval arithmetic
 The jump across the two endpoints of the domain is not counted; see
 [`VarCircle`](@ref) for the norm that counts it.
 """
-function normbound(B::Ulam{T}, ::Type{VarInterval}, v) where {T}
+function normbound(B::Ulam, ::Type{VarInterval}, v)
     return sup(sum(abs(interval(v[i+1]) - interval(v[i])) for i = 1:length(v)-1))
 end
 
@@ -379,7 +399,7 @@ function with Ulam coefficients `v`, which is exactly
 ``\sum_j |v_{j+1}-v_j| + |v_1-v_n|``, the last term being the jump across the
 identified endpoints of ``[0,1]``; the sum is evaluated in interval arithmetic.
 """
-function normbound(B::Ulam{T}, ::Type{VarCircle}, v) where {T}
+function normbound(B::Ulam, ::Type{VarCircle}, v)
     n = length(v)
     n == 1 && return 0.0
     s = sum(abs(interval(v[i+1]) - interval(v[i])) for i = 1:n-1)
