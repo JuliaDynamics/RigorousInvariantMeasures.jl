@@ -210,7 +210,25 @@ aux_norm(B::Ulam) = L1
 
 weak_projection_error(B::Ulam) = 0.5 ⊘₊ Float64(length(B), RoundDown)
 aux_normalized_projection_error(B::Ulam) = 0.0
-strong_weak_bound(B::Ulam) = Float64(length(B), RoundUp)
+@doc raw"""
+    strong_weak_bound(B::Ulam)
+
+The constant ``M_{1n}`` of ``\|v\|_s \le M_{1n}\|v\|_{L^1}`` for ``v`` in the Ulam space,
+equal to ``2/\min_i h_i`` with ``h_i = x_{i+1}-x_i``, and so to ``2n`` on the equispaced
+partition.
+
+Each jump of ``\varphi_v = \sum_i v_i\chi_{[x_i,x_{i+1})}`` is bounded by the two values it
+separates, so the cyclic sum gives
+``\mathrm{Var}_{S^1}(\varphi_v) = \sum_i|v_{i+1}-v_i| \le 2\sum_i|v_i| \le
+2\|\varphi_v\|_{L^1}/\min_i h_i``, and [`VarInterval`](@ref) has one jump fewer, so the same
+constant serves both; it is attained in both, on the equispaced partition, by the vector
+carrying ``+1`` and ``-1`` on two cells sharing no boundary and ``0`` elsewhere. That vector
+has average zero, so the constant is sharp on the subspace of average zero as well, which is
+where [`norms_of_powers_dfly`](@ref) applies it.
+
+It was ``n`` until 2026-11-07, smaller than the variation of that vector by a factor two.
+"""
+strong_weak_bound(B::Ulam) = 2.0 ⊘₊ minimum(B.p[i+1] ⊖₋ B.p[i] for i = 1:length(B))
 aux_weak_bound(B::Ulam) = 1.0
 weak_by_strong_and_aux_bound(B::Ulam) = (0.0, 1.0)
 bound_weak_norm_from_linalg_norm(B::Ulam) = (1.0, 0.0)

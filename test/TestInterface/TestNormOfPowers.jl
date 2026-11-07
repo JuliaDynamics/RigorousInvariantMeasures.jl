@@ -54,11 +54,13 @@ using IntervalArithmetic
     normQ_fine = opnormbound(B_fine, weak_norm(B_fine), Q_fine)
     norms_fine = finepowernormbounds(B, B_fine, D, norms; normQ_fine = normQ_fine)
 
+    # These two regressions are proportional to strong_weak_bound(B_fine), which was
+    # corrected from n to the sharp 2n on 2026-11-07, so both doubled.
     @test norms_of_powers_from_coarser_grid(B_fine, B, D, norms, normQ_fine)[1:3] ==
-          [97.0, 145.0, 169.0]
+          [193.0, 289.0, 337.0]
 
     @test norms_fine[1:11] == ones(11)
 
-    @test norms_of_powers_dfly(B_fine, D, 3) == ([512.0, 256.0, 128.0], [1.0, 1.0, 1.0])
+    @test norms_of_powers_dfly(B_fine, D, 3) == ([1024.0, 512.0, 256.0], [1.0, 1.0, 1.0])
 
 end

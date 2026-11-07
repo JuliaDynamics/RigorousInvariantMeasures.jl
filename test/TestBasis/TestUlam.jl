@@ -1,8 +1,7 @@
+using RigorousInvariantMeasures
+using IntervalArithmetic
+
 @testset "Ulam basis" begin
-
-
-    using RigorousInvariantMeasures
-    using IntervalArithmetic
 
     B = Ulam(4)
     @test B.p == LinRange(0.0, 1.0, 5)
@@ -35,7 +34,21 @@
     @test RigorousInvariantMeasures.evaluate(B8, 1, 1.0) == 0.0
     @test RigorousInvariantMeasures.evaluate_integral(B8, 1, Float64) == Float64(1) / 8
 
-    @test RigorousInvariantMeasures.strong_weak_bound(B8) == Float64(8)
+    @test RigorousInvariantMeasures.strong_weak_bound(B8) == Float64(16)
+
+    # The constant is sharp, and is attained on a vector of average zero: two cells
+    # sharing no boundary carry +1 and -1, so each of the four jumps is counted twice.
+    let v = [0.0, 1.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0]
+        M1n = RigorousInvariantMeasures.strong_weak_bound(B8)
+        L1 = RigorousInvariantMeasures.normbound(B8, RigorousInvariantMeasures.L1, v)
+        @test sum(v) == 0
+        @test L1 == 2 / 8
+        @test RigorousInvariantMeasures.normbound(
+            B8, RigorousInvariantMeasures.VarInterval, v) == 4.0
+        @test RigorousInvariantMeasures.normbound(
+            B8, RigorousInvariantMeasures.VarCircle, v) == 4.0
+        @test M1n * L1 == 4.0
+    end
     @test RigorousInvariantMeasures.aux_weak_bound(B8) == 1.0
     @test RigorousInvariantMeasures.weak_by_strong_and_aux_bound(B8) == (0.0, 1.0)
     @test RigorousInvariantMeasures.bound_weak_norm_from_linalg_norm(B8) == (1.0, 0.0)
