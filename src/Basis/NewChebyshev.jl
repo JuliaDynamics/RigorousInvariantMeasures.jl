@@ -684,6 +684,31 @@ function inv_gram_matrix(B::Chebyshev; measure::Symbol = :arcsine, T = Float64)
 end
 
 @doc raw"""
+    _verification_succeeded(res)
+
+Whether a BallArithmetic verification result reports success, read from whichever field
+that version of the package carries.
+
+The flag is one `Bool`, and the name of the field holding it is not stable across the
+versions this package declares compatibility with: registered 0.3.0 calls it `verified`
+on a `KrawczykResult` and `success` on a `VerifiedCholeskyResult`, while the unreleased
+0.4 calls both `certified`. Reading one name ties the file to one version and throws a
+`FieldError` against the other, which is what it did against 0.3.0.
+
+The proper repair is to settle the name upstream and pin the dependency; until then this
+reads the result rather than the version.
+"""
+function _verification_succeeded(res)
+    for name in (:certified, :verified, :success)
+        hasproperty(res, name) && return getproperty(res, name)
+    end
+    error(
+        "no verification flag on a $(typeof(res)): expected one of certified, verified " *
+        "or success, found $(propertynames(res))",
+    )
+end
+
+@doc raw"""
     _verified_inverse_upper_triangular(U)
 
 Rigorous enclosure of ``U^{-1}`` for an upper-triangular interval matrix, by
@@ -736,7 +761,7 @@ function _verified_inverse(G::Matrix{Interval{T}}) where {T}
         c = zeros(T, n)
         c[j] = one(T)
         res = krawczyk_linear_system(GB, BallVector(c, zeros(T, n)))
-        res.certified ||
+        _verification_succeeded(res) ||
             error("Krawczyk verification failed for column $j of the Gram inverse")
         col = res.solution
         for i = 1:n
@@ -872,7 +897,8 @@ function gram_restrict_to_average_zero(
         T.(mid.(G));
         precision_bits = Int(precision_bits),
     )
-    chol.certified || error("verified Cholesky of the Lebesgue Gram matrix failed")
+    _verification_succeeded(chol) ||
+        error("verified Cholesky of the Lebesgue Gram matrix failed")
 
     # G = U'U with U upper triangular. Move to intervals to invert, then back.
     U = chol.G
@@ -1294,7 +1320,8 @@ function _cheb_gram_factor(
             T.(mid.(G));
             precision_bits = Int(precision_bits),
         )
-        chol.certified || error("verified Cholesky of the Lebesgue Gram matrix failed")
+        _verification_succeeded(chol) ||
+            error("verified Cholesky of the Lebesgue Gram matrix failed")
         U = chol.G
         Ui = Interval{T}[
             interval(T, U.c[i, j] - U.r[i, j], U.c[i, j] + U.r[i, j]) for i = 1:n, j = 1:n
@@ -1429,7 +1456,8 @@ function bernstein_l2_resolvent_bound(
     S = T.(transpose(W) * W)
     chol = BallArithmetic.verified_cholesky(Float64, S;
                                             precision_bits = _default_chol_bits(T))
-    chol.certified || error("verified Cholesky of the Bernstein metric failed")
+    _verification_succeeded(chol) ||
+        error("verified Cholesky of the Bernstein metric failed")
     Rc = chol.G
     Ri = Interval{T}[
         interval(T, Rc.c[i, j] - Rc.r[i, j], Rc.c[i, j] + Rc.r[i, j])
