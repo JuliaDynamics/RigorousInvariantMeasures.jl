@@ -17,6 +17,7 @@ export PwMap,
     composedPwMap,
     equal_up_to_order,
     has_infinite_derivative_at_endpoints,
+    has_monotone_mod1_lift,
     intersect_domain,
     intersect_domain_bool
 
@@ -186,6 +187,40 @@ endpoints(D::PwMap) = [[br.X[1] for br in branches(D)]; branches(D)[end].X[2]]
 branches(D::PwMap) = D.branches
 
 is_full_branch(D::PwMap) = D.full_branch
+
+@doc raw"""
+    has_monotone_mod1_lift(D::PwMap)
+
+Whether `D`, read as a map of the circle ``[0,1]/\{0\sim1\}``, is the reduction mod ``1`` of
+a strictly monotone ``\tilde T:[0,1]\to\mathbb R``.  Two conditions: all branches run the
+same way, and at every interior branch point ``a_i`` the two one-sided limits are the two
+ends of the unit interval, ``T(a_i^-)=1`` and ``T(a_i^+)=0`` for increasing branches and the
+other way round for decreasing ones.  Then ``\tilde T = T + n_i`` on the ``i``-th branch,
+with ``n_i`` the number of interior branch points to the left of ``I_i``, is continuous and
+monotone on the whole of ``[0,1]``; conversely a monotone lift forces those limits, since an
+interior branch point is a point where the lift crosses an integer.  Everything built by
+[`mod1_dynamic`](@ref) has this form, with the first and the last branch free to be partial.
+
+The condition is read off the stored image enclosures `br.Y` and asks for exact equality
+with the thin intervals ``0`` and ``1``: a branch whose image endpoint is known only up to
+an enclosure around ``1`` does not qualify, and `false` is then the answer that keeps the
+caller on a statement needing no hypothesis.  It is the hypothesis of one of the two
+statements `dfly(VarCircle, L1, D)` computes, the lift being what makes the jumps of the
+inverse branches at the interior branch points pair with the jumps of ``f`` there instead
+of being paid for separately.
+"""
+function has_monotone_mod1_lift(D::PwMap)
+    brs = branches(D)
+    inc = is_increasing(brs[1])
+    all(is_increasing(br) == inc for br in brs) || return false
+    zeroY, oneY = interval(0), interval(1)
+    left_end, right_end = inc ? (zeroY, oneY) : (oneY, zeroY)
+    for i = 1:length(brs)-1
+        isequal_interval(brs[i].Y[2], right_end) || return false
+        isequal_interval(brs[i+1].Y[1], left_end) || return false
+    end
+    return true
+end
 
 """
 Deprecated, but still used in C2Basis

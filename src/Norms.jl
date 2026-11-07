@@ -48,10 +48,12 @@ A Doeblin-Fortet-Lasota-Yorke inequality in this norm is a different statement f
 [`VarInterval`](@ref), and the two cannot be substituted for one another: with
 ``\mathrm{Var}_{(0,1)}\le\mathrm{Var}_{S^1}\le2\,\mathrm{Var}_{(0,1)}``, converting a pair
 ``(A,B)`` in either direction doubles ``A``, so a hypothesis ``A<1`` need not survive the
-conversion and the convention has to be fixed before the constants are computed.  The
-constants of a uniform noise kernel are an exception, holding in both: the kernel's density
-rises once and falls once on the circle as well as on the interval, so ``\mathrm{Var}(\rho)``
-is the same number.
+conversion and the convention has to be fixed before the constants are computed;
+`dfly(VarCircle, L1, ::PwMap)` derives a pair in this norm from the map itself rather than
+by converting the interval one, which for the beta shift is the difference between
+``A = 2/\beta`` and ``A = 4/\beta > 1``.  The constants of a uniform noise kernel are an
+exception, holding in both: the kernel's density rises once and falls once on the circle as
+well as on the interval, so ``\mathrm{Var}(\rho)`` is the same number.
 """
 struct VarCircle <: NormKind end
 

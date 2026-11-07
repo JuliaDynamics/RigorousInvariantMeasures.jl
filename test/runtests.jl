@@ -18,6 +18,7 @@ DocMeta.setdocmeta!(
     include("TestContractors.jl")
     include("TestDynamic.jl")
     include("TestDFLYCoefficients.jl")
+    include("TestDFLYVarCircle.jl")
     include("TestRun/TestRunIndex.jl")
     include("TestChebyshev.jl")
     include("TestAnalyticDFLY.jl")
