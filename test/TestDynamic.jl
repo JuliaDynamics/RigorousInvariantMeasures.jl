@@ -220,3 +220,32 @@ using RigorousInvariantMeasures: is_full_branch, is_increasing
     @test E.branches[3].f(x) == 2 * ((1 - x)^2 + (1 - x)) - 1
     @test E.branches[4].f(x) == 2 * ((1 - x)^2 + (1 - x))
 end
+
+@testset "FastLorenz" begin
+    using IntervalArithmetic
+    using RigorousInvariantMeasures: fastpow
+
+    α = 51 / 64
+
+    # The identity at zero is what the branch in fastpow is for: log of the thin
+    # zero is -∞, so the unguarded exp(α log x) returns the empty interval.
+    @test isthinzero(fastpow(interval(0.0), α))
+    @test isempty_interval(exp(interval(α) * log(interval(0.0))))
+
+    # Away from zero fastpow and ^ enclose the same number.
+    for x in [0.125, 0.25, 0.375, 0.5, 0.75]
+        @test !isempty_interval(intersect_interval(fastpow(interval(x), α), interval(x)^α))
+    end
+
+    D = Lorenz()
+    E = FastLorenz()
+    @test nbranches(E) == nbranches(D)
+    @test all(isequal_interval.(endpoints(E), endpoints(D)))
+
+    # Both branches of the two maps enclose the same function.
+    for (x, j) in [(0.1, 1), (0.3, 1), (0.6, 2), (0.9, 2)]
+        y_slow = D.branches[j].f(interval(x))
+        y_fast = E.branches[j].f(interval(x))
+        @test !isempty_interval(intersect_interval(y_slow, y_fast))
+    end
+end

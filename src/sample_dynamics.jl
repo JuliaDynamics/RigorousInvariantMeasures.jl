@@ -1,4 +1,4 @@
-export BZ, Lorenz
+export BZ, Lorenz, FastLorenz
 
 function BZ()
     A_big = Interval{BigFloat}(
@@ -44,8 +44,41 @@ function BZ()
     )
 end
 
+"""
+    Lorenz(θ = 109 / 64, α = 51 / 64)
+
+The one-dimensional map induced on the unstable direction by the geometric
+Lorenz flow, with the two branches `θ(1/2-x)^α` and `1-θ(x-1/2)^α`.
+"""
 Lorenz(θ = 109 / 64, α = 51 / 64) = PwMap(
     [x -> θ * (0.5 - x)^α, x -> 1 - θ * (x - 0.5)^α],
+    [@interval(0), @interval(0.5), @interval(1)],
+    [
+        θ*(interval(0.5))^α interval(0.0)
+        interval(1.0) 1-θ*(interval(0.5))^α
+    ],
+)
+
+"""
+    fastpow(x, α)
+
+The power `x^α` evaluated as `exp(α log x)`, which on an interval argument is
+cheaper than the interval power and returns a decorated interval rather than the
+`_NG` of `^`; the branch at `x = 0` is there because `log` of the thin zero is
+`-∞` and `exp(α · -∞)` comes back as the empty interval, so the identity at zero
+has to be supplied.
+"""
+fastpow(x, α) = iszero(x) ? x : exp(α * log(x))
+
+"""
+    FastLorenz(θ = 109 / 64, α = 51 / 64)
+
+`Lorenz` with the two branches evaluated through `fastpow`
+instead of the interval power. The endpoint matrix is the same and still uses
+`^`, since it is computed once.
+"""
+FastLorenz(θ = 109 / 64, α = 51 / 64) = PwMap(
+    [x -> θ * fastpow(0.5 - x, α), x -> 1 - θ * fastpow(x - 0.5, α)],
     [@interval(0), @interval(0.5), @interval(1)],
     [
         θ*(interval(0.5))^α interval(0.0)
