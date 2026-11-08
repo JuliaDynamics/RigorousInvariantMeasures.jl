@@ -23,7 +23,13 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - '1.10'   # the declared [compat] floor, so it is actually tested
+          # `[sources]` is read only by Julia 1.11 and later, and the suite needs it: the
+          # Chebyshev basis calls the `verified_cholesky(Float64, A; precision_bits)` of
+          # BallArithmetic 0.4, which is not registered, so `test/Project.toml` takes it from the
+          # repository.  On 1.10 that entry is ignored, the resolver serves 0.3.0 and the call
+          # raises.  Both this floor and the one in [compat] come down again once 0.4 is
+          # registered.
+          - '1.11'   # the declared [compat] floor, so it is actually tested
           - '1'      # current stable
         os:
           - ubuntu-latest
