@@ -386,16 +386,33 @@ end
 
 
 """
-Uses power norm bounds already computed for a coarse operator to estimate
-the same norms for a finer operator
+    finepowernormbounds(B, B_fine, D, coarse_norms; normQ_fine, dfly_coefficients, target, max_powers)
+
+Carry norms of powers computed on the coarse basis `B` to the fine basis `B_fine`, by the
+two-grid estimate of `norms_of_powers_from_coarser_grid` together with the trivial and the
+Lasota-Yorke bounds, and return `norms` with `norms[k] ≥ ||Q_fine^k|_{U^0}||`.
+
+The vector returned is as long as the bounds themselves ask, which is not the length of
+`coarse_norms`: the two-grid step loses a factor at every power, so a fine vector of that
+length can end at or above one, and the geometric tail that `infinite_sum_norms` sums is then
+not summable. The missing thing is length rather than accuracy, and submultiplicativity
+supplies it without one further matrix power, so the vector is extended until its last entry
+is below `target` (1e-8 by default), at most `max_powers` entries.
+
+Where no computed fine norm is below one the two-grid bound does not contract on that pair of
+grids, no vector of any length bounds the sum, and an error is raised rather than a vector
+that would make every enclosure built on it infinite. A finer coarse grid is what changes
+that; a finer fine grid changes the size of the bounds and not whether they contract.
 """
 function finepowernormbounds(
     B,
     B_fine,
     D,
     coarse_norms;
-    normQ_fine = opnormbound(B_fine, weak_norm(B_fine)DiscretizedOperator(B_fine, D)),
+    normQ_fine = opnormbound(B_fine, weak_norm(B_fine), DiscretizedOperator(B_fine, D)),
     dfly_coefficients = dfly(strong_norm(B_fine), aux_norm(B_fine), D),
+    target = 1e-8,
+    max_powers = 20000,
 )
     m = length(coarse_norms)
 
@@ -414,7 +431,31 @@ function finepowernormbounds(
 
     norms_fine = min.(trivial_norms_fine, twogrid_norms_fine, dfly_norms_fine)
 
-    better_norms_fine = refine_norms_of_powers(norms_fine, m)
+    # The length of the vector is not the coarse one's.  The two-grid step loses a factor at
+    # every power, so a fine vector as long as the coarse one can end at or above one while
+    # the coarse one ended below `target`; the geometric tail is then not summable and
+    # `infinite_sum_norms` has no bound to return.  What is missing is length, not accuracy,
+    # and submultiplicativity supplies it without one further matrix power: with
+    # `ρ = norms_fine[j]` the smallest computed norm, `norms[k j] ≤ ρ^k`, so
+    # `j ⌈log target / log ρ⌉` entries reach the target and `refine_norms_of_powers` fills
+    # them.  Below one at some power is the hypothesis; where even that fails no vector of
+    # any length bounds the sum, and that is an error rather than a silent `Inf`.
+    ρ = minimum(x -> isfinite(x) ? x : Inf, norms_fine)
+    j = findfirst(x -> isfinite(x) && x == ρ, norms_fine)
+    if !isfinite(ρ) || ρ >= 1
+        error("finepowernormbounds: no computed norm of a power of the fine operator is " *
+              "below one, the smallest being $ρ over $m powers; the two-grid bound does not " *
+              "contract on this pair of grids and no extension of the vector can make it " *
+              "do so.  A finer coarse grid, or a coarser fine grid, is what changes it.")
+    end
+    need = j * ceil(Int, log(target) / log(ρ))
+    m_extend = min(max(m, need), max_powers)
+    better_norms_fine = refine_norms_of_powers(norms_fine, m_extend)
+    if better_norms_fine[end] >= 1
+        error("finepowernormbounds: after $m_extend powers the last norm is " *
+              "$(better_norms_fine[end]), still not below one; `max_powers` caps the " *
+              "extension and $need entries would be needed to reach $target from ρ = $ρ.")
+    end
     return better_norms_fine
 end
 
