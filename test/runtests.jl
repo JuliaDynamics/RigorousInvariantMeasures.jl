@@ -33,6 +33,8 @@ DocMeta.setdocmeta!(
     include("TestTrig.jl")
     include("TestUniformNoiseUlam.jl")
     include("TestUniformNoiseUlamBlock.jl")
+    include("TestUlamProjectedUniformKernel.jl")
+    include("TestCorrelationSequenceNoise.jl")
     include("TestNoiseKernelRegression.jl")
     include("TestNoiseSpecializedEstimate.jl")
     include("TestResidualEstimate.jl")

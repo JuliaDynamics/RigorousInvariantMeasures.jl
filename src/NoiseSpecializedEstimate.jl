@@ -1,11 +1,19 @@
 """
-Specialized a posteriori noise error estimator.
+Specialized a posteriori noise error estimator: the bootstrap of Galatolo, Monge, Nisoli,
+Nonlinearity 33 (2020) 4237, §3.3 (Lemmas 24, 25, 27 and §3.3.5), with the bounds of their
+Proposition 23 and Lemma 56.
 
 Ported from the Python `noise_specialized_measure_error.py` in the
 `compinvmeas-python-release-noise` package.  These routines produce
 significantly tighter error bounds than the generic DFLY-based approach
 in `distance_from_invariant_noise` by exploiting the *actual computed
 density vector* to obtain data-dependent bounds.
+
+The lemmas are written for the operator `π_δ N_ξ π_δ L π_δ`, so the kernel is the
+[`UlamProjectedUniformKernel`](@ref); `ξ` is read from it. Two misprints of the paper are
+corrected here: in §3.3.5 the constant and the coefficient are swapped (with the bounds
+`A‖f-f̃‖ + B`, `‖f_ξ - f_{ξ,δ}‖ ≤ B/(1-α) + A/(1-α)‖f_ξ - f̃‖`), and in (30) the first
+argument of the minimum is also multiplied by `Var_I(N_ξ L f̃)`, as in the proof.
 """
 
 using IntervalArithmetic
@@ -37,6 +45,25 @@ end
 # ──────────────────────────────────────────────────────────────────
 
 """
+    _mag_or_inf(g, x)
+
+An upper bound on `|g(x)|` for an interval `x`, or `Inf` where `g` cannot be bounded on
+`x`: a `DomainError` or an empty result, as for the derivative of `(1/8 - x)^(1/3)` at
+`x = 1/8`. An infinite bound makes the estimates below fall back to the mass, which is
+valid whatever the true value.
+"""
+function _mag_or_inf(g, x)
+    v = try
+        g(x)
+    catch e
+        e isa DomainError || rethrow()
+        return Inf
+    end
+    isempty_interval(v) && return Inf
+    return Float64(mag(abs(v)), RoundUp)
+end
+
+"""
 Information about a single preimage of an interval I under a branch Tₖ.
 """
 struct PreimageInfo
@@ -44,7 +71,7 @@ struct PreimageInfo
     B::Float64            # right endpoint of preimage (mid, rounded up)
     invtp::Float64        # upper bound for |1/T'| on preimage
     distortion::Float64   # upper bound for |T''/(T')²| on preimage
-    boundary_terms::Vector{Tuple{Float64,Float64}}  # (branch-limit value inside I, |1/T'| there)
+    boundary_terms::Vector{Tuple{Float64,Float64}}  # (endpoint y of the branch domain with T(y) ∈ I, upper bound on |1/T'(y)|)
 end
 
 """
@@ -108,18 +135,19 @@ function prepare_Wnorm_estimate(D::PwMap, B_est::Ulam)
         br = D.branches[bnum]
 
         # Compute |1/T'| upper bound on preimage
-        invtp_val = Float64(mag(abs(inverse_derivative(br.f, TiI))), RoundUp)
+        invtp_val = _mag_or_inf(inverse_derivative(br.f), TiI)
 
         # Compute |T''/(T')²| (distortion) upper bound on preimage
-        distortion_val = Float64(mag(abs(distortion(br.f, TiI))), RoundUp)
+        distortion_val = _mag_or_inf(x -> distortion(br.f, x), TiI)
 
-        # Check boundary terms: branch limits that overlap with interval I
+        # Boundary terms of Lemma 56: the endpoints y of the branch domain with T(y) ∈ I,
+        # each contributing |g(y)|/|T'(y)|, so 1/T' is taken at y and not at T(y)
         I_interval = hull(interval(B_est.p[ylabel]), interval(B_est.p[ylabel + 1]))
         bterms = Tuple{Float64,Float64}[]
-        for bl in branch_limits[bnum]
-            if !isempty_interval(intersect_interval(bl, I_interval))
-                bl_invtp = Float64(mag(abs(inverse_derivative(br.f, bl))), RoundUp)
-                push!(bterms, (mid(bl), bl_invtp))
+        for (y, Ty) in zip(br.X, branch_limits[bnum])
+            if !isempty_interval(intersect_interval(Ty, I_interval))
+                y_invtp = _mag_or_inf(inverse_derivative(br.f), y)
+                push!(bterms, (mid(y), y_invtp))
             end
         end
 
@@ -209,22 +237,25 @@ function estimate_Wnorm_of_discretization_error(
                 end
             end
 
-            # Estimate of variation of Lf in I from this branch
-            if isfinite(invtp_ab) && isfinite(distortion_ab)
-                estimate_var_Ii_from_ab = invtp_ab ⊗₊ var_in_ab ⊕₊ distortion_ab ⊗₊ meas_in_ab
+            # Estimate of the variation of L_i f in I, Lemma 56; where |1/T'| or the
+            # distortion is unbounded the lemma gives nothing, the estimate is infinite and
+            # the minimum below falls back to the mass of L_i f in I
+            estimate_var_Ii_from_ab = if isfinite(invtp_ab) && isfinite(distortion_ab)
+                invtp_ab ⊗₊ var_in_ab ⊕₊ distortion_ab ⊗₊ meas_in_ab
             else
-                # Fallback for infinite derivatives (e.g. singularities):
-                # use the trivial bound Var(Lf|_preimage) ≤ 2 * meas / δ
-                estimate_var_Ii_from_ab = 2.0 ⊗₊ meas_in_ab ⊘₊ δ
+                Inf
             end
 
-            # Boundary term contributions
-            for (bl, b_invtp) in pinfo.boundary_terms
-                bl_jmin = searchsortedlast(partition, bl)
-                bl_jmin = clamp(bl_jmin, 1, K_density)
-                b_contrib = Float64(abs(density_vec[bl_jmin]), RoundUp) ⊗₊ b_invtp
-                if isfinite(b_contrib)
-                    estimate_var_Ii_from_ab = estimate_var_Ii_from_ab ⊕₊ b_contrib
+            # Boundary terms |f(y)|/|T'(y)|; f is a step function, so |f(y)| is bounded by
+            # the cells on both sides of y when y is a partition point
+            for (y, y_invtp) in pinfo.boundary_terms
+                j = clamp(searchsortedlast(partition, y), 1, K_density)
+                fy = abs(density_vec[j])
+                if j > 1 && partition[j] == y
+                    fy = max(fy, abs(density_vec[j-1]))
+                end
+                if fy != 0             # 0·∞ would be NaN; a zero value contributes nothing
+                    estimate_var_Ii_from_ab = estimate_var_Ii_from_ab ⊕₊ Float64(fy, RoundUp) ⊗₊ y_invtp
                 end
             end
 
@@ -248,77 +279,61 @@ end
 # 4.  Reflecting index helper
 # ──────────────────────────────────────────────────────────────────
 
-"""
-    _reflect(i, size)
+# The reflection of cell indices is `reflect_outward_idx` (UniformNoiseUlam.jl), the mirror
+# at 0 and 1 of the reflecting boundary condition. The `_reflect` that was here mirrored
+# about the centre of the first cell on the left (cell 0 to cell 2) and about the edge on
+# the right (cell k+1 to cell k).
 
-Reflecting boundary condition index mapping (0-based internally).
-Maps index `i` (1-based) into `1:size` using reflection at boundaries.
-"""
-function _reflect(i::Int, sz::Int)
-    # Convert to 0-based for the Python-style reflect
-    i0 = i - 1
-    if i0 < 0
-        i0 = -i0
-    end
-    if i0 >= sz
-        i0 = 2 * sz - i0 - 1
-    end
-    # Handle periodic wrapping for very large offsets
-    i0 = mod(i0, 2 * sz)
-    if i0 >= sz
-        i0 = 2 * sz - i0 - 1
-    end
-    return i0 + 1  # back to 1-based
-end
+"The noise support `ξ` of a kernel, as an exact rational."
+noise_support(K::UlamProjectedUniformKernel) = Rational{BigInt}(K.s) // length(K.B)
 
 # ──────────────────────────────────────────────────────────────────
 # 5.  Estimate Var(NLf)  (estimate_var_of_NLf)
 # ──────────────────────────────────────────────────────────────────
 
 """
-    estimate_variation_after_noise(meas_Lf, var_Lf, K::UniformKernelUlam)
+    estimate_variation_after_noise(meas_Lf, var_Lf, K::UlamProjectedUniformKernel)
 
-Estimate `Var(NLf)` — the variation of Lf after applying the noise
-operator N.
+Upper bounds on `Var_I(N_ξ g)` for the cells `I` of a partition of `Kest` cells of width
+`h`, from the masses `meas_Lf` and variations `var_Lf` of `g` on those cells. Since
+`(N_ξ g)' = (g(· + ξ/2) - g(· - ξ/2))/ξ`,
 
-For each interval `i`, takes the minimum of:
-  - Measure-based: boundary values divided by noise width
-  - Variation-based: averaged variation over noise window
+    Var_I(N_ξ g) ≤ (‖g‖_{L¹(I+ξ/2)} + ‖g‖_{L¹(I-ξ/2)}) / ξ,
 
-Returns `var_NLf` vector of length `Kest`.
+and since `N_ξ g` is an average of translates of `g`,
+
+    Var_I(N_ξ g) ≤ (1/ξ) ∫_{|t|≤ξ/2} Var_{I+t}(g) dt ≤ (h/ξ) Var_{I ± ξ/2}(g);
+
+the minimum of the two is returned, cell by cell, with the reflecting boundary.
 """
 function estimate_variation_after_noise(
     meas_Lf::AbstractVector,
     var_Lf::AbstractVector,
-    K::UniformKernelUlam,
+    K::UlamProjectedUniformKernel,
 )
     Kest = length(meas_Lf)
-    k_basis = length(K.B)
-    l = K.l
-    rel_noise_size = Float64(2 * l + 1) / Float64(k_basis)
+    ξKest = noise_support(K) * Kest              # ξ/h, exact
+    ξ_dn = Float64(noise_support(K), RoundDown)
+    ξKest_dn = Float64(ξKest, RoundDown)
+    f = Int(floor(ξKest / 2))
+    c = Int(ceil(ξKest / 2))
 
     var_NLf = zeros(Kest)
-
-    abs_xiq2f = Int(floor(rel_noise_size * Kest / 2))
-    abs_xiq2c = Int(ceil(rel_noise_size * Kest / 2))
-
     for i in 1:Kest
-        # Measure-based estimate: boundary terms / noise width
+        # I ± ξ/2 meet the cells i ± f and i ± c
         est1 = (
-            meas_Lf[_reflect(i - abs_xiq2c, Kest)] ⊕₊
-            meas_Lf[_reflect(i + abs_xiq2c, Kest)] ⊕₊
-            meas_Lf[_reflect(i - abs_xiq2f, Kest)] ⊕₊
-            meas_Lf[_reflect(i + abs_xiq2f, Kest)]
-        ) ⊘₊ Float64(rel_noise_size, RoundDown)
+            meas_Lf[reflect_outward_idx(i - c, Kest)] ⊕₊
+            meas_Lf[reflect_outward_idx(i + c, Kest)] ⊕₊
+            meas_Lf[reflect_outward_idx(i - f, Kest)] ⊕₊
+            meas_Lf[reflect_outward_idx(i + f, Kest)]
+        ) ⊘₊ ξ_dn
 
-        # Variation-based estimate: averaged variation over window
+        # I + [-ξ/2, ξ/2] is covered by the cells i-c … i+c
         est2 = 0.0
-        for j in (i - abs_xiq2c):(i + abs_xiq2c)
-            est2 = est2 ⊕₊ var_Lf[_reflect(j, Kest)]
+        for j in (i - c):(i + c)
+            est2 = est2 ⊕₊ var_Lf[reflect_outward_idx(j, Kest)]
         end
-        if abs_xiq2c > 0
-            est2 = est2 ⊘₊ Float64(2 * abs_xiq2c, RoundDown)
-        end
+        est2 = est2 ⊘₊ ξKest_dn
 
         var_NLf[i] = min(est1, est2)
     end
@@ -331,35 +346,33 @@ end
 # ──────────────────────────────────────────────────────────────────
 
 """
-    estimate_measure_after_noise(meas_Lf, K::UniformKernelUlam)
+    estimate_measure_after_noise(meas_Lf, K::UlamProjectedUniformKernel)
 
-Estimate the measure of `NLf` per interval by averaging `meas_Lf`
-over the noise window.
+Upper bounds on `‖N_ξ g‖_{L¹(I)}` for the cells `I` of width `h` of a partition of `Kest`
+cells, from the masses `meas_Lf` of `g`: a point `p` contributes to `∫_I N_ξ g` for the
+`t` with `p - t ∈ I`, a set of measure at most `h`, so
 
-Returns `meas_NLf` vector of length `Kest`.
+    ‖N_ξ g‖_{L¹(I)} ≤ (h/ξ) ‖g‖_{L¹(I ± ξ/2)},
+
+and `I ± ξ/2` is covered by the cells `i - c … i + c`, `c = ⌈ξ/(2h)⌉`.
 """
 function estimate_measure_after_noise(
     meas_Lf::AbstractVector,
-    K::UniformKernelUlam,
+    K::UlamProjectedUniformKernel,
 )
     Kest = length(meas_Lf)
-    k_basis = length(K.B)
-    l = K.l
-    rel_noise_size = Float64(2 * l + 1) / Float64(k_basis)
-
-    abs_noise_size = Int(round(rel_noise_size * Kest))
-    abs_xiq2 = abs_noise_size ÷ 2
+    ξKest = noise_support(K) * Kest
+    ξKest_dn = Float64(ξKest, RoundDown)
+    c = Int(ceil(ξKest / 2))
 
     meas_NLf = zeros(Kest)
-
     for i in 1:Kest
         s = 0.0
-        for j in (i - abs_xiq2):(i + abs_xiq2)
-            s = s ⊕₊ meas_Lf[_reflect(j, Kest)]
+        for j in (i - c):(i + c)
+            s = s ⊕₊ meas_Lf[reflect_outward_idx(j, Kest)]
         end
-        meas_NLf[i] = s ⊘₊ Float64(abs_noise_size, RoundDown)
+        meas_NLf[i] = s ⊘₊ ξKest_dn
     end
-
     return meas_NLf
 end
 
@@ -386,7 +399,7 @@ function prepare_derivative_bounds(D::PwMap, B::Ulam)
             br_domain = hull(br.X[1], br.X[2])
             J = intersect_interval(I, br_domain)
             if !isempty_interval(J)
-                d = Float64(mag(abs(derivative(br.f, J))), RoundUp)
+                d = _mag_or_inf(x -> derivative(br.f, x), J)
                 deriv_bound = max(deriv_bound, d)
             end
         end
@@ -448,7 +461,7 @@ end
 
 """
     noise_error_aposteriori(prep1, prep2, meas_vec, numeric_error,
-                            B_density::Ulam, K::UniformKernelUlam,
+                            B_density::Ulam, K::UlamProjectedUniformKernel,
                             α, sumCi)
 
 Compute the a posteriori L1 error bound for a noisy dynamical system
@@ -461,9 +474,12 @@ using the actual computed density `meas_vec`.
 - `numeric_error`: the numerical error from the eigenvector computation
   (e.g., `residualboundnoise`)
 - `B_density`: the `Ulam` basis on which `meas_vec` lives
-- `K`: the `UniformKernelUlam` noise kernel
-- `α`: spectral contraction rate (should be < 1)
-- `sumCi`: `Σ Cᵢ` from the norms of powers
+- `K`: the noise kernel, `π_δ N_ξ π_δ` on the partition of `meas_vec`
+- `α`, `sumCi`: for one `n`, `α ≥ ‖L_δⁿ|_V‖ < 1` and `sumCi ≥ Σ_{i=0}^{n-1} ‖L_δⁱ|_V‖`
+  (with `‖L_δ⁰|_V‖ = 1`), as Lemma 15 and (14) require; a per-step rate is not an `α`
+
+The estimation partition of `prep1` must have a number of cells dividing that of
+`B_density`, its cells being unions of cells of the density partition (Lemmas 25, 27).
 
 # Returns
 `(L1Error, apriori_error, Linf_estimate)`:
@@ -477,14 +493,17 @@ function noise_error_aposteriori(
     meas_vec::AbstractVector,
     numeric_error::Float64,
     B_density::Ulam,
-    K::UniformKernelUlam,
+    K::UlamProjectedUniformKernel,
     α::Float64,
     sumCi::Float64,
 )
     K_size = length(meas_vec)
-    k_basis = length(K.B)
-    l = K.l
-    noise_size_rel = Float64(2 * l + 1) / Float64(k_basis)
+    length(K.B) == K_size ||
+        throw(ArgumentError("the kernel is on $(length(K.B)) cells, the density on $K_size"))
+    mod(K_size, length(prep1)) == 0 ||
+        throw(ArgumentError("the estimation partition ($(length(prep1)) cells) does not refine into the density partition ($K_size cells)"))
+    0 <= α < 1 || throw(ArgumentError("α = $α must be in [0, 1)"))
+    noise_size_rel = Float64(noise_support(K), RoundDown)
     δ = Float64(1.0, RoundUp) / Float64(K_size, RoundDown)
     varRho = 2.0 ⊘₊ Float64(noise_size_rel, RoundDown)
 

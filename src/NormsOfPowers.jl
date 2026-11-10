@@ -11,6 +11,7 @@ export norms_of_powers,
     norms_of_powers_dfly,
     norms_of_powers_trivial,
     norms_of_powers_from_coarser_grid,
+    norms_of_powers_from_coarser_grid_recursive,
     norms_of_powers_resolvent
 
 """
@@ -328,6 +329,81 @@ function norms_of_powers_dfly(
     return strongs, norms
 end
 
+
+@doc raw"""
+    norms_of_powers_from_coarser_grid_recursive(fine_basis::Ulam, coarse_basis::Ulam, D,
+                                                coarse_norms, normQ; dfly_coefficients)
+
+Bounds ``F_m ≥ \|Q_{h_F}^m|_{U^0}\|_{L^1}``, ``m = 1, …, `length(coarse_norms)```, for the
+Ulam discretisation on `fine_basis`, from bounds ``C_m ≥ \|Q_h^m|_{U^0}\|`` on the coarser one,
+by Theorem 4.5 of Galatolo, Monge, Nisoli, Poloni, Chaos Solitons Fractals 170 (2023) 113329,
+
+```math
+\|(Q_h^m - Q_{h_F}^m) f\| \le 2K_h \sum_{k=0}^{m-1} C_{m-1-k}
+  \bigl(\|Q_{h_F}\|\,\|Q_{h_F}^k f\|_s + \|Q_{h_F}^{k+1} f\|_s\bigr), \qquad f ∈ U^0_{h_F},
+```
+
+as in [`norms_of_powers_from_coarser_grid`](@ref), except that the strong norms are bounded
+on ``U^0`` with the weak norms already obtained: by the Lasota–Yorke inequality of the Ulam
+discretisation (Remark 4.4 there, ``E_h = 0``), for ``1 ≤ j ≤ k``,
+
+```math
+\|Q_{h_F}^k f\|_s \le A^j \|Q_{h_F}^{k-j} f\|_s + B \sum_{i<j} A^i \, \|Q_{h_F}^{k-j} f\|,
+```
+
+so ``S_k := \min\bigl(\text{strongs}_k, \min_{1≤j≤k} (A^j S_{k-j} + B_j F_{k-j})\bigr)`` bounds
+``\|Q_{h_F}^k f\|_s`` for ``\|f\| = 1``, ``f ∈ U^0``, with ``S_0`` the strong-weak bound of
+`fine_basis` and ``F_0 = 1``; `strongs` are those of [`norms_of_powers_dfly`](@ref). Then
+``F_m = \min\bigl(C_m + 2K_h \sum_{k<m} C_{m-1-k}(\|Q_{h_F}\| S_k + S_{k+1}),\ F_{m-1}\|Q_{h_F}\|\bigr)``;
+``S_m`` needs ``F_0, …, F_{m-1}`` and ``F_m`` needs ``S_0, …, S_m``, so the two close.
+With every ``S_k`` replaced by `strongs`, it is `norms_of_powers_from_coarser_grid`.
+"""
+function norms_of_powers_from_coarser_grid_recursive(
+    fine_basis::Ulam,
+    coarse_basis::Ulam,
+    D::Dynamic,
+    coarse_norms::Vector,
+    normQ::Real;
+    dfly_coefficients = dfly(strong_norm(fine_basis), aux_norm(fine_basis), D),
+)
+    is_refinement(fine_basis, coarse_basis) ||
+        throw(ArgumentError("the fine basis is not a refinement of the coarse basis"))
+    mmax = length(coarse_norms)
+    A, B = dfly_coefficients
+    strongs, _ = norms_of_powers_dfly(fine_basis, D, mmax; dfly_coefficients = dfly_coefficients)
+    Kh = weak_projection_error(coarse_basis)
+    C(k) = k == 0 ? 1.0 : coarse_norms[k]
+
+    S = fill(NaN, mmax + 1)                      # S[k+1] bounds ‖Q^k f‖_s on U⁰, ‖f‖ = 1
+    F = fill(NaN, mmax + 1)                      # F[k+1] bounds ‖Q^k|_{U⁰}‖
+    S[1] = Float64(strong_weak_bound(fine_basis), RoundUp)
+    F[1] = 1.0
+    Bj = zeros(mmax)                             # Bj[j] = B Σ_{i<j} A^i
+    Apow = zeros(mmax)                           # Apow[j] = A^j
+    acc, a = 0.0, 1.0
+    for j = 1:mmax
+        acc = acc ⊕₊ a
+        Bj[j] = B ⊗₊ acc
+        a = a ⊗₊ A
+        Apow[j] = a
+    end
+    strongV(k) = begin
+        s = strongs[k]
+        for j = 1:k
+            s = min(s, Apow[j] ⊗₊ S[k-j+1] ⊕₊ Bj[j] ⊗₊ F[k-j+1])
+        end
+        s
+    end
+    for m = 1:mmax
+        S[m+1] = strongV(m)
+        temp = 0.0
+        for k = 0:m-1
+            temp = temp ⊕₊ C(m - 1 - k) ⊗₊ (normQ ⊗₊ S[k+1] ⊕₊ S[k+2])
+        end
+        F[m+1] = min(coarse_norms[m] ⊕₊ 2.0 ⊗₊ Kh ⊗₊ temp, F[m] ⊗₊ normQ)
+    end
+    return F[2:end]
+end
 
 @doc raw"""
 Compute better and/or more estimates of power norms using

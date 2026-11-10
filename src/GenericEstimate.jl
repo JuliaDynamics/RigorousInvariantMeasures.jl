@@ -429,7 +429,11 @@ function finepowernormbounds(
     (dfly_strongs_fine, dfly_norms_fine) =
         norms_of_powers_dfly(B_fine, D, m; dfly_coefficients = dfly_coefficients)
 
-    norms_fine = min.(trivial_norms_fine, twogrid_norms_fine, dfly_norms_fine)
+    recursive_norms_fine = B isa Ulam && B_fine isa Ulam ?
+        norms_of_powers_from_coarser_grid_recursive(B_fine, B, D, coarse_norms, normQ_fine;
+            dfly_coefficients = dfly_coefficients) : fill(Inf, m)
+
+    norms_fine = min.(trivial_norms_fine, twogrid_norms_fine, recursive_norms_fine, dfly_norms_fine)
 
     # The length of the vector is not the coarse one's.  The two-grid step loses a factor at
     # every power, so a fine vector as long as the coarse one can end at or above one while
