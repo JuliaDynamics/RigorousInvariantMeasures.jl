@@ -512,16 +512,17 @@ end
     norms_of_powers_recursive_noise(δξ::Real, coarse_norms; first = 1.0)
 
 The recursion of the method above with its constant given, for a discretisation in any
-dimension.  The telescoping there meets the projection difference in two forms only,
-``(π_δ - σ) N_ξ σ = (π_δ - 1) σ N_ξ σ`` and ``N_ξ (π_δ - σ) = N_ξ (π_δ - 1) σ``, so `δξ` must bound
+dimension.  The telescoping there meets the projection difference in the forms
+``(π_δ - σ) N_ξ σ`` and ``N_ξ (π_δ - σ)``; for ``σ`` the Ulam projection of a refinement, or the
+identity, ``π_δ σ = σ π_δ = π_δ``, so ``π_δ - σ = σ (π_δ - 1) = (π_δ - 1) σ`` and, ``σ`` being an
+``L^1`` contraction, both are bounded through
 
 ```math
-\max\bigl(\|(π_δ - 1)\, σ N_ξ\|_{L^1 → L^1},\ \|N_ξ (π_δ - 1)\|_{L^1 → L^1}\bigr).
+δξ ≥ \max\bigl(\|(π_δ - 1) N_ξ\|_{L^1 → L^1},\ \|N_ξ (π_δ - 1)\|_{L^1 → L^1}\bigr).
 ```
 
 On the one-dimensional Ulam basis the method above takes the product of
-`weak_projection_error(coarse_basis)` and the `dfly` constant of the kernel, the Ulam projection
-``σ`` not increasing the variation there.  Rounded upward.
+`weak_projection_error(coarse_basis)` and the `dfly` constant of the kernel.  Rounded upward.
 """
 function norms_of_powers_recursive_noise(δξ::Real, coarse_norms::Vector; first::Real = 1.0)
     δξ >= 0 || throw(ArgumentError("δξ = $δξ must be nonnegative"))
