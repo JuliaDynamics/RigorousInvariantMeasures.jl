@@ -6,7 +6,7 @@
     using SparseArrays, LinearAlgebra
     import RigorousInvariantMeasures: correlation_sequence_noise, norms_of_powers_noise,
         norms_of_powers_from_coarser_grid_noise, norms_of_powers_recursive_noise,
-        ProjectedFunction, L1, mid
+        ProjectedFunction, L1, mid, dfly, strong_norm, aux_norm, weak_projection_error, ⊗₊
 
     @testset "correlation_sequence_noise encloses a 256-bit iteration" begin
         k = 256
@@ -69,6 +69,11 @@
         L = reduce(hcat, [NKf * (mid.(Qf.L) * Float64.(1:n .== j)) for j = 1:n])
         P = Matrix(1.0I(n))
         recursive = norms_of_powers_recursive_noise(Bc, NKf, min.(coarse, 1.0); first = 1.0 + 1e-10)
+        # the method with the constant given is the same recursion, bit for bit
+        _, Bv = dfly(strong_norm(Bc), aux_norm(Bc), NKf)
+        δξ = Bv ⊗₊ weak_projection_error(Bc)
+        @test norms_of_powers_recursive_noise(δξ, min.(coarse, 1.0); first = 1.0 + 1e-10) == recursive
+        @test_throws ArgumentError norms_of_powers_recursive_noise(-1.0, coarse)
         for kk = 1:m+1
             P = L * P
             truenorm = maximum(sum(abs.(P[:, i] .- P[:, j])) / 2 for i = 1:n for j = i+1:n)

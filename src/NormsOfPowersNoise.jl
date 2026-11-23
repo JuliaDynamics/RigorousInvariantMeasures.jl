@@ -504,9 +504,29 @@ each ``F_{n+1}`` is also capped by ``F_n F_1``, and the result is extended by
 """
 function norms_of_powers_recursive_noise(coarse_basis::Ulam, NK::NoiseKernel,
                                          coarse_norms::Vector; first::Real = 1.0)
-    m = length(coarse_norms)
     _, Bv = dfly(strong_norm(coarse_basis), aux_norm(coarse_basis), NK)
-    δξ = Bv ⊗₊ weak_projection_error(coarse_basis)
+    return norms_of_powers_recursive_noise(Bv ⊗₊ weak_projection_error(coarse_basis), coarse_norms; first)
+end
+
+@doc raw"""
+    norms_of_powers_recursive_noise(δξ::Real, coarse_norms; first = 1.0)
+
+The recursion of the method above with its constant given, for a discretisation in any
+dimension.  The telescoping there meets the projection difference in two forms only,
+``(π_δ - σ) N_ξ σ = (π_δ - 1) σ N_ξ σ`` and ``N_ξ (π_δ - σ) = N_ξ (π_δ - 1) σ``, so `δξ` must bound
+
+```math
+\max\bigl(\|(π_δ - 1)\, σ N_ξ\|_{L^1 → L^1},\ \|N_ξ (π_δ - 1)\|_{L^1 → L^1}\bigr).
+```
+
+On the one-dimensional Ulam basis the method above takes the product of
+`weak_projection_error(coarse_basis)` and the `dfly` constant of the kernel, the Ulam projection
+``σ`` not increasing the variation there.  Rounded upward.
+"""
+function norms_of_powers_recursive_noise(δξ::Real, coarse_norms::Vector; first::Real = 1.0)
+    δξ >= 0 || throw(ArgumentError("δξ = $δξ must be nonnegative"))
+    δξ = Float64(δξ, RoundUp)
+    m = length(coarse_norms)
     C(k) = k == 0 ? 1.0 : coarse_norms[k]
     F = fill(NaN, m + 1)
     F0(k) = k == 0 ? 1.0 : F[k]
