@@ -72,8 +72,17 @@
         # the method with the constant given is the same recursion, bit for bit
         _, Bv = dfly(strong_norm(Bc), aux_norm(Bc), NKf)
         δξ = Bv ⊗₊ weak_projection_error(Bc)
-        @test norms_of_powers_recursive_noise(δξ, min.(coarse, 1.0); first = 1.0 + 1e-10) == recursive
+        # the same recursion with the constant given; the products are grouped differently, so
+        # the two agree to rounding
+        given = norms_of_powers_recursive_noise(δξ, min.(coarse, 1.0); first = 1.0 + 1e-10)
+        @test all(abs.(given .- recursive) .<= 1e-13 .* max.(given, recursive))
         @test_throws ArgumentError norms_of_powers_recursive_noise(-1.0, coarse)
+        # with two constants (arithmetic only: δξ/2 is not claimed to bound either operator here):
+        # monotone in each, and equal to the one-constant form when equal
+        two = norms_of_powers_recursive_noise(δξ / 2, δξ, min.(coarse, 1.0); first = 1.0 + 1e-10)
+        @test all(two .<= given) && two == norms_of_powers_recursive_noise(δξ / 2, δξ, min.(coarse, 1.0); first = 1.0 + 1e-10)
+        @test norms_of_powers_recursive_noise(δξ, δξ, min.(coarse, 1.0); first = 1.0 + 1e-10) == given
+
         for kk = 1:m+1
             P = L * P
             truenorm = maximum(sum(abs.(P[:, i] .- P[:, j])) / 2 for i = 1:n for j = i+1:n)

@@ -510,34 +510,42 @@ end
 
 @doc raw"""
     norms_of_powers_recursive_noise(δξ::Real, coarse_norms; first = 1.0)
+    norms_of_powers_recursive_noise(a::Real, b::Real, coarse_norms; first = 1.0)
 
-The recursion of the method above with its constant given, for a discretisation in any
-dimension.  The telescoping there meets the projection difference in the forms
-``(π_δ - σ) N_ξ σ`` and ``N_ξ (π_δ - σ)``; for ``σ`` the Ulam projection of a refinement, or the
-identity, ``π_δ σ = σ π_δ = π_δ``, so ``π_δ - σ = σ (π_δ - 1) = (π_δ - 1) σ`` and, ``σ`` being an
-``L^1`` contraction, both are bounded through
+The recursion of the method above with its constants given, for a discretisation in any
+dimension, with ``a ≥ \|(π_δ - 1) N_ξ\|_{L^1}`` and ``b ≥ \|N_ξ (π_δ - 1)\|_{L^1}`` kept apart:
 
 ```math
-δξ ≥ \max\bigl(\|(π_δ - 1) N_ξ\|_{L^1 → L^1},\ \|N_ξ (π_δ - 1)\|_{L^1 → L^1}\bigr).
+F_{n+1} \le C_n F_1 + a F_n + \sum_{i=0}^{n-1} C_i \bigl(a F_{n-1-i} + b F_{n-i}\bigr),
+\qquad C_0 = F_0 = 1.
 ```
 
-On the one-dimensional Ulam basis the method above takes the product of
-`weak_projection_error(coarse_basis)` and the `dfly` constant of the kernel.  Rounded upward.
+The telescoping of the method above meets the projection difference as ``(π_δ - σ) N_ξ σ`` (in
+its last term and in the first half of each ``π_δ L π_δ - σ L σ = π_δ L(π_δ - σ) + (π_δ - σ) L σ``)
+and as ``N_ξ (π_δ - σ)`` (in the second half); for ``σ`` the Ulam projection of a refinement, or the
+identity, ``π_δ - σ = σ(π_δ - 1) = (π_δ - 1)σ`` and ``σ`` is an ``L^1`` contraction, so the first form
+costs ``a`` and the second ``b``.  With `δξ` alone, `a = b = δξ`; on the one-dimensional Ulam basis
+the method above takes the product of `weak_projection_error(coarse_basis)` and the `dfly`
+constant of the kernel.  Each ``F_{n+1}`` is also capped by ``F_n F_1``, and the result is extended
+by ``F_{i+j} ≤ F_i F_j``.  Rounded upward.
 """
-function norms_of_powers_recursive_noise(δξ::Real, coarse_norms::Vector; first::Real = 1.0)
-    δξ >= 0 || throw(ArgumentError("δξ = $δξ must be nonnegative"))
-    δξ = Float64(δξ, RoundUp)
+norms_of_powers_recursive_noise(δξ::Real, coarse_norms::Vector; first::Real = 1.0) =
+    norms_of_powers_recursive_noise(δξ, δξ, coarse_norms; first)
+
+function norms_of_powers_recursive_noise(a::Real, b::Real, coarse_norms::Vector; first::Real = 1.0)
+    a >= 0 && b >= 0 || throw(ArgumentError("the constants a = $a, b = $b must be nonnegative"))
+    a, b = Float64(a, RoundUp), Float64(b, RoundUp)
     m = length(coarse_norms)
     C(k) = k == 0 ? 1.0 : coarse_norms[k]
     F = fill(NaN, m + 1)
     F0(k) = k == 0 ? 1.0 : F[k]
     F[1] = Float64(first, RoundUp)
     for n = 1:m
-        s = F0(n)
+        s = a ⊗₊ F0(n)
         for i = 0:n-1
-            s = s ⊕₊ C(i) ⊗₊ (F0(n - 1 - i) ⊕₊ F0(n - i))
+            s = s ⊕₊ C(i) ⊗₊ (a ⊗₊ F0(n - 1 - i) ⊕₊ b ⊗₊ F0(n - i))
         end
-        F[n+1] = min(C(n) ⊗₊ F[1] ⊕₊ δξ ⊗₊ s, F[n] ⊗₊ F[1])
+        F[n+1] = min(C(n) ⊗₊ F[1] ⊕₊ s, F[n] ⊗₊ F[1])
     end
     return refine_norms_of_powers(F, m + 1)
 end
