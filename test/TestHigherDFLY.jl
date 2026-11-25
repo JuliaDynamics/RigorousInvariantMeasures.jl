@@ -1,4 +1,4 @@
-using Symbolics, SymbolicUtils, RigorousInvariantMeasures
+using Symbolics, SymbolicUtils, RigorousInvariantMeasures, IntervalArithmetic, Test
 
 # Load the extension module
 const HDF = Base.get_extension(RigorousInvariantMeasures, :SymbolicsExt)
@@ -115,127 +115,111 @@ const HDF = Base.get_extension(RigorousInvariantMeasures, :SymbolicsExt)
         @test 1 in ns  # L_1(...) terms
     end
 
-    # ──── _optimize_mult ────
+    # ──── the expansion as integer monomials ────
 
-    @testset "_optimize_mult basic" begin
-        @variables x
-        @variables (f(x))[1:3]
-        @variables (DD(x))[1:3]
+    # (Lf)'' = L3 f'' + 3 L2(f' D1) + L2(f D2) + L1(f D1^2), D_m = (1/T')^(m)
+    @testset "k = 2 expansion" begin
+        merged = Dict{Tuple{Int,Int,Vector{Int}},Int}()
+        for t in HDF.dfly_monomials(2)
+            key = (t.n, t.i, t.p)
+            merged[key] = get(merged, key, 0) + t.coeff
+        end
+        @test merged == Dict(
+            (3, 2, [0, 0]) => 1,
+            (2, 1, [1, 0]) => 3,
+            (2, 0, [0, 1]) => 1,
+            (1, 0, [2, 0]) => 1,
+        )
+        @test HDF.dfly_monomials(0) == [(n = 1, i = 0, coeff = 1, p = Int[])]
+    end
 
-        # Create a simple Mul term: DD[1] * f[2]
-        term = (DD[1] * f[2]).val
-        if SymbolicUtils.ismul(term)
-            # vals[i, j]: vals[2, j] = bound for DD[1] with weight (T')^{j-1}
-            vals = ones(3, 3)
-            vals[2, 1] = 2.0   # ||DD[1]||_∞ = 2
-            vals[2, 2] = 0.5   # ||DD[1]/(T')||_∞ = 0.5
+    # ──── certified constants on T(x) = 2x + x(1-x)/2 mod 1 ────
+    #
+    # T'(y) = 5/2 - y on [0,1], so (1/T')^(i)(y) = i!/(5/2 - y)^(i+1), largest at y = 1
+    # where 1/T' = 2/3. Hence sup|(1/T')^(i)| |1/T'|^(n-1) = i! (2/3)^(i+n), and
+    # c10 = 4/9, c11 = 2/3, c20 = sup 3/(5/2-y)^4 = 48/81, c21 = 3 (2/3)^3 = 8/9, c22 = 4/9.
 
-            result = HDF._optimize_mult(2, 2, term, vals)
-            # DD[1] has pow=1, n=2
-            # bound = vals[2, 2] * vals[2, 1]^(1-1) = 0.5 * 1 = 0.5
-            # result = 1 * 0.5 * f[2]
-            @test !isequal(result, 0)
+    D = mod1_dynamic(x -> 2x + x * (1 - x) / 2)
+    exact_C = [
+        1.0 0 0
+        4 / 9 2 / 3 0
+        48 / 81 8 / 9 4 / 9
+    ]
+    encloses(bound, exact) = exact <= bound <= exact * (1 + 1e-3)
+
+    @testset "distortion_vals" begin
+        vals = HDF.distortion_vals(D, 2)
+        for i = 0:2, n = 1:3
+            exact = i == 0 ? (2 / 3)^n : factorial(i) * (2 / 3)^(i + n)
+            @test encloses(vals[i+1, n], exact)
         end
     end
 
-    @testset "_optimize_mult exponent correctness" begin
-        @variables x
-        @variables (f(x))[1:4]
-        @variables (DD(x))[1:4]
-
-        # Term with DD[1]^2 * f[1]
-        term_expr = 2 * DD[1]^2 * f[1]
-        if SymbolicUtils.ismul(term_expr.val)
-            vals = ones(4, 4)
-            vals[2, 1] = 3.0   # ||DD[1]||_∞ = 3
-            vals[2, 2] = 1.5   # ||DD[1]/(T')||_∞ = 1.5
-
-            result = HDF._optimize_mult(3, 2, term_expr.val, vals)
-            # DD[1] has pow=2, it's the last (and only) DD term, n=2
-            # bound = vals[2, 2] * vals[2, 1]^(2-1) = 1.5 * 3.0 = 4.5
-            # result = 2 * 4.5 * f[1] = 9.0 * f[1]
-            if SymbolicUtils.ismul(result.val)
-                @test result.val.coeff ≈ 9.0
+    @testset "dfly_coefficient_matrix" begin
+        C = HDF.dfly_coefficient_matrix(D, 2)
+        for j = 0:2, i = 0:2
+            if i > j
+                @test C[j+1, i+1] == 0
+            else
+                @test encloses(C[j+1, i+1], exact_C[j+1, i+1])
             end
         end
     end
 
-    @testset "_optimize_mult with multiple DD terms" begin
-        @variables x
-        @variables (f(x))[1:4]
-        @variables (DD(x))[1:4]
+    @testset "dfly(W{2,1}, L1, D)" begin
+        C = HDF.dfly_coefficient_matrix(D, 2)
+        c8 = dfly(W{2,1}, L1, D; A_target = 0.8)
+        @test c8.strong isa WeightedSobolev
+        @test strong_kind(c8) === c8.strong && weak_kind(c8) == L1
+        @test c8.strong.a[2] == 1 && c8.strong.A_target == 0.8
+        @test c8.strong.a[1] ≈ C[3, 2] / (0.8 - C[2, 2]) rtol = 1e-14
+        @test 0.8 <= c8.A <= 0.8 + 1e-12
+        # k = 2: B(A*) = c20 + c10 c21 / (A* - c11), not below its value at the exact c
+        @test c8.B ≈ C[3, 1] + C[2, 1] * C[3, 2] / (0.8 - C[2, 2]) rtol = 1e-12
+        @test c8.B >= 48 / 81 + (4 / 9) * (8 / 9) / (0.8 - 2 / 3)
 
-        # Term: DD[1]^2 * DD[2] * f[1]
-        term_expr = DD[1]^2 * DD[2] * f[1]
-        if SymbolicUtils.ismul(term_expr.val)
-            vals = ones(4, 4)
-            vals[2, 1] = 3.0   # ||DD[1]||_∞ = 3
-            vals[2, 2] = 1.5   # ||DD[1]/(T')||_∞ = 1.5
-            vals[3, 1] = 2.0   # ||DD[2]||_∞ = 2
-            vals[3, 2] = 0.8   # ||DD[2]/(T')||_∞ = 0.8
+        c = dfly(W{2,1}, L1, D)
+        Astar = c.strong.A_target
+        @test C[2, 2] < Astar < 1
+        @test c.A <= Astar + 1e-12 && c.A < 1
+        @test c.B / (1 - c.A) <= c8.B / (1 - c8.A)
 
-            result = HDF._optimize_mult(3, 2, term_expr.val, vals)
-            # Highest DD index is 2 (DD[2]), pow=1, n=2
-            # bound = vals[3, 2] * vals[3, 1]^(1-1) = 0.8 * 1 = 0.8
-            # Then j=1: DD[1] has pow=2
-            # bound *= vals[2, 1]^2 = 3.0^2 = 9.0
-            # total bound = 0.8 * 9.0 = 7.2
-            # result = 1 * 7.2 * f[1]
-            if SymbolicUtils.ismul(result.val)
-                @test result.val.coeff ≈ 7.2
-            end
-        end
+        @test WeightedSobolev(D, 2; A_target = 0.8).a == c8.strong.a
+        @test dfly(W{2,1}, L1, D; weights = c8.strong.a).A == c8.A
+
+        c3 = dfly(W{3,1}, L1, D)
+        @test c3.A < 1 && isfinite(c3.B) && c3.strong.k == 3
     end
 
-    # ──── optimize_coefficients ────
-
-    @testset "optimize_coefficients k=1" begin
-        v = HDF.compute_dfly_k_fi_DDi(1)
-
-        vals = ones(3, 3)
-        vals[2, 1] = 0.5   # ||DD[1]||_∞
-        vals[2, 2] = 0.3   # ||DD[1]/(T')||_∞
-
-        result = HDF.optimize_coefficients(1, v, vals)
-        @test !isequal(result, 0)
+    @testset "fixed weights on a perturbed map" begin
+        norm = WeightedSobolev(D, 2; A_target = 0.8)
+        Dp = mod1_dynamic(x -> 2x + x * (1 - x) / 2 + x * (1 - x) / 100)
+        cp = dfly(W{2,1}, L1, Dp; weights = norm)
+        @test cp.strong === norm
+        @test cp.A < 1 && isfinite(cp.B)
     end
 
-    @testset "optimize_coefficients k=2" begin
-        v = HDF.compute_dfly_k_fi_DDi(2)
+    @testset "guards" begin
+        @test_throws ArgumentError dfly(W{2,2}, L1, D)
+        @test_throws ErrorException dfly(W{2,1}, L1, D; absorb = :interpolation)
+        @test_throws ArgumentError dfly(W{2,1}, L1, D; absorb = :other)
+        @test_throws ArgumentError dfly(W{2,1}, L1, D; A_target = 0.5)
+        @test_throws ArgumentError dfly(W{2,1}, L1, D; A_target = 1.0)
+        @test_throws ArgumentError dfly(W{2,1}, L1, D; A_target = 0.8, weights = [1.0, 1.0])
+        @test_throws ArgumentError dfly(W{2,1}, L1, D; weights = [1.0, 1.0, 1.0])
 
-        vals = ones(4, 4)
-        vals[2, 1] = 0.5
-        vals[2, 2] = 0.3
-        vals[2, 3] = 0.2
-        vals[3, 1] = 0.4
-        vals[3, 2] = 0.25
+        Dβ = mod1_dynamic(x -> 5x / 2)
+        @test !is_full_branch(Dβ)
+        @test_throws ArgumentError dfly(W{2,1}, L1, Dβ)
 
-        result = HDF.optimize_coefficients(2, v, vals)
-        @test !isequal(result, 0)
-    end
+        # full branch, T' = 2 + (π/2) cos(2πx) >= 0.42, so sup|1/T'| > 1
+        Dslow = mod1_dynamic(x -> 2x + RigorousInvariantMeasures.sinpi(2x) / 4)
+        @test is_full_branch(Dslow)
+        @test_throws ErrorException dfly(W{2,1}, L1, Dslow)
 
-    # ──── substitute_values ────
-
-    @testset "substitute_values" begin
-        @variables x
-        @variables (f(x))[1:3]
-        @variables (DD(x))[1:3]
-
-        v = HDF.compute_dfly_k_fi_DDi(1)
-        # v = [L_2(f[2]), L_1(DD[1]*f[1])]
-
-        # vals = [λ, DD_1_val, DD_2_val]
-        vals = [0.5, 0.3, 0.1]
-
-        w = HDF.substitute_values(2, v, vals)
-        @test length(w) == length(v)
-
-        # First term: L_2(f[2]) → λ^(2-1) * f[2] = 0.5 * f[2]
-        @test !isequal(w[1], 0)
-
-        # Second term: L_1(DD[1]*f[1]) → λ^(1-1) * substitute(DD[1]*f[1], DD[1]=>0.3)
-        #            = 1.0 * 0.3 * f[1]
-        @test !isequal(w[2], 0)
+        @test_throws ArgumentError WeightedSobolev(2, [1.0])
+        @test_throws ArgumentError WeightedSobolev(2, [1.0, 2.0])
+        @test_throws ArgumentError WeightedSobolev(2, [-1.0, 1.0])
     end
 
 end

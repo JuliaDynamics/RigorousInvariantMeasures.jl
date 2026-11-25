@@ -81,7 +81,7 @@ include("SpectralCertification.jl")
 include("precompile.jl")
 
 export NormKind, L1, L2, L1μ, L2μ, Linf, Lipschitz, TotalVariation, VarInterval,
-    VarCircle, C1, W, Aη, Eρ, Cω, DFLYCoefficients, strong_kind, weak_kind
+    VarCircle, C1, W, WeightedSobolev, Aη, Eρ, Cω, DFLYCoefficients, strong_kind, weak_kind
 
 export PwMap,
     Basis,

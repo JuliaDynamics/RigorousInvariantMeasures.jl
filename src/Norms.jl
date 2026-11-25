@@ -121,6 +121,39 @@ struct W{k,l} <: NormKind end
 order(::Type{W{k,l}}) where {k,l} = k
 regularity(::Type{W{k,l}}) where {k,l} = l
 
+@doc raw"""
+    WeightedSobolev(k, a; A_target = NaN) <: NormKind
+    WeightedSobolev(D::PwMap, k; A_target = nothing, boxes = 1024, grid = 256)
+
+The weighted Sobolev seminorm
+
+```math
+\|f\|_a = \sum_{j=1}^{k} a_j\, \|f^{(j)}\|_{L^1}, \qquad a_k = 1,\ a_j \ge 0,
+```
+
+with the weights `a = [a_1, …, a_k]` stored as `Float64`.  It is the strong norm in which
+`dfly(W{k,1}, L1, D)` states its constants for ``k \ge 2``; it carries no
+``\|f\|_{L^1}`` term, which the inequality charges to the weak norm.
+
+`A_target` is a label recording the target ``A^*`` the weights were chosen for, `NaN`
+when the weights were given directly; the norm is defined by `a` alone.  The second form,
+provided by the Symbolics extension, chooses the weights for the map `D` as
+`dfly(W{k,1}, L1, D; A_target)` does, so that one norm can be fixed once and passed to
+`dfly(W{k,1}, L1, D′; weights)` for other maps `D′`.
+"""
+struct WeightedSobolev <: NormKind
+    k::Int
+    a::Vector{Float64}
+    A_target::Float64
+    function WeightedSobolev(k::Integer, a::AbstractVector{<:Real}; A_target::Real = NaN)
+        length(a) == k ||
+            throw(ArgumentError("WeightedSobolev($k, a) needs $k weights, got $(length(a))"))
+        a[end] == 1 || throw(ArgumentError("the top weight a_k must be 1, got $(a[end])"))
+        all(>=(0), a) || throw(ArgumentError("the weights must be nonnegative, got $a"))
+        return new(k, Float64.(a), Float64(A_target))
+    end
+end
+
 # Analytic strip norm
 @doc raw"""
     Aη(η) <: NormKind
