@@ -19,7 +19,23 @@ export PwMap,
     has_infinite_derivative_at_endpoints,
     has_monotone_mod1_lift,
     intersect_domain,
-    intersect_domain_bool
+    intersect_domain_bool,
+    CircleMap,
+    circle_smoothness
+
+@doc raw"""
+    DomainGeometry
+    OnInterval <: DomainGeometry
+    OnCircle{r} <: DomainGeometry
+
+The domain a [`PwMap`](@ref) is read on, carried as its type parameter: `OnInterval`, the
+default, for a map of ``[0,1]``, and `OnCircle{r}` for a map of the circle
+``[0,1]/\{0\sim1\}`` that the caller asserts is ``C^r`` as a circle map.  See
+[`CircleMap`](@ref).
+"""
+abstract type DomainGeometry end
+struct OnInterval <: DomainGeometry end
+struct OnCircle{r} <: DomainGeometry end
 
 @doc raw"""
 Type used to represent a "branch" of a dynamic. The branch is represented by a map `f` with domain `X=(a,b)`. X[1] and X[2] are interval enclosures of a,b.
@@ -87,13 +103,18 @@ It is assumed that the map will send its domain hull(endpoints[begin],endpoints[
 
 the array `branches` is guaranteed to satisfy branches[i].X[end]==branches[i+1].X[begin]
 """
-struct PwMap <: Dynamic
+struct PwMap{G<:DomainGeometry} <: Dynamic
     branches::Array{MonotonicBranch,1}
     full_branch::Bool
-    function PwMap(branches::Array{<:MonotonicBranch,1}; full_branch = false)
-        new(branches, full_branch)
+    function PwMap{G}(
+        branches::Array{<:MonotonicBranch,1};
+        full_branch = false,
+    ) where {G<:DomainGeometry}
+        new{G}(branches, full_branch)
     end
 end
+PwMap(branches::Array{<:MonotonicBranch,1}; full_branch = false) =
+    PwMap{OnInterval}(branches; full_branch = full_branch)
 
 """
     as_interval(T, v) -> Interval{T}
@@ -222,6 +243,65 @@ function has_monotone_mod1_lift(D::PwMap)
         isequal_interval(brs[i+1].Y[1], left_end) || return false
     end
     return true
+end
+
+@doc raw"""
+    CircleMap{r} = PwMap{OnCircle{r}}
+    CircleMap(D::PwMap, r)
+    circle_smoothness(D) -> r or nothing
+
+A [`PwMap`](@ref) read as a map of the circle ``[0,1]/\{0\sim1\}`` that is ``C^r`` there:
+``T`` and its first ``r`` derivatives agree on the two sides of every breakpoint between
+branches and across ``0 \sim 1`` (``T`` itself modulo 1).  An estimate that needs the
+transfer operator to preserve ``W^{k,1}`` of the circle, such as the higher-order DFLY
+inequality for a Fourier basis, requires `circle_smoothness(D) ≥ k + 1`.
+
+**The hypothesis is the caller's.**  Equality of two derivatives cannot be certified in
+interval arithmetic; `CircleMap(D, r)` checks only the necessary condition that, at every
+breakpoint and across ``0 \sim 1``, the enclosures of ``T^{(j)}`` from the two sides
+overlap for ``j = 0, \dots, r`` (for ``j = 0`` modulo 1), and throws if one pair is
+disjoint.  It also requires a monotone mod 1 lift ([`has_monotone_mod1_lift`](@ref)).
+Each branch must accept `Taylor1{Interval}` for the derivatives.
+
+`circle_smoothness(D)` is `r` for a `CircleMap{r}` and `nothing` for any other dynamic.
+"""
+const CircleMap{r} = PwMap{OnCircle{r}}
+
+circle_smoothness(::PwMap{OnCircle{r}}) where {r} = r
+circle_smoothness(::Dynamic) = nothing
+
+# enclosures of T^{(j)}, j = 0..r, at the point enclosure x, by an interval Taylor series
+function _jet_at(br::MonotonicBranch, x::Interval, r::Integer)
+    y = br.f(Taylor1([x, one(x)], r))
+    return [y[j] * factorial(j) for j = 0:r]
+end
+
+_overlap(a::Interval, b::Interval) = !isempty_interval(intersect_interval(a, b))
+_overlap_mod1(a::Interval, b::Interval) =
+    _overlap(a, b) || _overlap(a, b + 1) || _overlap(a + 1, b)
+
+function CircleMap(D::PwMap, r::Integer)
+    r >= 0 || throw(ArgumentError("the circle smoothness r must be ≥ 0, got $r"))
+    has_monotone_mod1_lift(D) ||
+        throw(ArgumentError("CircleMap needs a monotone mod 1 lift (has_monotone_mod1_lift)"))
+    brs = branches(D)
+    # (left branch, right branch, point on the left branch, point on the right branch)
+    joins = [(brs[i], brs[i+1], brs[i].X[2], brs[i+1].X[1]) for i = 1:length(brs)-1]
+    push!(joins, (brs[end], brs[1], brs[end].X[2], brs[1].X[1]))
+    for (m, (bl, br, xl, xr)) in enumerate(joins)
+        jl, jr = _jet_at(bl, xl, r), _jet_at(br, xr, r)
+        where = m == length(joins) ? "across 0 ~ 1" : "at the breakpoint $xl"
+        _overlap_mod1(jl[1], jr[1]) ||
+            throw(ArgumentError("T is not continuous $where: $(jl[1]) and $(jr[1])"))
+        for j = 1:r
+            _overlap(jl[j+1], jr[j+1]) || throw(
+                ArgumentError(
+                    "T is not C^$r on the circle: T^($j) is $(jl[j+1]) and $(jr[j+1]) $where",
+                ),
+            )
+        end
+    end
+    return PwMap{OnCircle{Int(r)}}(collect(brs); full_branch = D.full_branch)
 end
 
 """
@@ -379,9 +459,11 @@ function has_infinite_derivative_at_endpoints(D::PwMap)
 end
 
 @doc raw"""
-    mod1_dynamic(f::Function, ε = 0.0; full_branch = false)
+    mod1_dynamic(f::Function, ε = 0.0; full_branch = false, circle_smoothness = nothing)
 
-Utility constructor for dynamics Mod 1 on the torus [0,1].
+Utility constructor for dynamics Mod 1 on the torus [0,1].  With `circle_smoothness = r`
+the result is `CircleMap(D, r)`: the caller asserts that the map is ``C^r`` on the circle
+(see [`CircleMap`](@ref)).
 We assume that f is monotonic and differentiable, for now (this is not restrictive, for our purposes)
 
 # Example
@@ -399,6 +481,7 @@ function mod1_dynamic(
     max_iter = 100,
     full_branch = false,
     T = Float64,
+    circle_smoothness = nothing,
 )
     X = (interval(T, 0), interval(T, 1))
     br = MonotonicBranch(f, X)
@@ -448,7 +531,8 @@ function mod1_dynamic(
     # not needed, since the check is moved into the PwMap() constructor
     # full_branch_detected = full_branch || all(equal_up_to_order(X, y_endpoints[i,:]) for i in 1:n)
 
-    return PwMap(Ts, ep, y_endpoints; full_branch = full_branch, T = T)
+    D = PwMap(Ts, ep, y_endpoints; full_branch = full_branch, T = T)
+    return circle_smoothness === nothing ? D : CircleMap(D, circle_smoothness)
 end
 
 """
