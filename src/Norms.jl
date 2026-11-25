@@ -153,6 +153,9 @@ struct WeightedSobolev <: NormKind
         return new(k, Float64.(a), Float64(A_target))
     end
 end
+# The norm is defined by k and a; A_target is a label and does not enter the comparison.
+Base.:(==)(m::WeightedSobolev, n::WeightedSobolev) = m.k == n.k && m.a == n.a
+Base.hash(n::WeightedSobolev, h::UInt) = hash(n.a, hash(n.k, hash(:WeightedSobolev, h)))
 
 # Analytic strip norm
 @doc raw"""

@@ -471,3 +471,12 @@ function dfly(
     A < 1 || error("dfly(W{$k,1}, L1, D): the certified A = $A is not below 1")
     return DFLYCoefficients(norm, L1, A, B)
 end
+
+"""
+    dfly(norm::WeightedSobolev, ::Type{L1}, D::PwMap; boxes = 1024)
+
+`dfly(W{k,1}, L1, D; weights = norm)`: the constants for `D` in the given weighted
+seminorm, which is what a basis carrying that norm asks for.
+"""
+dfly(norm::WeightedSobolev, ::Type{L1}, D::PwMap; boxes::Int = 1024) =
+    dfly(W{norm.k,1}, L1, D; weights = norm, boxes = boxes)

@@ -199,6 +199,46 @@ const HDF = Base.get_extension(RigorousInvariantMeasures, :SymbolicsExt)
         @test cp.A < 1 && isfinite(cp.B)
     end
 
+    @testset "Chebyshev basis on the weighted seminorm" begin
+        norm = WeightedSobolev(D, 2; A_target = 0.8)
+        p = RigorousInvariantMeasures.ChebPoints(16, Float64)
+        Bc1 = RigorousInvariantMeasures.Chebyshev(p, 2, norm, C1())
+        a1 = norm.a[1]
+        @test RigorousInvariantMeasures.weak_by_strong_and_aux_bound(Bc1) ==
+              (max(2 / a1, 1.0), 1.0)
+        Bl2 = RigorousInvariantMeasures.Chebyshev(p, 2, norm, L2())
+        S1, S2 = RigorousInvariantMeasures.weak_by_strong_and_aux_bound(Bl2)
+        @test S1 >= 1 / a1 && S2 == 1.0
+        Bμ = RigorousInvariantMeasures.Chebyshev(p, 2, norm, L2μ())
+        @test RigorousInvariantMeasures.weak_by_strong_and_aux_bound(Bμ)[2] >= π / 2
+
+        c = dfly(norm, L1, D)
+        @test strong_kind(c) == norm
+        us = RigorousInvariantMeasures.invariant_measure_strong_norm_bound(Bc1, D)
+        @test us >= c.B / (1 - c.A)
+        other = WeightedSobolev(D, 2; A_target = 0.9)
+        @test_throws ArgumentError RigorousInvariantMeasures.invariant_measure_strong_norm_bound(
+            Bc1,
+            D;
+            dfly_coefficients = dfly(other, L1, D),
+        )
+
+        @test_throws ErrorException RigorousInvariantMeasures.strong_weak_bound(Bc1)
+        # projection errors are per unit of ||f^(k)||_1 <= ||f||_a, as for W^{k,1}
+        Bw = RigorousInvariantMeasures.Chebyshev(p, 2, W{2,1}(), L2())
+        @test RigorousInvariantMeasures.aux_normalized_projection_error(Bl2) ==
+              RigorousInvariantMeasures.aux_normalized_projection_error(Bw)
+        @test_throws ArgumentError RigorousInvariantMeasures.weak_projection_error(Bc1)
+        # a plain W^{2,1} basis refuses constants stated in the weighted seminorm
+        @test_throws ArgumentError RigorousInvariantMeasures.invariant_measure_strong_norm_bound(
+            Bw,
+            D,
+        )
+        @test_throws ArgumentError RigorousInvariantMeasures.weak_by_strong_and_aux_bound(
+            RigorousInvariantMeasures.Chebyshev(p, 3, norm, C1()),
+        )
+    end
+
     @testset "guards" begin
         @test_throws ArgumentError dfly(W{2,2}, L1, D)
         @test_throws ErrorException dfly(W{2,1}, L1, D; absorb = :interpolation)

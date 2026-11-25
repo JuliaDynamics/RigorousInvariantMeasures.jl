@@ -188,10 +188,26 @@ end
         @test RIM.weak_projection_error(Bn) == RIM.aux_normalized_projection_error(Bn)
     end
 
-    # ...and it decays like n^{-ν}: refining by 2 should gain about 2^3 = 8.
+    # ...and it decays like n^{-ν} with ν = k - 1 = 2: refining by 2 gains about 4.
     e16 = RIM.weak_projection_error(Chebyshev(16, 3))
     e32 = RIM.weak_projection_error(Chebyshev(32, 3))
-    @test 5 < e16 / e32 < 12
+    @test 3 < e16 / e32 < 6
+
+    # per unit of ||f^(k)||_1: Trefethen (7.5) at ν = k - 1 on the degree n = length - 1
+    # interpolant, with Var on [-1,1] equal to 2^{-ν} times Var on [0,1]
+    for (len, k) in ((16, 3), (64, 4))
+        B = Chebyshev(len, k)
+        n, ν = length(B) - 1, k - 1
+        exact = 4 * 2.0^(-ν) / (π * ν * prod(n - i for i = 0:ν-1))
+        @test exact <= RIM.aux_normalized_projection_error(B) <= exact * (1 + 1e-12)
+    end
+    # C1 adds Theorem 3.14 of Nisoli & Taylor-Crush at ν = k - 1, which needs ν > 2
+    @test_throws ArgumentError RIM.weak_projection_error(Chebyshev(16, 3, C1))
+    let B = Chebyshev(64, 4, C1), n = length(B) - 1, ν = 3
+        d = 2 * 4 * (n + 1) * 2.0^(-ν) / (n * (ν - 2) * π * prod(n - i for i = 2:ν-1))
+        e = RIM.aux_normalized_projection_error(B) + d
+        @test e <= RIM.weak_projection_error(B) <= e * (1 + 1e-12)
+    end
 
     @test RIM.aux_weak_bound(Chebyshev(16, 3)) == 1.0
     @test RIM.aux_weak_bound(Chebyshev(16, 3, C1)) == 1.0
@@ -199,7 +215,7 @@ end
     @test RIM.weak_by_strong_and_aux_bound(Chebyshev(16, 3)) == (1.0, 0.0)
 
     # All interface constants finite and positive for every weak norm.
-    for Bx in (Chebyshev(16, 3), Chebyshev(16, 3, C1))
+    for Bx in (Chebyshev(16, 3), Chebyshev(16, 4, C1))
         for g in (RIM.weak_projection_error, RIM.aux_normalized_projection_error,
                   RIM.strong_weak_bound, RIM.bound_linalg_norm_L1_from_weak,
                   RIM.bound_linalg_norm_L∞_from_weak)
