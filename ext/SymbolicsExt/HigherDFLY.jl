@@ -3,8 +3,8 @@ using SymbolicUtils
 using IntervalArithmetic
 using TaylorSeries: Taylor1
 
-# This file adds methods to the package's own `dfly` and `WeightedSobolev`.
-import RigorousInvariantMeasures: dfly, WeightedSobolev
+# This file adds methods to the package's own `dfly`, `WeightedSobolev` and `Chebyshev`.
+import RigorousInvariantMeasures: dfly, WeightedSobolev, Chebyshev
 
 @doc raw"""
     SymbL(n, f)
@@ -480,3 +480,25 @@ seminorm, which is what a basis carrying that norm asks for.
 """
 dfly(norm::WeightedSobolev, ::Type{L1}, D::PwMap; boxes::Int = 1024) =
     dfly(W{norm.k,1}, L1, D; weights = norm, boxes = boxes)
+
+@doc raw"""
+    Chebyshev(n, k, D::PwMap; A_target = nothing, weak = L2, T = Float64)
+
+The Chebyshev basis of `Chebyshev(n, k, weak)` with the strong norm
+`WeightedSobolev(D, k; A_target)`, the weighted seminorm in which `dfly(W{k,1}, L1, D)`
+states its constants for ``k \ge 2``.  The weights are computed from `D`, so
+`dfly(strong_norm(B), aux_norm(B), D)` returns coefficients in the basis's own norm.  For a
+family of maps, build the basis from one map and pass it with the others: `dfly` then
+certifies each map in the same norm, and throws if ``A \ge 1`` for one of them.
+"""
+function Chebyshev(
+    n::Integer,
+    k::Integer,
+    D::PwMap;
+    A_target = nothing,
+    weak::Type{<:RigorousInvariantMeasures.NormKind} = RigorousInvariantMeasures.L2,
+    T = Float64,
+)
+    norm = WeightedSobolev(D, k; A_target = A_target)
+    return Chebyshev(RigorousInvariantMeasures.ChebPoints(n, T), k, norm, weak())
+end

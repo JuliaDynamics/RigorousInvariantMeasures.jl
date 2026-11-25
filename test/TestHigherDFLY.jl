@@ -239,6 +239,20 @@ const HDF = Base.get_extension(RigorousInvariantMeasures, :SymbolicsExt)
         )
     end
 
+    @testset "Chebyshev(n, k, D)" begin
+        RIM = RigorousInvariantMeasures
+        for k = 2:4
+            B = RIM.Chebyshev(32, k, D)
+            @test RIM.strong_norm(B) isa WeightedSobolev && RIM.strong_norm(B).k == k
+            c = dfly(RIM.strong_norm(B), RIM.aux_norm(B), D)
+            @test strong_kind(c) == RIM.strong_norm(B)
+            us = RIM.invariant_measure_strong_norm_bound(B, D)
+            @test isfinite(us) && us >= c.B / (1 - c.A)
+        end
+        B8 = RIM.Chebyshev(32, 2, D; A_target = 0.8, weak = C1)
+        @test RIM.strong_norm(B8).A_target == 0.8 && RIM.weak_norm(B8) == C1
+    end
+
     @testset "guards" begin
         @test_throws ArgumentError dfly(W{2,2}, L1, D)
         @test_throws ErrorException dfly(W{2,1}, L1, D; absorb = :interpolation)
