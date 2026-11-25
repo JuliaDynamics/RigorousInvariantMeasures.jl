@@ -1,6 +1,6 @@
 
 using IntervalArithmetic
-using ..RigorousInvariantMeasures: MonotonicBranch, PwMap, Dual, C1, NormCacher, Cω, W, L2, NormKind
+using ..RigorousInvariantMeasures: MonotonicBranch, PwMap, Dual, C1, NormCacher, Cω, W, L2, NormKind, WeightedSobolev
 import ..RigorousInvariantMeasures: assemble
 using LinearAlgebra
 
@@ -43,19 +43,17 @@ strong_norm(B::FourierAdjoint) = B.strong
 weak_norm(B::FourierAdjoint) = typeof(B.weak)
 aux_norm(B::FourierAdjoint) = L1
 
-# Projection errors for Cω (same structure as Aη with a default strip width)
-function weak_projection_error(B::FourierAdjoint{Cω})
-    N = B.k
-    # Conservative bound: use exponential decay with a small default η
-    η = interval(0.1)
-    return sup(exp(2 * interval(pi) * N * η))
+# Projection errors for Cω: the tail of the unit ball of Σ|ĉ_k| e^{2πη|k|} with the
+# default η = 0.1, Σ_{|k|>N} e^{-2πη|k|} = 2q^{N+1}/(1-q), q = e^{-2πη}, as for Aη in
+# `_aeta_tail_bound` (FourierAnalytic.jl). Until 2026-11-25 this returned exp(+2πNη),
+# which grows with N: the sign error the comment above `_aeta_tail_bound` records as
+# fixed for Aη.
+function _comega_tail_bound(B::FourierAdjoint{Cω})
+    q = exp(-2 * interval(pi) * interval(0.1))
+    return sup(2 * q^(B.k + 1) / (1 - q))
 end
-
-function aux_normalized_projection_error(B::FourierAdjoint{Cω})
-    N = B.k
-    η = interval(0.1)
-    return sup(exp(2 * interval(pi) * N * η))
-end
+weak_projection_error(B::FourierAdjoint{Cω}) = _comega_tail_bound(B)
+aux_normalized_projection_error(B::FourierAdjoint{Cω}) = _comega_tail_bound(B)
 
 function strong_weak_bound(B::FourierAdjoint{Cω})
     k = B.k
@@ -69,29 +67,27 @@ end
 # `FourierAnalytic` realization — the basis is the same, only the matrix
 # representation differs (the adjoint is its transpose), and the basis-level
 # constants depend only on the truncation index `B.k` and the norm choice.
-function weak_projection_error(B::FourierAdjoint{W{k,l}}) where {k,l}
-    N = B.k
-    if k == 0
-        return 1.0
-    end
-    denom = (2 * interval(pi) * N)^k
-    return sup(1 / denom)
-end
-
-function aux_normalized_projection_error(B::FourierAdjoint{W{k,l}}) where {k,l}
-    N = B.k
-    if k == 0
-        return 1.0
-    end
-    denom = (2 * interval(pi) * N)^k
-    return sup(1 / denom)
-end
+weak_projection_error(B::FourierAdjoint{<:Union{W,WeightedSobolev}}) =
+    _fourier_sobolev_projection_error(B)
+aux_normalized_projection_error(B::FourierAdjoint{<:Union{W,WeightedSobolev}}) =
+    _fourier_sobolev_projection_error(B)
 
 function strong_weak_bound(B::FourierAdjoint{W{k,l}}) where {k,l}
     N = B.k
     M = interval(1.0)
     for j = 1:k
         M = M + (2 * interval(pi) * N)^j
+    end
+    return sup(M)
+end
+
+
+# WeightedSobolev: ||v||_a = Σ_{j>=1} a_j ||v^(j)||_1 <= Σ_{j>=1} a_j (2πK)^j ||v||_{L²}, from
+# ||v^(j)||_{L¹} <= ||v^(j)||_{L²} <= (2πK)^j ||v||_{L²} on trigonometric polynomials of degree K.
+function strong_weak_bound(B::FourierAdjoint{WeightedSobolev})
+    M = interval(0.0)
+    for (j, a) in enumerate(B.strong.a)
+        M = M + interval(a) * (2 * interval(pi) * B.k)^j
     end
     return sup(M)
 end

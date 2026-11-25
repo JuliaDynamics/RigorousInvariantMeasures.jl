@@ -253,6 +253,26 @@ const HDF = Base.get_extension(RigorousInvariantMeasures, :SymbolicsExt)
         @test RIM.strong_norm(B8).A_target == 0.8 && RIM.weak_norm(B8) == C1
     end
 
+    @testset "Fourier bases on the weighted seminorm" begin
+        RIM = RigorousInvariantMeasures
+        Dc = mod1_dynamic(x -> 2x + RIM.sinpi(2x) / 20; circle_smoothness = 3)
+        B = FourierAnalytic(16, 64, Dc, 2)
+        @test RIM.strong_norm(B) isa WeightedSobolev && RIM.strong_norm(B).k == 2
+        a = RIM.strong_norm(B).a
+        S1, S2 = RIM.weak_by_strong_and_aux_bound(B)
+        @test 1 / a[1] <= S1 <= nextfloat(1 / a[1]) && S2 == 1.0
+        @test RIM.strong_weak_bound(B) >= a[1] * 2π * 16 + (2π * 16)^2
+        @test RIM.weak_projection_error(B) ==
+              RIM.weak_projection_error(FourierAnalytic(RIM.FourierPoints(64, Float64), 16, W{2,1}(), L2()))
+        c = dfly(RIM.strong_norm(B), L1, Dc)
+        @test RIM.invariant_measure_strong_norm_bound(B, Dc) >= c.B / (1 - c.A)
+        @test FourierAdjoint(16, 64, Dc, 2).strong == RIM.strong_norm(B)
+        # the basis needs the map asserted C^s on the circle
+        @test_throws ArgumentError FourierAnalytic(16, 64, Dc, 4)
+        @test_throws ArgumentError RIM.invariant_measure_strong_norm_bound(B, D)
+        @test_throws MethodError FourierAnalytic(16, 64, D, 2)
+    end
+
     @testset "guards" begin
         @test_throws ArgumentError dfly(W{2,2}, L1, D)
         @test_throws ErrorException dfly(W{2,1}, L1, D; absorb = :interpolation)

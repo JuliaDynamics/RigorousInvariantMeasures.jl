@@ -3,8 +3,9 @@ using SymbolicUtils
 using IntervalArithmetic
 using TaylorSeries: Taylor1
 
-# This file adds methods to the package's own `dfly`, `WeightedSobolev` and `Chebyshev`.
-import RigorousInvariantMeasures: dfly, WeightedSobolev, Chebyshev
+# This file adds methods to the package's own `dfly`, `WeightedSobolev`, `Chebyshev`,
+# `FourierAnalytic` and `FourierAdjoint`.
+import RigorousInvariantMeasures: dfly, WeightedSobolev, Chebyshev, FourierAnalytic, FourierAdjoint
 
 @doc raw"""
     SymbL(n, f)
@@ -501,4 +502,49 @@ function Chebyshev(
 )
     norm = WeightedSobolev(D, k; A_target = A_target)
     return Chebyshev(RigorousInvariantMeasures.ChebPoints(n, T), k, norm, weak())
+end
+
+@doc raw"""
+    FourierAnalytic(k_freq, n, D::CircleMap, s; A_target = nothing, T = Float64)
+    FourierAdjoint(k_freq, n, D::CircleMap, s; A_target = nothing, T = Float64)
+
+The Fourier basis of ``2k_{freq}+1`` frequencies on `n` points with the strong norm
+`WeightedSobolev(D, s; A_target)` and weak norm `L2`.  The map must be a
+[`CircleMap`](@ref) asserted ``C^s`` on the circle (`circle_smoothness(D) ≥ s`), which is
+what keeps ``Lf`` in ``W^{s,1}`` of the circle; the hypothesis is the caller's.
+"""
+function FourierAnalytic(
+    k_freq::Integer,
+    n::Integer,
+    D::RigorousInvariantMeasures.CircleMap,
+    s::Integer;
+    A_target = nothing,
+    T = Float64,
+)
+    return FourierAnalytic(
+        RigorousInvariantMeasures.FourierPoints(n, T),
+        k_freq,
+        _fourier_weighted_norm(D, s, A_target),
+        RigorousInvariantMeasures.L2(),
+    )
+end
+function FourierAdjoint(
+    k_freq::Integer,
+    n::Integer,
+    D::RigorousInvariantMeasures.CircleMap,
+    s::Integer;
+    A_target = nothing,
+    T = Float64,
+)
+    return FourierAdjoint(
+        RigorousInvariantMeasures.FourierPoints(n, T),
+        k_freq,
+        _fourier_weighted_norm(D, s, A_target),
+        RigorousInvariantMeasures.L2(),
+    )
+end
+function _fourier_weighted_norm(D, s, A_target)
+    r = RigorousInvariantMeasures.circle_smoothness(D)
+    r >= s || throw(ArgumentError("the map is asserted C^$r on the circle, the basis needs C^$s"))
+    return WeightedSobolev(D, s; A_target = A_target)
 end

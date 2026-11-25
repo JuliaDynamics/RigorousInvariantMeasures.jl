@@ -1,5 +1,5 @@
 using IntervalArithmetic
-using ..RigorousInvariantMeasures: MonotonicBranch, PwMap, Dual, C1, NormCacher, Aη, W, L2, NormKind
+using ..RigorousInvariantMeasures: MonotonicBranch, PwMap, Dual, C1, NormCacher, Aη, W, L2, NormKind, WeightedSobolev
 import ..RigorousInvariantMeasures: derivative
 using LinearAlgebra
 
@@ -83,25 +83,13 @@ end
 weak_projection_error(B::FourierAnalytic{Aη}) = _aeta_tail_bound(B)
 aux_normalized_projection_error(B::FourierAnalytic{Aη}) = _aeta_tail_bound(B)
 
-# W{k,1} strong norm: polynomial decay O(N^{-(k-1)}) for Fourier coefficient decay
-# ||P_h f - f||_{L²} ≤ (2πN)^{-k} ||f^{(k)}||_{L²} ≤ (2πN)^{-k} ||f||_{W^{k,1}}
-function weak_projection_error(B::FourierAnalytic{W{k,l}}) where {k,l}
-    N = B.k
-    if k == 0
-        return 1.0
-    end
-    denom = (2 * interval(pi) * N)^k
-    return sup(1 / denom)
-end
-
-function aux_normalized_projection_error(B::FourierAnalytic{W{k,l}}) where {k,l}
-    N = B.k
-    if k == 0
-        return 1.0
-    end
-    denom = (2 * interval(pi) * N)^k
-    return sup(1 / denom)
-end
+# W{k,l} and WeightedSobolev strong norms: per unit of ||f^(k)||_1, see
+# `_fourier_sobolev_projection_error` in FourierCommon.jl. (Until 2026-11-25 this returned
+# (2πN)^{-k} from ||f^(k)||_{L²} <= ||f||_{W^{k,1}}, which does not hold.)
+weak_projection_error(B::FourierAnalytic{<:Union{W,WeightedSobolev}}) =
+    _fourier_sobolev_projection_error(B)
+aux_normalized_projection_error(B::FourierAnalytic{<:Union{W,WeightedSobolev}}) =
+    _fourier_sobolev_projection_error(B)
 
 # --- Strong-weak bound: ||v||_s ≤ M₁n · ||v||_{L²} ---
 
@@ -132,6 +120,17 @@ function strong_weak_bound(B::FourierAnalytic{W{k,l}}) where {k,l}
     M = interval(1.0)
     for j = 1:k
         M = M + (2 * interval(pi) * N)^j
+    end
+    return sup(M)
+end
+
+
+# WeightedSobolev: ||v||_a = Σ_{j>=1} a_j ||v^(j)||_1 <= Σ_{j>=1} a_j (2πK)^j ||v||_{L²}, from
+# ||v^(j)||_{L¹} <= ||v^(j)||_{L²} <= (2πK)^j ||v||_{L²} on trigonometric polynomials of degree K.
+function strong_weak_bound(B::FourierAnalytic{WeightedSobolev})
+    M = interval(0.0)
+    for (j, a) in enumerate(B.strong.a)
+        M = M + interval(a) * (2 * interval(pi) * B.k)^j
     end
     return sup(M)
 end
