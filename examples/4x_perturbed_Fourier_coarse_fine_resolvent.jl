@@ -1,5 +1,9 @@
-# Comparison of two coarse-fine certification strategies for the smooth
-# circle map T(x) = 2x + 0.5·x·(1-x)  (mod 1).
+# Comparison of two coarse-fine certification strategies for the circle map
+# T(x) = 2x + sin(2πx)/(4π)  (mod 1), which is real-analytic on the circle, with
+# T'(x) = 2 + cos(2πx)/2 ∈ [3/2, 5/2]. (Until 2026-11-26 the map was
+# 2x + 0.5·x·(1-x), whose derivative is 5/2 at 0 and 3/2 at 1: it is not C¹ on the
+# circle, so its transfer operator does not preserve W^{1,1} of the circle and a
+# Fourier basis did not fit it.)
 #
 # 1. **Power-norm strategy** (existing): `finepowernormbounds` propagates a
 #    bound on ‖L^n|_{U⁰}‖_w from a coarse discretization to a fine one.
@@ -18,11 +22,14 @@
 #
 # We use `FourierAdjoint` — the adjoint representation gives the same
 # basis-level constants as `FourierAnalytic` (the basis is the same; only
-# the matrix is transposed), and the W^{k,1} methods are now wired up for
-# both.
+# the matrix is transposed). The strong norm is the weighted seminorm
+# ‖f‖_a = a₁‖f'‖₁ + ‖f''‖₁ of `FourierAdjoint(K, n, D, 2)`, whose weights are chosen
+# from D (Symbolics extension); coarse and fine bases share it, since the weights
+# depend only on D. W^{1,1} Fourier bases have no projection error.
 
 using RigorousInvariantMeasures
 using FFTW                         # triggers FFTWExt for Fourier assembly
+using Symbolics                    # triggers SymbolicsExt: higher-order DFLY, weighted norm
 using BallArithmetic
 using IntervalArithmetic
 using LinearAlgebra: eigvals
@@ -37,15 +44,18 @@ function runComparison(; n_grid = 16384, k_coarse = 128, k_fine = 512,
                         # projector / fixed-point distance bound.
                         projector_radii = [0.05, 0.1, 0.15],
                         projector_N = 15)
-    D = mod1_dynamic(x -> 2 * x + 0.5 * x * (1 - x))
+    # real-analytic on the circle: the caller's hypothesis, checked by CircleMap only
+    # through the overlap of the first derivatives across 0 ~ 1
+    D = mod1_dynamic(x -> 2 * x + RigorousInvariantMeasures.sinpi(2 * x) / (4π);
+                     circle_smoothness = :ω)
 
-    # --- Bases (W^{1,1} strong, L² weak, L¹ aux) -------------------------
-    B_coarse = FourierAdjoint(FourierPoints(n_grid, Float64), k_coarse,
-                                W{1,1}(), L2())
-    B_fine = FourierAdjoint(FourierPoints(n_grid, Float64), k_fine,
-                              W{1,1}(), L2())
+    # --- Bases (weighted W^{2,1} strong, L² weak, L¹ aux) ----------------
+    B_coarse = FourierAdjoint(k_coarse, n_grid, D, 2)
+    B_fine = FourierAdjoint(k_fine, n_grid, D, 2)
+    @info "Weighted strong norm" weights = strong_norm(B_coarse).a A_target =
+        strong_norm(B_coarse).A_target
 
-    a, b = dfly(strong_norm(B_coarse), aux_norm(B_coarse), D)
+    a, b = basis_dfly(B_coarse, D)
     @info "DFLY constants  (‖Lf‖_s ≤ a·‖f‖_s + b·‖f‖_aux)" a b
 
     # --- Discretize ------------------------------------------------------
@@ -56,14 +66,20 @@ function runComparison(; n_grid = 16384, k_coarse = 128, k_fine = 512,
     # --- Strategy 1: existing power-norm coarse-fine ---------------------
     time_norms_coarse = @elapsed norms_coarse = powernormbounds(B_coarse, D; Q = Q_coarse)
     normQ_fine_pow = opnormbound(B_fine, weak_norm(B_fine), Q_fine)
-    time_norms_fine_pow = @elapsed norms_fine_pow =
-        finepowernormbounds(B_coarse, B_fine, D, norms_coarse;
-                            normQ_fine = normQ_fine_pow)
+    # finepowernormbounds throws when the two-grid bound does not contract on this pair
+    # of grids; the comparison then records that strategy 1 did not close.
+    norms_fine_pow = Float64[]
+    time_norms_fine_pow = @elapsed try
+        norms_fine_pow = finepowernormbounds(B_coarse, B_fine, D, norms_coarse;
+                                             normQ_fine = normQ_fine_pow)
+    catch err
+        @warn "Power-norm coarse-fine did not close" exception = err
+    end
 
     # Empirical mixing rate from the bound sequence: ρ̂ ≈ ‖L_fine^n‖^{1/n}
     n_pow = length(norms_fine_pow)
-    rho_powernorm = norms_fine_pow[end]^(1 / n_pow)
-    @info "Power-norm coarse-fine" first_term = norms_fine_pow[1] last_term =
+    rho_powernorm = n_pow == 0 ? Inf : norms_fine_pow[end]^(1 / n_pow)
+    n_pow > 0 && @info "Power-norm coarse-fine" first_term = norms_fine_pow[1] last_term =
         norms_fine_pow[end] sequence_length = n_pow rho_powernorm time_norms_fine_pow
 
     # --- Strategy 2: resolvent coarse-fine -------------------------------
@@ -135,7 +151,7 @@ function runComparison(; n_grid = 16384, k_coarse = 128, k_fine = 512,
     # M inside b_N is the aux-norm contractivity (M_aux = 1 for the L¹-
     # preserving transfer operator) and the b is rescaled by M_2 =
     # aux_weak_bound(B). With M_aux = 1, b_N saturates at b·M_2/(1−a).
-    a, b = dfly(strong_norm(B_coarse), aux_norm(B_coarse), D)
+    a, b = basis_dfly(B_coarse, D)
     M_aux = 1.0
     M_2 = RigorousInvariantMeasures.aux_weak_bound(B_fine)
     b_eff = b * M_2
@@ -173,6 +189,7 @@ function runComparison(; n_grid = 16384, k_coarse = 128, k_fine = 512,
     println("Comparison of certified spectral information on L_fine (k = $(k_fine)):")
     println("─"^72)
     println("Power-norm strategy:")
+    n_pow == 0 && println("  finepowernormbounds did not close on this pair of grids.")
     println("  ρ̂ = ‖L_fine^n‖^{1/n} = $(round(rho_powernorm, sigdigits=4))  (n = $(n_pow))")
     println("  $(rho_powernorm < 1 ? "certifies spectral radius < 1 on U⁰." :
                                        "does NOT certify a spectral gap (ρ̂ ≥ 1).")")
@@ -181,7 +198,7 @@ function runComparison(; n_grid = 16384, k_coarse = 128, k_fine = 512,
     if best === nothing
         println("  Prop A.14 did not close at any (ρ, N) candidate at honest M.")
         println("  Cor. A.17 / Thm A.18: closure as k_fine → ∞ since")
-        println("  δ_k · E_{k,w→s}^q → 0 polynomially for W^{1,1}/L² (q < 1).")
+        println("  δ_k · E_{k,w→s}^q → 0 polynomially for W^{2,1}/L² (q < 1).")
         println("  At this k_fine = $(k_fine) we are not yet in the closure regime.")
     else
         println("  Best: ρ = $(best.ρ),  N = $(best.N),  ",
