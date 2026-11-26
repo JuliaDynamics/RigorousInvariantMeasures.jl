@@ -497,8 +497,7 @@ function dfly_inf_der(::Type{VarInterval}, ::Type{L1}, D::PwMap, tol = 1e-3)
         push!(leftrightsingularity, (left, right))
     end
     est = Inf
-    #@showprogress enabled=SHOW_PROGRESS_BARS  1 "Computing infinite-derivative DFLY..." 
-    for i = 3:15
+    @showprogress enabled = SHOW_PROGRESS_BARS[] desc = "Computing infinite-derivative DFLY..." for i = 3:15
         val = 0.0
         val_summand = interval(0.0)
         l = 0.0
