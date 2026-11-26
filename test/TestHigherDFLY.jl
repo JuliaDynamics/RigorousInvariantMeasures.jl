@@ -295,8 +295,6 @@ const HDF = Base.get_extension(RigorousInvariantMeasures, :SymbolicsExt)
 
     @testset "guards" begin
         @test_throws ArgumentError dfly(W{2,2}, L1, D)
-        @test_throws ErrorException dfly(W{2,1}, L1, D; absorb = :interpolation)
-        @test_throws ArgumentError dfly(W{2,1}, L1, D; absorb = :other)
         @test_throws ArgumentError dfly(W{2,1}, L1, D; A_target = 0.5)
         @test_throws ArgumentError dfly(W{2,1}, L1, D; A_target = 1.0)
         @test_throws ArgumentError dfly(W{2,1}, L1, D; A_target = 0.8, weights = [1.0, 1.0])

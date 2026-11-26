@@ -387,7 +387,7 @@ end
 
 @doc raw"""
     dfly(::Type{W{k,1}}, ::Type{L1}, D::PwMap; A_target = nothing, weights = nothing,
-         absorb = :weighted, boxes = 1024, grid = 256) -> DFLYCoefficients
+         boxes = 1024, grid = 256) -> DFLYCoefficients
 
 Constants ``(A, B)`` for ``k \ge 2`` with
 
@@ -426,10 +426,6 @@ exceed ``A^*`` by rounding.
 weights, so that a family of maps can share one norm.  It cannot be combined with
 `A_target`.
 
-`absorb = :interpolation` is reserved for a route through an interpolation inequality
-between ``\|f'\|_{L^1}``, ``\|f''\|_{L^1}`` and ``\|f\|_{L^1}``; it throws until that lemma
-is approved.
-
 Throws for ``l \ne 1``, unless the branches are full (see
 [`dfly_coefficient_matrix`](@ref)), unless the bound on ``\sup|1/T'|`` is below 1, if
 `A_target` is outside ``(\max_{i\ge1} c_{i,i}, 1)``, and if the certified ``A`` is not
@@ -441,7 +437,6 @@ function dfly(
     D::PwMap;
     A_target = nothing,
     weights = nothing,
-    absorb::Symbol = :weighted,
     boxes::Int = 1024,
     grid::Int = 256,
 ) where {k,l}
@@ -449,11 +444,6 @@ function dfly(
     k >= 2 || throw(
         ArgumentError("dfly(W{$k,1}, L1, D) is not handled here; W{1,1} is in DFLY.jl"),
     )
-    if absorb === :interpolation
-        error("dfly(W{$k,1}, L1, D): pending approval of the interpolation lemma")
-    elseif absorb !== :weighted
-        throw(ArgumentError("absorb must be :weighted or :interpolation, got :$absorb"))
-    end
     (weights === nothing || A_target === nothing) ||
         throw(ArgumentError("give either A_target or weights, not both"))
 
