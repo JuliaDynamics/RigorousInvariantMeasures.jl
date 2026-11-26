@@ -141,8 +141,7 @@ function norms_of_powers(
     # main loop
 
     v = zeros(T, n)
-    #@showprogress enabled=SHOW_PROGRESS_BARS  1 "Computing norms of powers..." 
-    for v in AverageZero(B)
+    @showprogress enabled = SHOW_PROGRESS_BARS[] desc = "Computing norms of powers..." for v in AverageZero(B)
         if normv0 == -1.0
             nrmv = opnormbound(B, N, v)
         else

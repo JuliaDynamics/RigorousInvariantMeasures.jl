@@ -158,7 +158,6 @@ macro define_with_derivatives(f, df, ddf)
 end
 
 
-using Random
 """
     check_derivatives(f, x=rand())
 

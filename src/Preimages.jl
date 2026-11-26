@@ -179,8 +179,9 @@ end
     Construct preimages of an increasing array y under a dynamic, propagating additional labels `ylabel`
 """
 function preimages(y, D::Dynamic, ylabel = 1:length(y); ϵ, max_iter)
-    #@showprogress enabled=SHOW_PROGRESS_BARS  1 "Computing preimages..."
-    results = [preimages(y, b, ylabel; ϵ, max_iter) for b in branches(D)]
+    results = @showprogress enabled = SHOW_PROGRESS_BARS[] desc = "Computing preimages..." [
+        preimages(y, b, ylabel; ϵ, max_iter) for b in branches(D)
+    ]
     x = reduce(vcat, result[1] for result in results)
     xlabel = reduce(vcat, result[2] for result in results)
     return x, xlabel
@@ -248,9 +249,10 @@ function preimages_and_derivatives(
     left = true,
 )
     @assert is_full_branch(D)
-    # @showprogress enabled=SHOW_PROGRESS_BARS  1 "Computing preimages and derivatives..."
     results =
-        [preimages_and_derivatives(y, b, ylabel; ϵ, max_iter, left) for b in branches(D)]
+        @showprogress enabled = SHOW_PROGRESS_BARS[] desc = "Computing preimages and derivatives..." [
+            preimages_and_derivatives(y, b, ylabel; ϵ, max_iter, left) for b in branches(D)
+        ]
     x = reduce(vcat, result[1] for result in results)
     xlabel = reduce(vcat, result[2] for result in results)
     x′ = reduce(vcat, result[3] for result in results)

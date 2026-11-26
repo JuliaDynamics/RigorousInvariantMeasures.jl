@@ -106,3 +106,9 @@ julia> error_fine = distance_from_invariant(B_fine, D, Q_fine, w_fine, norms_fin
 julia> error_fine <= 8e-5
 true
 ```
+
+## Progress bars
+
+```@docs
+show_progress_bars!
+```

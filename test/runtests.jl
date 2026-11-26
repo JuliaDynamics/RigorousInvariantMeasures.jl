@@ -14,6 +14,7 @@ DocMeta.setdocmeta!(
 
 
     include("TestDifferentiation.jl")
+    include("TestProgressBars.jl")
     include("TestBasisDefinition.jl")
     include("TestContractors.jl")
     include("TestDynamic.jl")

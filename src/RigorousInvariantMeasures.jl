@@ -15,6 +15,7 @@ using IntervalArithmetic: setdisplay
 # every time the module is brought into a fresh session.
 function __init__()
     setdisplay(:infsup; decorations = false, ng_flag = false)
+    SHOW_PROGRESS_BARS[] = _progress_bars_default()
 end
 using BallArithmetic: BallMatrix, BallVector, upper_bound_L2_opnorm, upper_bound_norm,
     compute_spectral_projector_schur, SchurSpectralProjectorResult,
@@ -22,7 +23,33 @@ using BallArithmetic: BallMatrix, BallVector, upper_bound_L2_opnorm, upper_bound
 using BallArithmetic.CertifScripts: CertifScripts
 import BallArithmetic
 
-const SHOW_PROGRESS_BARS = parse(Bool, get(ENV, "PROGRESS_BARS", "true"))
+@doc raw"""
+    show_progress_bars!(flag::Bool) -> flag
+
+Turn the package's progress bars on or off for the rest of the session.
+
+When the package is loaded the bars are on if `ENV["PROGRESS_BARS"]` is set to a true
+value (`1`, `true`, `yes`, `on`), off if it is set to a false one (`0`, `false`, `no`,
+`off`), and otherwise on exactly when the
+session is interactive (`isinteractive()`): a REPL or a notebook shows them, and a script
+run as `julia script.jl`, for instance over ssh, does not.  The flag is read when the
+package is loaded, not when it is precompiled.
+"""
+function show_progress_bars!(flag::Bool)
+    SHOW_PROGRESS_BARS[] = flag
+    return flag
+end
+export show_progress_bars!
+
+using ProgressMeter: @showprogress
+# set at load time by __init__ from _progress_bars_default()
+const SHOW_PROGRESS_BARS = Ref(false)
+function _progress_bars_default()
+    v = lowercase(strip(get(ENV, "PROGRESS_BARS", "")))
+    v in ("1", "true", "yes", "on") && return true
+    v in ("0", "false", "no", "off") && return false
+    return isinteractive()
+end
 
 include("RoundedArithmetic.jl")
 include("Norms.jl")

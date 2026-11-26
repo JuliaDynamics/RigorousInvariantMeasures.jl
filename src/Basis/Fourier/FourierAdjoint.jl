@@ -116,7 +116,7 @@ function Dual(B::FourierAdjoint, D::PwMap; ϵ, max_iter)
         FourierAdjointDualBranch(B.p, b, 1:length(B.p); ϵ, max_iter) for b in branches(D)
     )
 
-    @info typeof(results)
+    @debug typeof(results)
 
     x = vcat((result for result in results)...)
 
