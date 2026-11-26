@@ -16,6 +16,8 @@ jobs:
     name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
+    # the prerelease is run to see a break coming, not to block a merge
+    continue-on-error: ${{ matrix.version == 'pre' }}
     permissions: # needed to allow julia-actions/cache to proactively delete old caches that it has created
       actions: write
       contents: read
@@ -31,6 +33,7 @@ jobs:
           # registered.
           - '1.11'   # the declared [compat] floor, so it is actually tested
           - '1'      # current stable
+          - 'pre'    # the next release, allowed to fail
         os:
           - ubuntu-latest
         arch:
