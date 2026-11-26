@@ -1,5 +1,7 @@
 using .RigorousInvariantMeasures: Dual
-using .RigorousInvariantMeasures: NormKind, L1, L2, Aη, W, Cω, VarInterval, dfly
+using .RigorousInvariantMeasures: NormKind, L1, L2, Aη, W, Cω, VarInterval, dfly, WeightedSobolev, circle_smoothness, strong_kind, basis_dfly, check_dfly_coefficients
+import .RigorousInvariantMeasures: _basis_dynamic_check
+using .RigorousInvariantMeasures: circle_smooth_of_order
 import .RigorousInvariantMeasures: opnormbound, normbound, restrict_to_average_zero
 
 export Fourier, evalFourier, FourierPoints, assemble_common, eval_on_dual, dual_nodes
@@ -91,8 +93,73 @@ aux_weak_bound(B::Fourier) = 1.0
 
 # --- weak_by_strong_and_aux_bound: ||v||_{L²} ≤ S₁·||v||_s + S₂·||v||_{L¹} ---
 # Both Aη and W^{k,1}: ||v||_{L²} ≤ ||v||_{L∞} ≤ ||v||_{Aη} or ||v||_{W^{1,1}} ≤ ||v||_{W^{k,1}}
-# So (S₁, S₂) = (1, 0)
-weak_by_strong_and_aux_bound(B::Fourier) = (1.0, 0.0)
+# So (S₁, S₂) = (1, 0); for WeightedSobolev see the method below.
+
+@doc raw"""
+    _fourier_sobolev_projection_error(B::Fourier) -> Float64
+
+Bound on ``\|f - πf\|_{L^2}`` per unit of ``\|f^{(s)}\|_{L^1}``, for ``f`` in ``W^{s,1}``
+of the circle, ``s`` the order of the strong norm (`W{s,l}`, or [`WeightedSobolev`](@ref)
+with ``a_s = 1``), ``K`` = `B.k` the frequency cutoff and ``n`` = `length(B.p)` the number
+of points.  It bounds the ``L^1`` error as well, ``dx`` being a probability measure.
+
+The projection is the one the assembler applies: the DFT of the samples at ``j/n``,
+truncated to ``|m| \le K``, so
+``πf = \sum_{|m|\le K} \hat c^{(n)}_m e_m`` with ``\hat c^{(n)}_m = \sum_{l\in\mathbb Z}
+\hat c_{m+ln}``.  Integrating by parts ``s`` times on the circle,
+``|\hat c_m| \le V/(2π|m|)^s`` with ``V = \|f^{(s)}\|_{L^1}``.  Then, by Parseval,
+
+```math
+\|f-πf\|_{L^2}^2 = \sum_{|m|>K} |\hat c_m|^2 + \sum_{|m|\le K}
+\Big|\sum_{l\ne0} \hat c_{m+ln}\Big|^2 .
+```
+
+The tail is at most ``2V^2(2π)^{-2s}\sum_{m>K} m^{-2s} \le 2V^2(2π)^{-2s}
+K^{1-2s}/(2s-1)``.  For ``|m| \le K`` and ``l \ne 0``, ``|m+ln| \ge |l|n - K \ge
+|l|(n-K)``, so the aliased sum is at most ``2ζ(s)V(2π)^{-s}(n-K)^{-s}`` with
+``ζ(s) \le s/(s-1)``.  Hence
+
+```math
+\|f-πf\|_{L^2} \le \frac{V}{(2π)^s}\Big(\frac{2K^{1-2s}}{2s-1}
++ (2K+1)\Big(\frac{2s}{s-1}\Big)^2 (n-K)^{-2s}\Big)^{1/2},
+```
+
+evaluated in interval arithmetic.  Requires ``s \ge 2``, ``K \ge 1`` and ``n \ge 2K+1``.
+
+W{1,1} Fourier bases are not supported: for ``s = 1`` the aliased sum
+``\sum_{l\ne0}|m+ln|^{-1}`` diverges and no projection error is derived.  Use `Ulam` for
+``W^{1,1}``/BV, or a Fourier basis with Sobolev order ``\ge 2`` and `L2` weak norm.
+"""
+function _fourier_sobolev_projection_error(B::Fourier)
+    s = _fourier_sobolev_order(B.strong)
+    K, n = B.k, length(B.p)
+    s >= 2 || throw(
+        ArgumentError(
+            "W{1,1} Fourier bases are not supported: use Ulam for W^{1,1}/BV, or a " *
+            "Fourier basis with Sobolev order ≥ 2 and L2 weak norm (got order $s)",
+        ),
+    )
+    K >= 1 || throw(ArgumentError("the Fourier projection error needs K ≥ 1"))
+    n >= 2K + 1 || throw(ArgumentError("the Fourier projection error needs n ≥ 2K + 1"))
+    si, Ki, ni = interval(s), interval(K), interval(n)
+    tail = 2 * Ki^(1 - 2s) / (2si - 1)
+    alias = (2Ki + 1) * (2si / (si - 1))^2 * (ni - Ki)^(-2s)
+    return sup(sqrt(tail + alias) / (2 * interval(pi))^s)
+end
+_fourier_sobolev_order(::W{s,l}) where {s,l} = s
+_fourier_sobolev_order(n::WeightedSobolev) = n.k
+
+# WeightedSobolev strong norm ||f||_a = Σ_{j>=1} a_j ||f^(j)||_1 (a_s = 1). The seminorm has
+# no ||f||_1 term, so it goes to the auxiliary norm:
+#   ||v||_{L²} <= ||v||_∞ <= ||v||_1 + ||v'||_1 <= ||v||_1 + ||v||_a / a_1,
+#   ||v^(j)||_{L¹} <= ||v^(j)||_{L²} <= (2πK)^j ||v||_{L²} for trigonometric polynomials
+#   of degree K, so ||v||_a <= Σ_{j>=1} a_j (2πK)^j ||v||_{L²}.
+function weak_by_strong_and_aux_bound(B::Fourier)
+    B.strong isa WeightedSobolev || return (1.0, 0.0)
+    a = B.strong.a
+    a[1] > 0 || throw(ArgumentError("the weight a_1 must be positive, got $(a[1])"))
+    return (1.0 ⊘₊ a[1], 1.0)
+end
 
 # --- bound_weak_norm_from_linalg_norm: ||v||_{L²} ≤ W₁·||v̂||_{ℓ¹} + W₂·||v̂||_{ℓ∞} ---
 # Parseval: ||v||_{L²} = ||v̂||_{ℓ²} ≤ ||v̂||_{ℓ¹} → (1, 0)
@@ -113,12 +180,49 @@ opnormbound(B::Fourier, ::Type{L2}, M::AbstractVecOrMat{S}) where {S} =
     opnormbound(L2, M)
 normbound(B::Fourier, ::Type{L2}, v) = normbound(L2, v)
 
+# the basis-dynamic consistency check of `check_dfly_coefficients` for Fourier bases
+_basis_dynamic_check(B::Fourier, D::Dynamic) = _fourier_circle_check(B, D)
+
+function _fourier_circle_check(B::Fourier, D)
+    if B.strong isa Union{Aη,Cω}
+        circle_smooth_of_order(D, :ω) || throw(
+            ArgumentError(
+                "a Fourier basis with the analytic strong norm $(B.strong) needs a map " *
+                "asserted real-analytic on the circle (CircleMap{:ω}, e.g. " *
+                "mod1_dynamic(f; circle_smoothness = :ω)); circle_smoothness(D) = " *
+                "$(circle_smoothness(D))",
+            ),
+        )
+        return nothing
+    end
+    B.strong isa Union{W,WeightedSobolev} || return nothing
+    s = _fourier_sobolev_order(B.strong)
+    s >= 2 || return nothing
+    r = circle_smoothness(D)
+    circle_smooth_of_order(D, s) || throw(
+        ArgumentError(
+            "a Fourier basis of Sobolev order $s needs a map asserted C^$s on the circle " *
+            "(CircleMap{r}, r ≥ $s); circle_smoothness(D) = $r",
+        ),
+    )
+    return nothing
+end
+
 # --- invariant_measure_strong_norm_bound: standard DFLY pattern B/(1-A) ---
+#
+# For a strong norm of order s >= 2 (W{s,l} or WeightedSobolev) the higher-order DFLY of
+# the Symbolics extension bounds ||(Lf)^(j)||_1 on (0,1); on the circle Lf must also be in
+# W^{s,1} of the circle, i.e. Lf, ..., (Lf)^(s-1) must match across 0 ~ 1. That holds when
+# T is C^s on the circle, which the caller asserts with a CircleMap{r}, r >= s. The
+# coefficients must also be stated in the basis's own norm.
 function invariant_measure_strong_norm_bound(
     B::Fourier,
     D::Dynamic;
-    dfly_coefficients = dfly(strong_norm(B), aux_norm(B), D),
+    dfly_coefficients = nothing,
 )
+    _fourier_circle_check(B, D)
+    dfly_coefficients === nothing && (dfly_coefficients = basis_dfly(B, D))
+    check_dfly_coefficients(B, D, dfly_coefficients)
     A, Bcoeff = dfly_coefficients
     @assert A < 1.0
     return Bcoeff ⊘₊ (1.0 ⊖₋ A)
@@ -128,11 +232,12 @@ end
 # For Markov transfer operators: ||L||_{L¹} ≤ 1, ||L||_{L∞} ≤ 1
 # By Riesz-Thorin: ||L||_{L²} ≤ 1
 # For general maps: use dfly_coefficients[2] ⊕₊ 1.0 as Hat does
-bound_weak_norm_abstract(
-    B::Fourier,
-    D = nothing;
-    dfly_coefficients = dfly(strong_norm(B), aux_norm(B), D),
-) = dfly_coefficients[2] ⊕₊ 1.0
+function bound_weak_norm_abstract(B::Fourier, D = nothing; dfly_coefficients = nothing)
+    D isa Dynamic && _fourier_circle_check(B, D)
+    dfly_coefficients === nothing && (dfly_coefficients = basis_dfly(B, D))
+    check_dfly_coefficients(B, D, dfly_coefficients)
+    return dfly_coefficients[2] ⊕₊ 1.0
+end
 
 # --- restrict_to_average_zero for Fourier: U^0 = span{e₂,...,eₙ} ---
 # For Fourier, integral_covector = [1, 0, ..., 0], so restriction is just BM[2:end, 2:end]
@@ -316,3 +421,16 @@ function dual_nodes end
 # `using FFTW` makes it available. Without FFTW loaded, callers will hit a
 # MethodError on this name.
 function assemble_common end
+
+# a Fourier basis on a weighted norm needs Sobolev order s >= 2 (see FourierAnalytic)
+_fourier_weighted_order(a::WeightedSobolev) = a.k >= 2 || throw(
+    ArgumentError("a WeightedSobolev Fourier basis needs order s ≥ 2, got $(a.k)"),
+)
+
+# the weighted norm of a Fourier basis built on the map D (see FourierAnalytic)
+function _fourier_weighted_norm(D, s, A_target)
+    r = circle_smoothness(D)
+    circle_smooth_of_order(D, s) ||
+        throw(ArgumentError("the map is asserted C^$r on the circle, the basis needs C^$s"))
+    return WeightedSobolev(D, s; A_target = A_target)
+end

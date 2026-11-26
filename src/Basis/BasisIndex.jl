@@ -1,7 +1,0 @@
-#include("BasisDefinition.jl")
-#include("UlamBasis.jl")
-#include("HatBasis.jl")
-#include("C2Basis.jl")
-#include("NewChebyshev.jl")
-# Fourier is now included from the main module (after FFT.jl)
-#include("Fourier/FourierIndex.jl")

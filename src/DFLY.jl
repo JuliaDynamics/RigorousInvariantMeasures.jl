@@ -442,3 +442,69 @@ function dfly(::Type{Lipschitz}, ::Type{L1}, D::Dynamic)
     return DFLYCoefficients(Lipschitz, L1, sup(lam * (2 * dist + 1)),
                             sup(dist * (dist + 1)))
 end
+
+###############################################################################
+# DFLY coefficients for a basis: one place that checks they fit it
+###############################################################################
+
+export basis_dfly, check_dfly_coefficients
+
+@doc raw"""
+    basis_dfly(B::Basis, D; kwargs...) -> coefficients
+    check_dfly_coefficients(B::Basis, D, coefficients; dominating = false) -> coefficients
+
+`basis_dfly` is `dfly(strong_norm(B), aux_norm(B), D; kwargs...)` followed by
+`check_dfly_coefficients`, and it is the default of every `dfly_coefficients` keyword in
+the package.  `check_dfly_coefficients` returns `coefficients` unchanged after two
+consistency checks, and throws an `ArgumentError` if either fails:
+
+- the strong norm the coefficients are stated in, [`strong_kind`](@ref), is the strong norm
+  of the basis.  Norms without parameters are compared by type (`W{2,1}` and `W{2,1}()` are
+  the same norm), and norms with parameters by value, so a [`WeightedSobolev`](@ref) is
+  compared on `k` and its weights.  With `dominating = true`, which a routine passes when it
+  uses the pair only through the bound ``B/(1-A)`` on the strong norm of the invariant
+  density, a pair in a norm that dominates the basis's with constant 1 is also accepted;
+  the one such pair recorded is `VarCircle` over `VarInterval`, since
+  ``\mathrm{Var}_{(0,1)} \le \mathrm{Var}_{S^1}``;
+- the basis and the dynamic fit each other: a Fourier basis of Sobolev order ``s \ge 2``
+  needs `circle_smoothness(D) ≥ s` (see [`CircleMap`](@ref)).
+
+A bare `(A, B)` tuple carries no record of its norm, so the first check cannot be made
+for it and is skipped; the convention is then the caller's.  The checks are consistency
+checks only and add no estimate.
+"""
+function basis_dfly(B::Basis, D; kwargs...)
+    return check_dfly_coefficients(B, D, dfly(strong_norm(B), aux_norm(B), D; kwargs...))
+end
+
+function check_dfly_coefficients(B::Basis, D, coefficients; dominating::Bool = false)
+    s = strong_kind(coefficients)
+    ok(s) = _same_norm(s, strong_norm(B)) || (dominating && _dominates(s, strong_norm(B)))
+    if s !== nothing && !ok(s)
+        hint = s isa WeightedSobolev ?
+               "; build the basis on that norm, e.g. Chebyshev(n, k, D) or FourierAnalytic(K, n, D, k)" :
+               ""
+        throw(
+            ArgumentError(
+                "the DFLY coefficients are stated in $s, not in the basis's strong norm " *
+                "$(strong_norm(B))" * hint,
+            ),
+        )
+    end
+    _basis_dynamic_check(B, D)
+    return coefficients
+end
+# the docstring above covers both functions
+@doc (@doc basis_dfly) check_dfly_coefficients
+
+# a norm without fields is its type; a norm with fields (Aη(η), Eρ(ρ), WeightedSobolev) is
+# compared by value
+_norm_key(n::Type) = n
+_norm_key(n::NormKind) = fieldcount(typeof(n)) == 0 ? typeof(n) : n
+_norm_key(n) = n
+_same_norm(a, b) = _norm_key(a) == _norm_key(b)
+# ||f||_b <= ||f||_a with constant 1
+_dominates(a, b) = _norm_key(a) === VarCircle && _norm_key(b) === VarInterval
+
+# basis-specific checks of the dynamic; the Fourier method is in FourierCommon.jl
+_basis_dynamic_check(B, D) = nothing

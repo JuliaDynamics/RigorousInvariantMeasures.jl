@@ -161,6 +161,11 @@ const RIM = RigorousInvariantMeasures
         # fine level. `BallMatrix(Q.L)` requires a dense matrix, so Ulam
         # (sparse) is not usable here.
         if Base.get_extension(RigorousInvariantMeasures, :FFTWExt) !== nothing
+            # The Fourier W{s,1} projection error is derived for s >= 2 only, so on
+            # W{1,1} the bound now throws; until 2026-11-25 it ran on (2πK)^{-1}, which
+            # is not a bound. W{2,1} needs the Symbolics extension for its DFLY, which this
+            # file does not load, so the smoke test of projector_distance_bound on a
+            # Fourier basis is reduced to this check.
             B_coarse = FourierAdjoint(FourierPoints(128, Float64), 8,
                                        W{1,1}(), L2())
             B_fine = FourierAdjoint(FourierPoints(128, Float64), 16,
@@ -168,15 +173,10 @@ const RIM = RigorousInvariantMeasures
             D = mod1_dynamic(x -> 2 * x)
             Q_coarse = DiscretizedOperator(B_coarse, D)
             Q_fine = DiscretizedOperator(B_fine, D)
-            result = projector_distance_bound(
+            @test_throws ArgumentError projector_distance_bound(
                 B_coarse, B_fine, D, Q_coarse, Q_fine, 0.1;
                 samples = 32, N = 4,
             )
-            @test result.radius == 0.1
-            @test result.δ_k > 0
-            @test result.R_w_coarse > 0
-            @test (isfinite(result.projector_distance) ||
-                   isinf(result.projector_distance))
         end
     end
 

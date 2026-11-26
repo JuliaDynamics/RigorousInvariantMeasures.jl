@@ -217,7 +217,7 @@ keyword for sharper specific-case bounds:
 
 | paper            | default                                       |
 |------------------|-----------------------------------------------|
-| ``a, b``         | `dfly(strong_norm(B), aux_norm(B), D)`        |
+| ``a, b``         | `basis_dfly(B, D)`        |
 | ``\delta_{k_0}`` | `weak_projection_error(B)`                    |
 | ``E_{s\to w}``   | `1.0`                                         |
 """
@@ -226,10 +226,11 @@ function strong_resolvent_lift(
     D::Dynamic,
     abs_z::Real,
     R_w_coarse::Real;
-    dfly_coefficients = dfly(strong_norm(B), aux_norm(B), D),
+    dfly_coefficients = basis_dfly(B, D),
     δ::Real = weak_projection_error(B),
     E_sw::Real = 1.0,
 )
+    check_dfly_coefficients(B, D, dfly_coefficients)
     abs_z > 0 || throw(ArgumentError("abs_z must be > 0"))
     a, b = dfly_coefficients
 
@@ -274,7 +275,7 @@ S_N^{(k)}(z) := \frac{1}{|z|}\sum_{\ell=0}^{N-1}\frac{\|L_k^{\ell}\|_w}{|z|^{\el
 # Basis-derived defaults (override via keyword)
 | paper / role       | default                                            |
 |--------------------|----------------------------------------------------|
-| ``a, b``           | `dfly(strong_norm(B), aux_norm(B), D)`             |
+| ``a, b``           | `basis_dfly(B, D)`             |
 | ``M_{\rm aux}``    | `1.0` (aux-norm contractivity of L; correct for    |
 |                    | any L¹-preserving transfer operator with `aux = L¹`).|
 | ``\Delta_k``       | `weak_projection_error(B)`                         |
@@ -321,7 +322,7 @@ function coarse_fine_weak_resolvent(
     abs_z::Real,
     K_z::Real;
     N::Integer,
-    dfly_coefficients = dfly(strong_norm(B), aux_norm(B), D),
+    dfly_coefficients = basis_dfly(B, D),
     Δ_k::Real = weak_projection_error(B),
     E_sw::Real = 1.0,
     E_k_ws::Real = strong_weak_bound(B),
@@ -329,6 +330,7 @@ function coarse_fine_weak_resolvent(
     M_2::Real = aux_weak_bound(B),
     M_k_weak = abstract_weak_norm_bound(B; dfly_coefficients = dfly_coefficients),
 )
+    check_dfly_coefficients(B, D, dfly_coefficients)
     a, b = dfly_coefficients
     b_eff = b ⊗₊ M_2
     return _coarse_fine_weak_resolvent_scalar(
@@ -369,7 +371,7 @@ function coarse_fine_weak_resolvent_auto_N(
     abs_z::Real,
     K_z::Real;
     μ::Union{Real,Nothing} = nothing,
-    dfly_coefficients = dfly(strong_norm(B), aux_norm(B), D),
+    dfly_coefficients = basis_dfly(B, D),
     Δ_k::Real = weak_projection_error(B),
     E_sw::Real = 1.0,
     E_k_ws::Real = strong_weak_bound(B),
@@ -377,6 +379,7 @@ function coarse_fine_weak_resolvent_auto_N(
     M_2::Real = aux_weak_bound(B),
     M_k_weak = abstract_weak_norm_bound(B; dfly_coefficients = dfly_coefficients),
 )
+    check_dfly_coefficients(B, D, dfly_coefficients)
     a, _ = dfly_coefficients
     # Cor. A.16's μ-range condition is `μ ∈ (a, M_aux)` in the iterated
     # (s, aux) DFLY — since M_aux = 1 by default and a < 1 by the LY
@@ -505,8 +508,9 @@ function projector_distance_bound(
     Δ_k::Real = weak_projection_error(B_fine),
     E_sw::Real = 1.0,
     E_k_ws::Real = strong_weak_bound(B_fine),
-    dfly_coefficients = dfly(strong_norm(B_fine), aux_norm(B_fine), D),
+    dfly_coefficients = basis_dfly(B_fine, D),
 )
+    check_dfly_coefficients(B_fine, D, dfly_coefficients)
     radius > 0 ||
         throw(ArgumentError("radius must be > 0; got radius = $radius"))
     abs_eig = abs(eigenvalue)

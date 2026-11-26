@@ -1,5 +1,6 @@
 using Test
 using IntervalArithmetic
+using RigorousInvariantMeasures
 using RigorousInvariantMeasures: is_full_branch, is_increasing
 
 @testset "Dynamics" begin
@@ -247,5 +248,28 @@ end
         y_slow = D.branches[j].f(interval(x))
         y_fast = E.branches[j].f(interval(x))
         @test !isempty_interval(intersect_interval(y_slow, y_fast))
+    end
+
+    @testset "CircleMap" begin
+        RIM = RigorousInvariantMeasures
+        D = mod1_dynamic(x -> 2x + x * (1 - x) / 2)
+        @test D isa PwMap && !(D isa CircleMap) && circle_smoothness(D) === nothing
+        # T'(0+) = 5/2 and T'(1-) = 3/2: continuous on the circle, not C^1
+        @test circle_smoothness(CircleMap(D, 0)) == 0
+        @test_throws ArgumentError CircleMap(D, 1)
+        @test_throws ArgumentError mod1_dynamic(x -> 2x + x * (1 - x) / 2; circle_smoothness = 1)
+        Dc = mod1_dynamic(x -> 2x + RIM.sinpi(2x) / 20; circle_smoothness = 4)
+        @test Dc isa CircleMap{4} && Dc isa PwMap && circle_smoothness(Dc) == 4
+        @test is_full_branch(Dc) && RIM.nbranches(Dc) == 2
+        @test_throws ArgumentError CircleMap(D, -1)
+
+        # real-analytic on the circle: checked only through order CIRCLE_ANALYTIC_CHECK_ORDER
+        Dω = mod1_dynamic(x -> 2x + RIM.sinpi(2x) / 20; circle_smoothness = :ω)
+        @test Dω isa CircleMap{:ω} && circle_smoothness(Dω) === :ω
+        @test circle_smooth_of_order(Dω, 7) && circle_smooth_of_order(Dω, :ω)
+        @test circle_smooth_of_order(Dc, 4) && !circle_smooth_of_order(Dc, 5)
+        @test !circle_smooth_of_order(Dc, :ω) && !circle_smooth_of_order(D, 0)
+        @test_throws ArgumentError CircleMap(D, :ω)
+        @test_throws ArgumentError CircleMap(Dω, :analytic)
     end
 end

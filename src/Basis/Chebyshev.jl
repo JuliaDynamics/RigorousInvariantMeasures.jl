@@ -19,9 +19,12 @@ Two weak norms are available:
   [`gram_restrict_to_average_zero`](@ref) to move between this and
   ``L^2(dx)``.
 
-The strong norm is ``W^{k,1}`` in both cases, so `dfly(W{k,1}, L1, D)` applies
-unchanged — the Lasota–Yorke inequality is a statement about function spaces
-and does not see the basis.
+The strong norm is ``W^{k,1}`` in both cases.  For ``k \ge 2``, `dfly(W{k,1}, L1, D)`
+states its constants in the weighted seminorm [`WeightedSobolev`](@ref)
+``\sum_{j\ge1} a_j\|f^{(j)}\|_{L^1}``, not in the ``W^{k,1}`` norm the constants of this
+basis assume; a basis built as `Chebyshev(p, k, WeightedSobolev(k, a), weak)` carries that
+norm, and the constants derived for it so far are listed under
+[`weak_by_strong_and_aux_bound`](@ref).
 """
 struct Chebyshev{S<:NormKind,WK<:NormKind,T<:AbstractVector} <: Basis
     p::T
@@ -59,6 +62,42 @@ function Chebyshev(n::Integer, strong::Eρ; T = Float64)
     return Chebyshev(ChebPoints(n, T), 0, strong, L2())
 end
 Chebyshev(p::AbstractVector, strong::Eρ) = Chebyshev(p, 0, strong, L2())
+
+@doc raw"""
+    Chebyshev(n, a::WeightedSobolev; weak = L2, T = Float64)
+    Chebyshev(n, k, D::PwMap; A_target = nothing, weak = L2, T = Float64)
+
+The Chebyshev basis of degree `n` whose strong norm is the weighted seminorm `a` of order
+``k = a.k \ge 2``, [`WeightedSobolev`](@ref).
+
+In the first form the weights are the caller's, `a = WeightedSobolev(k, [a_1, …, a_k])`,
+and nothing needs Symbolics.  Lasota–Yorke constants estimated by hand are then passed to
+the routines that use them as `dfly_coefficients = DFLYCoefficients(a, L1, A, B)`, and
+[`check_dfly_coefficients`](@ref) throws if they are stated in another norm; with the
+Symbolics extension loaded, `dfly(a, L1, D)` certifies them for a map `D`.
+
+In the second form the weights are chosen for `D` by `WeightedSobolev(D, k; A_target)`, as
+`dfly(W{k,1}, L1, D; A_target)` chooses them, so `dfly(strong_norm(B), aux_norm(B), D)`
+returns coefficients in the basis's own norm.  It needs the Symbolics extension and throws
+an `ArgumentError` without it.  For a family of maps, build the basis from one map and pass
+it with the others: `dfly` then certifies each map in the same norm, and throws if
+``A \ge 1`` for one of them.
+"""
+function Chebyshev(n::Integer, a::WeightedSobolev; weak::Type{<:NormKind} = L2, T = Float64)
+    a.k >= 2 || throw(ArgumentError("a WeightedSobolev Chebyshev basis needs k ≥ 2, got $(a.k)"))
+    return Chebyshev(ChebPoints(n, T), a.k, a, weak())
+end
+function Chebyshev(
+    n::Integer,
+    k::Integer,
+    D::PwMap;
+    A_target = nothing,
+    weak::Type{<:NormKind} = L2,
+    T = Float64,
+)
+    _require_symbolics("Chebyshev")
+    return Chebyshev(n, WeightedSobolev(D, k; A_target = A_target); weak = weak, T = T)
+end
 Base.show(io::IO, B::Chebyshev) =
     print(io, "Chebyshev basis on $(length(B)) points, highest degree $(length(B)-1)")
 
@@ -196,20 +235,58 @@ end
 ###############################################################################
 ###############################################################################
 
-function weak_projection_error(B::Chebyshev{S,C1}) where {S}
-    n = Float64(length(B), RoundUp)
-    ν = B.k
-    νf = Float64(B.k, RoundUp)
-    den = n ⊗₋ (νf ⊖₋ 2.0) ⊗₋ Float64(π, RoundDown) ⊗₋ reduce(⊗₋, [n - i for i = 2:ν-1])
-    return (4.0 ⊗₊ (n + 1)) ⊘₊ den
+# Projection errors per unit of ||f^(k)||_{L1[0,1]}, k = B.k.
+#
+# The basis interpolates at the n+1 points (1 + cos(jπ/n))/2, n = length(B) - 1, so
+# π_n f(x) = (p_n g)(2x - 1) for g(t) = f((1 + t)/2) and p_n the degree-n Chebyshev
+# interpolant on [-1, 1]. Hence ||f - π_n f||_∞ = ||g - p_n g||_∞ and
+# ||f' - (π_n f)'||_∞ = 2 ||g' - (p_n g)'||_∞. With ν = k - 1, g^(ν)(t) = 2^{-ν} f^(ν)((1+t)/2),
+# so Var_{[-1,1]} g^(ν) = 2^{-ν} Var_{[0,1]} f^(ν) = 2^{-ν} ||f^(k)||_{L1[0,1]}: the strong
+# norms of this basis (W^{k,1}, or WeightedSobolev with a_k = 1) control ||f^(k)||_1, which
+# is the variation of f^(k-1), so the theorems below are used at ν = k - 1, not ν = k.
+#
+# C0 (Trefethen, ATAP, Theorem 7.2, eq. (7.5), with the product form of Theorem 7.1, i.e.
+# NTC2023 Theorems 3.12/3.13): ||g - p_n g||_∞ <= 2 Σ_{m>n} |a_m| and
+# |a_m| <= 2V/(π m(m-1)...(m-ν)), and Σ_{m>n} 1/(m(m-1)...(m-ν)) = 1/(ν n(n-1)...(n-ν+1))
+# by telescoping, so ||g - p_n g||_∞ <= 4V/(π ν n(n-1)...(n+1-ν)) for n >= ν >= 1. NTC2023
+# Theorem 3.13 states this bound with 2V, which is Trefethen's (7.4) for the truncated
+# series; the interpolant carries the factor 2 of (7.5).
+#
+# C1 (NTC2023 Theorem 3.14): ||g' - (p_n g)'||_∞ <= 2 Σ_{m>n} |a_m| m², and with Theorem 3.12
+# at order ν, m/(m-1) <= (n+1)/n and telescoping over the remaining ν-1 factors,
+# <= 4(n+1)V/(n(ν-2)π(n-2)(n-3)...(n+1-ν)) for ν > 2, n >= ν + 1. The proof applies Theorem
+# 3.12 at order ν, so V is the variation of g^(ν); the statement of Theorem 3.14 says
+# ||g^(ν)||_1 = V instead, one derivative fewer. We use the proof's hypothesis.
+function _cheb_projection_C0(B::Chebyshev)
+    n = length(B) - 1
+    ν = B.k - 1
+    ν >= 1 || throw(ArgumentError("the projection error needs k ≥ 2, got k = $(B.k)"))
+    n >= ν || throw(ArgumentError("the projection error needs degree n ≥ k - 1"))
+    den = Float64(π, RoundDown) ⊗₋ Float64(ν) ⊗₋ reduce(⊗₋, [Float64(n - i) for i = 0:ν-1])
+    return (4.0 ⊗₊ 2.0^(-ν)) ⊘₊ den
 end
-function aux_normalized_projection_error(B::Chebyshev)
-    n = Float64(length(B), RoundUp)
-    ν = B.k
-    νf = Float64(B.k, RoundUp)
-    den = Float64(π, RoundDown) ⊗₋ νf ⊗₋ n ⊗₋ reduce(⊗₋, [n - i for i = 1:ν-1])
-    return 2.0 ⊘₊ den
+function _cheb_projection_C1_derivative(B::Chebyshev)
+    n = length(B) - 1
+    ν = B.k - 1
+    ν > 2 || throw(
+        ArgumentError(
+            "the C1 projection error (NTC2023 Theorem 3.14 at ν = k - 1) needs k ≥ 4, " *
+            "got k = $(B.k)",
+        ),
+    )
+    n >= ν + 1 || throw(ArgumentError("the C1 projection error needs degree n ≥ k"))
+    den =
+        Float64(n) ⊗₋ Float64(ν - 2) ⊗₋ Float64(π, RoundDown) ⊗₋
+        reduce(⊗₋, [Float64(n - i) for i = 2:ν-1])
+    # the factor 2 is d/dx = 2 d/dt
+    return (2.0 ⊗₊ 4.0 ⊗₊ Float64(n + 1) ⊗₊ 2.0^(-ν)) ⊘₊ den
 end
+
+# ||f - π_n f||_{C1} = ||f - π_n f||_∞ + ||f' - (π_n f)'||_∞, per unit of ||f^(k)||_1.
+weak_projection_error(B::Chebyshev{S,C1}) where {S} =
+    _cheb_projection_C0(B) ⊕₊ _cheb_projection_C1_derivative(B)
+# ||f - π_n f||_{L1} <= ||f - π_n f||_∞, per unit of ||f^(k)||_1.
+aux_normalized_projection_error(B::Chebyshev) = _cheb_projection_C0(B)
 
 """
 	strong_weak_bound(B::Chebyshev)
@@ -251,6 +328,53 @@ function weak_by_strong_and_aux_bound(B::Chebyshev{S,C1}) where {S}
     else
         n = Float64(length(B) - 1, RoundUp)
         return (1.0 ⊕₊ 2.0 ⊗₊ n ⊗₊ n, 0.0)
+    end
+end
+
+@doc raw"""
+    weak_by_strong_and_aux_bound(B::Chebyshev{WeightedSobolev})
+
+`(S₁, S₂)` with ``\|f\|_{\mathrm{weak}} \le S_1\|f\|_a + S_2\|f\|_{\mathrm{aux}}`` for the
+weighted seminorm ``\|f\|_a = \sum_{j\ge1} a_j\|f^{(j)}\|_{L^1}`` of
+[`WeightedSobolev`](@ref), from the same two inequalities on ``[0,1]`` as the ``W^{k,1}``
+method, ``\|f\|_∞ \le \|f\|_{L^1} + \|f'\|_{L^1}`` and
+``\|f'\|_∞ \le \|f'\|_{L^1} + \|f''\|_{L^1}``, with
+``\|f^{(j)}\|_{L^1} \le \|f\|_a / a_j``.  The seminorm has no ``\|f\|_{L^1}`` term, so that
+term is charged to the auxiliary norm and ``S_2 \ne 0``:
+
+- weak `C1`, ``k \ge 2``: ``\|f\|_{C^1} \le \|f\|_{L^1} + 2\|f'\|_{L^1} + \|f''\|_{L^1}``,
+  so ``S_1 = \max(2/a_1, 1/a_2)``, ``S_2 = 1``;
+- weak `L2` (``dx``): ``\|f\|_{L^2} \le \|f\|_∞``, so ``S_1 = 1/a_1``, ``S_2 = 1``;
+- weak `L2μ`, auxiliary `L1μ`: as for `L2`, with
+  ``\|f\|_{L^1(dx)} \le (π/2)\|f\|_{L^1(μ)}`` since ``dx/dμ = π\sqrt{x(1-x)} \le π/2``,
+  so ``S_2 = π/2``.
+
+Throws if ``a_1 = 0``, and for ``k = 1``.
+"""
+function weak_by_strong_and_aux_bound(B::Chebyshev{WeightedSobolev,C1})
+    a = _weighted_sobolev_weights(B)
+    return (max(2.0 ⊘₊ a[1], 1.0 ⊘₊ a[2]), 1.0)
+end
+weak_by_strong_and_aux_bound(B::Chebyshev{WeightedSobolev,L2}) =
+    (1.0 ⊘₊ _weighted_sobolev_weights(B)[1], 1.0)
+weak_by_strong_and_aux_bound(B::Chebyshev{WeightedSobolev,L2μ}) =
+    (1.0 ⊘₊ _weighted_sobolev_weights(B)[1], Float64(π, RoundUp) ⊘₊ 2.0)
+
+function _weighted_sobolev_weights(B::Chebyshev{WeightedSobolev})
+    n = B.strong
+    n.k == B.k || throw(ArgumentError("the basis has k = $(B.k), its norm k = $(n.k)"))
+    n.k >= 2 || throw(ArgumentError("WeightedSobolev Chebyshev bases need k ≥ 2"))
+    n.a[1] > 0 || throw(ArgumentError("the weight a_1 must be positive, got $(n.a[1])"))
+    return n.a
+end
+
+# strong_weak_bound assumes a W^{k,1} strong norm and has not been derived for the weighted
+# seminorm, which needs a Markov constant for each derivative order; it throws rather than
+# fall through to the generic methods. The projection errors are per unit of ||f^(k)||_1
+# <= ||f||_a (a_k = 1) and apply unchanged.
+for WK in (C1, L2, L2μ)
+    @eval function strong_weak_bound(B::Chebyshev{WeightedSobolev,$WK})
+        error("strong_weak_bound is not derived for the WeightedSobolev strong norm")
     end
 end
 
@@ -957,23 +1081,22 @@ end
 @doc raw"""
     weak_projection_error(B::Chebyshev{S, L2})
 
-``L^2`` projection error for the ``W^{ν,1}`` unit ball, ``ν`` = `B.k`.
+``L^2`` projection error per unit of ``\|f^{(k)}\|_{L^1}``, ``k`` = `B.k`, the quantity
+both strong norms of this basis control (``W^{k,1}``, and [`WeightedSobolev`](@ref) with
+``a_k = 1``).
 
-This follows from the ``W^{k,1}`` decay of the Chebyshev coefficients, in two
-steps, both from Nisoli & Taylor-Crush:
-
-- Theorem 3.12 (their statement of Trefethen, *ATAP*, Thm 7.1): if ``f^{(ν)}``
-  has bounded variation ``V`` then ``|\hat b_m| \le 2V/(π\,m(m-1)\cdots(m-ν))``;
-- Theorem 3.13: hence ``\|f - π_n f\|_∞ \le 2V/(π ν\, n(n-1)\cdots(n+1-ν))``.
+It is the ``C^0`` interpolation bound of `_cheb_projection_C0`, from Trefethen, *ATAP*,
+Theorems 7.1 and 7.2 (7.5) (Nisoli & Taylor-Crush, Theorems 3.12 and 3.13), used at
+``ν = k-1``: ``\|f^{(k)}\|_{L^1}`` is the variation of ``f^{(k-1)}``.  Moving from
+``[0,1]`` to ``[-1,1]`` divides that variation by ``2^{ν}``, and for the interpolant the
+bound is ``4V/(π ν\, n(n-1)\cdots(n+1-ν))`` with ``n`` the degree, `length(B) - 1`;
+Theorem 3.13 of Nisoli & Taylor-Crush states it with ``2V``, the constant of the
+truncated series.
 
 Both ``dx`` and ``dμ`` are *probability* measures on ``[0,1]``, so
 ``\|\cdot\|_{L^2} \le \|\cdot\|_∞`` with constant 1 and the same bound serves
 either measure with no conversion factor. It is the quantity already computed by
 [`aux_normalized_projection_error`](@ref).
-
-Theorem 3.13 is stated for the interpolant ``π_n``, which is what this basis
-uses (the coefficients come from an FFT at the Chebyshev points), so the
-aliasing is already accounted for.
 
 !!! note "A sharper bound is available for the orthogonal projection"
     Applying Parseval to Theorem 3.12 directly gives
@@ -1213,6 +1336,24 @@ function strong_weak_bound(B::Chebyshev{Eρ,L2μ})
 end
 
 @doc raw"""
+    invariant_measure_strong_norm_bound(B::Chebyshev{WeightedSobolev}, D; dfly_coefficients)
+
+``B/(1-A)`` in the weighted seminorm the basis carries.  The default coefficients are
+`dfly(B.strong, aux_norm(B), D)`, which certifies ``(A, B)`` for the basis's own weights;
+coefficients stated in another norm throw ([`check_dfly_coefficients`](@ref)).
+"""
+function invariant_measure_strong_norm_bound(
+    B::Chebyshev{WeightedSobolev},
+    D::Dynamic;
+    dfly_coefficients = basis_dfly(B, D),
+)
+    check_dfly_coefficients(B, D, dfly_coefficients)
+    A, Bcoeff = dfly_coefficients
+    A < 1 || error("A = $A is not below 1")
+    return Bcoeff ⊘₊ (1.0 ⊖₋ A)
+end
+
+@doc raw"""
     invariant_measure_strong_norm_bound(B::Chebyshev{W{k,l}}, D; dfly_coefficients)
 
 The classical DFLY bound ``\|h\|_s \le B/(1-A)`` on the invariant density, as
@@ -1225,8 +1366,9 @@ Without this method `distance_from_invariant` fails with a `MethodError` on any
 function invariant_measure_strong_norm_bound(
     B::Chebyshev{W{k,l}},
     D::Dynamic;
-    dfly_coefficients = dfly(strong_norm(B), aux_norm(B), D),
+    dfly_coefficients = basis_dfly(B, D),
 ) where {k,l}
+    check_dfly_coefficients(B, D, dfly_coefficients)
     A, Bcoeff = dfly_coefficients
     @assert A < 1.0
     return Bcoeff ⊘₊ (1.0 ⊖₋ A)
@@ -1260,9 +1402,10 @@ bounded away from zero.
 function bound_weak_norm_abstract(
     B::Chebyshev,
     D = nothing;
-    dfly_coefficients = dfly(strong_norm(B), aux_norm(B), D),
+    dfly_coefficients = basis_dfly(B, D),
     n::Integer = 1024,
 )
+    check_dfly_coefficients(B, D, dfly_coefficients)
     D === nothing && return dfly_coefficients[2] ⊕₊ 1.0
     S = 0.0
     for br in branches(D)

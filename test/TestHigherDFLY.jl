@@ -1,4 +1,4 @@
-using Symbolics, SymbolicUtils, RigorousInvariantMeasures
+using Symbolics, SymbolicUtils, RigorousInvariantMeasures, IntervalArithmetic, Test
 
 # Load the extension module
 const HDF = Base.get_extension(RigorousInvariantMeasures, :SymbolicsExt)
@@ -115,127 +115,203 @@ const HDF = Base.get_extension(RigorousInvariantMeasures, :SymbolicsExt)
         @test 1 in ns  # L_1(...) terms
     end
 
-    # ──── _optimize_mult ────
+    # ──── the expansion as integer monomials ────
 
-    @testset "_optimize_mult basic" begin
-        @variables x
-        @variables (f(x))[1:3]
-        @variables (DD(x))[1:3]
+    # (Lf)'' = L3 f'' + 3 L2(f' D1) + L2(f D2) + L1(f D1^2), D_m = (1/T')^(m)
+    @testset "k = 2 expansion" begin
+        merged = Dict{Tuple{Int,Int,Vector{Int}},Int}()
+        for t in HDF.dfly_monomials(2)
+            key = (t.n, t.i, t.p)
+            merged[key] = get(merged, key, 0) + t.coeff
+        end
+        @test merged == Dict(
+            (3, 2, [0, 0]) => 1,
+            (2, 1, [1, 0]) => 3,
+            (2, 0, [0, 1]) => 1,
+            (1, 0, [2, 0]) => 1,
+        )
+        @test HDF.dfly_monomials(0) == [(n = 1, i = 0, coeff = 1, p = Int[])]
+    end
 
-        # Create a simple Mul term: DD[1] * f[2]
-        term = (DD[1] * f[2]).val
-        if SymbolicUtils.ismul(term)
-            # vals[i, j]: vals[2, j] = bound for DD[1] with weight (T')^{j-1}
-            vals = ones(3, 3)
-            vals[2, 1] = 2.0   # ||DD[1]||_∞ = 2
-            vals[2, 2] = 0.5   # ||DD[1]/(T')||_∞ = 0.5
+    # ──── certified constants on T(x) = 2x + x(1-x)/2 mod 1 ────
+    #
+    # T'(y) = 5/2 - y on [0,1], so (1/T')^(i)(y) = i!/(5/2 - y)^(i+1), largest at y = 1
+    # where 1/T' = 2/3. Hence sup|(1/T')^(i)| |1/T'|^(n-1) = i! (2/3)^(i+n), and
+    # c10 = 4/9, c11 = 2/3, c20 = sup 3/(5/2-y)^4 = 48/81, c21 = 3 (2/3)^3 = 8/9, c22 = 4/9.
 
-            result = HDF._optimize_mult(2, 2, term, vals)
-            # DD[1] has pow=1, n=2
-            # bound = vals[2, 2] * vals[2, 1]^(1-1) = 0.5 * 1 = 0.5
-            # result = 1 * 0.5 * f[2]
-            @test !isequal(result, 0)
+    D = mod1_dynamic(x -> 2x + x * (1 - x) / 2)
+    exact_C = [
+        1.0 0 0
+        4 / 9 2 / 3 0
+        48 / 81 8 / 9 4 / 9
+    ]
+    encloses(bound, exact) = exact <= bound <= exact * (1 + 1e-3)
+
+    @testset "distortion_vals" begin
+        vals = HDF.distortion_vals(D, 2)
+        for i = 0:2, n = 1:3
+            exact = i == 0 ? (2 / 3)^n : factorial(i) * (2 / 3)^(i + n)
+            @test encloses(vals[i+1, n], exact)
         end
     end
 
-    @testset "_optimize_mult exponent correctness" begin
-        @variables x
-        @variables (f(x))[1:4]
-        @variables (DD(x))[1:4]
-
-        # Term with DD[1]^2 * f[1]
-        term_expr = 2 * DD[1]^2 * f[1]
-        if SymbolicUtils.ismul(term_expr.val)
-            vals = ones(4, 4)
-            vals[2, 1] = 3.0   # ||DD[1]||_∞ = 3
-            vals[2, 2] = 1.5   # ||DD[1]/(T')||_∞ = 1.5
-
-            result = HDF._optimize_mult(3, 2, term_expr.val, vals)
-            # DD[1] has pow=2, it's the last (and only) DD term, n=2
-            # bound = vals[2, 2] * vals[2, 1]^(2-1) = 1.5 * 3.0 = 4.5
-            # result = 2 * 4.5 * f[1] = 9.0 * f[1]
-            if SymbolicUtils.ismul(result.val)
-                @test result.val.coeff ≈ 9.0
+    @testset "dfly_coefficient_matrix" begin
+        C = HDF.dfly_coefficient_matrix(D, 2)
+        for j = 0:2, i = 0:2
+            if i > j
+                @test C[j+1, i+1] == 0
+            else
+                @test encloses(C[j+1, i+1], exact_C[j+1, i+1])
             end
         end
     end
 
-    @testset "_optimize_mult with multiple DD terms" begin
-        @variables x
-        @variables (f(x))[1:4]
-        @variables (DD(x))[1:4]
+    @testset "dfly(W{2,1}, L1, D)" begin
+        C = HDF.dfly_coefficient_matrix(D, 2)
+        c8 = dfly(W{2,1}, L1, D; A_target = 0.8)
+        @test c8.strong isa WeightedSobolev
+        @test strong_kind(c8) === c8.strong && aux_kind(c8) == L1
+        @test c8.strong.a[2] == 1 && c8.strong.A_target == 0.8
+        @test c8.strong.a[1] ≈ C[3, 2] / (0.8 - C[2, 2]) rtol = 1e-14
+        @test 0.8 <= c8.A <= 0.8 + 1e-12
+        # k = 2: B(A*) = c20 + c10 c21 / (A* - c11), not below its value at the exact c
+        @test c8.B ≈ C[3, 1] + C[2, 1] * C[3, 2] / (0.8 - C[2, 2]) rtol = 1e-12
+        @test c8.B >= 48 / 81 + (4 / 9) * (8 / 9) / (0.8 - 2 / 3)
 
-        # Term: DD[1]^2 * DD[2] * f[1]
-        term_expr = DD[1]^2 * DD[2] * f[1]
-        if SymbolicUtils.ismul(term_expr.val)
-            vals = ones(4, 4)
-            vals[2, 1] = 3.0   # ||DD[1]||_∞ = 3
-            vals[2, 2] = 1.5   # ||DD[1]/(T')||_∞ = 1.5
-            vals[3, 1] = 2.0   # ||DD[2]||_∞ = 2
-            vals[3, 2] = 0.8   # ||DD[2]/(T')||_∞ = 0.8
+        c = dfly(W{2,1}, L1, D)
+        Astar = c.strong.A_target
+        @test C[2, 2] < Astar < 1
+        @test c.A <= Astar + 1e-12 && c.A < 1
+        @test c.B / (1 - c.A) <= c8.B / (1 - c8.A)
 
-            result = HDF._optimize_mult(3, 2, term_expr.val, vals)
-            # Highest DD index is 2 (DD[2]), pow=1, n=2
-            # bound = vals[3, 2] * vals[3, 1]^(1-1) = 0.8 * 1 = 0.8
-            # Then j=1: DD[1] has pow=2
-            # bound *= vals[2, 1]^2 = 3.0^2 = 9.0
-            # total bound = 0.8 * 9.0 = 7.2
-            # result = 1 * 7.2 * f[1]
-            if SymbolicUtils.ismul(result.val)
-                @test result.val.coeff ≈ 7.2
-            end
+        @test WeightedSobolev(D, 2; A_target = 0.8).a == c8.strong.a
+        @test dfly(W{2,1}, L1, D; weights = c8.strong.a).A == c8.A
+
+        c3 = dfly(W{3,1}, L1, D)
+        @test c3.A < 1 && isfinite(c3.B) && c3.strong.k == 3
+    end
+
+    @testset "fixed weights on a perturbed map" begin
+        norm = WeightedSobolev(D, 2; A_target = 0.8)
+        Dp = mod1_dynamic(x -> 2x + x * (1 - x) / 2 + x * (1 - x) / 100)
+        cp = dfly(W{2,1}, L1, Dp; weights = norm)
+        @test cp.strong === norm
+        @test cp.A < 1 && isfinite(cp.B)
+    end
+
+    @testset "Chebyshev basis on the weighted seminorm" begin
+        norm = WeightedSobolev(D, 2; A_target = 0.8)
+        p = RigorousInvariantMeasures.ChebPoints(16, Float64)
+        Bc1 = RigorousInvariantMeasures.Chebyshev(p, 2, norm, C1())
+        a1 = norm.a[1]
+        @test RigorousInvariantMeasures.weak_by_strong_and_aux_bound(Bc1) ==
+              (max(2 / a1, 1.0), 1.0)
+        Bl2 = RigorousInvariantMeasures.Chebyshev(p, 2, norm, L2())
+        S1, S2 = RigorousInvariantMeasures.weak_by_strong_and_aux_bound(Bl2)
+        @test S1 >= 1 / a1 && S2 == 1.0
+        Bμ = RigorousInvariantMeasures.Chebyshev(p, 2, norm, L2μ())
+        @test RigorousInvariantMeasures.weak_by_strong_and_aux_bound(Bμ)[2] >= π / 2
+
+        c = dfly(norm, L1, D)
+        @test strong_kind(c) == norm
+        us = RigorousInvariantMeasures.invariant_measure_strong_norm_bound(Bc1, D)
+        @test us >= c.B / (1 - c.A)
+        other = WeightedSobolev(D, 2; A_target = 0.9)
+        @test_throws ArgumentError RigorousInvariantMeasures.invariant_measure_strong_norm_bound(
+            Bc1,
+            D;
+            dfly_coefficients = dfly(other, L1, D),
+        )
+
+        @test_throws ErrorException RigorousInvariantMeasures.strong_weak_bound(Bc1)
+        # projection errors are per unit of ||f^(k)||_1 <= ||f||_a, as for W^{k,1}
+        Bw = RigorousInvariantMeasures.Chebyshev(p, 2, W{2,1}(), L2())
+        @test RigorousInvariantMeasures.aux_normalized_projection_error(Bl2) ==
+              RigorousInvariantMeasures.aux_normalized_projection_error(Bw)
+        @test_throws ArgumentError RigorousInvariantMeasures.weak_projection_error(Bc1)
+        # a plain W^{2,1} basis refuses constants stated in the weighted seminorm
+        @test_throws ArgumentError RigorousInvariantMeasures.invariant_measure_strong_norm_bound(
+            Bw,
+            D,
+        )
+        @test_throws ArgumentError RigorousInvariantMeasures.weak_by_strong_and_aux_bound(
+            RigorousInvariantMeasures.Chebyshev(p, 3, norm, C1()),
+        )
+    end
+
+    @testset "Chebyshev(n, k, D)" begin
+        RIM = RigorousInvariantMeasures
+        for k = 2:4
+            B = RIM.Chebyshev(32, k, D)
+            @test RIM.strong_norm(B) isa WeightedSobolev && RIM.strong_norm(B).k == k
+            c = dfly(RIM.strong_norm(B), RIM.aux_norm(B), D)
+            @test strong_kind(c) == RIM.strong_norm(B)
+            us = RIM.invariant_measure_strong_norm_bound(B, D)
+            @test isfinite(us) && us >= c.B / (1 - c.A)
         end
+        B8 = RIM.Chebyshev(32, 2, D; A_target = 0.8, weak = C1)
+        @test RIM.strong_norm(B8).A_target == 0.8 && RIM.weak_norm(B8) == C1
     end
 
-    # ──── optimize_coefficients ────
-
-    @testset "optimize_coefficients k=1" begin
-        v = HDF.compute_dfly_k_fi_DDi(1)
-
-        vals = ones(3, 3)
-        vals[2, 1] = 0.5   # ||DD[1]||_∞
-        vals[2, 2] = 0.3   # ||DD[1]/(T')||_∞
-
-        result = HDF.optimize_coefficients(1, v, vals)
-        @test !isequal(result, 0)
+    @testset "Fourier bases on the weighted seminorm" begin
+        RIM = RigorousInvariantMeasures
+        Dc = mod1_dynamic(x -> 2x + RIM.sinpi(2x) / 20; circle_smoothness = 3)
+        B = FourierAnalytic(16, 64, Dc, 2)
+        @test RIM.strong_norm(B) isa WeightedSobolev && RIM.strong_norm(B).k == 2
+        a = RIM.strong_norm(B).a
+        S1, S2 = RIM.weak_by_strong_and_aux_bound(B)
+        @test 1 / a[1] <= S1 <= nextfloat(1 / a[1]) && S2 == 1.0
+        @test RIM.strong_weak_bound(B) >= a[1] * 2π * 16 + (2π * 16)^2
+        @test RIM.weak_projection_error(B) ==
+              RIM.weak_projection_error(FourierAnalytic(RIM.FourierPoints(64, Float64), 16, W{2,1}(), L2()))
+        c = dfly(RIM.strong_norm(B), L1, Dc)
+        @test RIM.invariant_measure_strong_norm_bound(B, Dc) >= c.B / (1 - c.A)
+        @test FourierAdjoint(16, 64, Dc, 2).strong == RIM.strong_norm(B)
+        # the basis needs the map asserted C^s on the circle
+        @test_throws ArgumentError FourierAnalytic(16, 64, Dc, 4)
+        @test_throws ArgumentError RIM.invariant_measure_strong_norm_bound(B, D)
+        @test_throws MethodError FourierAnalytic(16, 64, D, 2)
     end
 
-    @testset "optimize_coefficients k=2" begin
-        v = HDF.compute_dfly_k_fi_DDi(2)
-
-        vals = ones(4, 4)
-        vals[2, 1] = 0.5
-        vals[2, 2] = 0.3
-        vals[2, 3] = 0.2
-        vals[3, 1] = 0.4
-        vals[3, 2] = 0.25
-
-        result = HDF.optimize_coefficients(2, v, vals)
-        @test !isequal(result, 0)
+    @testset "check_dfly_coefficients on every route" begin
+        RIM = RigorousInvariantMeasures
+        Bw = RIM.Chebyshev(RIM.ChebPoints(16, Float64), 2, W{2,1}(), L2())
+        c = dfly(W{2,1}, L1, D)              # stated in WeightedSobolev
+        @test_throws ArgumentError RIM.basis_dfly(Bw, D)
+        @test_throws ArgumentError RIM.check_dfly_coefficients(Bw, D, c)
+        @test_throws ArgumentError RIM.norms_of_powers_dfly(Bw, D, 3)
+        @test_throws ArgumentError RIM.strong_resolvent_lift(Bw, D, 0.9, 1.0)
+        # a bare tuple has no record of its norm and is not checked
+        @test RIM.check_dfly_coefficients(Bw, D, (c.A, c.B)) == (c.A, c.B)
+        # the basis built on the norm of the pair passes
+        Ba = RIM.Chebyshev(32, 2, D)
+        @test RIM.basis_dfly(Ba, D).strong == RIM.strong_norm(Ba)
+        # Fourier of Sobolev order 2 needs the map asserted C^2 on the circle
+        Dc = mod1_dynamic(x -> 2x + RIM.sinpi(2x) / 20; circle_smoothness = 3)
+        Bf = FourierAnalytic(16, 64, Dc, 2)
+        @test RIM.basis_dfly(Bf, Dc).strong == RIM.strong_norm(Bf)
+        @test_throws ArgumentError RIM.check_dfly_coefficients(Bf, D, dfly(RIM.strong_norm(Bf), L1, Dc))
     end
 
-    # ──── substitute_values ────
+    @testset "guards" begin
+        @test_throws ArgumentError dfly(W{2,2}, L1, D)
+        @test_throws ArgumentError dfly(W{2,1}, L1, D; A_target = 0.5)
+        @test_throws ArgumentError dfly(W{2,1}, L1, D; A_target = 1.0)
+        @test_throws ArgumentError dfly(W{2,1}, L1, D; A_target = 0.8, weights = [1.0, 1.0])
+        @test_throws ArgumentError dfly(W{2,1}, L1, D; weights = [1.0, 1.0, 1.0])
 
-    @testset "substitute_values" begin
-        @variables x
-        @variables (f(x))[1:3]
-        @variables (DD(x))[1:3]
+        Dβ = mod1_dynamic(x -> 5x / 2)
+        @test !is_full_branch(Dβ)
+        @test_throws ArgumentError dfly(W{2,1}, L1, Dβ)
 
-        v = HDF.compute_dfly_k_fi_DDi(1)
-        # v = [L_2(f[2]), L_1(DD[1]*f[1])]
+        # full branch, T' = 2 + (π/2) cos(2πx) >= 0.42, so sup|1/T'| > 1
+        Dslow = mod1_dynamic(x -> 2x + RigorousInvariantMeasures.sinpi(2x) / 4)
+        @test is_full_branch(Dslow)
+        @test_throws ErrorException dfly(W{2,1}, L1, Dslow)
 
-        # vals = [λ, DD_1_val, DD_2_val]
-        vals = [0.5, 0.3, 0.1]
-
-        w = HDF.substitute_values(2, v, vals)
-        @test length(w) == length(v)
-
-        # First term: L_2(f[2]) → λ^(2-1) * f[2] = 0.5 * f[2]
-        @test !isequal(w[1], 0)
-
-        # Second term: L_1(DD[1]*f[1]) → λ^(1-1) * substitute(DD[1]*f[1], DD[1]=>0.3)
-        #            = 1.0 * 0.3 * f[1]
-        @test !isequal(w[2], 0)
+        @test_throws ArgumentError WeightedSobolev(2, [1.0])
+        @test_throws ArgumentError WeightedSobolev(2, [1.0, 2.0])
+        @test_throws ArgumentError WeightedSobolev(2, [-1.0, 1.0])
     end
 
 end

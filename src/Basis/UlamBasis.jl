@@ -349,8 +349,9 @@ circle, which also bounds the variation on the interval, while a pair stated for
 function invariant_measure_strong_norm_bound(
     B::Ulam,
     D::Dynamic;
-    dfly_coefficients = dfly(strong_norm(B), aux_norm(B), D),
+    dfly_coefficients = basis_dfly(B, D),
 )
+    check_dfly_coefficients(B, D, dfly_coefficients; dominating = true)
     A, B = dfly_coefficients
     @assert A < 1.0
     return B ⊘₊ (1.0 ⊖₋ A)
@@ -436,9 +437,10 @@ Solitons & Fractals 170 (2023) 113329] by roughly a factor ``4``.
 function projection_defect_coefficients(
     B::Ulam,
     D::Dynamic;
-    dfly_coefficients = dfly(strong_norm(B), aux_norm(B), D),
+    dfly_coefficients = basis_dfly(B, D),
     normL = nothing,   # unused; kept for interface uniformity
 )
+    check_dfly_coefficients(B, D, dfly_coefficients)
     A = interval(dfly_coefficients[1])
     Bd = interval(dfly_coefficients[2])
     return (1 + A, Bd)

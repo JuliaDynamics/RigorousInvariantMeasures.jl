@@ -86,9 +86,14 @@ using IntervalArithmetic
             truenorm = maximum(sum(abs.(P[:, i] .- P[:, j])) / 2 for i = 1:n for j = i+1:n)
             @test truenorm <= rec[k] + 1e-12
         end
+        # on this pair of grids no fine norm of a power is below one and finepowernormbounds
+        # raises an error rather than returning a vector whose tail is not summable
+        @test_throws ErrorException finepowernormbounds(Bc, Bf, D2, coarse[1:m])
         # the default normQ_fine used to read weak_norm(B_fine)DiscretizedOperator(...),
-        # a product of a type and an operator, which threw
-        @test length(finepowernormbounds(Bc, Bf, D2, coarse[1:m])) == m
+        # a product of a type and an operator, which threw; on the doubling map's grids the
+        # bound contracts and the vector is extended until its last entry is below the target
+        nf = finepowernormbounds(B, B_fine, D, norms)
+        @test length(nf) >= length(norms) && nf[end] < 1e-8
     end
 
 end

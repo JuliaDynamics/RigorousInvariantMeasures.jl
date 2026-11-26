@@ -58,16 +58,18 @@ well as on the interval, so ``\mathrm{Var}(\rho)`` is the same number.
 struct VarCircle <: NormKind end
 
 @doc raw"""
-    DFLYCoefficients(strong, weak, A, B)
+    DFLYCoefficients(strong, aux, A, B)
 
 The two constants of a Doeblin-Fortet-Lasota-Yorke inequality together with the norms the
 inequality is stated in,
 
 ```math
-\|Lf\|_{\mathrm{strong}} \le A\|f\|_{\mathrm{strong}} + B\|f\|_{\mathrm{weak}} ,
+\|Lf\|_{\mathrm{strong}} \le A\|f\|_{\mathrm{strong}} + B\|f\|_{\mathrm{aux}} ,
 ```
 
-which is what [`dfly`](@ref) returns.  The norms travel with the numbers because a pair is
+which is what [`dfly`](@ref) returns.  The second norm is the auxiliary norm of the
+basis, [`aux_norm`](@ref): `L1`, or `L1μ` for a `Chebyshev` basis with weak norm `L2μ`; the
+weak norm of the basis, [`weak_norm`](@ref), does not enter the inequality.  The norms travel with the numbers because a pair is
 not a pair of numbers alone: for the two total variations of [`VarInterval`](@ref) and
 [`VarCircle`](@ref) the same operator has pairs differing by a factor of two in ``A``, so a
 hypothesis ``A<1`` can hold in one convention and fail in the other, and a routine that
@@ -78,15 +80,15 @@ It iterates and indexes as the bare `(A, B)` it replaces, so `A, B = dfly(...)` 
 `dfly_coefficients` is taken; [`strong_kind`](@ref) then returns `nothing` and the
 convention is the caller's responsibility.
 """
-struct DFLYCoefficients{S,W,T<:Real}
+struct DFLYCoefficients{S,X,T<:Real}
     strong::S
-    weak::W
+    aux::X
     A::T
     B::T
 end
-function DFLYCoefficients(strong, weak, A::Real, B::Real)
+function DFLYCoefficients(strong, aux, A::Real, B::Real)
     a, b = promote(A, B)
-    return DFLYCoefficients{typeof(strong),typeof(weak),typeof(a)}(strong, weak, a, b)
+    return DFLYCoefficients{typeof(strong),typeof(aux),typeof(a)}(strong, aux, a, b)
 end
 
 Base.length(::DFLYCoefficients) = 2
@@ -97,11 +99,11 @@ Base.lastindex(::DFLYCoefficients) = 2
 Base.getindex(c::DFLYCoefficients, i::Integer) =
     i == 1 ? c.A : i == 2 ? c.B : throw(BoundsError(c, i))
 Base.show(io::IO, c::DFLYCoefficients) =
-    print(io, "DFLYCoefficients(", c.strong, " <- ", c.weak, ": A = ", c.A, ", B = ", c.B, ")")
+    print(io, "DFLYCoefficients(", c.strong, " <- ", c.aux, ": A = ", c.A, ", B = ", c.B, ")")
 
 @doc raw"""
     strong_kind(coefficients)
-    weak_kind(coefficients)
+    aux_kind(coefficients)
 
 The norms a [`DFLYCoefficients`](@ref) is stated in, and `nothing` for a bare `(A, B)`
 tuple, which carries no record of them.  A routine that measures a vector in the strong
@@ -110,8 +112,8 @@ norm beside the pair takes the norm from here, falling back on the basis's own:
 """
 strong_kind(c::DFLYCoefficients) = c.strong
 strong_kind(::Any) = nothing
-weak_kind(c::DFLYCoefficients) = c.weak
-weak_kind(::Any) = nothing
+aux_kind(c::DFLYCoefficients) = c.aux
+aux_kind(::Any) = nothing
 struct ℓ1 <: NormKind end
 struct ℓinf <: NormKind end
 
@@ -120,6 +122,56 @@ struct C1 <: NormKind end
 struct W{k,l} <: NormKind end
 order(::Type{W{k,l}}) where {k,l} = k
 regularity(::Type{W{k,l}}) where {k,l} = l
+
+@doc raw"""
+    WeightedSobolev(k, a; A_target = NaN) <: NormKind
+    WeightedSobolev(D::PwMap, k; A_target = nothing, boxes = 1024, grid = 256)
+
+The weighted Sobolev seminorm
+
+```math
+\|f\|_a = \sum_{j=1}^{k} a_j\, \|f^{(j)}\|_{L^1}, \qquad a_k = 1,\ a_j \ge 0,
+```
+
+with the weights `a = [a_1, …, a_k]` stored as `Float64`.  It is the strong norm in which
+`dfly(W{k,1}, L1, D)` states its constants for ``k \ge 2``; it carries no
+``\|f\|_{L^1}`` term: the zeroth-order terms of the inequality go into ``B\|f\|_{L^1}``,
+the aux norm.
+
+`A_target` is a label recording the target ``A^*`` the weights were chosen for, `NaN`
+when the weights were given directly; the norm is defined by `a` alone.  The second form,
+provided by the Symbolics extension, chooses the weights for the map `D` as
+`dfly(W{k,1}, L1, D; A_target)` does, so that one norm can be fixed once and passed to
+`dfly(W{k,1}, L1, D′; weights)` for other maps `D′`.
+"""
+struct WeightedSobolev <: NormKind
+    k::Int
+    a::Vector{Float64}
+    A_target::Float64
+    function WeightedSobolev(k::Integer, a::AbstractVector{<:Real}; A_target::Real = NaN)
+        length(a) == k ||
+            throw(ArgumentError("WeightedSobolev($k, a) needs $k weights, got $(length(a))"))
+        a[end] == 1 || throw(ArgumentError("the top weight a_k must be 1, got $(a[end])"))
+        all(>=(0), a) || throw(ArgumentError("the weights must be nonnegative, got $a"))
+        return new(k, Float64.(a), Float64(A_target))
+    end
+end
+# The norm is defined by k and a; A_target is a label and does not enter the comparison.
+Base.:(==)(m::WeightedSobolev, n::WeightedSobolev) = m.k == n.k && m.a == n.a
+Base.hash(n::WeightedSobolev, h::UInt) = hash(n.a, hash(n.k, hash(:WeightedSobolev, h)))
+
+# The bases built on a map call WeightedSobolev(D, k), which the Symbolics extension
+# provides; without it they say so instead of raising a MethodError.
+function _require_symbolics(constructor::AbstractString)
+    Base.get_extension(@__MODULE__, :SymbolicsExt) === nothing && throw(
+        ArgumentError(
+            "$constructor chooses its weights with WeightedSobolev(D, k), which needs the " *
+            "Symbolics extension: load Symbolics, or give the weights, " *
+            "$constructor(…, WeightedSobolev(k, a))",
+        ),
+    )
+    return nothing
+end
 
 # Analytic strip norm
 @doc raw"""

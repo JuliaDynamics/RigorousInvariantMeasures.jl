@@ -1,5 +1,5 @@
 module SymbolicsExt
 using RigorousInvariantMeasures, Symbolics
-import RigorousInvariantMeasures: dfly, W, L1, PwMap, max_inverse_derivative, max_distortion, endpoints, nbranches, branches, is_full_branch
-include("HigherDFLY.jl")
+import RigorousInvariantMeasures: dfly, W, L1, PwMap, branches, is_full_branch, DFLYCoefficients, WeightedSobolev
+include("HigherDFLYBackend.jl")
 end

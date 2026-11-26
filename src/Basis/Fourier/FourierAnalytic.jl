@@ -1,5 +1,5 @@
 using IntervalArithmetic
-using ..RigorousInvariantMeasures: MonotonicBranch, PwMap, Dual, C1, NormCacher, Aη, W, L2, NormKind
+using ..RigorousInvariantMeasures: MonotonicBranch, PwMap, Dual, C1, NormCacher, Aη, W, L2, NormKind, WeightedSobolev
 import ..RigorousInvariantMeasures: derivative
 using LinearAlgebra
 
@@ -22,6 +22,11 @@ The strong norm defaults to [`Aη`](@ref)`(η)` — the weighted ``\ell^1`` norm
 a strip of half-width ``η`` — with [`L2`](@ref) as the weak norm; this is the
 setting in which the analytic Lasota-Yorke inequality is proved. The third
 constructor swaps the strong norm for the Sobolev `W{j,l}` seminorm instead.
+
+W{1,1} Fourier bases are not supported: no projection error is derived for Sobolev order 1.
+Use `Ulam` for ``W^{1,1}``/BV, or a Fourier basis with Sobolev order ``\ge 2`` and `L2`
+weak norm, preferably `FourierAnalytic(k_freq, n, D::CircleMap, s)`, which builds it on the
+weighted norm of the map.
 
 Assembly requires the `FFTWExt` extension: load `FFTW` alongside this package,
 or `assemble(B, D)` will raise a `MethodError`.
@@ -46,6 +51,43 @@ end
 # Sobolev constructor
 function FourierAnalytic(k_freq::Integer, n::Integer, ::Type{W{j,l}}; T = Float64) where {j,l}
     return FourierAnalytic(FourierPoints(n, T), k_freq, W{j,l}(), L2())
+end
+
+@doc raw"""
+    FourierAnalytic(k_freq, n, a::WeightedSobolev; T = Float64)
+    FourierAdjoint(k_freq, n, a::WeightedSobolev; T = Float64)
+    FourierAnalytic(k_freq, n, D::CircleMap, s; A_target = nothing, T = Float64)
+    FourierAdjoint(k_freq, n, D::CircleMap, s; A_target = nothing, T = Float64)
+
+The Fourier basis of ``2k_{freq}+1`` frequencies on `n` points whose strong norm is the
+weighted seminorm `a` of order ``s = a.k \ge 2``, [`WeightedSobolev`](@ref), and whose weak
+norm is `L2`.
+
+In the first two forms the weights are the caller's, `a = WeightedSobolev(s, [a_1, …, a_s])`,
+and nothing needs Symbolics.  Lasota–Yorke constants estimated by hand are then passed to
+the routines that use them as `dfly_coefficients = DFLYCoefficients(a, L1, A, B)`, and
+[`check_dfly_coefficients`](@ref) throws if they are stated in another norm, or if the map
+they are used with is not a [`CircleMap`](@ref) asserted ``C^s`` on the circle.
+
+In the last two the weights are chosen for `D` by `WeightedSobolev(D, s; A_target)`, which
+needs the Symbolics extension; without it they throw an `ArgumentError`.  The map must be a
+`CircleMap` asserted ``C^s`` on the circle (`circle_smoothness(D) ≥ s`), which is what keeps
+``Lf`` in ``W^{s,1}`` of the circle; the hypothesis is the caller's.
+"""
+function FourierAnalytic(k_freq::Integer, n::Integer, a::WeightedSobolev; T = Float64)
+    _fourier_weighted_order(a)
+    return FourierAnalytic(FourierPoints(n, T), k_freq, a, L2())
+end
+function FourierAnalytic(
+    k_freq::Integer,
+    n::Integer,
+    D::CircleMap,
+    s::Integer;
+    A_target = nothing,
+    T = Float64,
+)
+    _require_symbolics("FourierAnalytic")
+    return FourierAnalytic(k_freq, n, _fourier_weighted_norm(D, s, A_target); T = T)
 end
 
 Base.show(io::IO, B::FourierAnalytic) =
@@ -83,25 +125,13 @@ end
 weak_projection_error(B::FourierAnalytic{Aη}) = _aeta_tail_bound(B)
 aux_normalized_projection_error(B::FourierAnalytic{Aη}) = _aeta_tail_bound(B)
 
-# W{k,1} strong norm: polynomial decay O(N^{-(k-1)}) for Fourier coefficient decay
-# ||P_h f - f||_{L²} ≤ (2πN)^{-k} ||f^{(k)}||_{L²} ≤ (2πN)^{-k} ||f||_{W^{k,1}}
-function weak_projection_error(B::FourierAnalytic{W{k,l}}) where {k,l}
-    N = B.k
-    if k == 0
-        return 1.0
-    end
-    denom = (2 * interval(pi) * N)^k
-    return sup(1 / denom)
-end
-
-function aux_normalized_projection_error(B::FourierAnalytic{W{k,l}}) where {k,l}
-    N = B.k
-    if k == 0
-        return 1.0
-    end
-    denom = (2 * interval(pi) * N)^k
-    return sup(1 / denom)
-end
+# W{k,l} and WeightedSobolev strong norms: per unit of ||f^(k)||_1, see
+# `_fourier_sobolev_projection_error` in FourierCommon.jl. (Until 2026-11-25 this returned
+# (2πN)^{-k} from ||f^(k)||_{L²} <= ||f||_{W^{k,1}}, which does not hold.)
+weak_projection_error(B::FourierAnalytic{<:Union{W,WeightedSobolev}}) =
+    _fourier_sobolev_projection_error(B)
+aux_normalized_projection_error(B::FourierAnalytic{<:Union{W,WeightedSobolev}}) =
+    _fourier_sobolev_projection_error(B)
 
 # --- Strong-weak bound: ||v||_s ≤ M₁n · ||v||_{L²} ---
 
@@ -132,6 +162,17 @@ function strong_weak_bound(B::FourierAnalytic{W{k,l}}) where {k,l}
     M = interval(1.0)
     for j = 1:k
         M = M + (2 * interval(pi) * N)^j
+    end
+    return sup(M)
+end
+
+
+# WeightedSobolev: ||v||_a = Σ_{j>=1} a_j ||v^(j)||_1 <= Σ_{j>=1} a_j (2πK)^j ||v||_{L²}, from
+# ||v^(j)||_{L¹} <= ||v^(j)||_{L²} <= (2πK)^j ||v||_{L²} on trigonometric polynomials of degree K.
+function strong_weak_bound(B::FourierAnalytic{WeightedSobolev})
+    M = interval(0.0)
+    for (j, a) in enumerate(B.strong.a)
+        M = M + interval(a) * (2 * interval(pi) * B.k)^j
     end
     return sup(M)
 end

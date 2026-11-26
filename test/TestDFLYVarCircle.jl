@@ -11,7 +11,7 @@ using Random
         @test has_monotone_mod1_lift(D)
         c = dfly(VarCircle, L1, D)
         @test strong_kind(c) === VarCircle
-        @test weak_kind(c) === L1
+        @test aux_kind(c) === L1
 
         # dist = θ = 0 and one partial branch, so κ = λ_L + λ_R = 2/β and A = B = 2/β,
         # both rounded up
