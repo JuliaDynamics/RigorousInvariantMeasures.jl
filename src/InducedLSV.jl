@@ -350,22 +350,3 @@ function derivatives_D(α, k, l; T = Float64)
     end
     return w
 end
-
-#import DualNumbers
-#function bound_b_ω(α, k; T = Float64)
-#	right = interval(1.0)
-#	for i in 1:k
-#		@info i
-#		left = ShootingLSV(i, 0.5, α; T = T)[1]
-#		dom = hull(left, right)
-#		f(α, x) = iterate_LSV(x, i, α)
-#		f_prime_α(x) = f(DualNumbers.Dual(α, 1), x).epsilon
-#		f_prime_x(x) = f(α, DualNumbers.Dual(x, 1)).epsilon
-#		h(x) = -f_prime_α(x)/f_prime_x(x)
-#		dom = interval(inf(left), sup(right))
-#		tol = diam(dom)*2^(-10)
-#		val = maximise(h, dom, tol = tol)[1]
-#		@info val
-#	end
-#	return w
-#end
