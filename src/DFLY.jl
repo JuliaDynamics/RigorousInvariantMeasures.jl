@@ -494,6 +494,8 @@ function check_dfly_coefficients(B::Basis, D, coefficients; dominating::Bool = f
     _basis_dynamic_check(B, D)
     return coefficients
 end
+# the docstring above covers both functions
+@doc (@doc basis_dfly) check_dfly_coefficients
 
 # a norm without fields is its type; a norm with fields (Aη(η), Eρ(ρ), WeightedSobolev) is
 # compared by value
