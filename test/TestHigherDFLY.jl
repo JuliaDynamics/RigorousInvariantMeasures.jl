@@ -170,7 +170,7 @@ const HDF = Base.get_extension(RigorousInvariantMeasures, :SymbolicsExt)
         C = HDF.dfly_coefficient_matrix(D, 2)
         c8 = dfly(W{2,1}, L1, D; A_target = 0.8)
         @test c8.strong isa WeightedSobolev
-        @test strong_kind(c8) === c8.strong && weak_kind(c8) == L1
+        @test strong_kind(c8) === c8.strong && aux_kind(c8) == L1
         @test c8.strong.a[2] == 1 && c8.strong.A_target == 0.8
         @test c8.strong.a[1] ≈ C[3, 2] / (0.8 - C[2, 2]) rtol = 1e-14
         @test 0.8 <= c8.A <= 0.8 + 1e-12

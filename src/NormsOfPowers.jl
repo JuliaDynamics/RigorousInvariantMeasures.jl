@@ -345,8 +345,9 @@ by Theorem 4.5 of Galatolo, Monge, Nisoli, Poloni, Chaos Solitons Fractals 170 (
 ```
 
 as in [`norms_of_powers_from_coarser_grid`](@ref), except that the strong norms are bounded
-on ``U^0`` with the weak norms already obtained: by the Lasota–Yorke inequality of the Ulam
-discretisation (Remark 4.4 there, ``E_h = 0``), for ``1 ≤ j ≤ k``,
+on ``U^0`` with the weak norms already obtained, which bound the aux norm of the inequality
+since ``\|f\|_{L^1} \le \|f\|`` ([`aux_weak_bound`](@ref) is 1 for Ulam): by the Lasota–Yorke
+inequality of the Ulam discretisation (Remark 4.4 there, ``E_h = 0``), for ``1 ≤ j ≤ k``,
 
 ```math
 \|Q_{h_F}^k f\|_s \le A^j \|Q_{h_F}^{k-j} f\|_s + B \sum_{i<j} A^i \, \|Q_{h_F}^{k-j} f\|,

@@ -11,7 +11,7 @@
     @test c.A ≈ 2 / β
     @test c.B ≈ 2 / (1 - 2 / β)
     @test strong_kind(c) === VarInterval
-    @test weak_kind(c) === L1
+    @test aux_kind(c) === L1
 
     # it stands in for the pair it replaces
     A, B = c
@@ -25,7 +25,7 @@
 
     # a bare tuple is still accepted and records no convention
     @test strong_kind((0.5, 1.0)) === nothing
-    @test weak_kind((0.5, 1.0)) === nothing
+    @test aux_kind((0.5, 1.0)) === nothing
 
     # the same operator has one pair on the interval and a sharper one on the circle, and
     # the a priori bound on the density is read in the norm of the pair it came from

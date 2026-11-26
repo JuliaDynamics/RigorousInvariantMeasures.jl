@@ -58,16 +58,18 @@ well as on the interval, so ``\mathrm{Var}(\rho)`` is the same number.
 struct VarCircle <: NormKind end
 
 @doc raw"""
-    DFLYCoefficients(strong, weak, A, B)
+    DFLYCoefficients(strong, aux, A, B)
 
 The two constants of a Doeblin-Fortet-Lasota-Yorke inequality together with the norms the
 inequality is stated in,
 
 ```math
-\|Lf\|_{\mathrm{strong}} \le A\|f\|_{\mathrm{strong}} + B\|f\|_{\mathrm{weak}} ,
+\|Lf\|_{\mathrm{strong}} \le A\|f\|_{\mathrm{strong}} + B\|f\|_{\mathrm{aux}} ,
 ```
 
-which is what [`dfly`](@ref) returns.  The norms travel with the numbers because a pair is
+which is what [`dfly`](@ref) returns.  The second norm is the auxiliary norm of the
+basis, [`aux_norm`](@ref), `L1` for every basis in the package; the weak norm of the basis,
+[`weak_norm`](@ref), does not enter the inequality.  The norms travel with the numbers because a pair is
 not a pair of numbers alone: for the two total variations of [`VarInterval`](@ref) and
 [`VarCircle`](@ref) the same operator has pairs differing by a factor of two in ``A``, so a
 hypothesis ``A<1`` can hold in one convention and fail in the other, and a routine that
@@ -78,15 +80,15 @@ It iterates and indexes as the bare `(A, B)` it replaces, so `A, B = dfly(...)` 
 `dfly_coefficients` is taken; [`strong_kind`](@ref) then returns `nothing` and the
 convention is the caller's responsibility.
 """
-struct DFLYCoefficients{S,W,T<:Real}
+struct DFLYCoefficients{S,X,T<:Real}
     strong::S
-    weak::W
+    aux::X
     A::T
     B::T
 end
-function DFLYCoefficients(strong, weak, A::Real, B::Real)
+function DFLYCoefficients(strong, aux, A::Real, B::Real)
     a, b = promote(A, B)
-    return DFLYCoefficients{typeof(strong),typeof(weak),typeof(a)}(strong, weak, a, b)
+    return DFLYCoefficients{typeof(strong),typeof(aux),typeof(a)}(strong, aux, a, b)
 end
 
 Base.length(::DFLYCoefficients) = 2
@@ -97,11 +99,11 @@ Base.lastindex(::DFLYCoefficients) = 2
 Base.getindex(c::DFLYCoefficients, i::Integer) =
     i == 1 ? c.A : i == 2 ? c.B : throw(BoundsError(c, i))
 Base.show(io::IO, c::DFLYCoefficients) =
-    print(io, "DFLYCoefficients(", c.strong, " <- ", c.weak, ": A = ", c.A, ", B = ", c.B, ")")
+    print(io, "DFLYCoefficients(", c.strong, " <- ", c.aux, ": A = ", c.A, ", B = ", c.B, ")")
 
 @doc raw"""
     strong_kind(coefficients)
-    weak_kind(coefficients)
+    aux_kind(coefficients)
 
 The norms a [`DFLYCoefficients`](@ref) is stated in, and `nothing` for a bare `(A, B)`
 tuple, which carries no record of them.  A routine that measures a vector in the strong
@@ -110,8 +112,8 @@ norm beside the pair takes the norm from here, falling back on the basis's own:
 """
 strong_kind(c::DFLYCoefficients) = c.strong
 strong_kind(::Any) = nothing
-weak_kind(c::DFLYCoefficients) = c.weak
-weak_kind(::Any) = nothing
+aux_kind(c::DFLYCoefficients) = c.aux
+aux_kind(::Any) = nothing
 struct ℓ1 <: NormKind end
 struct ℓinf <: NormKind end
 
