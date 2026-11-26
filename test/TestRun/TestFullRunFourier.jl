@@ -1,7 +1,8 @@
 @testset "Full run FourierAnalytic + Aη" begin
     using RigorousInvariantMeasures
 
-    D = mod1_dynamic(x -> 2 * x)
+    # the doubling map is real-analytic on the circle, which the Aη norm needs
+    D = mod1_dynamic(x -> 2 * x; circle_smoothness = :ω)
 
     B = FourierAnalytic(64, 256; η = 0.1)
     Q = DiscretizedOperator(B, D)
@@ -17,6 +18,12 @@
     # in weak_projection_error (it returned e^{+2πηN} instead of e^{-2πηN}).
     @test error < 1.0  # Lebesgue measure is invariant for doubling map
     @test error < 1e-8
+
+    # the same map without the circle-analytic assertion is refused
+    @test_throws ArgumentError RigorousInvariantMeasures.invariant_measure_strong_norm_bound(
+        B,
+        mod1_dynamic(x -> 2 * x),
+    )
 end
 
 @testset "FourierAnalytic + W{1,1}: no projection error" begin

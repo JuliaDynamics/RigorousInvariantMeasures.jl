@@ -1,6 +1,7 @@
 using .RigorousInvariantMeasures: Dual
 using .RigorousInvariantMeasures: NormKind, L1, L2, Aη, W, Cω, VarInterval, dfly, WeightedSobolev, circle_smoothness, strong_kind, basis_dfly, check_dfly_coefficients
 import .RigorousInvariantMeasures: _basis_dynamic_check
+using .RigorousInvariantMeasures: circle_smooth_of_order
 import .RigorousInvariantMeasures: opnormbound, normbound, restrict_to_average_zero
 
 export Fourier, evalFourier, FourierPoints, assemble_common, eval_on_dual, dual_nodes
@@ -183,11 +184,22 @@ normbound(B::Fourier, ::Type{L2}, v) = normbound(L2, v)
 _basis_dynamic_check(B::Fourier, D::Dynamic) = _fourier_circle_check(B, D)
 
 function _fourier_circle_check(B::Fourier, D)
+    if B.strong isa Union{Aη,Cω}
+        circle_smooth_of_order(D, :ω) || throw(
+            ArgumentError(
+                "a Fourier basis with the analytic strong norm $(B.strong) needs a map " *
+                "asserted real-analytic on the circle (CircleMap{:ω}, e.g. " *
+                "mod1_dynamic(f; circle_smoothness = :ω)); circle_smoothness(D) = " *
+                "$(circle_smoothness(D))",
+            ),
+        )
+        return nothing
+    end
     B.strong isa Union{W,WeightedSobolev} || return nothing
     s = _fourier_sobolev_order(B.strong)
     s >= 2 || return nothing
     r = circle_smoothness(D)
-    (r !== nothing && r >= s) || throw(
+    circle_smooth_of_order(D, s) || throw(
         ArgumentError(
             "a Fourier basis of Sobolev order $s needs a map asserted C^$s on the circle " *
             "(CircleMap{r}, r ≥ $s); circle_smoothness(D) = $r",

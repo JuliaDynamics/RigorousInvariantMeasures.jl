@@ -545,6 +545,7 @@ function FourierAdjoint(
 end
 function _fourier_weighted_norm(D, s, A_target)
     r = RigorousInvariantMeasures.circle_smoothness(D)
-    r >= s || throw(ArgumentError("the map is asserted C^$r on the circle, the basis needs C^$s"))
+    RigorousInvariantMeasures.circle_smooth_of_order(D, s) ||
+        throw(ArgumentError("the map is asserted C^$r on the circle, the basis needs C^$s"))
     return WeightedSobolev(D, s; A_target = A_target)
 end

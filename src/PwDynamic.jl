@@ -21,7 +21,8 @@ export PwMap,
     intersect_domain,
     intersect_domain_bool,
     CircleMap,
-    circle_smoothness
+    circle_smoothness,
+    circle_smooth_of_order
 
 @doc raw"""
     DomainGeometry
@@ -247,25 +248,48 @@ end
 
 @doc raw"""
     CircleMap{r} = PwMap{OnCircle{r}}
-    CircleMap(D::PwMap, r)
-    circle_smoothness(D) -> r or nothing
+    CircleMap(D::PwMap, r)          # r ≥ 0 an integer, or :ω
+    circle_smoothness(D) -> r, :ω or nothing
 
 A [`PwMap`](@ref) read as a map of the circle ``[0,1]/\{0\sim1\}`` that is ``C^r`` there:
 ``T`` and its first ``r`` derivatives agree on the two sides of every breakpoint between
 branches and across ``0 \sim 1`` (``T`` itself modulo 1).  An estimate that needs the
 transfer operator to preserve ``W^{k,1}`` of the circle, such as the higher-order DFLY
-inequality for a Fourier basis, requires `circle_smoothness(D) ≥ k + 1`.
+inequality for a Fourier basis of order ``k``, requires `circle_smoothness(D) ≥ k`.
+
+`r = :ω` asserts that ``T`` is real-analytic as a circle map, which the analytic Fourier
+norms (`Aη`, `Cω`) need: the bounds on the strip are computed from the branches on the
+complex neighbourhoods of their own domains, and they are bounds for the circle only if
+those continuations glue across the breakpoints and across ``0 \sim 1``.  `:ω` satisfies
+every finite order.
 
 **The hypothesis is the caller's.**  Equality of two derivatives cannot be certified in
 interval arithmetic; `CircleMap(D, r)` checks only the necessary condition that, at every
 breakpoint and across ``0 \sim 1``, the enclosures of ``T^{(j)}`` from the two sides
 overlap for ``j = 0, \dots, r`` (for ``j = 0`` modulo 1), and throws if one pair is
-disjoint.  It also requires a monotone mod 1 lift ([`has_monotone_mod1_lift`](@ref)).
+disjoint.  For `r = :ω` the same check is made for ``j = 0, \dots, 4``
+(`CIRCLE_ANALYTIC_CHECK_ORDER`); real-analyticity itself is the caller's hypothesis.  It also requires a monotone mod 1 lift ([`has_monotone_mod1_lift`](@ref)).
 Each branch must accept `Taylor1{Interval}` for the derivatives.
 
-`circle_smoothness(D)` is `r` for a `CircleMap{r}` and `nothing` for any other dynamic.
+`circle_smoothness(D)` is `r` for a `CircleMap{r}` and `nothing` for any other dynamic;
+`circle_smooth_of_order(D, s)` says whether the assertion covers order `s`.
 """
 const CircleMap{r} = PwMap{OnCircle{r}}
+
+const CIRCLE_ANALYTIC_CHECK_ORDER = 4
+
+@doc raw"""
+    circle_smooth_of_order(D, s) -> Bool
+
+Whether `D` is asserted ``C^s`` on the circle: `circle_smoothness(D)` is `:ω`, or an integer
+``\ge s``.  For `s = :ω`, only `:ω` qualifies.
+"""
+function circle_smooth_of_order(D, s)
+    r = circle_smoothness(D)
+    r === :ω && return true
+    s === :ω && return false
+    return r isa Integer && r >= s
+end
 
 circle_smoothness(::PwMap{OnCircle{r}}) where {r} = r
 circle_smoothness(::Dynamic) = nothing
@@ -280,8 +304,12 @@ _overlap(a::Interval, b::Interval) = !isempty_interval(intersect_interval(a, b))
 _overlap_mod1(a::Interval, b::Interval) =
     _overlap(a, b) || _overlap(a, b + 1) || _overlap(a + 1, b)
 
-function CircleMap(D::PwMap, r::Integer)
-    r >= 0 || throw(ArgumentError("the circle smoothness r must be ≥ 0, got $r"))
+function CircleMap(D::PwMap, r::Union{Integer,Symbol})
+    r isa Symbol && r !== :ω &&
+        throw(ArgumentError("the circle smoothness must be an integer ≥ 0 or :ω, got :$r"))
+    r isa Integer && r < 0 &&
+        throw(ArgumentError("the circle smoothness r must be ≥ 0, got $r"))
+    J = r === :ω ? CIRCLE_ANALYTIC_CHECK_ORDER : Int(r)
     has_monotone_mod1_lift(D) ||
         throw(ArgumentError("CircleMap needs a monotone mod 1 lift (has_monotone_mod1_lift)"))
     brs = branches(D)
@@ -289,11 +317,11 @@ function CircleMap(D::PwMap, r::Integer)
     joins = [(brs[i], brs[i+1], brs[i].X[2], brs[i+1].X[1]) for i = 1:length(brs)-1]
     push!(joins, (brs[end], brs[1], brs[end].X[2], brs[1].X[1]))
     for (m, (bl, br, xl, xr)) in enumerate(joins)
-        jl, jr = _jet_at(bl, xl, r), _jet_at(br, xr, r)
+        jl, jr = _jet_at(bl, xl, J), _jet_at(br, xr, J)
         where = m == length(joins) ? "across 0 ~ 1" : "at the breakpoint $xl"
         _overlap_mod1(jl[1], jr[1]) ||
             throw(ArgumentError("T is not continuous $where: $(jl[1]) and $(jr[1])"))
-        for j = 1:r
+        for j = 1:J
             _overlap(jl[j+1], jr[j+1]) || throw(
                 ArgumentError(
                     "T is not C^$r on the circle: T^($j) is $(jl[j+1]) and $(jr[j+1]) $where",
@@ -301,7 +329,8 @@ function CircleMap(D::PwMap, r::Integer)
             )
         end
     end
-    return PwMap{OnCircle{Int(r)}}(collect(brs); full_branch = D.full_branch)
+    tag = r === :ω ? :ω : Int(r)
+    return PwMap{OnCircle{tag}}(collect(brs); full_branch = D.full_branch)
 end
 
 """

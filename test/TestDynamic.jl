@@ -262,5 +262,14 @@ end
         @test Dc isa CircleMap{4} && Dc isa PwMap && circle_smoothness(Dc) == 4
         @test is_full_branch(Dc) && RIM.nbranches(Dc) == 2
         @test_throws ArgumentError CircleMap(D, -1)
+
+        # real-analytic on the circle: checked only through order CIRCLE_ANALYTIC_CHECK_ORDER
+        Dω = mod1_dynamic(x -> 2x + RIM.sinpi(2x) / 20; circle_smoothness = :ω)
+        @test Dω isa CircleMap{:ω} && circle_smoothness(Dω) === :ω
+        @test circle_smooth_of_order(Dω, 7) && circle_smooth_of_order(Dω, :ω)
+        @test circle_smooth_of_order(Dc, 4) && !circle_smooth_of_order(Dc, 5)
+        @test !circle_smooth_of_order(Dc, :ω) && !circle_smooth_of_order(D, 0)
+        @test_throws ArgumentError CircleMap(D, :ω)
+        @test_throws ArgumentError CircleMap(Dω, :analytic)
     end
 end
