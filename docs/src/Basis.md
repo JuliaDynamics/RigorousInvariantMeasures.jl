@@ -60,7 +60,7 @@ or Chebyshev basis without `FFTW` loaded raises a `MethodError`.
 ```@autodocs
 Modules = [Base, 
             RigorousInvariantMeasures]
-Pages = ["NewChebyshev.jl"]
+Pages = ["Chebyshev.jl"]
 ```
 
 ## Common Fourier interface

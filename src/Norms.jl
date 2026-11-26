@@ -133,7 +133,8 @@ The weighted Sobolev seminorm
 
 with the weights `a = [a_1, …, a_k]` stored as `Float64`.  It is the strong norm in which
 `dfly(W{k,1}, L1, D)` states its constants for ``k \ge 2``; it carries no
-``\|f\|_{L^1}`` term, which the inequality charges to the weak norm.
+``\|f\|_{L^1}`` term: the zeroth-order terms of the inequality go into ``B\|f\|_{L^1}``,
+the aux norm.
 
 `A_target` is a label recording the target ``A^*`` the weights were chosen for, `NaN`
 when the weights were given directly; the norm is defined by `a` alone.  The second form,

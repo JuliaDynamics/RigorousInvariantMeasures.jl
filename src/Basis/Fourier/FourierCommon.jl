@@ -421,3 +421,11 @@ function dual_nodes end
 # `using FFTW` makes it available. Without FFTW loaded, callers will hit a
 # MethodError on this name.
 function assemble_common end
+
+# the weighted norm of a Fourier basis built on the map D (see FourierAnalytic)
+function _fourier_weighted_norm(D, s, A_target)
+    r = circle_smoothness(D)
+    circle_smooth_of_order(D, s) ||
+        throw(ArgumentError("the map is asserted C^$r on the circle, the basis needs C^$s"))
+    return WeightedSobolev(D, s; A_target = A_target)
+end

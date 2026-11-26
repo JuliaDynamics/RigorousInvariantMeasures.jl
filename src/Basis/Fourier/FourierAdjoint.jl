@@ -16,7 +16,7 @@ export FourierAdjoint
 
 The adjoint realisation of the Fourier basis of `2k + 1` frequencies on `n` points, with
 strong norm `Cω` by default.  With a Sobolev strong norm (`W{s,l}`, or the weighted norm of
-`FourierAdjoint(k, n, D::CircleMap, s)` in the Symbolics extension) the order must be
+`FourierAdjoint(k, n, D::CircleMap, s)`) the order must be
 ``s \ge 2``: W{1,1} Fourier bases are not supported, since no projection error is derived
 for order 1. Use `Ulam` for ``W^{1,1}``/BV, or a Fourier basis with Sobolev order ``\ge 2``
 and `L2` weak norm.
@@ -36,6 +36,23 @@ function FourierAdjoint(k::Integer, n::Integer; T = Float64)
 end
 function FourierAdjoint(p::AbstractVector, k::Integer)
     return FourierAdjoint(p, k, Cω(), L2())
+end
+
+# FourierAdjoint(k_freq, n, D::CircleMap, s): see the docstring of FourierAnalytic's
+function FourierAdjoint(
+    k_freq::Integer,
+    n::Integer,
+    D::CircleMap,
+    s::Integer;
+    A_target = nothing,
+    T = Float64,
+)
+    return FourierAdjoint(
+        FourierPoints(n, T),
+        k_freq,
+        _fourier_weighted_norm(D, s, A_target),
+        L2(),
+    )
 end
 
 Base.show(io::IO, B::FourierAdjoint) =

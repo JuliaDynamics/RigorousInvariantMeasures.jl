@@ -3,9 +3,10 @@ using SymbolicUtils
 using IntervalArithmetic
 using TaylorSeries: Taylor1
 
-# This file adds methods to the package's own `dfly`, `WeightedSobolev`, `Chebyshev`,
-# `FourierAnalytic` and `FourierAdjoint`.
-import RigorousInvariantMeasures: dfly, WeightedSobolev, Chebyshev, FourierAnalytic, FourierAdjoint
+# This file adds methods to the package's own `dfly` and `WeightedSobolev`; the bases built
+# on a map, `Chebyshev(n, k, D)` and the Fourier ones, are in the basis files and call
+# `WeightedSobolev(D, k)` from here.
+import RigorousInvariantMeasures: dfly, WeightedSobolev
 
 @doc raw"""
     SymbL(n, f)
@@ -481,71 +482,3 @@ seminorm, which is what a basis carrying that norm asks for.
 """
 dfly(norm::WeightedSobolev, ::Type{L1}, D::PwMap; boxes::Int = 1024) =
     dfly(W{norm.k,1}, L1, D; weights = norm, boxes = boxes)
-
-@doc raw"""
-    Chebyshev(n, k, D::PwMap; A_target = nothing, weak = L2, T = Float64)
-
-The Chebyshev basis of `Chebyshev(n, k, weak)` with the strong norm
-`WeightedSobolev(D, k; A_target)`, the weighted seminorm in which `dfly(W{k,1}, L1, D)`
-states its constants for ``k \ge 2``.  The weights are computed from `D`, so
-`dfly(strong_norm(B), aux_norm(B), D)` returns coefficients in the basis's own norm.  For a
-family of maps, build the basis from one map and pass it with the others: `dfly` then
-certifies each map in the same norm, and throws if ``A \ge 1`` for one of them.
-"""
-function Chebyshev(
-    n::Integer,
-    k::Integer,
-    D::PwMap;
-    A_target = nothing,
-    weak::Type{<:RigorousInvariantMeasures.NormKind} = RigorousInvariantMeasures.L2,
-    T = Float64,
-)
-    norm = WeightedSobolev(D, k; A_target = A_target)
-    return Chebyshev(RigorousInvariantMeasures.ChebPoints(n, T), k, norm, weak())
-end
-
-@doc raw"""
-    FourierAnalytic(k_freq, n, D::CircleMap, s; A_target = nothing, T = Float64)
-    FourierAdjoint(k_freq, n, D::CircleMap, s; A_target = nothing, T = Float64)
-
-The Fourier basis of ``2k_{freq}+1`` frequencies on `n` points with the strong norm
-`WeightedSobolev(D, s; A_target)` and weak norm `L2`.  The map must be a
-[`CircleMap`](@ref) asserted ``C^s`` on the circle (`circle_smoothness(D) ≥ s`), which is
-what keeps ``Lf`` in ``W^{s,1}`` of the circle; the hypothesis is the caller's.
-"""
-function FourierAnalytic(
-    k_freq::Integer,
-    n::Integer,
-    D::RigorousInvariantMeasures.CircleMap,
-    s::Integer;
-    A_target = nothing,
-    T = Float64,
-)
-    return FourierAnalytic(
-        RigorousInvariantMeasures.FourierPoints(n, T),
-        k_freq,
-        _fourier_weighted_norm(D, s, A_target),
-        RigorousInvariantMeasures.L2(),
-    )
-end
-function FourierAdjoint(
-    k_freq::Integer,
-    n::Integer,
-    D::RigorousInvariantMeasures.CircleMap,
-    s::Integer;
-    A_target = nothing,
-    T = Float64,
-)
-    return FourierAdjoint(
-        RigorousInvariantMeasures.FourierPoints(n, T),
-        k_freq,
-        _fourier_weighted_norm(D, s, A_target),
-        RigorousInvariantMeasures.L2(),
-    )
-end
-function _fourier_weighted_norm(D, s, A_target)
-    r = RigorousInvariantMeasures.circle_smoothness(D)
-    RigorousInvariantMeasures.circle_smooth_of_order(D, s) ||
-        throw(ArgumentError("the map is asserted C^$r on the circle, the basis needs C^$s"))
-    return WeightedSobolev(D, s; A_target = A_target)
-end

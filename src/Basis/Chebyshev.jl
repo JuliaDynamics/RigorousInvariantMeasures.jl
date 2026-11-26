@@ -62,6 +62,30 @@ function Chebyshev(n::Integer, strong::Eρ; T = Float64)
     return Chebyshev(ChebPoints(n, T), 0, strong, L2())
 end
 Chebyshev(p::AbstractVector, strong::Eρ) = Chebyshev(p, 0, strong, L2())
+
+@doc raw"""
+    Chebyshev(n, k, D::PwMap; A_target = nothing, weak = L2, T = Float64)
+
+The Chebyshev basis of `Chebyshev(n, k, weak)` with the strong norm
+`WeightedSobolev(D, k; A_target)`, the weighted seminorm in which `dfly(W{k,1}, L1, D)`
+states its constants for ``k \ge 2``.  The weights are computed from `D` by
+`WeightedSobolev(D, k)`, which the Symbolics extension provides: load `Symbolics`,
+or this constructor raises a `MethodError`.  Since they are computed from `D`, so
+`dfly(strong_norm(B), aux_norm(B), D)` returns coefficients in the basis's own norm.  For a
+family of maps, build the basis from one map and pass it with the others: `dfly` then
+certifies each map in the same norm, and throws if ``A \ge 1`` for one of them.
+"""
+function Chebyshev(
+    n::Integer,
+    k::Integer,
+    D::PwMap;
+    A_target = nothing,
+    weak::Type{<:NormKind} = L2,
+    T = Float64,
+)
+    norm = WeightedSobolev(D, k; A_target = A_target)
+    return Chebyshev(ChebPoints(n, T), k, norm, weak())
+end
 Base.show(io::IO, B::Chebyshev) =
     print(io, "Chebyshev basis on $(length(B)) points, highest degree $(length(B)-1)")
 

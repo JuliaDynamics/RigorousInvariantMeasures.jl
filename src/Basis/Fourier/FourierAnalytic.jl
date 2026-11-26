@@ -25,8 +25,8 @@ constructor swaps the strong norm for the Sobolev `W{j,l}` seminorm instead.
 
 W{1,1} Fourier bases are not supported: no projection error is derived for Sobolev order 1.
 Use `Ulam` for ``W^{1,1}``/BV, or a Fourier basis with Sobolev order ``\ge 2`` and `L2`
-weak norm, preferably `FourierAnalytic(k_freq, n, D::CircleMap, s)` from the Symbolics
-extension, which builds it on the weighted norm of the map.
+weak norm, preferably `FourierAnalytic(k_freq, n, D::CircleMap, s)`, which builds it on the
+weighted norm of the map.
 
 Assembly requires the `FFTWExt` extension: load `FFTW` alongside this package,
 or `assemble(B, D)` will raise a `MethodError`.
@@ -51,6 +51,33 @@ end
 # Sobolev constructor
 function FourierAnalytic(k_freq::Integer, n::Integer, ::Type{W{j,l}}; T = Float64) where {j,l}
     return FourierAnalytic(FourierPoints(n, T), k_freq, W{j,l}(), L2())
+end
+
+@doc raw"""
+    FourierAnalytic(k_freq, n, D::CircleMap, s; A_target = nothing, T = Float64)
+    FourierAdjoint(k_freq, n, D::CircleMap, s; A_target = nothing, T = Float64)
+
+The Fourier basis of ``2k_{freq}+1`` frequencies on `n` points with the strong norm
+`WeightedSobolev(D, s; A_target)` and weak norm `L2`.  The map must be a
+[`CircleMap`](@ref) asserted ``C^s`` on the circle (`circle_smoothness(D) ≥ s`), which is
+what keeps ``Lf`` in ``W^{s,1}`` of the circle; the hypothesis is the caller's.  The
+weights come from `WeightedSobolev(D, s)`, which the Symbolics extension provides: load
+`Symbolics`, or these constructors raise a `MethodError`.
+"""
+function FourierAnalytic(
+    k_freq::Integer,
+    n::Integer,
+    D::CircleMap,
+    s::Integer;
+    A_target = nothing,
+    T = Float64,
+)
+    return FourierAnalytic(
+        FourierPoints(n, T),
+        k_freq,
+        _fourier_weighted_norm(D, s, A_target),
+        L2(),
+    )
 end
 
 Base.show(io::IO, B::FourierAnalytic) =

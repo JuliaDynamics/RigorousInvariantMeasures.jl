@@ -66,7 +66,7 @@ include("Preimages.jl")
 include("IntervalFFTCommon.jl")
 include("Basis/Fourier/FourierIndex.jl")
 export Fourier, FourierAnalytic, FourierAdjoint
-include("Basis/NewChebyshev.jl")
+include("Basis/Chebyshev.jl")
 export Chebyshev, certify_spectral_gap
 export gram_matrix, inv_gram_matrix, gram_sqrt, inv_gram_sqrt
 export l2_measure_conversion_bounds, gram_restrict_to_average_zero
@@ -110,7 +110,6 @@ export C2Basis
 include("ConvergenceRatesOriginal.jl")
 export convergencerateabstract
 
-#include("HigherDFLY.jl")
 
 
 # a special example, the induced map for the LSV map
@@ -157,7 +156,6 @@ export noise_error_aposteriori,
     total_variation
 
 
-include("Basis/BasisIndex.jl")
 
 #include("Lorenz2DUlam.jl")
 
