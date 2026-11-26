@@ -38,7 +38,12 @@ function FourierAdjoint(p::AbstractVector, k::Integer)
     return FourierAdjoint(p, k, Cω(), L2())
 end
 
-# FourierAdjoint(k_freq, n, D::CircleMap, s): see the docstring of FourierAnalytic's
+# FourierAdjoint(k_freq, n, a::WeightedSobolev) and FourierAdjoint(k_freq, n, D::CircleMap, s):
+# see the docstring of the FourierAnalytic methods of the same signatures
+function FourierAdjoint(k_freq::Integer, n::Integer, a::WeightedSobolev; T = Float64)
+    _fourier_weighted_order(a)
+    return FourierAdjoint(FourierPoints(n, T), k_freq, a, L2())
+end
 function FourierAdjoint(
     k_freq::Integer,
     n::Integer,
@@ -47,12 +52,8 @@ function FourierAdjoint(
     A_target = nothing,
     T = Float64,
 )
-    return FourierAdjoint(
-        FourierPoints(n, T),
-        k_freq,
-        _fourier_weighted_norm(D, s, A_target),
-        L2(),
-    )
+    _require_symbolics("FourierAdjoint")
+    return FourierAdjoint(k_freq, n, _fourier_weighted_norm(D, s, A_target); T = T)
 end
 
 Base.show(io::IO, B::FourierAdjoint) =

@@ -422,6 +422,11 @@ function dual_nodes end
 # MethodError on this name.
 function assemble_common end
 
+# a Fourier basis on a weighted norm needs Sobolev order s >= 2 (see FourierAnalytic)
+_fourier_weighted_order(a::WeightedSobolev) = a.k >= 2 || throw(
+    ArgumentError("a WeightedSobolev Fourier basis needs order s ≥ 2, got $(a.k)"),
+)
+
 # the weighted norm of a Fourier basis built on the map D (see FourierAnalytic)
 function _fourier_weighted_norm(D, s, A_target)
     r = circle_smoothness(D)

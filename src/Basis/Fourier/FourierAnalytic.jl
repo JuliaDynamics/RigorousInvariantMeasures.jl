@@ -54,16 +54,30 @@ function FourierAnalytic(k_freq::Integer, n::Integer, ::Type{W{j,l}}; T = Float6
 end
 
 @doc raw"""
+    FourierAnalytic(k_freq, n, a::WeightedSobolev; T = Float64)
+    FourierAdjoint(k_freq, n, a::WeightedSobolev; T = Float64)
     FourierAnalytic(k_freq, n, D::CircleMap, s; A_target = nothing, T = Float64)
     FourierAdjoint(k_freq, n, D::CircleMap, s; A_target = nothing, T = Float64)
 
-The Fourier basis of ``2k_{freq}+1`` frequencies on `n` points with the strong norm
-`WeightedSobolev(D, s; A_target)` and weak norm `L2`.  The map must be a
-[`CircleMap`](@ref) asserted ``C^s`` on the circle (`circle_smoothness(D) ≥ s`), which is
-what keeps ``Lf`` in ``W^{s,1}`` of the circle; the hypothesis is the caller's.  The
-weights come from `WeightedSobolev(D, s)`, which the Symbolics extension provides: load
-`Symbolics`, or these constructors raise a `MethodError`.
+The Fourier basis of ``2k_{freq}+1`` frequencies on `n` points whose strong norm is the
+weighted seminorm `a` of order ``s = a.k \ge 2``, [`WeightedSobolev`](@ref), and whose weak
+norm is `L2`.
+
+In the first two forms the weights are the caller's, `a = WeightedSobolev(s, [a_1, …, a_s])`,
+and nothing needs Symbolics.  Lasota–Yorke constants estimated by hand are then passed to
+the routines that use them as `dfly_coefficients = DFLYCoefficients(a, L1, A, B)`, and
+[`check_dfly_coefficients`](@ref) throws if they are stated in another norm, or if the map
+they are used with is not a [`CircleMap`](@ref) asserted ``C^s`` on the circle.
+
+In the last two the weights are chosen for `D` by `WeightedSobolev(D, s; A_target)`, which
+needs the Symbolics extension; without it they throw an `ArgumentError`.  The map must be a
+`CircleMap` asserted ``C^s`` on the circle (`circle_smoothness(D) ≥ s`), which is what keeps
+``Lf`` in ``W^{s,1}`` of the circle; the hypothesis is the caller's.
 """
+function FourierAnalytic(k_freq::Integer, n::Integer, a::WeightedSobolev; T = Float64)
+    _fourier_weighted_order(a)
+    return FourierAnalytic(FourierPoints(n, T), k_freq, a, L2())
+end
 function FourierAnalytic(
     k_freq::Integer,
     n::Integer,
@@ -72,12 +86,8 @@ function FourierAnalytic(
     A_target = nothing,
     T = Float64,
 )
-    return FourierAnalytic(
-        FourierPoints(n, T),
-        k_freq,
-        _fourier_weighted_norm(D, s, A_target),
-        L2(),
-    )
+    _require_symbolics("FourierAnalytic")
+    return FourierAnalytic(k_freq, n, _fourier_weighted_norm(D, s, A_target); T = T)
 end
 
 Base.show(io::IO, B::FourierAnalytic) =

@@ -64,17 +64,29 @@ end
 Chebyshev(p::AbstractVector, strong::Eρ) = Chebyshev(p, 0, strong, L2())
 
 @doc raw"""
+    Chebyshev(n, a::WeightedSobolev; weak = L2, T = Float64)
     Chebyshev(n, k, D::PwMap; A_target = nothing, weak = L2, T = Float64)
 
-The Chebyshev basis of `Chebyshev(n, k, weak)` with the strong norm
-`WeightedSobolev(D, k; A_target)`, the weighted seminorm in which `dfly(W{k,1}, L1, D)`
-states its constants for ``k \ge 2``.  The weights are computed from `D` by
-`WeightedSobolev(D, k)`, which the Symbolics extension provides: load `Symbolics`,
-or this constructor raises a `MethodError`.  Since they are computed from `D`, so
-`dfly(strong_norm(B), aux_norm(B), D)` returns coefficients in the basis's own norm.  For a
-family of maps, build the basis from one map and pass it with the others: `dfly` then
-certifies each map in the same norm, and throws if ``A \ge 1`` for one of them.
+The Chebyshev basis of degree `n` whose strong norm is the weighted seminorm `a` of order
+``k = a.k \ge 2``, [`WeightedSobolev`](@ref).
+
+In the first form the weights are the caller's, `a = WeightedSobolev(k, [a_1, …, a_k])`,
+and nothing needs Symbolics.  Lasota–Yorke constants estimated by hand are then passed to
+the routines that use them as `dfly_coefficients = DFLYCoefficients(a, L1, A, B)`, and
+[`check_dfly_coefficients`](@ref) throws if they are stated in another norm; with the
+Symbolics extension loaded, `dfly(a, L1, D)` certifies them for a map `D`.
+
+In the second form the weights are chosen for `D` by `WeightedSobolev(D, k; A_target)`, as
+`dfly(W{k,1}, L1, D; A_target)` chooses them, so `dfly(strong_norm(B), aux_norm(B), D)`
+returns coefficients in the basis's own norm.  It needs the Symbolics extension and throws
+an `ArgumentError` without it.  For a family of maps, build the basis from one map and pass
+it with the others: `dfly` then certifies each map in the same norm, and throws if
+``A \ge 1`` for one of them.
 """
+function Chebyshev(n::Integer, a::WeightedSobolev; weak::Type{<:NormKind} = L2, T = Float64)
+    a.k >= 2 || throw(ArgumentError("a WeightedSobolev Chebyshev basis needs k ≥ 2, got $(a.k)"))
+    return Chebyshev(ChebPoints(n, T), a.k, a, weak())
+end
 function Chebyshev(
     n::Integer,
     k::Integer,
@@ -83,8 +95,8 @@ function Chebyshev(
     weak::Type{<:NormKind} = L2,
     T = Float64,
 )
-    norm = WeightedSobolev(D, k; A_target = A_target)
-    return Chebyshev(ChebPoints(n, T), k, norm, weak())
+    _require_symbolics("Chebyshev")
+    return Chebyshev(n, WeightedSobolev(D, k; A_target = A_target); weak = weak, T = T)
 end
 Base.show(io::IO, B::Chebyshev) =
     print(io, "Chebyshev basis on $(length(B)) points, highest degree $(length(B)-1)")

@@ -114,6 +114,27 @@ L1
 """
 function weak_norm end
 
+@doc raw"""
+	aux_norm(B::Basis)
+
+Return the type of the auxiliary norm of the basis: the second norm of the
+Doeblin-Fortet-Lasota-Yorke inequality
+``\|Lf\|_s \le A\|f\|_s + B\|f\|_{\mathrm{aux}}``.  It is `L1` for every basis except a
+`Chebyshev` basis with weak norm `L2μ`, for which it is `L1μ`.  It is not the weak norm
+([`weak_norm`](@ref)), which is the norm of the projection estimate.
+
+# Example
+
+```jldoctest
+julia> using RigorousInvariantMeasures
+
+julia> B = Ulam(1024)
+Ulam{VarInterval, L1, LinRange{Float64, Int64}}(LinRange{Float64}(0.0, 1.0, 1025))
+
+julia> aux_norm(B)
+L1
+```
+"""
 function aux_norm end
 
 """

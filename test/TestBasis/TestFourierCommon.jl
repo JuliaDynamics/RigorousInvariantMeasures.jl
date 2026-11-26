@@ -57,3 +57,20 @@ end
     q = exp(-2π / 10)
     @test 2q^9 / (1 - q) <= e8 <= 2q^9 / (1 - q) * (1 + 1e-12) && e16 < e8
 end
+
+@testset "Fourier bases on a WeightedSobolev given by hand" begin
+    RIM = RigorousInvariantMeasures
+    a = WeightedSobolev(2, [3.0, 1.0])
+    for Bf in (FourierAnalytic(16, 64, a), FourierAdjoint(16, 64, a))
+        @test strong_norm(Bf) == a && weak_norm(Bf) == L2 && length(Bf) == 33
+        c = DFLYCoefficients(a, L1, 0.5, 2.0)
+        # a circle map asserted C^2 is accepted, a map of the interval is not
+        Dc = mod1_dynamic(x -> 2x + RIM.sinpi(2x) / 20; circle_smoothness = 3)
+        @test RIM.check_dfly_coefficients(Bf, Dc, c) === c
+        @test_throws ArgumentError RIM.check_dfly_coefficients(Bf, mod1_dynamic(x -> 2x + RIM.sinpi(2x) / 20), c)
+        @test_throws ArgumentError RIM.check_dfly_coefficients(
+            Bf, Dc, DFLYCoefficients(WeightedSobolev(2, [2.0, 1.0]), L1, 0.5, 2.0))
+    end
+    @test_throws ArgumentError FourierAnalytic(16, 64, WeightedSobolev(1, [1.0]))
+    @test_throws ArgumentError FourierAdjoint(16, 64, WeightedSobolev(1, [1.0]))
+end

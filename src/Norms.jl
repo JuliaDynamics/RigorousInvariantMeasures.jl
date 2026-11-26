@@ -68,8 +68,8 @@ inequality is stated in,
 ```
 
 which is what [`dfly`](@ref) returns.  The second norm is the auxiliary norm of the
-basis, [`aux_norm`](@ref), `L1` for every basis in the package; the weak norm of the basis,
-[`weak_norm`](@ref), does not enter the inequality.  The norms travel with the numbers because a pair is
+basis, [`aux_norm`](@ref): `L1`, or `L1μ` for a `Chebyshev` basis with weak norm `L2μ`; the
+weak norm of the basis, [`weak_norm`](@ref), does not enter the inequality.  The norms travel with the numbers because a pair is
 not a pair of numbers alone: for the two total variations of [`VarInterval`](@ref) and
 [`VarCircle`](@ref) the same operator has pairs differing by a factor of two in ``A``, so a
 hypothesis ``A<1`` can hold in one convention and fail in the other, and a routine that
@@ -159,6 +159,19 @@ end
 # The norm is defined by k and a; A_target is a label and does not enter the comparison.
 Base.:(==)(m::WeightedSobolev, n::WeightedSobolev) = m.k == n.k && m.a == n.a
 Base.hash(n::WeightedSobolev, h::UInt) = hash(n.a, hash(n.k, hash(:WeightedSobolev, h)))
+
+# The bases built on a map call WeightedSobolev(D, k), which the Symbolics extension
+# provides; without it they say so instead of raising a MethodError.
+function _require_symbolics(constructor::AbstractString)
+    Base.get_extension(@__MODULE__, :SymbolicsExt) === nothing && throw(
+        ArgumentError(
+            "$constructor chooses its weights with WeightedSobolev(D, k), which needs the " *
+            "Symbolics extension: load Symbolics, or give the weights, " *
+            "$constructor(…, WeightedSobolev(k, a))",
+        ),
+    )
+    return nothing
+end
 
 # Analytic strip norm
 @doc raw"""

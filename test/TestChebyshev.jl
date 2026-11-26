@@ -313,3 +313,22 @@ end
     @test weak_norm(BE) == L2
     @test isfinite(RIM.weak_projection_error(BE)) && RIM.weak_projection_error(BE) > 0
 end
+
+@testset "Chebyshev(n, a::WeightedSobolev): weights and constants given by hand" begin
+    a = WeightedSobolev(2, [3.0, 1.0])
+    B = Chebyshev(32, a)
+    @test strong_norm(B) == a && weak_norm(B) == L2 && length(B) == 33
+    @test weak_norm(Chebyshev(32, a; weak = C1)) == C1
+    @test_throws ArgumentError Chebyshev(32, WeightedSobolev(1, [1.0]))
+
+    # constants in the basis's norm are accepted, and enter as B/(1 - A)
+    D = mod1_dynamic(x -> 2x + 0.5x * (1 - x))
+    c = DFLYCoefficients(a, L1, 0.5, 2.0)
+    @test RIM.check_dfly_coefficients(B, D, c) === c
+    @test RIM.invariant_measure_strong_norm_bound(B, D; dfly_coefficients = c) >= 4.0
+    # constants stated in another norm are refused
+    @test_throws ArgumentError RIM.check_dfly_coefficients(
+        B, D, DFLYCoefficients(WeightedSobolev(2, [2.0, 1.0]), L1, 0.5, 2.0))
+    @test_throws ArgumentError RIM.check_dfly_coefficients(
+        B, D, DFLYCoefficients(W{2,1}, L1, 0.5, 2.0))
+end
