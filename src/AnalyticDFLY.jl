@@ -412,16 +412,18 @@ constant already controls it.
 function invariant_measure_strong_norm_bound(
     B::FourierAnalytic{Aη},
     D::Dynamic;
-    dfly_coefficients = dfly(strong_norm(B), aux_norm(B), D),
+    dfly_coefficients = basis_dfly(B, D),
 )
+    check_dfly_coefficients(B, D, dfly_coefficients)
     return first(dfly_coefficients)
 end
 
 function invariant_measure_strong_norm_bound(
     B::Chebyshev{Eρ},
     D::Dynamic;
-    dfly_coefficients = dfly(strong_norm(B), aux_norm(B), D),
+    dfly_coefficients = basis_dfly(B, D),
 )
+    check_dfly_coefficients(B, D, dfly_coefficients)
     return first(dfly_coefficients)
 end
 

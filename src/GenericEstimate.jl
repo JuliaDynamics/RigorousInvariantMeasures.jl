@@ -55,8 +55,9 @@ function distance_from_invariant(
     norms::Vector;
     ε₁::Float64 = residualbound(B, weak_norm(B), Q, w),
     ε₂::Float64 = mag(integral_covector(B) * w - 1),
-    dfly_coefficients = dfly(strong_norm(B), aux_norm(B), D),
+    dfly_coefficients = basis_dfly(B, D),
 )
+    check_dfly_coefficients(B, D, dfly_coefficients; dominating = true)
     if ε₂ > 1e-8
         @error "w does not seem normalized correctly"
     end
@@ -72,7 +73,7 @@ end
 
 @doc raw"""
     projection_defect_coefficients(B::Basis, D::Dynamic;
-        dfly_coefficients = dfly(strong_norm(B), aux_norm(B), D),
+        dfly_coefficients = basis_dfly(B, D),
         normL = bound_weak_norm_abstract(B, D; dfly_coefficients = dfly_coefficients))
 
 Certified constants ``(c_s, c_w)`` such that the discretization defect of the
@@ -106,9 +107,10 @@ from [`strong_kind`](@ref), as [`distance_from_invariant_residual`](@ref) does.
 function projection_defect_coefficients(
     B::Basis,
     D::Dynamic;
-    dfly_coefficients = dfly(strong_norm(B), aux_norm(B), D),
+    dfly_coefficients = basis_dfly(B, D),
     normL = bound_weak_norm_abstract(B, D; dfly_coefficients = dfly_coefficients),
 )
+    check_dfly_coefficients(B, D, dfly_coefficients)
     A = interval(dfly_coefficients[1])
     Bd = interval(dfly_coefficients[2])
     return (2 * (interval(normL) + A), 2 * Bd)
@@ -118,7 +120,7 @@ end
     distance_from_invariant_residual(B::Basis, D::Dynamic, Q, w, norms;
         ε₁ = residualbound(B, weak_norm(B), Q, w),
         ε₂ = mag(integral_covector(B) * w - 1),
-        dfly_coefficients = dfly(strong_norm(B), aux_norm(B), D),
+        dfly_coefficients = basis_dfly(B, D),
         defect_coefficients = projection_defect_coefficients(B, D; dfly_coefficients))
 
 A posteriori (residual-based) rigorous upper bound for the weak-norm distance
@@ -237,13 +239,14 @@ function distance_from_invariant_residual(
     norms::Vector;
     ε₁::Float64 = residualbound(B, weak_norm(B), Q, w),
     ε₂::Float64 = mag(integral_covector(B) * w - 1),
-    dfly_coefficients = dfly(strong_norm(B), aux_norm(B), D),
+    dfly_coefficients = basis_dfly(B, D),
     defect_coefficients = projection_defect_coefficients(
         B,
         D;
         dfly_coefficients = dfly_coefficients,
     ),
 )
+    check_dfly_coefficients(B, D, dfly_coefficients)
     if ε₂ > 1e-8
         @error "w does not seem normalized correctly"
     end
@@ -410,10 +413,11 @@ function finepowernormbounds(
     D,
     coarse_norms;
     normQ_fine = opnormbound(B_fine, weak_norm(B_fine), DiscretizedOperator(B_fine, D)),
-    dfly_coefficients = dfly(strong_norm(B_fine), aux_norm(B_fine), D),
+    dfly_coefficients = basis_dfly(B_fine, D),
     target = 1e-8,
     max_powers = 20000,
 )
+    check_dfly_coefficients(B_fine, D, dfly_coefficients)
     m = length(coarse_norms)
 
     trivial_norms_fine = norms_of_powers_trivial(normQ_fine, m)
@@ -523,7 +527,7 @@ function compute_coarse_grid_quantities(f, n; m = 8)
     time_eigen2 = @elapsed ε₁, ε₂ =
         residualbound(B, weak_norm(B), Q, w), mag(integral_covector(B) * w - 1)
     time_norms = @elapsed norms = powernormbounds(B, D, Q = Q, m = m)
-    time_dfly = @elapsed dfly_coefficients = dfly(strong_norm(B), aux_norm(B), D)
+    time_dfly = @elapsed dfly_coefficients = basis_dfly(B, D)
     return CoarseGridQuantities(
         B,
         D,

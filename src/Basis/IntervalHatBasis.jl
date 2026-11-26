@@ -191,7 +191,7 @@ opnormbound(B::HatNP, N::Type{Linf}, A::AbstractVecOrMat{S}) where {S} =
 normbound(B::HatNP, N::Type{Linf}, v) = normbound(N, v)
 
 function invariant_measure_strong_norm_bound(B::HatNP, D::Dynamic)
-    A, B = dfly(strong_norm(B), aux_norm(B), D)
+    A, B = basis_dfly(B, D)
     @assert A < 1.0
     return B ⊘₊ (1.0 ⊖₋ A)
 end

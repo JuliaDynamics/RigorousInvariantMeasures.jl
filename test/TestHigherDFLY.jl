@@ -273,6 +273,26 @@ const HDF = Base.get_extension(RigorousInvariantMeasures, :SymbolicsExt)
         @test_throws MethodError FourierAnalytic(16, 64, D, 2)
     end
 
+    @testset "check_dfly_coefficients on every route" begin
+        RIM = RigorousInvariantMeasures
+        Bw = RIM.Chebyshev(RIM.ChebPoints(16, Float64), 2, W{2,1}(), L2())
+        c = dfly(W{2,1}, L1, D)              # stated in WeightedSobolev
+        @test_throws ArgumentError RIM.basis_dfly(Bw, D)
+        @test_throws ArgumentError RIM.check_dfly_coefficients(Bw, D, c)
+        @test_throws ArgumentError RIM.norms_of_powers_dfly(Bw, D, 3)
+        @test_throws ArgumentError RIM.strong_resolvent_lift(Bw, D, 0.9, 1.0)
+        # a bare tuple has no record of its norm and is not checked
+        @test RIM.check_dfly_coefficients(Bw, D, (c.A, c.B)) == (c.A, c.B)
+        # the basis built on the norm of the pair passes
+        Ba = RIM.Chebyshev(32, 2, D)
+        @test RIM.basis_dfly(Ba, D).strong == RIM.strong_norm(Ba)
+        # Fourier of Sobolev order 2 needs the map asserted C^2 on the circle
+        Dc = mod1_dynamic(x -> 2x + RIM.sinpi(2x) / 20; circle_smoothness = 3)
+        Bf = FourierAnalytic(16, 64, Dc, 2)
+        @test RIM.basis_dfly(Bf, Dc).strong == RIM.strong_norm(Bf)
+        @test_throws ArgumentError RIM.check_dfly_coefficients(Bf, D, dfly(RIM.strong_norm(Bf), L1, Dc))
+    end
+
     @testset "guards" begin
         @test_throws ArgumentError dfly(W{2,2}, L1, D)
         @test_throws ErrorException dfly(W{2,1}, L1, D; absorb = :interpolation)

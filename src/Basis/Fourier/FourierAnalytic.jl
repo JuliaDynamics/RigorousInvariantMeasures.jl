@@ -23,6 +23,11 @@ a strip of half-width ``η`` — with [`L2`](@ref) as the weak norm; this is the
 setting in which the analytic Lasota-Yorke inequality is proved. The third
 constructor swaps the strong norm for the Sobolev `W{j,l}` seminorm instead.
 
+W{1,1} Fourier bases are not supported: no projection error is derived for Sobolev order 1.
+Use `Ulam` for ``W^{1,1}``/BV, or a Fourier basis with Sobolev order ``\ge 2`` and `L2`
+weak norm, preferably `FourierAnalytic(k_freq, n, D::CircleMap, s)` from the Symbolics
+extension, which builds it on the weighted norm of the map.
+
 Assembly requires the `FFTWExt` extension: load `FFTW` alongside this package,
 or `assemble(B, D)` will raise a `MethodError`.
 """

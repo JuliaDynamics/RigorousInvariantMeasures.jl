@@ -1,5 +1,6 @@
 using .RigorousInvariantMeasures: Dual
-using .RigorousInvariantMeasures: NormKind, L1, L2, Aη, W, Cω, VarInterval, dfly, WeightedSobolev, circle_smoothness, strong_kind
+using .RigorousInvariantMeasures: NormKind, L1, L2, Aη, W, Cω, VarInterval, dfly, WeightedSobolev, circle_smoothness, strong_kind, basis_dfly, check_dfly_coefficients
+import .RigorousInvariantMeasures: _basis_dynamic_check
 import .RigorousInvariantMeasures: opnormbound, normbound, restrict_to_average_zero
 
 export Fourier, evalFourier, FourierPoints, assemble_common, eval_on_dual, dual_nodes
@@ -123,11 +124,20 @@ K^{1-2s}/(2s-1)``.  For ``|m| \le K`` and ``l \ne 0``, ``|m+ln| \ge |l|n - K \ge
 ```
 
 evaluated in interval arithmetic.  Requires ``s \ge 2``, ``K \ge 1`` and ``n \ge 2K+1``.
+
+W{1,1} Fourier bases are not supported: for ``s = 1`` the aliased sum
+``\sum_{l\ne0}|m+ln|^{-1}`` diverges and no projection error is derived.  Use `Ulam` for
+``W^{1,1}``/BV, or a Fourier basis with Sobolev order ``\ge 2`` and `L2` weak norm.
 """
 function _fourier_sobolev_projection_error(B::Fourier)
     s = _fourier_sobolev_order(B.strong)
     K, n = B.k, length(B.p)
-    s >= 2 || throw(ArgumentError("the Fourier W^{s,1} projection error needs s ≥ 2, got $s"))
+    s >= 2 || throw(
+        ArgumentError(
+            "W{1,1} Fourier bases are not supported: use Ulam for W^{1,1}/BV, or a " *
+            "Fourier basis with Sobolev order ≥ 2 and L2 weak norm (got order $s)",
+        ),
+    )
     K >= 1 || throw(ArgumentError("the Fourier projection error needs K ≥ 1"))
     n >= 2K + 1 || throw(ArgumentError("the Fourier projection error needs n ≥ 2K + 1"))
     si, Ki, ni = interval(s), interval(K), interval(n)
@@ -169,6 +179,9 @@ opnormbound(B::Fourier, ::Type{L2}, M::AbstractVecOrMat{S}) where {S} =
     opnormbound(L2, M)
 normbound(B::Fourier, ::Type{L2}, v) = normbound(L2, v)
 
+# the basis-dynamic consistency check of `check_dfly_coefficients` for Fourier bases
+_basis_dynamic_check(B::Fourier, D::Dynamic) = _fourier_circle_check(B, D)
+
 function _fourier_circle_check(B::Fourier, D)
     B.strong isa Union{W,WeightedSobolev} || return nothing
     s = _fourier_sobolev_order(B.strong)
@@ -196,18 +209,8 @@ function invariant_measure_strong_norm_bound(
     dfly_coefficients = nothing,
 )
     _fourier_circle_check(B, D)
-    dfly_coefficients === nothing &&
-        (dfly_coefficients = dfly(strong_norm(B), aux_norm(B), D))
-    c = strong_kind(dfly_coefficients)
-    (B.strong isa WeightedSobolev && c != B.strong) && throw(
-        ArgumentError("the DFLY coefficients are stated in $c, not in the basis's $(B.strong)"),
-    )
-    (B.strong isa W && c isa WeightedSobolev) && throw(
-        ArgumentError(
-            "the DFLY coefficients are stated in $c, not in $(B.strong); build the basis " *
-            "on that norm",
-        ),
-    )
+    dfly_coefficients === nothing && (dfly_coefficients = basis_dfly(B, D))
+    check_dfly_coefficients(B, D, dfly_coefficients)
     A, Bcoeff = dfly_coefficients
     @assert A < 1.0
     return Bcoeff ⊘₊ (1.0 ⊖₋ A)
@@ -218,10 +221,9 @@ end
 # By Riesz-Thorin: ||L||_{L²} ≤ 1
 # For general maps: use dfly_coefficients[2] ⊕₊ 1.0 as Hat does
 function bound_weak_norm_abstract(B::Fourier, D = nothing; dfly_coefficients = nothing)
-    if dfly_coefficients === nothing
-        D isa Dynamic && _fourier_circle_check(B, D)
-        dfly_coefficients = dfly(strong_norm(B), aux_norm(B), D)
-    end
+    D isa Dynamic && _fourier_circle_check(B, D)
+    dfly_coefficients === nothing && (dfly_coefficients = basis_dfly(B, D))
+    check_dfly_coefficients(B, D, dfly_coefficients)
     return dfly_coefficients[2] ⊕₊ 1.0
 end
 

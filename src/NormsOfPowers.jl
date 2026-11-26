@@ -305,8 +305,9 @@ function norms_of_powers_dfly(
     Bas::Basis,
     D::Dynamic,
     m;
-    dfly_coefficients = dfly(strong_norm(Bas), aux_norm(Bas), D),
+    dfly_coefficients = basis_dfly(Bas, D),
 )
+    check_dfly_coefficients(Bas, D, dfly_coefficients)
     A, B = dfly_coefficients
     Eh = aux_normalized_projection_error(Bas)
     M₁n = strong_weak_bound(Bas)
@@ -364,8 +365,9 @@ function norms_of_powers_from_coarser_grid_recursive(
     D::Dynamic,
     coarse_norms::Vector,
     normQ::Real;
-    dfly_coefficients = dfly(strong_norm(fine_basis), aux_norm(fine_basis), D),
+    dfly_coefficients = basis_dfly(fine_basis, D),
 )
+    check_dfly_coefficients(fine_basis, D, dfly_coefficients)
     is_refinement(fine_basis, coarse_basis) ||
         throw(ArgumentError("the fine basis is not a refinement of the coarse basis"))
     mmax = length(coarse_norms)
@@ -434,8 +436,9 @@ function norms_of_powers_from_coarser_grid(
     D::Dynamic,
     coarse_norms::Vector,
     normQ::Real;
-    dfly_coefficients = dfly(strong_norm(fine_basis), aux_norm(fine_basis), D),
+    dfly_coefficients = basis_dfly(fine_basis, D),
 )
+    check_dfly_coefficients(fine_basis, D, dfly_coefficients)
     if !is_refinement(fine_basis, coarse_basis)
         @error "The fine basis is not a refinement of the coarse basis"
     end

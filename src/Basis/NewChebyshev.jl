@@ -1304,19 +1304,14 @@ end
 
 ``B/(1-A)`` in the weighted seminorm the basis carries.  The default coefficients are
 `dfly(B.strong, aux_norm(B), D)`, which certifies ``(A, B)`` for the basis's own weights;
-coefficients stated in another norm throw.
+coefficients stated in another norm throw ([`check_dfly_coefficients`](@ref)).
 """
 function invariant_measure_strong_norm_bound(
     B::Chebyshev{WeightedSobolev},
     D::Dynamic;
-    dfly_coefficients = dfly(strong_norm(B), aux_norm(B), D),
+    dfly_coefficients = basis_dfly(B, D),
 )
-    strong_kind(dfly_coefficients) == strong_norm(B) || throw(
-        ArgumentError(
-            "the DFLY coefficients are stated in $(strong_kind(dfly_coefficients)), " *
-            "not in the basis's $(strong_norm(B))",
-        ),
-    )
+    check_dfly_coefficients(B, D, dfly_coefficients)
     A, Bcoeff = dfly_coefficients
     A < 1 || error("A = $A is not below 1")
     return Bcoeff ⊘₊ (1.0 ⊖₋ A)
@@ -1335,14 +1330,9 @@ Without this method `distance_from_invariant` fails with a `MethodError` on any
 function invariant_measure_strong_norm_bound(
     B::Chebyshev{W{k,l}},
     D::Dynamic;
-    dfly_coefficients = dfly(strong_norm(B), aux_norm(B), D),
+    dfly_coefficients = basis_dfly(B, D),
 ) where {k,l}
-    strong_kind(dfly_coefficients) isa WeightedSobolev && throw(
-        ArgumentError(
-            "the DFLY coefficients are stated in $(strong_kind(dfly_coefficients)), not in " *
-            "W^{$k,1}; build the basis as Chebyshev(p, $k, strong_kind(coefficients), weak)",
-        ),
-    )
+    check_dfly_coefficients(B, D, dfly_coefficients)
     A, Bcoeff = dfly_coefficients
     @assert A < 1.0
     return Bcoeff ⊘₊ (1.0 ⊖₋ A)
@@ -1376,9 +1366,10 @@ bounded away from zero.
 function bound_weak_norm_abstract(
     B::Chebyshev,
     D = nothing;
-    dfly_coefficients = dfly(strong_norm(B), aux_norm(B), D),
+    dfly_coefficients = basis_dfly(B, D),
     n::Integer = 1024,
 )
+    check_dfly_coefficients(B, D, dfly_coefficients)
     D === nothing && return dfly_coefficients[2] ⊕₊ 1.0
     S = 0.0
     for br in branches(D)

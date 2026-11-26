@@ -254,8 +254,8 @@ bound_linalg_norm_L∞_from_weak(B::Hat) = @error "TODO"
 bound_weak_norm_abstract(
     B::Hat,
     D = nothing;
-    dfly_coefficients = dfly(strong_norm(B), aux_norm(B), D),
-) = dfly_coefficients[2] ⊕₊ 1.0
+    dfly_coefficients = basis_dfly(B, D),
+) = check_dfly_coefficients(B, D, dfly_coefficients)[2] ⊕₊ 1.0
 
 opnormbound(B::Hat, N::Type{Linf}, A::AbstractVecOrMat{S}) where {S} =
     opnormbound(N, A)
@@ -312,8 +312,9 @@ end
 function invariant_measure_strong_norm_bound(
     B::Hat,
     D::Dynamic;
-    dfly_coefficients = dfly(strong_norm(B), aux_norm(B), D),
+    dfly_coefficients = basis_dfly(B, D),
 )
+    check_dfly_coefficients(B, D, dfly_coefficients; dominating = true)
     A, B = dfly_coefficients
     @assert A < 1.0
     return B ⊘₊ (1.0 ⊖₋ A)

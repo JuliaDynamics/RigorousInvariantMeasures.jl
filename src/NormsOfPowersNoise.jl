@@ -314,7 +314,7 @@ Returns two arrays (strongs, norms) of length m:
 strongs[k] bounds ||Q^k f||_s, norms[k] bounds ||Q^k f||)
 """
 function norms_of_powers_abstract_noise(Bas::Basis, N::NoiseKernel, m)
-    A, B = dfly(strong_norm(Bas), aux_norm(Bas), N)
+    A, B = basis_dfly(Bas, N)
     Eh = aux_normalized_projection_error(Bas)
     M₁n = strong_weak_bound(Bas)
     M₂ = aux_weak_bound(Bas)
@@ -355,7 +355,7 @@ function norms_of_powers_from_coarser_grid_noise(
     trivial_norms =
         norms_of_powers_trivial_noise(fine_basis, weak_norm(fine_basis), Q, NK, m + 1)
 
-    A, B = dfly(strong_norm(fine_basis), aux_norm(fine_basis), NK)
+    A, B = basis_dfly(fine_basis, NK)
 
     # adds a 0th element to strongs
     trivial_norms0(k::Integer) = k == 0 ? 1.0 : trivial_norms[k]
@@ -387,7 +387,7 @@ function norms_of_powers_from_coarser_grid_noise_abstract(
     abstract_norms = fill(NaN, m + 1)
     trivial_norms = ones(m + 1)
 
-    A, B = dfly(strong_norm(coarse_basis), aux_norm(coarse_basis), NK)
+    A, B = basis_dfly(coarse_basis, NK)
 
     # adds a 0th element to strongs
     trivial_norms0(k::Integer) = k == 0 ? 1.0 : trivial_norms[k]
@@ -504,7 +504,7 @@ each ``F_{n+1}`` is also capped by ``F_n F_1``, and the result is extended by
 """
 function norms_of_powers_recursive_noise(coarse_basis::Ulam, NK::NoiseKernel,
                                          coarse_norms::Vector; first::Real = 1.0)
-    _, Bv = dfly(strong_norm(coarse_basis), aux_norm(coarse_basis), NK)
+    _, Bv = basis_dfly(coarse_basis, NK)
     return norms_of_powers_recursive_noise(Bv ⊗₊ weak_projection_error(coarse_basis), coarse_norms; first)
 end
 
@@ -615,7 +615,7 @@ function distance_from_invariant_noise(
     if ε₂ > 1e-8
         @error "w does not seem normalized correctly"
     end
-    _, us = dfly(strong_norm(B), aux_norm(B), NK)
+    _, us = basis_dfly(B, NK)
     Cs = infinite_sum_norms(norms)
     Kh = weak_projection_error(B)
     normw = normbound(B, weak_norm(B), w)

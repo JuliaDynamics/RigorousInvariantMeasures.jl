@@ -10,6 +10,17 @@ export FourierAdjoint
 # to make it as coherent possible as the output of the FFT
 # [0:N; -N:-1]
 
+@doc raw"""
+    FourierAdjoint(k, n; T = Float64)
+    FourierAdjoint(p, k)
+
+The adjoint realisation of the Fourier basis of `2k + 1` frequencies on `n` points, with
+strong norm `Cω` by default.  With a Sobolev strong norm (`W{s,l}`, or the weighted norm of
+`FourierAdjoint(k, n, D::CircleMap, s)` in the Symbolics extension) the order must be
+``s \ge 2``: W{1,1} Fourier bases are not supported, since no projection error is derived
+for order 1. Use `Ulam` for ``W^{1,1}``/BV, or a Fourier basis with Sobolev order ``\ge 2``
+and `L2` weak norm.
+"""
 struct FourierAdjoint{S<:NormKind,WN<:NormKind,T<:AbstractVector} <: Fourier
     p::T
     k::Integer
