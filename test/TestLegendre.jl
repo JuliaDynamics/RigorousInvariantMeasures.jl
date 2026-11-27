@@ -1,5 +1,5 @@
 using RigorousInvariantMeasures, IntervalArithmetic, BallArithmetic, LinearAlgebra, Test
-using FFTW  # assemble(::Chebyshev, …), used by galerkin_matrix_from_chebyshev
+using FFTW, GenericFFT  # assemble(::Chebyshev, …) in Float64 and BigFloat, for route 2
 
 @testset "Legendre basis" begin
     RIM = RigorousInvariantMeasures
@@ -115,6 +115,17 @@ using FFTW  # assemble(::Chebyshev, …), used by galerkin_matrix_from_chebyshev
         @test all(abs.(A1.c - A2.c) .<= A1.r + A2.r)
         @test maximum(A2.r) < 1e-10
         @test_throws ArgumentError galerkin_matrix_from_chebyshev(B, D, Cert; Nprime = 48)
+        # route 2 in BigFloat, on a map built at that precision: it intersects both
+        # Float64 routes and is far narrower
+        setprecision(BigFloat, 512) do
+            Db = mod1_dynamic(f; full_branch = true, T = BigFloat, ϵ = big(2.0)^-460)
+            Cb = certify_compatibility(G, Db)
+            Ab = galerkin_matrix_from_chebyshev(Legendre(N, G; T = BigFloat), Db, Cb; Nprime = 256)
+            @test Ab isa BallMatrix{BigFloat}
+            @test maximum(Ab.r) < 1e-130
+            @test all(abs.(BigFloat.(A2.c) .- Ab.c) .<= BigFloat.(A2.r) .+ Ab.r)
+            @test all(abs.(BigFloat.(A1.c) .- Ab.c) .<= BigFloat.(A1.r) .+ Ab.r)
+        end
         D2 = mod1_dynamic(f; full_branch = true)                 # equal map, another object
         @test_throws ArgumentError galerkin_matrix_from_chebyshev(B, D2, Cert; Nprime = 64)
         G2 = EllipseGeometry(3.5, 3.75, 4.0)                     # equal values, another object
@@ -143,6 +154,10 @@ using FFTW  # assemble(::Chebyshev, …), used by galerkin_matrix_from_chebyshev
         @test IA.sup(cM.A_M) < 1 && IA.sup(legendre_dfly(B, Cert, M - 1).A_M) >= 1
         @test IA.sup(cM.M_w) >= l2_transfer_norm_bound(D)
         @test_throws ArgumentError legendre_dfly(Legendre(N, G2), Cert, 10)
+        Ml, cl = legendre_dfly_l1_smallest_M(B, Cert)
+        @test Ml == M && IA.sup(cl.A_M) == IA.sup(cM.A_M)
+        @test IA.mid(cl.Bp_M) ≈ sum((2j + 1) * 3.75^j for j = 0:M) rtol = 1e-12
+        @test_throws ArgumentError legendre_dfly_l1(Legendre(N, G2), Cert, 10)
         @test_throws ArgumentError legendre_dfly_smallest_M(Legendre(N), Cert)
     end
 

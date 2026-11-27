@@ -424,12 +424,16 @@ end
 ###############################################################################
 
 @doc raw"""
-    galerkin_matrix_from_chebyshev(B::Legendre, D::PwMap, C::EllipseCompatibility; Nprime)
-        -> BallMatrix{Float64}
+    galerkin_matrix_from_chebyshev(B::Legendre{T}, D::PwMap, C::EllipseCompatibility; Nprime,
+                                   ϵ, max_iter) -> BallMatrix{T}
 
 Certified enclosure of the same matrix as [`galerkin_matrix`](@ref), from the Chebyshev
 interpolation coefficients of ``LT_m``, ``m \le N'``, that `assemble` returns for
-`Chebyshev(Nprime, Eρ(r))` (an `FFTW` extension method: `using FFTW` first).  `Nprime`
+`Chebyshev(Nprime, Eρ(r); T)` (an extension method: `using FFTW` first, and `using GenericFFT`
+as well for `BigFloat`), at the
+working precision of `T` (`Float64`, or `BigFloat` at the current precision, for which `D`
+should be built at `T = BigFloat` so that its branch points are enclosed at that precision;
+`ϵ` and `max_iter` are passed to the preimage search).  `Nprime`
 must be a power of two with ``N' \ge N``.  `B` must be built on an
 [`EllipseGeometry`](@ref) `G = (r, ρ, R)` and `C` must be
 [`certify_compatibility`](@ref)`(G, D)` for this `D` (both checked, by identity); its `W`
@@ -454,33 +458,46 @@ Then ``\langle Le_k, e_j\rangle = \sum_{m\le N'}C_{j+1,m+1}c_m/(2j+1)^{1/2}
 they have Legendre components of degree ``\le N``, so truncating the Chebyshev matrix at
 ``N`` would give ``\Pi^{\mathrm{Cheb}}_NL`` and not ``\Pi_NL``.
 """
-function galerkin_matrix_from_chebyshev(B::Legendre{Float64}, D::PwMap,
-                                        C::EllipseCompatibility; Nprime::Integer)
+function galerkin_matrix_from_chebyshev(B::Legendre{T}, D::PwMap, C::EllipseCompatibility;
+                                        Nprime::Integer,
+                                        ϵ = T === BigFloat ? BigFloat(2)^(-round(Int, 0.9precision(BigFloat))) : 1e-13,
+                                        max_iter::Integer = T === BigFloat ? 400 : 100) where {T}
     _check_certificate(B, C, D)
     N = B.N
     ispow2(Nprime) && Nprime >= N ||
         throw(ArgumentError("Nprime must be a power of two ≥ N, got $Nprime"))
     G = B.geometry
-    Bc = Chebyshev(Nprime, Eρ(G.r))
-    Mt = assemble(Bc, D)                              # (N'+1)², interpolation coefficients
+    Bc = Chebyshev(Nprime, Eρ(G.r); T = T)
+    Mt = assemble(Bc, D; ϵ, max_iter, T)              # (N'+1)², interpolation coefficients
     size(Mt) == (Nprime + 1, Nprime + 1) || error("unexpected Chebyshev matrix size")
-    s = _orthonormal_scale(Float64, N)
-    Lc = _rational_interval.(Float64, legendre_to_chebyshev_rational(Nprime))[:, 1:N+1]
-    Cl = _rational_interval.(Float64, chebyshev_to_legendre_rational(Nprime))[1:N+1, :]
-    Ct = Matrix(Mt) * (Lc .* permutedims(s))          # interpolation coefficients of L e_k
-    r, R, W = interval(G.r), interval(G.R), interval(C.W)
+    s = _orthonormal_scale(T, N)
+    Lc = _rational_interval.(T, legendre_to_chebyshev_rational(Nprime))[:, 1:N+1]
+    Cl = _rational_interval.(T, chebyshev_to_legendre_rational(Nprime))[1:N+1, :]
+    Ct = _interval_product(Matrix{Interval{T}}(Mt), Lc .* permutedims(s))   # coefficients of L e_k
+    r, R, W = interval(T, G.r), interval(T, G.R), interval(T, C.W)
     Mk = [W * s[k+1] * r^k for k = 0:N]
     q = R^(-2Nprime) / (1 - R^(-2Nprime))
     for k = 0:N, m = 0:Nprime
         e = sup(2 * Mk[k+1] * (R^m + R^(-m)) * q)
-        Ct[m+1, k+1] += interval(-e, e)
+        Ct[m+1, k+1] += interval(T, -e, e)
     end
-    A = (Cl * Ct) ./ s
+    A = _interval_product(Cl, Ct) ./ s
     for k = 0:N
         e = sup(2 * Mk[k+1] * R^(-(Nprime + 1)) / (1 - 1 / R))
-        A[:, k+1] .+= interval(-e, e)
+        A[:, k+1] .+= interval(T, -e, e)
     end
     return BallMatrix(A)
+end
+
+# An enclosure of the product of two interval matrices.  In Float64 the generic product of
+# intervals (each operation outward rounded); in BigFloat the ball product of BallArithmetic,
+# which is much faster at this size, converted back to intervals.
+_interval_product(X::AbstractMatrix{Interval{Float64}}, Y::AbstractMatrix{Interval{Float64}}) = X * Y
+function _interval_product(X::AbstractMatrix{Interval{BigFloat}}, Y::AbstractMatrix{Interval{BigFloat}})
+    P = BallMatrix(X) * BallMatrix(Y)
+    # `interval(::Ball)` of BallArithmetic's IntervalArithmetic extension forms c - r and
+    # c + r with downward and upward rounding
+    return [interval(P[i, j]) for i in axes(P.c, 1), j in axes(P.c, 2)]
 end
 
 ###############################################################################
@@ -631,4 +648,45 @@ function legendre_dfly_smallest_M(B::Legendre, C::EllipseCompatibility; Mmax::In
     _check_certificate(B, C)
     G = B.geometry
     return _legendre_dfly_smallest_M(G.ρ, G.R, G.r, C.W; Mmax, T)
+end
+
+@doc raw"""
+    legendre_dfly_l1(B::Legendre, C::EllipseCompatibility, M; T = Float64) -> NamedTuple
+
+Constants of a Lasota–Yorke inequality for ``\|\cdot\|_ρ`` with the ``L^1`` norm in the
+second term,
+``\|Lf\|_ρ \le A_M\|f\|_ρ + B'_M\|f\|_{L^1}``, ``A_M = τ_MC_2``,
+``B'_M = \sum_{j\le M}(2j+1)ρ^j``, as intervals, for the geometry of `B` and the `W` of
+`C` (checked as in [`legendre_dfly`](@ref)).
+
+!!! warning "Pending the paper's lemma"
+    This inequality is not yet stated in the Diffusion paper; the constants follow the
+    derivation below and are to be checked against the lemma once it is written.  Split
+    ``Lf = (I - \Pi^{\mathrm L}_M)Lf + \Pi^{\mathrm L}_MLf``.  The first term is bounded by
+    lem:legendre-tail and ``\|Lf\|_R \le C_2\|f\|_ρ``.  For the second, the orthonormal
+    Legendre coefficients are ``b_j = \langle Lf, \tilde P_j\rangle = \langle f, \tilde P_j\circ T\rangle``,
+    so ``|b_j| \le (2j+1)^{1/2}\|f\|_{L^1}`` since ``|P_j| \le 1`` on ``[-1,1]``, and
+    ``\|\Pi^{\mathrm L}_MLf\|_ρ \le \sum_{j\le M}|b_j|(2j+1)^{1/2}ρ^j`` as in the proof of
+    lem:legendre-cheb.
+"""
+function legendre_dfly_l1(B::Legendre, C::EllipseCompatibility, M::Integer; T = Float64)
+    _check_certificate(B, C)
+    G = B.geometry
+    ρi = as_interval(T, G.ρ)
+    c = _legendre_dfly(G.ρ, G.R, G.r, C.W, M; T)
+    Bp = sum(interval(T, 2j + 1) * ρi^j for j = 0:M)
+    return (; A_M = c.A_M, Bp_M = Bp, τ_M = c.τ_M, C₂ = c.C₂, M_w = c.M_w)
+end
+
+"""
+    legendre_dfly_l1_smallest_M(B::Legendre, C::EllipseCompatibility; Mmax = 2000, T = Float64)
+        -> (M, constants)
+
+The smallest ``M \\le`` `Mmax` with ``\\sup A_M < 1`` in [`legendre_dfly_l1`](@ref), and the
+constants there; ``A_M`` is the same as in [`legendre_dfly`](@ref), so so is ``M``.
+"""
+function legendre_dfly_l1_smallest_M(B::Legendre, C::EllipseCompatibility; Mmax::Integer = 2000,
+                                     T = Float64)
+    M, _ = legendre_dfly_smallest_M(B, C; Mmax, T)
+    return (M, legendre_dfly_l1(B, C, M; T))
 end

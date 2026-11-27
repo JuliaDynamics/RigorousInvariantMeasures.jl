@@ -109,7 +109,8 @@ export Legendre, legendre_basis, change_of_basis_matrices, change_of_basis,
     galerkin_matrix,
     galerkin_matrix_from_chebyshev, l2_resolvent_bound_average_zero,
     l2_transfer_norm_bound, legendre_C_M, legendre_tau_M, legendre_l2_tail,
-    legendre_l2_tail_geometric, legendre_dfly, legendre_dfly_smallest_M
+    legendre_l2_tail_geometric, legendre_dfly, legendre_dfly_smallest_M,
+    legendre_dfly_l1, legendre_dfly_l1_smallest_M
 
 include("SpectralCertification.jl")
 
