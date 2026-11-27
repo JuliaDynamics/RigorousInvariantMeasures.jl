@@ -86,40 +86,64 @@ using FFTW  # assemble(::Chebyshev, …), used by galerkin_matrix_from_chebyshev
         @test all(abs.(Float64.(Ab.c) - A.c) .<= A.r .+ 1e-30)
     end
 
-    @testset "ellipse data, route 2, change of basis" begin
-        E = bernstein_ellipse_data(D; r = 3.5, ρ = 3.75)
-        @test E.R > 4.0 && E.W < 1.9
+    @testset "geometry, compatibility, route 2, change of basis" begin
+        @test_throws ArgumentError EllipseGeometry(3.5, 3.4, 4.0)
+        G = EllipseGeometry(3.5, 3.75, 4.0)
+        Cert = certify_compatibility(G, D)
+        @test Cert.G === G && Cert.dynamic === D && Cert.R_image > 4.03 && Cert.W < 1.9
         # T'(x) = 5/2 - x vanishes at t = 4, of Bernstein parameter ≈ 7.87
-        @test_throws ArgumentError bernstein_ellipse_data(D; r = 8.0, ρ = 8.5)
-        @test_throws ArgumentError bernstein_ellipse_data(D; r = 3.5, ρ = 5.0)  # ρ ≥ R
+        @test_throws ArgumentError certify_compatibility(EllipseGeometry(8.0, 8.5, 9.0), D)
+        # the image of ∂E_{3.5} is certified outside E_{4.03} only
+        @test_throws ArgumentError certify_compatibility(EllipseGeometry(3.5, 3.75, 4.1), D)
+        @test_throws ArgumentError certify_compatibility(G, mod1_dynamic(x -> 1.5x))   # not full branch
+
+        # one call for a family: T_a(x) = 2x + a x(1-x), a ∈ [0.49, 0.51]
+        a = interval(0.49, 0.51)
+        Dfam = mod1_dynamic(x -> 2x + a * x * (1 - x); full_branch = true)
+        Cfam = certify_compatibility(G, Dfam)
+        @test Cfam.W >= Cert.W && Cfam.R_image <= Cert.R_image
+        for a0 in (0.49, 0.5, 0.51)
+            Ca = certify_compatibility(G, mod1_dynamic(x -> 2x + a0 * x * (1 - x); full_branch = true))
+            @test Ca.W <= Cfam.W && Ca.R_image >= Cfam.R_image
+        end
 
         N = 12
-        B = Legendre(N, D; r = 3.5, ρ = 3.75)
+        B = Legendre(N, G)
+        @test B.geometry === G
         A1 = galerkin_matrix(B, D)
-        A2 = galerkin_matrix_from_chebyshev(B, D; Nprime = 64)
+        A2 = galerkin_matrix_from_chebyshev(B, D, Cert; Nprime = 64)
         @test all(abs.(A1.c - A2.c) .<= A1.r + A2.r)
         @test maximum(A2.r) < 1e-10
-        @test_throws ArgumentError galerkin_matrix_from_chebyshev(B, D; Nprime = 48)
-        @test_throws ArgumentError galerkin_matrix_from_chebyshev(B, mod1_dynamic(f); Nprime = 64)
+        @test_throws ArgumentError galerkin_matrix_from_chebyshev(B, D, Cert; Nprime = 48)
+        D2 = mod1_dynamic(f; full_branch = true)                 # equal map, another object
+        @test_throws ArgumentError galerkin_matrix_from_chebyshev(B, D2, Cert; Nprime = 64)
+        G2 = EllipseGeometry(3.5, 3.75, 4.0)                     # equal values, another object
+        @test_throws ArgumentError galerkin_matrix_from_chebyshev(Legendre(N, G2), D, Cert; Nprime = 64)
+        @test_throws ArgumentError galerkin_matrix_from_chebyshev(Legendre(N), D, Cert; Nprime = 64)
 
-        Bc = Chebyshev(16, D; r = 3.5, ρ = 3.75)
-        @test Bc.dynamic === D && Bc.ellipse == B.ellipse && Bc.strong.ρ == 3.75
-        @test Chebyshev(16, Eρ(3.75)).dynamic === nothing    # the old constructors unchanged
+        Bc = Chebyshev(16, G)
+        @test Bc.geometry === G && Bc.strong.ρ == 3.75
+        @test Chebyshev(16, Eρ(3.75)).geometry === nothing    # the old constructors unchanged
         Bl, c2l, l2c = legendre_basis(Bc)
-        @test Bl.N == 16 && Bl.dynamic === D && Bl.ellipse === Bc.ellipse
+        @test Bl.N == 16 && Bl.geometry === G
         @test inball(Matrix(1.0I, 17, 17), c2l * l2c)
         # T_2(2x-1) = 2(2x-1)^2 - 1 = (4/3)·P_2 - (1/3)·P_0 = (4/(3√5)) e_2 - (1/3) e_0
         v = change_of_basis(Bc, Bl, [0.0, 0.0, 1.0, zeros(14)...])
         @test _in(-1 / 3, v[1]) && _in(4 / (3sqrt(5)), v[3]) && _in(0.0, v[2])
         w = change_of_basis(Bl, Bc, [-1 / 3, 0.0, 4 / (3sqrt(5)), zeros(14)...])
         @test _in(1.0, w[3]) && abs(w[1].c) <= w[1].r + 1e-15
-        D2 = mod1_dynamic(f; full_branch = true)                 # equal map, another object
-        @test_throws ArgumentError change_of_basis_matrices(Bc, Legendre(16, D2; r = 3.5, ρ = 3.75))
-        @test_throws ArgumentError change_of_basis_matrices(Bc, Legendre(16, D; r = 3.4, ρ = 3.75))
+        @test_throws ArgumentError change_of_basis_matrices(Bc, Legendre(16, G2))
         @test_throws ArgumentError change_of_basis_matrices(Bc, Legendre(16))
         @test_throws ArgumentError change_of_basis_matrices(Chebyshev(16, Eρ(3.75)), Bl)
-        @test_throws ArgumentError change_of_basis_matrices(Chebyshev(8, D; r = 3.5, ρ = 3.75), Bl)
+        @test_throws ArgumentError change_of_basis_matrices(Chebyshev(8, G), Bl)
         @test_throws ArgumentError legendre_basis(Chebyshev(16, Eρ(3.75)))
+
+        # constants from the basis and the certificate
+        M, cM = legendre_dfly_smallest_M(B, Cert)
+        @test IA.sup(cM.A_M) < 1 && IA.sup(legendre_dfly(B, Cert, M - 1).A_M) >= 1
+        @test IA.sup(cM.M_w) >= l2_transfer_norm_bound(D)
+        @test_throws ArgumentError legendre_dfly(Legendre(N, G2), Cert, 10)
+        @test_throws ArgumentError legendre_dfly_smallest_M(Legendre(N), Cert)
     end
 
     @testset "L² resolvent on the mean-zero subspace" begin
@@ -141,10 +165,11 @@ using FFTW  # assemble(::Chebyshev, …), used by galerkin_matrix_from_chebyshev
         end
         @test IA.mid(legendre_l2_tail(ρ, 10)) ≈ ρ^(-11) / sqrt(1 - ρ^(-2))
         @test IA.mid(legendre_l2_tail_geometric(2.0, 0.5, 3)) ≈ 2 * 0.5^4 / sqrt(0.75)
-        c = legendre_dfly(ρ, R, r, W, 60)
+        c = RIM._legendre_dfly(ρ, R, r, W, 60)
         @test IA.mid(c.C₂) ≈ 2W / sqrt(1 - (r / ρ)^2)
-        M, cM = legendre_dfly_smallest_M(ρ, R, r, W)
-        @test IA.sup(cM.A_M) < 1 && IA.sup(legendre_dfly(ρ, R, r, W, M - 1).A_M) >= 1
+        M, cM = RIM._legendre_dfly_smallest_M(ρ, R, r, W)    # the hand values: M = 55
+        @test M == 55
+        @test IA.sup(cM.A_M) < 1 && IA.sup(RIM._legendre_dfly(ρ, R, r, W, M - 1).A_M) >= 1
         @test_throws ArgumentError legendre_tau_M(4.0, 3.0, 5)
     end
 end

@@ -13,7 +13,7 @@ import .RigorousInvariantMeasures: one_vector, is_refinement, weak_norm
 import .RigorousInvariantMeasures: bernstein_parameter, assemble, change_of_basis
 
 @doc raw"""
-    Legendre{T<:AbstractFloat, D, E} <: Basis
+    Legendre{T<:AbstractFloat, G} <: Basis
 
 The orthonormal Legendre basis of ``L^2([0,1], dx)`` up to degree `N`,
 ``e_k(x) = (2k+1)^{1/2}P_k(2x-1)``, ``k = 0, …, N``, with ``P_k`` the Legendre
@@ -28,34 +28,33 @@ here is also the matrix in that convention.
 
 Two constructors:
 
-- `Legendre(N; T = Float64)`: the basis alone, `dynamic = nothing`, `ellipse = nothing`;
-- `Legendre(N, D; r, ρ, T = Float64, ngeom = 1024, cover = 64)`: the basis built for the map
-  `D`, storing `D` and its [`BernsteinEllipseData`](@ref) certified by
-  [`bernstein_ellipse_data`](@ref).
+- `Legendre(N; T = Float64)`: the basis alone, `geometry = nothing`;
+- `Legendre(N, G::EllipseGeometry; T = Float64)`: the basis built on the ellipse geometry
+  `G`, which it stores.  The geometry holds no dynamic.
 
-[`galerkin_matrix`](@ref) needs only `D`; [`galerkin_matrix_from_chebyshev`](@ref)
-needs the ellipse data.  The basis does not take part in `DiscretizedOperator`, whose
-assembly goes through preimages and dual elements.
+[`galerkin_matrix`](@ref) and [`l2_resolvent_bound_average_zero`](@ref) need only the map.
+[`galerkin_matrix_from_chebyshev`](@ref), [`legendre_dfly`](@ref) and
+[`legendre_dfly_smallest_M`](@ref) need the geometry and the [`EllipseCompatibility`](@ref)
+of the map with it.  The basis does not take part in `DiscretizedOperator`, whose assembly
+goes through preimages and dual elements.
 """
-struct Legendre{T<:AbstractFloat,DT,E} <: Basis
+struct Legendre{T<:AbstractFloat,G} <: Basis
     N::Int
-    dynamic::DT
-    ellipse::E
-    function Legendre{T}(N::Integer, dynamic = nothing, ellipse = nothing) where {T<:AbstractFloat}
+    geometry::G
+    function Legendre{T}(N::Integer, geometry = nothing) where {T<:AbstractFloat}
         N >= 0 || throw(ArgumentError("the degree must be ≥ 0, got $N"))
-        return new{T,typeof(dynamic),typeof(ellipse)}(Int(N), dynamic, ellipse)
+        geometry === nothing || geometry isa EllipseGeometry ||
+            throw(ArgumentError("the geometry must be an EllipseGeometry or nothing"))
+        return new{T,typeof(geometry)}(Int(N), geometry)
     end
 end
 Legendre(N::Integer; T::Type{<:AbstractFloat} = Float64) = Legendre{T}(N)
-function Legendre(N::Integer, D::PwMap; r::Real, ρ::Real, T::Type{<:AbstractFloat} = Float64,
-                  ngeom::Integer = 1024, cover::Integer = 64)
-    return Legendre{T}(N, D, bernstein_ellipse_data(D; r, ρ, n = ngeom, cover))
-end
+Legendre(N::Integer, G::EllipseGeometry; T::Type{<:AbstractFloat} = Float64) = Legendre{T}(N, G)
 
 Base.length(B::Legendre) = B.N + 1
 Base.show(io::IO, B::Legendre{T}) where {T} = print(io,
     "Legendre basis on [0,1], orthonormal in L²(dx), degree ≤ $(B.N) ($T)",
-    B.dynamic === nothing ? "" : ", built for a dynamic")
+    B.geometry === nothing ? "" : ", on $(B.geometry)")
 
 weak_norm(::Legendre) = L2
 is_refinement(Bf::Legendre, Bc::Legendre) = Bf.N >= Bc.N
@@ -185,15 +184,14 @@ _orthonormal_scale(::Type{T}, N::Integer) where {T} = [sqrt(interval(T, 2k + 1))
 @doc raw"""
     legendre_basis(Bc::Chebyshev; T = Float64) -> (Bl, cheb_to_leg, leg_to_cheb)
 
-The Legendre basis of the same degree as `Bc`, for the same map and with the same
-[`BernsteinEllipseData`](@ref), together with the matrices of
-[`change_of_basis_matrices`](@ref).  `Bc` must have been built for a map by
-`Chebyshev(n, D; r, ρ)`; the ellipse data are reused, not recomputed.
+The Legendre basis of the same degree as `Bc`, on the same [`EllipseGeometry`](@ref) (the
+same object), together with the matrices of [`change_of_basis_matrices`](@ref).  `Bc` must
+have been built on a geometry, by `Chebyshev(n, G)`.
 """
 function legendre_basis(Bc::Chebyshev; T::Type{<:AbstractFloat} = Float64)
-    Bc.dynamic === nothing &&
-        throw(ArgumentError("the Chebyshev basis was not built for a dynamic: use Chebyshev(n, D; r, ρ)"))
-    Bl = Legendre{T}(length(Bc) - 1, Bc.dynamic, Bc.ellipse)
+    Bc.geometry === nothing &&
+        throw(ArgumentError("the Chebyshev basis carries no EllipseGeometry: use Chebyshev(n, G)"))
+    Bl = Legendre{T}(length(Bc) - 1, Bc.geometry)
     return (Bl, change_of_basis_matrices(Bc, Bl)...)
 end
 
@@ -206,8 +204,8 @@ end
 [`chebyshev_to_legendre_rational`](@ref) and [`legendre_to_chebyshev_rational`](@ref)
 scaled by ``(2k+1)^{\mp1/2}`` and enclosed by outward rounding.
 
-Throws an `ArgumentError` unless both bases were built for a dynamic, for the same one
-(the same object), with the same ellipse data, and have the same degree.
+Throws an `ArgumentError` unless both bases are built on an [`EllipseGeometry`](@ref), the
+same object, and have the same degree.
 
 For an operator, `cheb_to_leg * Q * leg_to_cheb` is the matrix in the Legendre basis of
 the operator that `Q` represents in the Chebyshev basis.  For the interpolatory Chebyshev
@@ -215,12 +213,10 @@ matrix that operator is ``\Pi^{\mathrm{Cheb}}_NL``, not the Galerkin ``\Pi_NL``;
 latter see [`galerkin_matrix_from_chebyshev`](@ref).
 """
 function change_of_basis_matrices(Bc::Chebyshev, Bl::Legendre{T}) where {T}
-    (Bc.dynamic === nothing || Bl.dynamic === nothing) &&
-        throw(ArgumentError("both bases must be built for a dynamic"))
-    Bc.dynamic === Bl.dynamic ||
-        throw(ArgumentError("the two bases were built for different dynamics"))
-    Bc.ellipse == Bl.ellipse ||
-        throw(ArgumentError("the two bases carry different ellipse data"))
+    (Bc.geometry === nothing || Bl.geometry === nothing) &&
+        throw(ArgumentError("both bases must be built on an EllipseGeometry"))
+    Bc.geometry === Bl.geometry ||
+        throw(ArgumentError("the two bases are built on different EllipseGeometry objects"))
     length(Bl) == length(Bc) ||
         throw(ArgumentError("the bases have degrees $(Bl.N) and $(length(Bc) - 1)"))
     N = Bl.N
@@ -236,7 +232,7 @@ end
     change_of_basis(Bl::Legendre, Bc::Chebyshev, v)
 
 The coefficients `v` in the first basis, converted to the second, with the matrices of
-[`change_of_basis_matrices`](@ref), which throws unless the two bases share the dynamic;
+[`change_of_basis_matrices`](@ref), which throws unless the two bases share the geometry;
 the result is a `BallVector` that encloses them.
 """
 change_of_basis(Bc::Chebyshev, Bl::Legendre, v::AbstractVector) =
@@ -424,17 +420,20 @@ end
 
 ###############################################################################
 # The Galerkin matrix, route 2: RIM's Chebyshev interpolation, aliasing and tail
-# from the ellipse data, then the exact change of basis
+# from the certificate of compatibility, then the exact change of basis
 ###############################################################################
 
 @doc raw"""
-    galerkin_matrix_from_chebyshev(B::Legendre, D::PwMap; Nprime) -> BallMatrix{Float64}
+    galerkin_matrix_from_chebyshev(B::Legendre, D::PwMap, C::EllipseCompatibility; Nprime)
+        -> BallMatrix{Float64}
 
 Certified enclosure of the same matrix as [`galerkin_matrix`](@ref), from the Chebyshev
 interpolation coefficients of ``LT_m``, ``m \le N'``, that `assemble` returns for
 `Chebyshev(Nprime, Eρ(r))` (an `FFTW` extension method: `using FFTW` first).  `Nprime`
-must be a power of two with ``N' \ge N``, and `B` must have been built for `D` by
-`Legendre(N, D; r, ρ)`, whose [`BernsteinEllipseData`](@ref) `(r, R, W)` give:
+must be a power of two with ``N' \ge N``.  `B` must be built on an
+[`EllipseGeometry`](@ref) `G = (r, ρ, R)` and `C` must be
+[`certify_compatibility`](@ref)`(G, D)` for this `D` (both checked, by identity); its `W`
+and the geometry give:
 
 * ``\sup_{E_R}|Le_k| \le W\sup_{E_r}|e_k| \le W(2k+1)^{1/2}r^k =: M_k``
   (``|P_k| \le r^k`` on ``E_r``, as in [`galerkin_matrix`](@ref));
@@ -455,28 +454,28 @@ Then ``\langle Le_k, e_j\rangle = \sum_{m\le N'}C_{j+1,m+1}c_m/(2j+1)^{1/2}
 they have Legendre components of degree ``\le N``, so truncating the Chebyshev matrix at
 ``N`` would give ``\Pi^{\mathrm{Cheb}}_NL`` and not ``\Pi_NL``.
 """
-function galerkin_matrix_from_chebyshev(B::Legendre{Float64,<:PwMap,BernsteinEllipseData},
-                                        D::PwMap; Nprime::Integer)
-    B.dynamic === D || throw(ArgumentError("the Legendre basis was not built for this dynamic"))
+function galerkin_matrix_from_chebyshev(B::Legendre{Float64}, D::PwMap,
+                                        C::EllipseCompatibility; Nprime::Integer)
+    _check_certificate(B, C, D)
     N = B.N
     ispow2(Nprime) && Nprime >= N ||
         throw(ArgumentError("Nprime must be a power of two ≥ N, got $Nprime"))
-    E = B.ellipse
-    Bc = Chebyshev(Nprime, Eρ(E.r))
+    G = B.geometry
+    Bc = Chebyshev(Nprime, Eρ(G.r))
     Mt = assemble(Bc, D)                              # (N'+1)², interpolation coefficients
     size(Mt) == (Nprime + 1, Nprime + 1) || error("unexpected Chebyshev matrix size")
     s = _orthonormal_scale(Float64, N)
     Lc = _rational_interval.(Float64, legendre_to_chebyshev_rational(Nprime))[:, 1:N+1]
-    C = _rational_interval.(Float64, chebyshev_to_legendre_rational(Nprime))[1:N+1, :]
+    Cl = _rational_interval.(Float64, chebyshev_to_legendre_rational(Nprime))[1:N+1, :]
     Ct = Matrix(Mt) * (Lc .* permutedims(s))          # interpolation coefficients of L e_k
-    r, R, W = interval(E.r), interval(E.R), interval(E.W)
+    r, R, W = interval(G.r), interval(G.R), interval(C.W)
     Mk = [W * s[k+1] * r^k for k = 0:N]
     q = R^(-2Nprime) / (1 - R^(-2Nprime))
     for k = 0:N, m = 0:Nprime
         e = sup(2 * Mk[k+1] * (R^m + R^(-m)) * q)
         Ct[m+1, k+1] += interval(-e, e)
     end
-    A = (C * Ct) ./ s
+    A = (Cl * Ct) ./ s
     for k = 0:N
         e = sup(2 * Mk[k+1] * R^(-(Nprime + 1)) / (1 - 1 / R))
         A[:, k+1] .+= interval(-e, e)
@@ -587,17 +586,9 @@ function legendre_l2_tail_geometric(K, θ, N::Integer; T = Float64)
     return as_interval(T, K) * θi^(N + 1) / sqrt(1 - θi^2)
 end
 
-@doc raw"""
-    legendre_dfly(ρ, R, r, W, M; T = Float64) -> NamedTuple
-    legendre_dfly(E::BernsteinEllipseData, M; T = Float64)
-
-The constants of Corollary cor:legendre-LY, ``\|Lf\|_ρ \le A_M\|f\|_ρ + B_M\|f\|``, as
-intervals: `C_M` ([`legendre_C_M`](@ref)), `τ_M` ([`legendre_tau_M`](@ref)),
-``C_2 = 2W/(1 - (r/ρ)^2)^{1/2}``, ``A_M = τ_MC_2``, ``B_M = C_MW^{1/2}`` and the bound
-``M_w = W^{1/2}`` on ``\|L\|_{L^2}``.  Needs ``1 < r < ρ < R``.  Numbers are taken as
-given; certified inputs are the fields of a [`BernsteinEllipseData`](@ref).
-"""
-function legendre_dfly(ρ, R, r, W, M::Integer; T = Float64)
+# The formulas of cor:legendre-LY on numbers taken as given; the exported methods below
+# take them from a basis and a certificate.
+function _legendre_dfly(ρ, R, r, W, M::Integer; T = Float64)
     ρi, Ri, ri, Wi = as_interval(T, ρ), as_interval(T, R), as_interval(T, r), as_interval(T, W)
     1 < inf(ri) && sup(ri) < inf(ρi) || throw(ArgumentError("need 1 < r < ρ"))
     C_M = legendre_C_M(ρi, M; T)
@@ -605,22 +596,39 @@ function legendre_dfly(ρ, R, r, W, M::Integer; T = Float64)
     C₂ = 2Wi / sqrt(1 - (ri / ρi)^2)
     return (; C_M, τ_M, C₂, A_M = τ_M * C₂, B_M = C_M * sqrt(Wi), M_w = sqrt(Wi))
 end
-legendre_dfly(E::BernsteinEllipseData, M::Integer; T = Float64) =
-    legendre_dfly(E.ρ, E.R, E.r, E.W, M; T)
-
-@doc raw"""
-    legendre_dfly_smallest_M(ρ, R, r, W; Mmax = 2000, T = Float64) -> (M, constants)
-    legendre_dfly_smallest_M(E::BernsteinEllipseData; Mmax, T)
-
-The smallest ``M \le`` `Mmax` with ``\sup A_M < 1`` in [`legendre_dfly`](@ref), and the
-constants at that ``M``; throws if there is none.
-"""
-function legendre_dfly_smallest_M(ρ, R, r, W; Mmax::Integer = 2000, T = Float64)
+function _legendre_dfly_smallest_M(ρ, R, r, W; Mmax::Integer = 2000, T = Float64)
     for M = 0:Mmax
-        c = legendre_dfly(ρ, R, r, W, M; T)
+        c = _legendre_dfly(ρ, R, r, W, M; T)
         sup(c.A_M) < 1 && return (M, c)
     end
     throw(ArgumentError("A_M ≥ 1 for every M ≤ $Mmax"))
 end
-legendre_dfly_smallest_M(E::BernsteinEllipseData; Mmax::Integer = 2000, T = Float64) =
-    legendre_dfly_smallest_M(E.ρ, E.R, E.r, E.W; Mmax, T)
+
+@doc raw"""
+    legendre_dfly(B::Legendre, C::EllipseCompatibility, M; T = Float64) -> NamedTuple
+
+The constants of Corollary cor:legendre-LY, ``\|Lf\|_ρ \le A_M\|f\|_ρ + B_M\|f\|``, as
+intervals, for the geometry ``(r, ρ, R)`` of `B` and the `W` of `C`, which must be the
+certificate for that geometry (checked, by identity): `C_M` ([`legendre_C_M`](@ref)),
+`τ_M` ([`legendre_tau_M`](@ref)), ``C_2 = 2W/(1 - (r/ρ)^2)^{1/2}``, ``A_M = τ_MC_2``,
+``B_M = C_MW^{1/2}`` and the bound ``M_w = W^{1/2}`` on ``\|L\|_{L^2}``.
+"""
+function legendre_dfly(B::Legendre, C::EllipseCompatibility, M::Integer; T = Float64)
+    _check_certificate(B, C)
+    G = B.geometry
+    return _legendre_dfly(G.ρ, G.R, G.r, C.W, M; T)
+end
+
+@doc raw"""
+    legendre_dfly_smallest_M(B::Legendre, C::EllipseCompatibility; Mmax = 2000, T = Float64)
+        -> (M, constants)
+
+The smallest ``M \le`` `Mmax` with ``\sup A_M < 1`` in [`legendre_dfly`](@ref), and the
+constants at that ``M``; throws if there is none.
+"""
+function legendre_dfly_smallest_M(B::Legendre, C::EllipseCompatibility; Mmax::Integer = 2000,
+                                  T = Float64)
+    _check_certificate(B, C)
+    G = B.geometry
+    return _legendre_dfly_smallest_M(G.ρ, G.R, G.r, C.W; Mmax, T)
+end
