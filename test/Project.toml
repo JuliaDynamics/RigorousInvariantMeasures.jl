@@ -30,5 +30,6 @@ julia = "1.11"
 # cannot call.  `[sources]` is read from the project that is active, and for `Pkg.test` that is
 # this one, so the entry belongs here and not in the top-level project, which must stay free of
 # it to remain registrable.  Remove it once 0.4 is in the General registry and the compat bound
-# in the top-level project can be narrowed to "0.4".
-BallArithmetic = {url = "https://github.com/JuliaBallArithmetic/BallArithmetic.jl.git", rev = "main"}
+# in the top-level project can be narrowed to "0.4".  The entry names a commit, not a branch, so
+# that two runs of the same commit of this package test against the same BallArithmetic.
+BallArithmetic = {url = "https://github.com/JuliaBallArithmetic/BallArithmetic.jl.git", rev = "19c6924b3c5e0894029f075203fa27e7bc989310"}
