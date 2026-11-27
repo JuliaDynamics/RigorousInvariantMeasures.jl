@@ -44,6 +44,7 @@ DocMeta.setdocmeta!(
     #include("TestSkewProductMap.jl")
     #include("TestUlam2DSP.jl")
     include("TestHigherDFLY.jl")
+    include("TestLegendre.jl")
 
 
 

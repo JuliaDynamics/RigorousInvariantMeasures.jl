@@ -26,13 +26,19 @@ basis assume; a basis built as `Chebyshev(p, k, WeightedSobolev(k, a), weak)` ca
 norm, and the constants derived for it so far are listed under
 [`weak_by_strong_and_aux_bound`](@ref).
 """
-struct Chebyshev{S<:NormKind,WK<:NormKind,T<:AbstractVector} <: Basis
+struct Chebyshev{S<:NormKind,WK<:NormKind,T<:AbstractVector,DT,E} <: Basis
     p::T
     k::Integer
     strong::S
     weak::WK
+    # The map the basis was built for and its BernsteinEllipseData, or `nothing`; set only
+    # by `Chebyshev(n, D::PwMap; r, ρ)`.
+    dynamic::DT
+    ellipse::E
     # TODO: check in constructor that p is sorted, starts with 0 and ends with 1
 end
+Chebyshev(p::AbstractVector, k::Integer, strong::NormKind, weak::NormKind) =
+    Chebyshev(p, k, strong, weak, nothing, nothing)
 
 ChebCouples(n, T) = hcat(
     [
@@ -62,6 +68,21 @@ function Chebyshev(n::Integer, strong::Eρ; T = Float64)
     return Chebyshev(ChebPoints(n, T), 0, strong, L2())
 end
 Chebyshev(p::AbstractVector, strong::Eρ) = Chebyshev(p, 0, strong, L2())
+
+@doc raw"""
+    Chebyshev(n, D::PwMap; r, ρ, T = Float64, ngeom = 1024, cover = 64)
+
+The Chebyshev basis of degree `n` with strong norm [`Eρ`](@ref)`(ρ)` and weak norm `L2`,
+built for the full-branch map `D`: it stores `D` and the [`BernsteinEllipseData`](@ref)
+`(r, ρ, R, W)` that [`bernstein_ellipse_data`](@ref)`(D; r, ρ, n = ngeom, cover)`
+certifies.  The Legendre basis for the same map and degree is
+[`legendre_basis`](@ref)`(B)`.
+"""
+function Chebyshev(n::Integer, D::PwMap; r::Real, ρ::Real, T = Float64,
+                   ngeom::Integer = 1024, cover::Integer = 64)
+    E = bernstein_ellipse_data(D; r, ρ, n = ngeom, cover)
+    return Chebyshev(ChebPoints(n, T), 0, Eρ(Float64(ρ)), L2(), D, E)
+end
 
 @doc raw"""
     Chebyshev(n, a::WeightedSobolev; weak = L2, T = Float64)
