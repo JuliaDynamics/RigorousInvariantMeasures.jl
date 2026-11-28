@@ -45,6 +45,7 @@ DocMeta.setdocmeta!(
     #include("TestUlam2DSP.jl")
     include("TestHigherDFLY.jl")
     include("TestLegendre.jl")
+    include("TestTransferJets.jl")
 
 
 

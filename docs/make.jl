@@ -34,6 +34,8 @@ makedocs(;
             "Norms Of Powers" => "NormsOfPowers.md",
             "Noise Kernel" => "NoiseKernel.md",
             "Observables" => "Observables.md",
+            "Analytic geometry and the Legendre basis" => "Analytic.md",
+            "The transfer operator at a point" => "TransferJets.md",
             "Accessories" => "api.md",
         ],
         "Examples" => "examples.md",
