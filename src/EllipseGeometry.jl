@@ -91,9 +91,67 @@ function certify_compatibility(G::EllipseGeometry, D::PwMap; n::Integer = 1024,
     return EllipseCompatibility(G, D, W, R_image)
 end
 
+export search_ellipse_geometry
+
+@doc raw"""
+    search_ellipse_geometry(D::PwMap, rs; cost = (r, R_image, W) -> R_image / r,
+                            n = 1024, cover = 64) -> NamedTuple
+
+Tries each ``r > 1`` in `rs` for the full-branch map `D` and returns the one that
+maximises `cost` among those that pass the two checks of [`certify_compatibility`](@ref)
+on ``E_r``:
+
+* ``\operatorname{Re}T_j'`` has the sign of the branch on the cover of ``E_r`` by
+  `cover × cover` boxes, for every branch;
+* `R_image > r`, where `R_image` is the certified lower bound on the Bernstein parameter of
+  the images ``F_j(\partial E_r)`` enclosed on `n` arcs, minimised over the branches.
+
+For these ``r``, `W` is the certified upper bound ``\sum_j 1/\min_{\partial E_r}|T_j'|``
+of `certify_compatibility`, and `cost(r, R_image, W)` is called; the default is
+``R_\mathrm{image}/r``.  The result has fields `r`, `R_image`, `W`, `cost` for the best
+``r``, and `table`, one named tuple `(r, R_image, W, feasible, cost)` per entry of `rs`, in
+order (`R_image = W = NaN` and `cost = -Inf` where the derivative check fails, `cost = -Inf`
+where `R_image ≤ r`).  Throws an `ArgumentError` if no ``r`` passes.
+
+The search chooses ``r`` and certifies nothing by itself.  Any ``ρ, R`` with
+``r < ρ < R < R_\mathrm{image}`` then pass `certify_compatibility(EllipseGeometry(r, ρ, R), D)`
+with the same `n` and `cover`, which is the certificate.
+"""
+function search_ellipse_geometry(D::PwMap, rs; cost = (r, R_image, W) -> R_image / r,
+                                 n::Integer = 1024, cover::Integer = 64)
+    is_full_branch(D) || throw(ArgumentError("the search needs a full-branch map"))
+    table = NamedTuple{(:r, :R_image, :W, :feasible, :cost),
+                       Tuple{Float64,Float64,Float64,Bool,Float64}}[]
+    for r in rs
+        r = Float64(r)
+        r > 1 || throw(ArgumentError("need r > 1, got $r"))
+        if any(br -> _branch_derivative_failure(br, r, cover) !== nothing, branches(D))
+            push!(table, (r = r, R_image = NaN, W = NaN, feasible = false, cost = -Inf))
+            continue
+        end
+        R_image, W = _bernstein_geometry(Eρ(r), D; n = n)
+        feasible = R_image > r && isfinite(W)
+        c = feasible ? Float64(cost(r, R_image, W)) : -Inf
+        push!(table, (r = r, R_image = R_image, W = W, feasible = feasible, cost = c))
+    end
+    ok = findall(e -> e.feasible, table)
+    isempty(ok) && throw(ArgumentError("no r in the list passes the two checks"))
+    best = table[ok[argmax([table[i].cost for i in ok])]]
+    return (r = best.r, R_image = best.R_image, W = best.W, cost = best.cost, table = table)
+end
+
 # Re T' has the sign of the branch on every box of a cover of the closed ellipse E_r
 # (chart t = 2x - 1, x = (t + 1)/2).  Throws otherwise.
 function _check_branch_derivative_on_ellipse(br, jb::Integer, r::Float64, m::Integer)
+    fail = _branch_derivative_failure(br, r, m)
+    fail === nothing || throw(ArgumentError(
+        "Re T' of branch $jb may vanish or change sign on E_$r (box $(fail.box), T' ∈ $(fail.d))"))
+    return nothing
+end
+
+# `nothing` if Re T' has the sign of the branch on every box of the cover of E_r, otherwise
+# the first box where that is not certified and the enclosure of T' on it.
+function _branch_derivative_failure(br, r::Float64, m::Integer)
     ri = interval(r)
     a = sup((ri + 1 / ri) / 2)     # semi-axes of E_r, rounded up
     b = sup((ri - 1 / ri) / 2)
@@ -106,8 +164,7 @@ function _check_branch_derivative_on_ellipse(br, jb::Integer, r::Float64, m::Int
         inf(bernstein_parameter(tbox)) > r && continue      # certainly outside E_r
         d = derivative(br.f, (tbox + 1) / 2)
         ok = is_increasing(br) ? inf(real(d)) > 0 : sup(real(d)) < 0
-        ok || throw(ArgumentError(
-            "Re T' of branch $jb may vanish or change sign on E_$r (box $tbox, T' ∈ $d)"))
+        ok || return (box = tbox, d = d)
     end
     return nothing
 end

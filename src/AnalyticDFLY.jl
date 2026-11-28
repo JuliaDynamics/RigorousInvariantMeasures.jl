@@ -452,12 +452,24 @@ The two numbers the analytic theory rests on, computed once from the map:
 * `ρ′ > ρ` — the enlarged Bernstein parameter, certified by
   [`bernstein_expansion`](@ref) applied to each branch in the GLOBAL chart
   ``t = 2x-1``. It means the inverse branches contract: ``g_k(E_{ρ'}) ⊆ E_ρ``.
-* `C₂ = Σ_k 1/\min_{E_ρ}|T_k'|` — a bound for ``\|L\|_{A(E_ρ) → A(E_{ρ'})}``.
+* `C₂ = Σ_k 1/\min_{∂E_ρ}|T_k'|`, rounded up, the minimum enclosed on `n` arcs of
+  ``∂E_ρ``.  When every ``T_k'`` is zero-free on ``E_ρ`` the minimum modulus principle
+  puts ``\min_{E_ρ}|T_k'|`` on ``∂E_ρ``, and `C₂` bounds ``\|L\|_{A(E_ρ) → A(E_{ρ'})}``;
+  this routine does not check that hypothesis ([`certify_compatibility`](@ref) does).
 
 These are exactly the quantities `dfly(::Eρ, ::Type{L1}, ::PwMap)` computes
-internally and then discards; exposing them avoids recomputing.
+internally and then discards; exposing them avoids recomputing.  Throws if
+`ρ′ ≤ ρ`.
 """
 function bernstein_geometry(strong::Eρ, D::PwMap; n::Integer = 1024)
+    ρ′, C = _bernstein_geometry(strong, D; n = n)
+    ρ′ > strong.ρ ||
+        error("the ellipse is not enlarged (ρ′ = $ρ′ ≤ ρ = $(strong.ρ))")
+    return (ρ′, C)
+end
+
+# The two numbers of `bernstein_geometry`, without the check ρ′ > ρ.
+function _bernstein_geometry(strong::Eρ, D::PwMap; n::Integer = 1024)
     ρ = interval(strong.ρ)
     ρ′, C = Inf, 0.0
     for br in branches(D)
@@ -469,8 +481,6 @@ function bernstein_geometry(strong::Eρ, D::PwMap; n::Integer = 1024)
         end
         C = C ⊕₊ (1.0 ⊘₊ lo_der)
     end
-    ρ′ > strong.ρ ||
-        error("the ellipse is not enlarged (ρ′ = $ρ′ ≤ ρ = $(strong.ρ))")
     return (ρ′, C)
 end
 

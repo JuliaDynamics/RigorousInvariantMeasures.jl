@@ -97,6 +97,20 @@ using FFTW, GenericFFT  # assemble(::Chebyshev, …) in Float64 and BigFloat, fo
         @test_throws ArgumentError certify_compatibility(EllipseGeometry(3.5, 3.75, 4.1), D)
         @test_throws ArgumentError certify_compatibility(G, mod1_dynamic(x -> 1.5x))   # not full branch
 
+        # the search over r: r = 8 fails the derivative check, the best r certifies
+        rs = [2.0, 3.0, 3.5, 5.0, 8.0]
+        S = search_ellipse_geometry(D, rs; n = 256, cover = 32)
+        @test length(S.table) == length(rs) && !S.table[end].feasible
+        @test S.cost == maximum(e.cost for e in S.table) && S.R_image > S.r
+        @test S.cost == S.R_image / S.r
+        Rb = S.r + (S.R_image - S.r) * 2 / 3
+        Gb = EllipseGeometry(S.r, (S.r + Rb) / 2, Rb)
+        @test certify_compatibility(Gb, D; n = 256, cover = 32).R_image == S.R_image
+        # a prescribed cost: the smallest W
+        Sw = search_ellipse_geometry(D, rs; cost = (r, R, W) -> -W, n = 256, cover = 32)
+        @test Sw.W == minimum(e.W for e in Sw.table if e.feasible)
+        @test_throws ArgumentError search_ellipse_geometry(D, [8.0]; n = 256, cover = 32)
+
         # one call for a family: T_a(x) = 2x + a x(1-x), a ∈ [0.49, 0.51]
         a = interval(0.49, 0.51)
         Dfam = mod1_dynamic(x -> 2x + a * x * (1 - x); full_branch = true)
