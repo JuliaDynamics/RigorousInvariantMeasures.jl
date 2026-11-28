@@ -88,6 +88,17 @@ connected, ``S_R \subset T(S_r)``, and the ``|d|`` inverse branches
 boundary lines, where it is enclosed on the same `n` arcs:
 ``|τ_j'(y)| = 1/|T'(τ_j(y))| \le 1/\min_{\partial S_r}|T'|``, and
 ``W = |d| / \min_{\partial S_r}|T'|``, rounded up.
+
+Remark.  Check 3 needs `T` on the boundary path only, not on a box of the plane.  If `T`
+extends to complex intervals and ``T'`` is computed with `TaylorSeries`, the image of the
+arc ``x + i r``, ``x \in I_i = [x_i, x_{i+1}]``, is contained in
+```math
+T(x_i + i r) + T'(I_i + i r)\,[0,\, x_{i+1} - x_i],
+```
+since ``T(x + ir) - T(x_i + ir) = \int_{x_i}^{x} T'(t + ir)\,dt`` and the average of
+``T'`` on the segment lies in the box ``T'(I_i + ir)``, which is convex; the same holds on
+``\operatorname{Im} x = -r``.  The routine uses the direct evaluation of `T` on
+``I_i \pm ir`` instead.
 """
 function certify_compatibility(G::AnnulusGeometry, T; degree::Integer,
                                n::Integer = 1024, cover::Integer = 64)
