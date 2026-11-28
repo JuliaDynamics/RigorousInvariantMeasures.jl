@@ -90,6 +90,7 @@ include("pitrig.jl")
 include("NormsOfPowers.jl")
 
 include("Preimages.jl")
+include("TransferJets.jl")
 include("IntervalFFTCommon.jl")
 include("Basis/Fourier/FourierIndex.jl")
 export Fourier, FourierAnalytic, FourierAdjoint
