@@ -12,3 +12,14 @@ elementary functions (exp, sin, cos, ...) on real models only: on a complex mode
 (no _rpa method for Complex{Interval}).  Route: carry Re T and Im T on the line Im x = b as
 two real TaylorModel1 in x, which needs T given by its two parts.  Further: TaylorModels
 with BallArithmetic coefficients, and complex rpa.
+
+
+TransferTaylorModels.jl: avoid the one-float cells of transfer_taylor_models on a piecewise f.
+When the image T(c') of an input cell boundary is a non-thin enclosure, the cell it gives
+is one or two floats wide and gets a constant model.  Two options, which combine:
+- overlapping models: build each cell model on its cell enlarged by a margin delta inside
+  the piece between cuts; when delta exceeds the width of the enclosure of T(c'), the
+  preimage of an output cell lies in one enlarged input cell, and no cut at T(c') is needed;
+- a floating-point representable partition: round T(c') to a nearby float y*; between y*
+  and the true T(c') the preimage lies just past c', so the neighbouring model must hold a
+  few floats beyond its cell (the overlap above, with a margin of one or two floats).
