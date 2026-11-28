@@ -34,6 +34,19 @@ using FFTW, GenericFFT  # assemble(::Chebyshev, …) in Float64 and BigFloat, fo
             Cb = BallMatrix(RIM._rational_interval.(BigFloat, C))
             @test maximum(Cb.r) < 1e-140
         end
+        # a numerator and a denominator far beyond the working precision: the enclosure is
+        # nonempty and contains q, by exact rational comparison of its endpoints
+        q = (big(3)^700 + 1) // (big(7)^400 - 2)
+        for (T, p) in ((BigFloat, 64), (BigFloat, 1280), (Float64, 53))
+            setprecision(BigFloat, p) do
+                x = RIM._rational_interval(T, q)
+                @test !IA.isempty_interval(x)
+                @test Rational(IA.inf(x)) <= q <= Rational(IA.sup(x))
+                @test T !== BigFloat || IA.diam(x) <= 4 * eps(IA.sup(x))
+            end
+        end
+        x = RIM._rational_interval(Float64, -1 // 3)
+        @test Rational(IA.inf(x)) < -1 // 3 < Rational(IA.sup(x)) && IA.diam(x) <= eps(1 / 3)
     end
 
     @testset "evaluation" begin

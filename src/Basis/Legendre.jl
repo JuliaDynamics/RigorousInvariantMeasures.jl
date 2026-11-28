@@ -174,9 +174,28 @@ function _legendre_times_x(c::AbstractVector{Q}) where {Q}
 end
 
 # A rational number enclosed in an interval of type T (BigFloat: current precision).
-# Julia's conversion of a Rational with a RoundingMode is correctly rounded.
-_rational_interval(::Type{T}, q::Rational) where {T<:AbstractFloat} =
-    interval(T, T(q, RoundDown), T(q, RoundUp))
+# The numerator and the denominator are made BigFloats exactly, at a precision with room for
+# both, and divided once with directed rounding, which MPFR rounds correctly; the quotient is
+# then rounded outward to T.  (This used to be interval(T, T(q, RoundDown), T(q, RoundUp)):
+# for BigFloat that conversion rounds the numerator and the denominator separately, so once
+# they exceed the working precision, as the entries of the change of basis do at N = 512 and
+# 1280 bits, the two endpoints can cross and the interval is empty.)
+function _rational_interval(::Type{T}, q::Rational) where {T<:AbstractFloat}
+    n, d = big(numerator(q)), big(denominator(q))
+    p = T === BigFloat ? precision(BigFloat) : precision(T)
+    bits = max(ndigits(n; base = 2), ndigits(d; base = 2), p) + 2
+    nb, db = setprecision(BigFloat, bits) do
+        BigFloat(n), BigFloat(d)
+    end
+    lo, hi = setprecision(BigFloat, p + 2) do
+        setrounding(BigFloat, RoundDown) do
+            nb / db
+        end, setrounding(BigFloat, RoundUp) do
+            nb / db
+        end
+    end
+    return interval(T, T(lo, RoundDown), T(hi, RoundUp))
+end
 
 # (2k+1)^{1/2}, k = 0..N, enclosed.
 _orthonormal_scale(::Type{T}, N::Integer) where {T} = [sqrt(interval(T, 2k + 1)) for k = 0:N]
