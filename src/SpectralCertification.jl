@@ -573,3 +573,70 @@ function projector_distance_bound(
         schur_data = sd,
     )
 end
+
+###############################################################################
+# The resolvent at 1 on the mean-zero subspace, two-norm case with the L¹ norm in the
+# second term: Proposition prop:bridge of the Diffusion paper (Appendix B), in interval
+# arithmetic, and the bound on a fixed point of lem:h-bound.  The weak resolvent enters
+# only through R̄, the bound of lem:resolvent-V0 on (I - Q_N)^{-1} on mean-zero functions
+# (for an orthogonal projection, max{1, R_N}, R_N the resolvent of the Galerkin matrix on
+# U_N^0, e.g. l2_resolvent_bound_average_zero).
+###############################################################################
+
+export two_norm_resolvent_lift, two_norm_fixed_point_bound
+
+@doc raw"""
+    two_norm_resolvent_lift(A, B, Rbar, δ; E_sw, T = Float64) -> (D = D_N, R = R_s or nothing)
+
+Proposition prop:bridge of the Diffusion paper, with its last step written for a strong norm
+that need not dominate the weak one.  Assume ``\|f\|_s \le \|f\| + V(f)`` for ``f`` of mean
+zero, ``V(f) \le \|f\|_s``, ``\|f\| \le E_{s\to w}\|f\|_s`` and ``\|f\|_{L^1} \le \|f\|``; the
+Lasota–Yorke inequality ``V(Lf) \le AV(f) + B\|f\|_{L^1}`` with ``0 \le A < 1``;
+``δ \ge \|L - Q_N\|_{\mathcal B_s\to\mathcal B_w}`` for an ``\ell``-preserving discretisation
+``Q_N``; and ``\bar R`` with ``\|(I - Q_N)^{-1}g\| \le \bar R\|g\|`` for ``g`` of mean zero.  If
+```math
+D_N := (1 - A)(1 - \bar Rδ) - B\bar Rδ > 0,
+```
+then ``I - L`` is invertible on ``V_0\cap\mathcal B_s`` and
+```math
+R_s \le \frac{1}{1 - A}\Bigl(\frac{(1 - A + B)\,\bar R\,\bigl((1 - A)E_{s\to w} + δ\bigr)}{D_N} + 1\Bigr).
+```
+Proof: for ``u`` of mean zero and ``f = (I - L)u``, ``x := \|u\|``, ``y := V(u)``:
+``(I - Q_N)u = f + (L - Q_N)u`` gives ``x \le \bar R(\|f\| + δ(x + y))``, and ``u = Lu + f``
+gives ``y \le (Bx + V(f))/(1 - A)``; inserting the second in the first,
+``D_Nx \le \bar R((1 - A)\|f\| + δV(f)) \le \bar R((1 - A)E_{s\to w} + δ)\|f\|_s``, and
+``\|u\|_s \le x + y \le ((1 - A + B)x + V(f))/(1 - A)``.  Injectivity follows with ``f = 0``,
+invertibility from the essential spectral radius ``\le A``.  Only the inequality for ``L`` is
+used, none for ``Q_N``.
+
+For ``\|f\|_s = \|f\|_{L^1} + V(f)`` in the two-norm case of the paper,
+``E_{s\to w} = \max\{S_1, S_2\}``: 1 on the Fourier strip, ``(1 - ρ^{-2})^{-1/2}`` for the
+Legendre seminorm of lem:legendre-two-norms.  The form ``\max\{1 - A, δ\}`` that the paper's
+statement has in place of ``(1 - A)E_{s\to w} + δ`` holds when ``\|f\| + V(f) \le \|f\|_s``,
+i.e. for ``\|f\|_s = \|f\| + V(f)``, and not for the ``L^1`` norm.
+
+`E_sw` has no default.  Returned as intervals of type `T`; `R` is `nothing` when ``D_N > 0``
+is not certified.
+"""
+function two_norm_resolvent_lift(A, B, Rbar, δ; E_sw, T = Float64)
+    Ai, Bi, Ri, δi = as_interval(T, A), as_interval(T, B), as_interval(T, Rbar), as_interval(T, δ)
+    Ei = as_interval(T, E_sw)
+    0 <= inf(Ai) && sup(Ai) < 1 || throw(ArgumentError("need 0 ≤ A < 1"))
+    D = (1 - Ai) * (1 - Ri * δi) - Bi * Ri * δi
+    inf(D) > 0 || return (D = D, R = nothing)
+    R = ((1 - Ai + Bi) * Ri * ((1 - Ai) * Ei + δi) / D + 1) / (1 - Ai)
+    return (D = D, R = R)
+end
+
+@doc raw"""
+    two_norm_fixed_point_bound(A, B; T = Float64) -> Interval
+
+lem:h-bound of the Diffusion paper: in the setting of [`two_norm_resolvent_lift`](@ref), a
+fixed point ``u = Lu`` has ``V(u) \le AV(u) + B\|u\|_{L^1}``, so
+``\|u\|_s \le (1 + B/(1 - A))\|u\|_{L^1}``; for the invariant density, ``\|h\|_{L^1} = 1``.
+"""
+function two_norm_fixed_point_bound(A, B; T = Float64)
+    Ai, Bi = as_interval(T, A), as_interval(T, B)
+    0 <= inf(Ai) && sup(Ai) < 1 || throw(ArgumentError("need 0 ≤ A < 1"))
+    return 1 + Bi / (1 - Ai)
+end

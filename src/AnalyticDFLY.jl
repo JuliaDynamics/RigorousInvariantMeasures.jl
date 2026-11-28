@@ -37,6 +37,9 @@ function _tail_factor(q, K::Integer)
     return 2 * qi^(K + 1) / (1 - qi)
 end
 
+# Sum of the head weights: 2 Σ_{j=1}^K w^j = 2w(w^K - 1)/(w - 1), w = e^{2πη} > 1.
+_strip_head(w, K::Integer) = 2 * w * (w^K - 1) / (w - 1)
+
 @doc raw"""
     analytic_dfly(strong::Aη, η′, C, K) -> (A, B)
 
@@ -47,8 +50,14 @@ Lasota–Yorke constants for the Fourier analytic norm
 \|Lf\|_{A_η} \le A\,\|f\|_{A_η} + B\,\|f\|_{L^1}.
 ```
 
-`η′ > η` is the enlarged strip certified by [`annulus_expansion`](@ref) and `C`
-bounds ``\|L\|_{A_η \to A_{η′}}``. Splitting the Fourier series at `K`:
+`η′ > η` and `C` must give the coefficient bound
+``|\hat c_k(Lf)| \le C\,e^{-2πη'|k|}\|f\|_{A_η}`` for every `k`. It holds with
+``C \ge \sup_{S_{η'}}|Lf| / \sup_{S_η}|f|`` by Cauchy's estimate on the lines
+``\operatorname{Im} x = \mp η'`` and ``\sup_{S_η}|f| \le \|f\|_{A_η}``; and with ``C = 1``
+under the sign condition of [`annulus_coefficient_decay`](@ref), by moving the line of
+integration of ``\int f e^{-2πikT}`` (Blumenthal–Nisoli–Taylor-Crush 2025, proof of
+Lemma 3.7).  `C` is not ``\|L\|_{A_η \to A_{η'}}``, which the argument does not bound.
+Splitting the Fourier series at `K`:
 
 ```math
 A(K) = C\,\frac{2q^{K+1}}{1-q},\quad q = e^{-2π(η′-η)},
@@ -67,7 +76,7 @@ function analytic_dfly(strong::Aη, η′::Real, C::Real, K::Integer)
     A = interval(C) * _tail_factor(q, K)
 
     r = exp(2 * interval(π) * η)                 # weight of one mode
-    B = 1 + 2 * r * (r^K - 1) / (r - 1)          # Σ_{|k| ≤ K} e^{2πη|k|}
+    B = 1 + _strip_head(r, K)                    # Σ_{|k| ≤ K} e^{2πη|k|}
     return (sup(A), sup(B))
 end
 
@@ -86,8 +95,10 @@ A(K) = C\,\frac{2q^{K+1}}{1-q},\; q = ρ/ρ',
 B(K) = 2 D_μ \sum_{k \le K} ρ^k .
 ```
 
-`ρ′ > ρ` is the enlarged ellipse certified by [`bernstein_expansion`](@ref) and
-`C` bounds ``\|L\|_{E_ρ \to E_{ρ'}}``.
+`ρ′ > ρ` and `C` must give ``|\hat b_k(Lf)| \le 2C\,ρ'^{-k}\|f\|_{E_ρ}`` for ``k \ge 1``,
+which holds with ``C \ge \sup_{E_{ρ'}}|Lf| / \sup_{E_ρ}|f|`` by Cauchy's estimate on the
+ellipse and ``\sup_{E_ρ}|f| \le \|f\|_{E_ρ}``; `C` is not ``\|L\|_{E_ρ \to E_{ρ'}}``.
+`L1μ_bound` ``\ge D_μ`` is required: it has no default (see below).
 
 !!! warning "The auxiliary norm is L¹(μ), not L¹(dx)"
     The Chebyshev coefficients are ``\hat b_k = 2\int f\,T_k\,dμ``, so
@@ -98,10 +109,10 @@ B(K) = 2 D_μ \sum_{k \le K} ρ^k .
 
     Consequently `L1μ_bound` = ``D_μ = \|L\|_{L^1(μ)}`` is **not** automatically
     1, unlike the Lebesgue case where the transfer operator is a contraction. It
-    must be supplied; the default of 1 is a placeholder and is only valid if you
-    have established it independently.
+    must be supplied, from a bound established independently; it used to default
+    to 1, a placeholder with nothing behind it.
 """
-function analytic_dfly(strong::Eρ, ρ′::Real, C::Real, K::Integer; L1μ_bound::Real = 1.0)
+function analytic_dfly(strong::Eρ, ρ′::Real, C::Real, K::Integer; L1μ_bound::Real)
     ρ = interval(strong.ρ)
     ρ′ > strong.ρ || error("need ρ′ > ρ: the ellipse must be strictly enlarged")
     q = ρ / interval(ρ′)
@@ -262,18 +273,21 @@ The degenerate Lasota–Yorke ``\|Lf\|_{A_η} \le A\,\|f\|_{A_η}``, with no
 auxiliary term — that is, `A` is simply the **continuity constant** of `L` on
 the analytic space, valid for every `f`, not on any subspace.
 
-`C₂` is the bound between the two domains,
-``\|L\|_{A_η \to A_{η'}}``, and the enlargement is converted into a constant by
-splitting the weight at the gain `δ`:
+`C₂` bounds ``\sup_{S_{η'}}|Lf| \le C_2\sup_{S_η}|f|``, a bound between sup norms on the
+two domains, not ``\|L\|_{A_η \to A_{η'}}``.  With ``M := \sup_{S_{η'}}|Lf|``, Cauchy's
+estimate on the lines ``\operatorname{Im} x = \mp η'`` gives
+``|\hat c_k(Lf)| \le Me^{-2πη'|k|}``, and ``\sup_{S_η}|f| \le \|f\|_{A_η}``, so, with
+``δ = η' - η``,
 
 ```math
-\|Lf\|_{A_η} = \sum_k e^{-2πkδ}\,e^{2πkη'}|\hat c_k(Lf)|
-   \;\le\; \Big(\sum_k e^{-2πkδ}\Big)\,\|Lf\|_{A_{η'}}
+\|Lf\|_{A_η} = \sum_k e^{2πη|k|}|\hat c_k(Lf)|
+   \;\le\; M\sum_k e^{-2πδ|k|}
    \;\le\; G(δ)\,C_2\,\|f\|_{A_η},
 ```
 
-the geometric sum converging exactly because the neighbourhood is enlarged. For
-`Eρ` the weight is `ρ^k` and the ratio is `ρ/ρ'`.
+the geometric sum converging because the neighbourhood is enlarged. For `Eρ` the weight is
+`ρ^k`, the ratio is `ρ/ρ'`, and Cauchy's estimate on the ellipse is ``|\hat b_0| \le M``,
+``|\hat b_k| \le 2Mρ'^{-k}``, which gives the same ``G``.
 
 This is the single-space setting of Nisoli, *Certified spectral approximation of
 transfer operators and the Gauss map*, arXiv:2602.19435, where the analytic
@@ -328,9 +342,9 @@ certified by [`strip_expansion`](@ref) / [`bernstein_expansion`](@ref) applied t
 each branch reparametrized onto its own domain. No complex derivative is
 involved.
 
-`C₂` bounds `L` between the two domains, ``\|L\|_{A_η \to A_{η'}}``; the Hölder
-factor `G(δ)` from the enlargement then gives `A = G(δ)C₂` (see
-[`analytic_dfly_degenerate`](@ref)).
+`C₂` bounds `L` between sup norms on the two domains,
+``\sup_{S_{η'}}|Lf| \le C_2\sup_{S_η}|f|``; the factor `G(δ)` from the enlargement then
+gives `A = G(δ)C₂` (see [`analytic_dfly_degenerate`](@ref)).
 
 `C₂` is the one ingredient the forward enclosure does not determine on its own:
 the transfer operator carries the weight ``|g_k'| = 1/|T_k'\circ g_k|``, so by
@@ -399,15 +413,23 @@ function dfly(norm::Eρ, ::Type{L1}, D::PwMap; C₂::Union{Real,Nothing} = nothi
     return DFLYCoefficients(norm, L1, analytic_dfly_degenerate(norm, ρ′, C₂)...)
 end
 
+# checked: invariant_measure_strong_norm_bound -- the methods below are the existing Aη and
+# Eρ methods of the generic function, corrected in place (they returned A); the B/(1-A) of
+# the other bases is the same formula, without the aux-norm check the analytic pairs need.
 @doc raw"""
     invariant_measure_strong_norm_bound(B, D; dfly_coefficients)
 
-Strong-norm bound on the invariant density.
+Strong-norm bound ``B/(1-A)`` on the invariant density ``h``, ``\ell(h) = 1``, from
+``\|Lf\|_s \le A\|f\|_s + B\|f\|_{L^1}`` with ``A < 1``: ``\|h\|_s = \|Lh\|_s \le A\|h\|_s + B``.
 
-The classical DFLY route is ``B/(1-A)``, which needs `A < 1` and `B > 0`. In the
-degenerate analytic case `B = 0` and `A` is a continuity constant, and the bound
-is simply **`A`** — the density lies in the image of `L`, so the continuity
-constant already controls it.
+The degenerate pair of `dfly(::Aη, L1, D)` and `dfly(::Eρ, L1, D)`, with ``B = 0`` and `A` a
+continuity constant ``\ge 1``, gives no bound, and is refused with an `ArgumentError`.  (These
+methods used to return `A` in that case, on the argument
+``\|h\|_s = \|Lh\|_s \le A\|h\|_s``, which bounds nothing.)  For the Fourier strip, the pair of
+[`annulus_dfly_l1`](@ref) in its full-norm form, or of [`analytic_dfly`](@ref), has ``A < 1``
+and an ``L^1`` second term; pass it as `dfly_coefficients`.  For `Eρ` the second term of
+[`analytic_dfly`](@ref) is in ``L^1(μ)``, where ``\|h\|_{L^1(μ)} \ne 1``, so only a pair
+stated with the Lebesgue ``L^1`` norm is accepted.
 """
 function invariant_measure_strong_norm_bound(
     B::FourierAnalytic{Aη},
@@ -415,7 +437,7 @@ function invariant_measure_strong_norm_bound(
     dfly_coefficients = basis_dfly(B, D),
 )
     check_dfly_coefficients(B, D, dfly_coefficients)
-    return first(dfly_coefficients)
+    return _analytic_fixed_point_bound(dfly_coefficients)
 end
 
 function invariant_measure_strong_norm_bound(
@@ -424,7 +446,17 @@ function invariant_measure_strong_norm_bound(
     dfly_coefficients = basis_dfly(B, D),
 )
     check_dfly_coefficients(B, D, dfly_coefficients)
-    return first(dfly_coefficients)
+    return _analytic_fixed_point_bound(dfly_coefficients)
+end
+
+# B/(1 - A) for an analytic pair, refused unless A < 1 and the second term is Lebesgue L¹.
+function _analytic_fixed_point_bound(c)
+    aux_kind(c) === L1 ||
+        throw(ArgumentError("the second term must be the Lebesgue L¹ norm, got $(aux_kind(c))"))
+    A, Bc = c
+    A < 1 || throw(ArgumentError(
+        "A = $A ≥ 1: a continuity constant bounds no fixed point; pass a pair with A < 1"))
+    return Bc ⊘₊ (1.0 ⊖₋ A)
 end
 
 ###############################################################################
@@ -454,8 +486,13 @@ The two numbers the analytic theory rests on, computed once from the map:
   ``t = 2x-1``. It means the inverse branches contract: ``g_k(E_{ρ'}) ⊆ E_ρ``.
 * `C₂ = Σ_k 1/\min_{∂E_ρ}|T_k'|`, rounded up, the minimum enclosed on `n` arcs of
   ``∂E_ρ``.  When every ``T_k'`` is zero-free on ``E_ρ`` the minimum modulus principle
-  puts ``\min_{E_ρ}|T_k'|`` on ``∂E_ρ``, and `C₂` bounds ``\|L\|_{A(E_ρ) → A(E_{ρ'})}``;
-  this routine does not check that hypothesis ([`certify_compatibility`](@ref) does).
+  puts ``\min_{E_ρ}|T_k'|`` on ``∂E_ρ``, and `C₂` bounds ``L`` between sup norms,
+  ``\sup_{E_{ρ'}}|Lf| \le C_2\sup_{E_ρ}|f|``; this routine does not check that hypothesis
+  ([`certify_compatibility`](@ref) does).  `C₂` is not an operator norm between the
+  coefficient spaces: in ``ℓ^1``, Cauchy's estimate gives ``\|L\|_{E_ρ\to E_ρ} \le GC_2``
+  ([`analytic_dfly_degenerate`](@ref)) and ``\sum_{k>K}|b_k(Lf)|ρ^k \le 2C_2q^{K+1}/(1-q)\|f\|_{E_ρ}``;
+  in ``ℓ^2``, ``\|L\|_{E_{ρ,2}\to E_{ρ',2}} \le 2C_2/(1 - (r/ρ)^2)^{1/2}`` when ``C_2`` is the
+  constant of a smaller ellipse ``E_r \to E_{ρ'}``.
 
 These are exactly the quantities `dfly(::Eρ, ::Type{L1}, ::PwMap)` computes
 internally and then discards; exposing them avoids recomputing.  Throws if
@@ -487,8 +524,14 @@ end
 @doc raw"""
     strip_geometry(strong::Aη, D::PwMap; n = 1024) -> (η′, C₂)
 
-Fourier counterpart of [`bernstein_geometry`](@ref): the enlarged strip
-half-width and ``\|L\|_{A_η → A_{η'}}``.
+Fourier counterpart of [`bernstein_geometry`](@ref): `η′` is the minimum of the certified
+lower bounds of ``|\operatorname{Im} T|`` on `n` arcs of the boundary lines
+``\operatorname{Im} x = \pm η`` of each branch, and ``C_2 = \sum_k 1/\min|T_k'|`` over the
+same arcs, rounded up.  Given the inclusion ``τ_k(S_{η'}) \subset S_η`` of the inverse
+branches, which this routine does not prove (`certify_compatibility(::AnnulusGeometry, T;
+degree)` does, together with the check that ``T'`` does not vanish inside the strip), `C₂`
+bounds ``L`` between sup norms, ``\sup_{S_{η'}}|Lf| \le C_2\sup_{S_η}|f|``; it is not
+``\|L\|_{A_η → A_{η'}}``.
 """
 function strip_geometry(strong::Aη, D::PwMap; n::Integer = 1024)
     η′, C = Inf, 0.0
@@ -512,8 +555,11 @@ end
 ``ε_K \ge \|(I - Π_K)L\|_{\mathcal B \to \mathcal B}`` on the analytic space
 ``\mathcal B``, i.e. the truncation number of Assumption 2.1(3).
 
-One line, from the domain gain alone. For `f` in the unit ball of ``E_ρ``,
-``Lf`` lies in ``A(E_{ρ'})`` with ``\|Lf\|_{E_{ρ'}} \le C_2``; writing
+One line, from the domain gain alone. `C₂` must bound ``\|L\|_{E_ρ \to E_{ρ'}}`` in the
+coefficient norm in use, so that ``\|Lf\|_{E_{ρ'}} \le C_2`` for `f` in the unit ball of
+``E_ρ``.  The `C₂` of [`bernstein_geometry`](@ref) and [`strip_geometry`](@ref) bounds ``L``
+between sup norms and is not that constant (see the docstring of `bernstein_geometry`).
+Writing
 ``Lf = \sum_j b_j T_j``,
 
 ```math

@@ -44,24 +44,24 @@ using FFTW  # FFTWExt: the doubling-map testset assembles a FourierAnalytic basi
 
     @testset "Eρ constants" begin
         ρ, ρ′ = 1.5, 2.25                   # ρ′ = ρ^2, the T_2 gain
-        As = [first(analytic_dfly(Eρ(ρ), ρ′, 1.0, K)) for K in (0, 5, 10, 20)]
-        Bs = [last(analytic_dfly(Eρ(ρ), ρ′, 1.0, K)) for K in (0, 5, 10, 20)]
+        As = [first(analytic_dfly(Eρ(ρ), ρ′, 1.0, K; L1μ_bound = 1.0)) for K in (0, 5, 10, 20)]
+        Bs = [last(analytic_dfly(Eρ(ρ), ρ′, 1.0, K; L1μ_bound = 1.0)) for K in (0, 5, 10, 20)]
         @test issorted(As; rev = true)
         @test issorted(Bs)
         @test As[end] < 1e-2
 
-        K, A, B = analytic_dfly_choose_K(Eρ(ρ), ρ′, 1.0; target_A = 0.5)
+        K, A, B = analytic_dfly_choose_K(Eρ(ρ), ρ′, 1.0; target_A = 0.5, L1μ_bound = 1.0)
         @test A <= 0.5
-        @test first(analytic_dfly(Eρ(ρ), ρ′, 1.0, K - 1)) > 0.5
+        @test first(analytic_dfly(Eρ(ρ), ρ′, 1.0, K - 1; L1μ_bound = 1.0)) > 0.5
 
         # The L1(mu) operator bound scales B and only B — it plays no part in
         # the contraction, which comes purely from the analytic gain.
-        A1, B1 = analytic_dfly(Eρ(ρ), ρ′, 1.0, 8)
+        A1, B1 = analytic_dfly(Eρ(ρ), ρ′, 1.0, 8; L1μ_bound = 1.0)
         A2, B2 = analytic_dfly(Eρ(ρ), ρ′, 1.0, 8; L1μ_bound = 3.0)
         @test A1 == A2
         @test B2 ≈ 3 * B1 rtol = 1e-12
 
-        @test_throws ErrorException analytic_dfly(Eρ(2.0), 1.5, 1.0, 5)
+        @test_throws ErrorException analytic_dfly(Eρ(2.0), 1.5, 1.0, 5; L1μ_bound = 1.0)
     end
 
     @testset "the ellipse gain feeds the DFLY" begin
@@ -70,7 +70,7 @@ using FFTW  # FFTWExt: the doubling-map testset assembles a FourierAnalytic basi
         ρ = 1.5
         ρ′ = bernstein_expansion(z -> 2z^2 - 1, ρ; n = 4096)
         @test ρ′ > ρ
-        K, A, B = analytic_dfly_choose_K(Eρ(ρ), ρ′, 1.0; target_A = 0.4)
+        K, A, B = analytic_dfly_choose_K(Eρ(ρ), ρ′, 1.0; target_A = 0.4, L1μ_bound = 1.0)
         @test A <= 0.4 && B > 0
     end
 
@@ -190,6 +190,61 @@ using FFTW  # FFTWExt: the doubling-map testset assembles a FourierAnalytic basi
                                     degree = 2, n = 512, cover = 16).R_image == Sw.R_image
         @test_throws ArgumentError search_annulus_geometry(T, [0.35]; degree = 2, n = 512,
                                                            cover = 16)
+    end
+
+    @testset "annulus: L¹ Lasota–Yorke, coefficient decay, Galerkin defect" begin
+        # lift x -> 2x + sin(2πx)/10: Im(x ± ir) maps to ±(2r + cos(2πx) sinh(2πr)/10), so
+        # min |Im| on ∂S_r is 2r - sinh(2πr)/10, 0.2393 at r = 0.2
+        twoπ = 2 * interval(π)
+        dbl = x -> 2x + sin(twoπ * x) / 10
+        G = AnnulusGeometry(0.2, 0.21, 0.23)
+        C = certify_compatibility(G, dbl; degree = 2, n = 512, cover = 16)
+        # the coefficient bound |(L1)^_j| = |∫ e^{-2πij(2y + sin(2πy)/10)}| <= e^{-2πR|j|}, by a
+        # periodic trapezoid rule in Float64 (spectrally accurate here; an independent check)
+        q = IntervalArithmetic.sup(annulus_coefficient_decay(C))
+        n = 4096
+        ys = (0:n-1) ./ n
+        for j in 1:6
+            c = abs(sum(exp(-2π * im * j * (2y + sin(2π * y) / 10)) for y in ys) / n)
+            @test c <= q^j
+        end
+        # the constants against their formulas, and the full-norm form of analytic_dfly
+        for M in (0, 5, 40)
+            c = annulus_dfly_l1(C, M)
+            qq = exp(-2π * (0.23 - 0.21))
+            @test IntervalArithmetic.inf(c.A_M) <= 2qq^(M + 1) / (1 - qq) * (1 + 1e-12)
+            @test 2qq^(M + 1) / (1 - qq) <= IntervalArithmetic.sup(c.A_M) * (1 + 1e-12)
+            Bp = 2 * sum((exp(2π * 0.21 * j) for j in 1:M); init = 0.0)
+            @test IntervalArithmetic.inf(c.Bp_M) <= Bp * (1 + 1e-12) + 1e-300
+            @test Bp <= IntervalArithmetic.sup(c.Bp_M) * (1 + 1e-12) + 1e-300
+            A, B = analytic_dfly(Aη(0.21), 0.23, 1.0, M)
+            @test A == IntervalArithmetic.sup(c.A_M)
+            @test B ≈ 1 + IntervalArithmetic.mid(c.Bp_M) rtol = 1e-12
+        end
+        M, c = annulus_dfly_l1_smallest_M(C)
+        @test IntervalArithmetic.sup(c.A_M) < 1 &&
+              IntervalArithmetic.sup(annulus_dfly_l1(C, M - 1).A_M) >= 1
+        @test_throws ArgumentError annulus_dfly_l1_smallest_M(C; Mmax = 0)
+        # the defect: its two terms, decreasing in N, and M_w passed explicitly
+        δ = annulus_galerkin_defect(C, 32; M_w = 1.25)
+        δex = 2exp(-2π * 0.23 * 33) / (1 - exp(-2π * 0.23)) + 1.25exp(-2π * 0.21 * 33)
+        @test IntervalArithmetic.inf(δ) <= δex * (1 + 1e-12) &&
+              δex <= IntervalArithmetic.sup(δ) * (1 + 1e-12)
+        @test IntervalArithmetic.sup(annulus_galerkin_defect(C, 64)) <
+              IntervalArithmetic.inf(annulus_galerkin_defect(C, 32))
+        cb = annulus_dfly_l1(C, M; T = BigFloat)
+        @test cb.A_M isa Interval{BigFloat}
+        @test IntervalArithmetic.sup(cb.A_M) <= IntervalArithmetic.sup(c.A_M)
+    end
+
+    @testset "invariant_measure_strong_norm_bound refuses a continuity constant" begin
+        D = mod1_dynamic(x -> 2 * x; circle_smoothness = :ω)
+        B = FourierAnalytic(16, 64; η = 0.1)
+        @test_throws ArgumentError RigorousInvariantMeasures.invariant_measure_strong_norm_bound(B, D)
+        # a pair with A < 1 and the L¹ norm: B/(1 - A)
+        c = DFLYCoefficients(Aη(0.1), L1, 0.5, 3.0)
+        @test RigorousInvariantMeasures.invariant_measure_strong_norm_bound(B, D;
+                                                                            dfly_coefficients = c) >= 6.0
     end
 
 end
