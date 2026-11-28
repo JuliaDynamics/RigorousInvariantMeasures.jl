@@ -94,6 +94,7 @@ include("IntervalFFTCommon.jl")
 include("Basis/Fourier/FourierIndex.jl")
 export Fourier, FourierAnalytic, FourierAdjoint
 include("EllipseGeometry.jl")
+include("AnnulusGeometry.jl")
 export EllipseGeometry, EllipseCompatibility, certify_compatibility
 include("Basis/Chebyshev.jl")
 export Chebyshev, certify_spectral_gap

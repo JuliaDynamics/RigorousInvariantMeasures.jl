@@ -120,16 +120,28 @@ with the same `n` and `cover`, which is the certificate.
 function search_ellipse_geometry(D::PwMap, rs; cost = (r, R_image, W) -> R_image / r,
                                  n::Integer = 1024, cover::Integer = 64)
     is_full_branch(D) || throw(ArgumentError("the search needs a full-branch map"))
+    return _search_geometry(rs, cost, r -> begin
+        r > 1 || throw(ArgumentError("need r > 1, got $r"))
+        any(br -> _branch_derivative_failure(br, r, cover) !== nothing, branches(D)) &&
+            return nothing
+        return _bernstein_geometry(Eρ(r), D; n = n)
+    end)
+end
+
+# The search loop shared by `search_ellipse_geometry` and `search_annulus_geometry`.
+# `evaluate(r)` returns `nothing` when the derivative check fails on the domain of
+# parameter r, and the certified pair (R_image, W) otherwise.
+function _search_geometry(rs, cost, evaluate)
     table = NamedTuple{(:r, :R_image, :W, :feasible, :cost),
                        Tuple{Float64,Float64,Float64,Bool,Float64}}[]
     for r in rs
         r = Float64(r)
-        r > 1 || throw(ArgumentError("need r > 1, got $r"))
-        if any(br -> _branch_derivative_failure(br, r, cover) !== nothing, branches(D))
+        v = evaluate(r)
+        if v === nothing
             push!(table, (r = r, R_image = NaN, W = NaN, feasible = false, cost = -Inf))
             continue
         end
-        R_image, W = _bernstein_geometry(Eρ(r), D; n = n)
+        R_image, W = v
         feasible = R_image > r && isfinite(W)
         c = feasible ? Float64(cost(r, R_image, W)) : -Inf
         push!(table, (r = r, R_image = R_image, W = W, feasible = feasible, cost = c))
