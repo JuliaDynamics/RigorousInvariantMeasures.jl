@@ -5,3 +5,10 @@ Decide what is the best behavior
 
 BasisDefinition opnormbound, normbound
 Failing due to a delicate issue, while L1 is a subtype of NormKind,  Type{L1} is not a subtype of Type{NormKind}
+
+AnnulusGeometry.jl, EllipseGeometry.jl: enclose T on the boundary path by Taylor models
+The boundary checks evaluate T directly on boxes covering the arcs.  TaylorModels 0.10 has
+elementary functions (exp, sin, cos, ...) on real models only: on a complex model exp fails
+(no _rpa method for Complex{Interval}).  Route: carry Re T and Im T on the line Im x = b as
+two real TaylorModel1 in x, which needs T given by its two parts.  Further: TaylorModels
+with BallArithmetic coefficients, and complex rpa.
