@@ -173,6 +173,14 @@ using FFTW, GenericFFT  # assemble(::Chebyshev, …) in Float64 and BigFloat, fo
         @test IA.mid(cl.Bp_M) ≈ sum((2j + 1) * 3.75^j for j = 0:M) rtol = 1e-12
         @test_throws ArgumentError legendre_dfly_l1(Legendre(N, G2), Cert, 10)
         @test_throws ArgumentError legendre_dfly_smallest_M(Legendre(N), Cert)
+
+        # the direct defect of lem:legendre-deltaN: its two terms, by the tails at R and ρ
+        δ = legendre_galerkin_defect(B, Cert, 64)
+        C2 = 2 * Cert.W / sqrt(1 - (3.5 / 3.75)^2)
+        δex = C2 * 4.0^(-65) / sqrt(1 - 4.0^-2) + sqrt(Cert.W) * 3.75^(-65) / sqrt(1 - 3.75^-2)
+        @test IA.inf(δ) <= δex * (1 + 1e-12) && δex <= IA.sup(δ) * (1 + 1e-12)
+        @test IA.sup(legendre_galerkin_defect(B, Cert, 128)) < IA.inf(δ)
+        @test_throws ArgumentError legendre_galerkin_defect(Legendre(N, G2), Cert, 64)
     end
 
     @testset "L² resolvent on the mean-zero subspace" begin

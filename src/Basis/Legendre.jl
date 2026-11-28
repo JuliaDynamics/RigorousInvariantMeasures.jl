@@ -659,9 +659,11 @@ second term,
 ``B'_M = \sum_{j\le M}(2j+1)ρ^j``, as intervals, for the geometry of `B` and the `W` of
 `C` (checked as in [`legendre_dfly`](@ref)).
 
-!!! warning "Pending the paper's lemma"
-    This inequality is not yet stated in the Diffusion paper; the constants follow the
-    derivation below and are to be checked against the lemma once it is written.  Split
+!!! note "The paper's statement"
+    This is the first inequality of cor:legendre-LY-L1 in the Diffusion paper's Legendre
+    appendix (`sections/appendix-legendre.tex`, a draft not yet in the paper), whose second
+    inequality is the one for the seminorm ``V(f) = \|f - \ell(f)\|_ρ``,
+    ``V(Lf) \le A_MV(f) + (A_M + B'_M + 1)\|f\|_{L^1}``.  Split
     ``Lf = (I - \Pi^{\mathrm L}_M)Lf + \Pi^{\mathrm L}_MLf``.  The first term is bounded by
     lem:legendre-tail and ``\|Lf\|_R \le C_2\|f\|_ρ``.  For the second, the orthonormal
     Legendre coefficients are ``b_j = \langle Lf, \tilde P_j\rangle = \langle f, \tilde P_j\circ T\rangle``,
@@ -689,4 +691,29 @@ function legendre_dfly_l1_smallest_M(B::Legendre, C::EllipseCompatibility; Mmax:
                                      T = Float64)
     M, _ = legendre_dfly_smallest_M(B, C; Mmax, T)
     return (M, legendre_dfly_l1(B, C, M; T))
+end
+
+@doc raw"""
+    legendre_galerkin_defect(B::Legendre, C::EllipseCompatibility, N; T = Float64) -> Interval
+
+The bound of lem:legendre-deltaN on ``δ_N = \|L - Π^{\mathrm L}_NLΠ^{\mathrm L}_N\|_{\mathcal B_s\to L^2}``,
+``Π^{\mathrm L}_N`` the Legendre projection of degree ``N``, for the norm
+``\|f\|_s = \|f\|_{L^1} + \|f - \ell(f)\|_ρ`` of lem:legendre-two-norms (which dominates
+``\|f\|_ρ``):
+```math
+δ_N \le C_2\frac{R^{-(N+1)}}{(1 - R^{-2})^{1/2}} + W^{1/2}\frac{ρ^{-(N+1)}}{(1 - ρ^{-2})^{1/2}},
+```
+with ``C_2 = 2W/(1 - (r/ρ)^2)^{1/2}`` as in [`legendre_dfly`](@ref), for the geometry of `B`
+and the `W` of `C` (checked as there).  The first term is ``(I - Π^{\mathrm L}_N)L``, bounded by
+``\|Lf\|_R \le C_2\|f\|_ρ`` and [`legendre_l2_tail`](@ref) at ``R``; the second is
+``Π^{\mathrm L}_NL(I - Π^{\mathrm L}_N)``, bounded by ``\|L\|_{L^2} \le W^{1/2}`` and
+[`legendre_l2_tail`](@ref) at ``ρ``.  It replaces the bound
+``K_N(\|L\|_{s\to s} + M_w)`` of lem:deltaN, in which the constant ``B`` of the
+Lasota–Yorke inequality enters through ``\|L\|_{s\to s}``.
+"""
+function legendre_galerkin_defect(B::Legendre, C::EllipseCompatibility, N::Integer; T = Float64)
+    _check_certificate(B, C)
+    G = B.geometry
+    c = _legendre_dfly(G.ρ, G.R, G.r, C.W, 0; T)
+    return c.C₂ * legendre_l2_tail(G.R, N; T) + c.M_w * legendre_l2_tail(G.ρ, N; T)
 end

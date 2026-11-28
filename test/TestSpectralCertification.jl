@@ -70,6 +70,25 @@ const RIM = RigorousInvariantMeasures
         @test got ≤ expected + 1e-10
     end
 
+    @testset "two_norm_resolvent_lift (prop:bridge) and two_norm_fixed_point_bound" begin
+        A, B, Rb, δ = 0.5, 10.0, 3.0, 1e-4
+        E = 1.03
+        r = two_norm_resolvent_lift(A, B, Rb, δ; E_sw = E)
+        D = (1 - A) * (1 - Rb * δ) - B * Rb * δ
+        R = ((1 - A + B) * Rb * ((1 - A) * E + δ) / D + 1) / (1 - A)
+        @test RIM.IntervalArithmetic.inf(r.D) <= D <= RIM.IntervalArithmetic.sup(r.D)
+        @test RIM.IntervalArithmetic.inf(r.R) <= R * (1 + 1e-14) && R <= RIM.IntervalArithmetic.sup(r.R) * (1 + 1e-14)
+        # no D_N > 0, no bound
+        @test two_norm_resolvent_lift(A, B, Rb, 1e-1; E_sw = E).R === nothing
+        @test_throws ArgumentError two_norm_resolvent_lift(1.0, B, Rb, δ; E_sw = E)
+        # E_sw is required, and R_s grows with it
+        @test_throws UndefKeywordError two_norm_resolvent_lift(A, B, Rb, δ)
+        @test RIM.IntervalArithmetic.sup(two_norm_resolvent_lift(A, B, Rb, δ; E_sw = 1.0).R) < RIM.IntervalArithmetic.inf(r.R)
+        h = two_norm_fixed_point_bound(A, B; T = BigFloat)
+        @test h isa RIM.IntervalArithmetic.Interval{BigFloat}
+        @test RIM.IntervalArithmetic.inf(h) <= 21 <= RIM.IntervalArithmetic.sup(h)
+    end
+
     @testset "Prop A.14 scalar formula" begin
         # Synthetic check: Δ_k = 0 ⇒ β̃ = 0 ⇒ formula collapses to
         # S_N + |z|^{-N} E_sw K(z) (a^N E_{k,w→s} + b_N)

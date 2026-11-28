@@ -12,7 +12,16 @@
 
     w = invariant_vector(B, Q)
 
-    error = distance_from_invariant(B, D, Q, w, norms)
+    # The degenerate pair of dfly(::Aη, L1, D) has A ≥ 1 and bounds no invariant density,
+    # so the strong-norm bound is refused for it; the L¹ Lasota–Yorke pair of the annulus
+    # geometry ρ = η = 0.1, certified on the lift x -> 2x, has A < 1.
+    @test_throws ArgumentError distance_from_invariant(B, D, Q, w, norms)
+    Cert = certify_compatibility(AnnulusGeometry(0.099, 0.1, 0.19), x -> 2x; degree = 2,
+                                 n = 64, cover = 8)
+    _, c = annulus_dfly_l1_smallest_M(Cert)
+    pair = DFLYCoefficients(Aη(0.1), L1, IntervalArithmetic.sup(c.A_M),
+                            IntervalArithmetic.sup(1 + c.Bp_M))
+    error = distance_from_invariant(B, D, Q, w, norms; dfly_coefficients = pair)
     # Guards two bugs that used to cancel: the placeholder Aη dfly returned
     # B = 0, so invariant_measure_strong_norm_bound was 0, which hid a sign error
     # in weak_projection_error (it returned e^{+2πηN} instead of e^{-2πηN}).
