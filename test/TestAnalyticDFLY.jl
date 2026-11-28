@@ -1,5 +1,6 @@
 using RigorousInvariantMeasures
 using IntervalArithmetic
+using FFTW  # FFTWExt: the doubling-map testset assembles a FourierAnalytic basis
 
 @testset "Analytic DFLY (Aη and Eρ)" begin
     RIM = RigorousInvariantMeasures
@@ -155,6 +156,40 @@ using IntervalArithmetic
             @test B == 0.0
             @test isfinite(A) && A > 0
         end
+    end
+
+    @testset "annulus geometry and its certificate" begin
+        # T(x) = 2x + a sin(2πx)/(2π), a = 1/2, degree 2.  On Im x = ±r the exact values are
+        # min |Im T| = 2r - a sinh(2πr)/(2π) and min |T'| = 2 - a cosh(2πr) (at Re x = 1/2),
+        # and Re T' > 0 on the closed strip iff a cosh(2πr) < 2, i.e. r < acosh(4)/(2π) ≈ 0.3285.
+        twoπ = 2 * interval(π)
+        a = interval(0.5)
+        T(x) = 2x + a * sin(twoπ * x) / twoπ
+        Rex(r) = 2r - 0.5 * sinh(2π * r) / (2π)
+        Wex(r) = 2 / (2 - 0.5 * cosh(2π * r))
+        @test_throws ArgumentError AnnulusGeometry(0.2, 0.1, 0.3)
+        G = AnnulusGeometry(0.1, 0.12, 0.14)
+        C = certify_compatibility(G, T; degree = 2, n = 512, cover = 16)
+        @test C.G === G && C.lift === T && C.degree == 2
+        @test Rex(0.1) - 1e-3 < C.R_image <= Rex(0.1)
+        @test Wex(0.1) <= C.W < Wex(0.1) + 1e-3
+        @test_throws ArgumentError certify_compatibility(G, T; degree = 1, n = 512, cover = 16)
+        @test_throws ArgumentError certify_compatibility(AnnulusGeometry(0.1, 0.12, 0.15), T;
+                                                         degree = 2, n = 512, cover = 16)
+        @test_throws ArgumentError certify_compatibility(AnnulusGeometry(0.35, 0.4, 0.45), T;
+                                                         degree = 2, n = 512, cover = 16)
+        # the search: r = 0.35 fails the derivative check; R_image / r decreases in r here
+        rs = [0.05, 0.1, 0.2, 0.35]
+        S = search_annulus_geometry(T, rs; degree = 2, n = 512, cover = 16)
+        @test !S.table[end].feasible && S.r == 0.05 && S.cost == S.R_image / S.r
+        Sw = search_annulus_geometry(T, rs; degree = 2, cost = (r, R, W) -> R - r,
+                                     n = 512, cover = 16)
+        @test Sw.cost == maximum(e.cost for e in Sw.table)
+        Rb = Sw.r + (Sw.R_image - Sw.r) / 2
+        @test certify_compatibility(AnnulusGeometry(Sw.r, (Sw.r + Rb) / 2, Rb), T;
+                                    degree = 2, n = 512, cover = 16).R_image == Sw.R_image
+        @test_throws ArgumentError search_annulus_geometry(T, [0.35]; degree = 2, n = 512,
+                                                           cover = 16)
     end
 
 end

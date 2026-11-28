@@ -93,6 +93,9 @@ include("Preimages.jl")
 include("IntervalFFTCommon.jl")
 include("Basis/Fourier/FourierIndex.jl")
 export Fourier, FourierAnalytic, FourierAdjoint
+include("EllipseGeometry.jl")
+include("AnnulusGeometry.jl")
+export EllipseGeometry, EllipseCompatibility, certify_compatibility
 include("Basis/Chebyshev.jl")
 export Chebyshev, certify_spectral_gap
 export gram_matrix, inv_gram_matrix, gram_sqrt, inv_gram_sqrt
@@ -101,6 +104,14 @@ export bernstein_point, bernstein_parameter, bernstein_expansion,
     expands_bernstein_ellipse, to_symmetric_interval
 
 include("AnalyticDFLY.jl")
+
+include("Basis/Legendre.jl")
+export Legendre, legendre_basis, change_of_basis_matrices, change_of_basis,
+    galerkin_matrix,
+    galerkin_matrix_from_chebyshev, l2_resolvent_bound_average_zero,
+    l2_transfer_norm_bound, legendre_C_M, legendre_tau_M, legendre_l2_tail,
+    legendre_l2_tail_geometric, legendre_dfly, legendre_dfly_smallest_M,
+    legendre_dfly_l1, legendre_dfly_l1_smallest_M
 
 include("SpectralCertification.jl")
 

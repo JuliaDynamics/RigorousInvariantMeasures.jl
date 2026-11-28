@@ -26,13 +26,18 @@ basis assume; a basis built as `Chebyshev(p, k, WeightedSobolev(k, a), weak)` ca
 norm, and the constants derived for it so far are listed under
 [`weak_by_strong_and_aux_bound`](@ref).
 """
-struct Chebyshev{S<:NormKind,WK<:NormKind,T<:AbstractVector} <: Basis
+struct Chebyshev{S<:NormKind,WK<:NormKind,T<:AbstractVector,G} <: Basis
     p::T
     k::Integer
     strong::S
     weak::WK
+    # The EllipseGeometry the basis is built on, or `nothing`; set only by
+    # `Chebyshev(n, G::EllipseGeometry)`.
+    geometry::G
     # TODO: check in constructor that p is sorted, starts with 0 and ends with 1
 end
+Chebyshev(p::AbstractVector, k::Integer, strong::NormKind, weak::NormKind) =
+    Chebyshev(p, k, strong, weak, nothing)
 
 ChebCouples(n, T) = hcat(
     [
@@ -62,6 +67,17 @@ function Chebyshev(n::Integer, strong::Eρ; T = Float64)
     return Chebyshev(ChebPoints(n, T), 0, strong, L2())
 end
 Chebyshev(p::AbstractVector, strong::Eρ) = Chebyshev(p, 0, strong, L2())
+
+@doc raw"""
+    Chebyshev(n, G::EllipseGeometry; T = Float64)
+
+The Chebyshev basis of degree `n` with strong norm [`Eρ`](@ref)`(G.ρ)` and weak norm `L2`,
+built on the ellipse geometry `G`, which it stores.  The geometry holds no dynamic;
+[`certify_compatibility`](@ref)`(G, D)` proves that a map is compatible with it.  The
+Legendre basis on the same geometry and of the same degree is [`legendre_basis`](@ref)`(B)`.
+"""
+Chebyshev(n::Integer, G::EllipseGeometry; T = Float64) =
+    Chebyshev(ChebPoints(n, T), 0, Eρ(G.ρ), L2(), G)
 
 @doc raw"""
     Chebyshev(n, a::WeightedSobolev; weak = L2, T = Float64)
